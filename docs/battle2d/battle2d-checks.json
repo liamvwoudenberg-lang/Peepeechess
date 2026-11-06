@@ -1,0 +1,23 @@
+[
+  {
+    "all18UnitStylesRendered": true,
+    "independentWeapons": true,
+    "actualLegalCaptures": 18,
+    "particleNodeBudgetBelow100": true
+  },
+  {
+    "enPassantBothOrientations": true,
+    "underpromotion": true,
+    "castlingBothActors": true,
+    "interruptedBattleSettles": true,
+    "checkmateKingSurvives": true
+  },
+  {
+    "offAndReducedMotionImmediate": true,
+    "lightModeStillHasShortFight": true,
+    "onlineDurationUnder500ms": true
+  },
+  {
+    "browserErrors": []
+  }
+]

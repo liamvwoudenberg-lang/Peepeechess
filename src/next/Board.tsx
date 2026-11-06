@@ -5,6 +5,8 @@ import { Piece } from "./Piece";
 import { PIECE_NAMES, type PieceSet, type Ply } from "./contracts";
 import { captureProfile, type CaptureProfile } from "../game/battleProfiles";
 import { battleAudio } from "../game/battleAudio";
+import { Battle2D } from "./Battle2D";
+import { planBattle2D, type Battle2DPlan } from "../game/battle2D";
 
 interface Props {
   fen: string;
@@ -15,6 +17,8 @@ interface Props {
   animationMode?: "off" | "brief" | "cinematic";
   reducedMotion?: boolean;
   sound?: boolean;
+  competitive?: boolean;
+  lightweight?: boolean;
   selected: Square | null;
   onSelect: (sq: Square) => void;
   onMove: (from: Square, to: Square) => void;
@@ -36,6 +40,8 @@ export const Board = memo(function Board(props: Props) {
     animationMode = "brief",
     reducedMotion = false,
     sound = false,
+    competitive = false,
+    lightweight = false,
     selected,
     onSelect,
     onMove,
@@ -47,6 +53,17 @@ export const Board = memo(function Board(props: Props) {
     coordinates,
     hint,
   } = props;
+  const [systemReduced, setSystemReduced] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)"),
+      changed = () => setSystemReduced(query.matches);
+    query.addEventListener?.("change", changed);
+    return () => query.removeEventListener?.("change", changed);
+  }, []);
   const chess = useMemo(() => new Chess(fen), [fen]);
   const previousFen = useRef<string | null>(null);
   const [visual, setVisual] = useState<{
@@ -58,6 +75,8 @@ export const Board = memo(function Board(props: Props) {
     captured?: PieceSymbol;
     profile: CaptureProfile | null;
     id: string;
+    plan: Battle2DPlan | null;
+    rookCastle?: { from: Square; to: Square };
   } | null>(null);
   useEffect(() => {
     const before = previousFen.current;
@@ -88,7 +107,26 @@ export const Board = memo(function Board(props: Props) {
     let impact = move.to;
     if (move.flags.includes("e"))
       impact = `${move.to[0]}${move.color === "w" ? "5" : "4"}` as Square;
-    const animated = animationMode !== "off" && !reducedMotion;
+    const plan = profile
+      ? planBattle2D(profile, {
+          mode: animationMode,
+          competitive,
+          lightweight,
+          reducedMotion: reducedMotion || systemReduced,
+        })
+      : null;
+    const animated =
+      animationMode !== "off" &&
+      !reducedMotion &&
+      !systemReduced &&
+      (!profile || typeof Element.prototype.animate === "function");
+    const rookCastle =
+      move.flags.includes("k") || move.flags.includes("q")
+        ? {
+            from: `${move.flags.includes("k") ? "h" : "a"}${move.color === "w" ? "1" : "8"}` as Square,
+            to: `${move.flags.includes("k") ? "f" : "d"}${move.color === "w" ? "1" : "8"}` as Square,
+          }
+        : undefined;
     if (animated)
       setVisual({
         from: move.from,
@@ -98,28 +136,36 @@ export const Board = memo(function Board(props: Props) {
         color: move.color,
         profile,
         captured: move.captured,
+        plan,
+        rookCastle,
         id: `${before}-${move.san}`,
       });
     const timers: ReturnType<typeof setTimeout>[] = [];
     if (sound) {
       battleAudio.setEnabled(true);
-      if (profile) {
-        battleAudio.windup(profile);
-        timers.push(
-          setTimeout(
-            () => {
-              battleAudio.impact(profile);
-              battleAudio.defeat(profile);
-            },
-            animated ? 85 : 0,
-          ),
-        );
-      } else battleAudio.step(armies[move.color], move.piece);
+      if (profile && !animated) {
+        battleAudio.impact(profile);
+        battleAudio.defeat(profile);
+      } else if (!profile) battleAudio.step(armies[move.color], move.piece);
     }
     if (animated)
-      timers.push(setTimeout(() => setVisual(null), profile ? 310 : 150));
+      timers.push(
+        setTimeout(
+          () => setVisual(null),
+          profile ? (plan?.duration || 0) + 24 : 150,
+        ),
+      );
     return () => timers.forEach(clearTimeout);
-  }, [fen, armies.w, armies.b, animationMode, reducedMotion]);
+  }, [
+    fen,
+    armies.w,
+    armies.b,
+    animationMode,
+    reducedMotion,
+    systemReduced,
+    competitive,
+    lightweight,
+  ]);
   const grid = useRef<HTMLDivElement>(null);
   const pointer = useRef<{
     from: Square;
@@ -155,7 +201,7 @@ export const Board = memo(function Board(props: Props) {
   }
   return (
     <div
-      className={`board-frame arena-${arena} orientation-${orientation}`}
+      className={`board-frame ${visual?.profile ? "has-battle2d" : ""} arena-${arena} orientation-${orientation}`}
       style={
         {
           "--light-square": hex(
@@ -288,7 +334,7 @@ export const Board = memo(function Board(props: Props) {
                       className={
                         drag && pointer.current?.from === sq
                           ? "drag-origin"
-                          : visual?.to === sq
+                          : visual?.to === sq || visual?.rookCastle?.to === sq
                             ? "move-arrival"
                             : ""
                       }
@@ -317,63 +363,49 @@ export const Board = memo(function Board(props: Props) {
       </div>
       {visual &&
         (() => {
-          const from = squares.indexOf(visual.from),
-            to = squares.indexOf(visual.to),
-            impact = squares.indexOf(visual.impact);
-          return (
-            <div
-              className={`board-animation ${visual.profile ? `capture-move motion-${visual.profile.motion}` : ""}`}
-              key={visual.id}
-              aria-hidden="true"
-            >
+          if (visual.profile && visual.captured && visual.plan)
+            return (
+              <Battle2D
+                key={visual.id}
+                duel={{
+                  ...visual,
+                  captured: visual.captured,
+                  plan: visual.plan,
+                }}
+                orientation={orientation}
+                armies={armies}
+                sound={sound}
+              />
+            );
+          const moving = (from: Square, to: Square, type: PieceSymbol) => {
+            const a = squares.indexOf(from),
+              b = squares.indexOf(to);
+            return (
               <div
                 className="moving-miniature"
+                key={type}
                 style={
                   {
-                    left: `${(to % 8) * 12.5}%`,
-                    top: `${Math.floor(to / 8) * 12.5}%`,
-                    "--move-x": `${((from % 8) - (to % 8)) * 100}%`,
-                    "--move-y": `${(Math.floor(from / 8) - Math.floor(to / 8)) * 100}%`,
+                    left: `${(b % 8) * 12.5}%`,
+                    top: `${Math.floor(b / 8) * 12.5}%`,
+                    "--move-x": `${((a % 8) - (b % 8)) * 100}%`,
+                    "--move-y": `${(Math.floor(a / 8) - Math.floor(b / 8)) * 100}%`,
                   } as React.CSSProperties
                 }
               >
                 <Piece
-                  type={visual.type}
+                  type={type}
                   color={visual.color}
                   set={armies[visual.color]}
                 />
               </div>
-              {visual.profile && visual.captured && (
-                <div
-                  className={`defender-miniature death-${visual.profile.death} finisher-${visual.profile.finisher}`}
-                  style={{
-                    left: `${(impact % 8) * 12.5}%`,
-                    top: `${Math.floor(impact / 8) * 12.5}%`,
-                  }}
-                >
-                  <Piece
-                    type={visual.captured}
-                    color={visual.color === "w" ? "b" : "w"}
-                    set={armies[visual.color === "w" ? "b" : "w"]}
-                  />
-                </div>
-              )}
-              {visual.profile && (
-                <div
-                  className={`capture-flourish fx-${visual.profile.vfx} death-${visual.profile.death}`}
-                  data-capture={visual.profile.id}
-                  data-finisher={visual.profile.finisher}
-                  style={{
-                    left: `${(impact % 8) * 12.5}%`,
-                    top: `${Math.floor(impact / 8) * 12.5}%`,
-                  }}
-                >
-                  <i />
-                  <i />
-                  <b />
-                  <em />
-                </div>
-              )}
+            );
+          };
+          return (
+            <div className="board-animation" key={visual.id} aria-hidden="true">
+              {moving(visual.from, visual.to, visual.type)}
+              {visual.rookCastle &&
+                moving(visual.rookCastle.from, visual.rookCastle.to, "r")}
             </div>
           );
         })()}

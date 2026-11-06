@@ -52,6 +52,8 @@ import { inviteCodeFrom, isNativeApp, inviteSessionKey } from "./next/mobile";
 import type { InviteInfo } from "./next/contracts";
 import { Board } from "./next/Board";
 import { GameBoard } from "./next/GameBoard";
+import { planBattle2D } from "./game/battle2D";
+import { captureProfile } from "./game/battleProfiles";
 import { homeArena, ARENAS } from "./game/battleProfiles";
 import { Piece } from "./next/Piece";
 import { Social } from "./next/Social";
@@ -615,20 +617,69 @@ export function App() {
     setThinking(true);
     const id = game.id,
       fen = game.fen;
+    let presentationDelay = 0,
+      replyTimer: ReturnType<typeof setTimeout> | undefined,
+      finishWait: (() => void) | undefined;
+    // Let a local, untimed capture finish. Timed and human games never wait.
+    if (
+      view === "2d" &&
+      game.timeControl === "untimed" &&
+      game.history.length
+    ) {
+      try {
+        const last = game.history[game.history.length - 1],
+          before =
+            game.history.length > 1
+              ? game.history[game.history.length - 2].fen
+              : game.initialFen,
+          replay = new Chess(before),
+          move = replay.move({
+            from: last.from,
+            to: last.to,
+            promotion: last.promotion,
+          });
+        if (move.captured) {
+          const p = captureProfile(
+            armies[move.color],
+            move.piece,
+            armies[move.color === "w" ? "b" : "w"],
+            move.captured,
+            move.color,
+          );
+          const duration = planBattle2D(p, {
+            mode: preferences.battleAnimations,
+            lightweight: efficient,
+            reducedMotion:
+              preferences.reducedMotion ||
+              window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+          }).duration;
+          presentationDelay = duration ? duration + 24 : 0;
+        }
+      } catch {}
+    }
+    const answerAfter = performance.now() + presentationDelay;
     void engine
       .run({ action: "move", fen, elo: game.elo })
-      .then((result) => {
+      .then(async (result) => {
+        const remaining = answerAfter - performance.now();
+        if (!cancelled && remaining > 0)
+          await new Promise<void>((resolve) => {
+            finishWait = resolve;
+            replyTimer = setTimeout(resolve, remaining);
+          });
         if (
           !cancelled &&
           result.move &&
           gameRef.current?.id === id &&
           gameRef.current.fen === fen
-        )
+        ) {
+          setThinking(false);
           localMoveRef.current(
             result.move.from,
             result.move.to,
             result.move.promotion,
           );
+        }
       })
       .catch(() => {
         if (!cancelled)
@@ -641,6 +692,8 @@ export function App() {
       });
     return () => {
       cancelled = true;
+      if (replyTimer) clearTimeout(replyTimer);
+      finishWait?.();
     };
   }, [game?.fen, game?.id, game?.status, paused]);
   useEffect(() => {
@@ -1680,7 +1733,12 @@ export function App() {
                       view={view}
                       models={!efficient}
                       allowSlow={preferences.efficiency === "off"}
-                      competitive={Boolean(isHuman)}
+                      competitive={Boolean(
+                        isHuman ||
+                          (game?.mode === "computer" &&
+                            game.timeControl !== "untimed"),
+                      )}
+                      lightweight={efficient}
                       animationMode={preferences.battleAnimations}
                       reducedMotion={preferences.reducedMotion}
                       sound={preferences.sound}
@@ -3007,7 +3065,7 @@ export function App() {
                 }
               >
                 <option value="cinematic">
-                  Cinematic · full encounters in 3D
+                  Cinematic · full fights in both views
                 </option>
                 <option value="brief">Brief · quick strikes</option>
                 <option value="off">Off · instant moves</option>

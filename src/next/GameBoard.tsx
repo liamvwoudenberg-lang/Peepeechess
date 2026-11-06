@@ -56,6 +56,7 @@ export function GameBoard({
       <div className="model-input">
         <Board
           {...board}
+          competitive={competitive}
           animationMode={active && ready ? "off" : board.animationMode}
           sound={active && ready ? false : board.sound}
         />

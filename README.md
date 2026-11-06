@@ -44,11 +44,13 @@ The earlier Node WebSocket service remains as a compatibility implementation and
 - **Choose your legion** appears before computer games and matchmaking, in friend-link previews, and before sending/accepting friend challenges. Local and online matches keep the chosen factions fixed. Cosmetics do not change legal moves or strength.
 - **2D pieces** are original ink drawings: round-headed pawns, horse-profile knights, split bishop mitres, rook battlements, five-point queen crowns and king crosses. Elven ears, skull faces, shields and signature weapons are drawn relatives of their 3D counterparts. White stays ivory; Black wears obsidian, red and purple. Drawings and models share `src/game/legionIdentity.ts`.
 - **Board contrast** uses quieter midtone squares and matte 3D materials, with at least 3:1 contrast between the armor source colors and every board square. This is a source-color check, not a measurement of every lit 3D pixel. Strong ink edges keep illustrated pieces readable on both colors.
-- **Light graphics** uses a roughly 225 KB WebP atlas with PNG fallback, preserves touch/drag/keyboard play, and avoids WebGL. Editable artwork is `public/pieces/legions-drawn.svg`; regenerate it with `npm run art:draw`, then rasterize using `BASE_URL=http://localhost:3021 python scripts/render-drawn-pieces.py` against a running development server.
+- **Light graphics** uses a roughly 225 KB WebP atlas with PNG fallback, preserves touch/drag/keyboard play, and avoids WebGL. Editable artwork is `public/pieces/legions-drawn.svg`; regenerate it with `npm run art:draw`, then rasterize both the complete figures and separate battle bodies with `python scripts/render-drawn-pieces.py`. Rasterization requires Playwright/Chromium, but no running server.
 - **Royal Guard** hosts Dawn Citadel, **Silverwood Elves** host Silverwood Sanctuary, and **Hollow Legion** hosts Ossuary Keep. The halls contain masonry walls, flagstone floors, galleries, windows, banners, a home throne, and faction details. There is no floating mountain backdrop or photograph texture download.
 - White always uses ivory/angelic armor and gold. Black uses obsidian, crimson and purple. Knights have real horses, including a skeletal mount. Both players see the actual factions chosen for that match.
 - Eighteen signature weapons and attack performances combine with six target reactions and faction defeat effects: 324 deterministic matchup profiles. These are procedural combinations, not 324 individually authored animation clips. Kings remain on the board at checkmate; king-target previews are explicitly staged.
+- **2D fights** have all 18 attack signatures: independently moving swords, lances, bows, hammers, axes, scythes and spells. Figures parry and recoil; armour fragments, elven petals or skeletal bones follow the captured faction. The illustrated bodies stay upright while weapons aim toward the opponent. En passant attacks the actual victim square, promotion keeps the chosen piece, and castling moves both figures. The effects use browser transform/opacity animations without loading Three.js.
 - Choose full, brief, or off animation settings. Online battles remain brief, moves and clocks update immediately, and a new move settles unfinished cosmetic effects. Armory includes a matchup preview and a close control. Low-power mode keeps optional previews off.
+- Cinematic 2D captures last about 1–1.25 seconds; brief fights take 480 ms, competitive fights at most 460 ms, and Light mode 340 ms with no particles. Reduced motion (including the operating-system setting) and Off show the result immediately. In untimed computer games the worker calculates during a capture and applies its reply after the fight; pause cancels that pending reply. Timed games and human opponents never wait for an animation.
 
 ## Chess, learning, and social play
 
@@ -75,7 +77,10 @@ BASE_URL=http://localhost:3000 python tests/legions-browser.py
 BASE_URL=http://localhost:3000 python tests/focus-navigation-browser.py
 BASE_URL=http://localhost:3000 python tests/browser.py
 BASE_URL=http://localhost:3000 python tests/interaction.py
+BASE_URL=http://localhost:3000 python tests/battle2d-app-browser.py
 ```
+
+The 2D choreography fixture runs only on the development server: `BASE_URL=http://localhost:3000 python tests/battle2d-browser.py`. It is excluded from the production bundle. Current 2D results are in [docs/battle2d/VERIFICATION.md](docs/battle2d/VERIFICATION.md).
 
 For the current phone/invite checks, run `BASE_URL=http://localhost:3000 python tests/mobile-invite-browser.py`. Results and screenshots are in [docs/legion-update/VERIFICATION.md](docs/legion-update/VERIFICATION.md).
 

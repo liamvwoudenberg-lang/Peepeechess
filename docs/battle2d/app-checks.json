@@ -1,0 +1,25 @@
+[
+  {
+    "untimedWorkerReplyAfterFight": true,
+    "cpuThrottle": 6,
+    "replyAfterMs": 1228,
+    "phoneWidth": 360
+  },
+  {
+    "pauseCancelsPendingReply": true,
+    "resumeWorkerReply": true
+  },
+  {
+    "offlineCaptureAndWorker": true,
+    "offlineBattleBodyBytes": 208244
+  },
+  {
+    "realTwoClientInviteCapture": true,
+    "onlineFightUnder500ms": true,
+    "logicalMovesImmediate": true,
+    "noOnlineCoach": true
+  },
+  {
+    "browserErrors": []
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "applicationId": "com.sovereignsgambit.chess",
+  "versionName": "1.2",
+  "versionCode": 3,
+  "minSdk": 23,
+  "targetSdk": 35,
+  "signatures": "v1 and v2 verified with apksigner",
+  "webFilesMatchBuild": 26,
+  "battleBodiesBundled": true,
+  "defaultOnlineWebsite": "https://cheesy-indol.vercel.app",
+  "physicalDeviceTest": false,
+  "bytes": 6607053,
+  "sha256": "f1387c4df7ebfd58499094af715da367a2f3eb9ca115a1aff3a74e896b44a709"
+}

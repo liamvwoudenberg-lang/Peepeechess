@@ -8,11 +8,13 @@ export const Piece = memo(function Piece({
   color,
   set = "royal",
   decorative = false,
+  unarmed = false,
 }: {
   type: PieceSymbol;
   color: Color;
   set?: PieceSet;
   decorative?: boolean;
+  unarmed?: boolean;
 }) {
   const col = ["p", "n", "b", "r", "q", "k"].indexOf(type),
     row =
@@ -20,7 +22,7 @@ export const Piece = memo(function Piece({
       (color === "b" ? 1 : 0);
   return (
     <span
-      className={`chess-piece miniature-icon side-${color} set-${set}`}
+      className={`chess-piece miniature-icon ${unarmed ? "battle-body" : ""} side-${color} set-${set}`}
       data-piece={`${color}${type}`}
       aria-hidden="true"
       style={{ backgroundPosition: `${col * 20}% ${row * 20}%` }}

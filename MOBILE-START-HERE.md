@@ -6,11 +6,13 @@ Install `sovereigns-gambit-android.apk` on an Android phone. Android may ask you
 
 The game opens in 3D on capable phones. Choose a legion before starting. The 2D board uses original ink drawings that share the 3D characters’ livery and role silhouettes. It supports touch moves and stays readable from either side. You can switch views any time. Keep Performance mode on Auto or Light for older phones.
 
+Version 1.2 adds distinct 2D fights for all 18 legion units, with moving weapons, arrows and spells, plus faction defeat effects. **Appearance and preferences → Battle animations** controls both views. Light mode keeps 2D fights to 340 ms and removes particles; reduced motion or Off shows captures immediately. The APK and installed web app include the battle artwork for offline play. Untimed computer games let the fight finish before the reply; online and timed matches keep moves and clocks immediate.
+
 ## Online play uses the included website address
 
 The APK is preconfigured for **https://cheesy-indol.vercel.app/**. It keeps the game bundled for offline play; it uses that website’s API for online profiles, friend links and matchmaking. You can change the website in settings. Your browser and APK have separate player profiles.
 
-The website’s multiplayer API needs a working Vercel deployment with Upstash Redis. See [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md). A functioning website alone does not guarantee the API/storage are configured. At the start of this update the endpoint returned HTTP 500; this update fixes native ESM server imports and includes a regression check against emitted JavaScript.
+The website’s multiplayer API needs a working Vercel deployment with Upstash Redis. See [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md). A functioning website alone does not guarantee the API/storage are configured. The current endpoint returns `ONLINE_NOT_CONFIGURED` (HTTP 503); configure its Redis environment variables in Vercel before using online modes. The earlier native ESM import failure has been fixed.
 
 To play online once the server is ready:
 

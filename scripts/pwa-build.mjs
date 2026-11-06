@@ -10,6 +10,8 @@ const files = [
   "/icons/apple-touch-icon.png",
   "/pieces/legions-drawn.webp",
   "/pieces/legions-drawn.png",
+  "/pieces/legions-battle-body.webp",
+  "/pieces/legions-battle-body.png",
   ...assets,
 ];
 const hash = createHash("sha256");

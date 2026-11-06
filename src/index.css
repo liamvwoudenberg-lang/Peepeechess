@@ -5575,3 +5575,133 @@ svg {
 .focus-game .board-status {
   display: flex;
 }
+
+/* 2D duels use composited transforms and opacity, with independently drawn weapons. */
+.miniature-icon.battle-body {
+  background-image: url("/pieces/legions-battle-body.png");
+  background-image: image-set(
+    url("/pieces/legions-battle-body.webp") type("image/webp") 1x,
+    url("/pieces/legions-battle-body.png") type("image/png") 1x
+  );
+}
+.board-animation.battle-2d {
+  isolation: isolate;
+  pointer-events: none;
+}
+.duel-actor,
+.duel-impact,
+.duel-projectile,
+.duel-fleck-cell {
+  position: absolute;
+  width: 12.5%;
+  height: 12.5%;
+  pointer-events: none;
+}
+.duel-attacker {
+  z-index: 3;
+  will-change: transform;
+}
+.duel-defender {
+  z-index: 2;
+  will-change: transform, opacity;
+}
+.duel-pose {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 82%;
+  will-change: transform;
+}
+.duel-actor > .miniature-icon,
+.duel-pose > .miniature-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.duel-aim,
+.duel-weapon {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 50% 62%;
+}
+.duel-weapon {
+  will-change: transform, opacity;
+}
+.duel-weapon-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.duel-projectile {
+  z-index: 5;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.duel-projectile > svg,
+.duel-impact > svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.duel-impact {
+  z-index: 6;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.duel-beam {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.duel-fleck-cell {
+  z-index: 6;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.duel-fleck {
+  position: absolute;
+  left: 43%;
+  top: 44%;
+  width: 17%;
+  height: 17%;
+  display: block;
+}
+.duel-fleck svg {
+  width: 100%;
+  height: 100%;
+  fill: var(--battle-color);
+  stroke: #1d2330;
+  stroke-width: 1.4;
+}
+.defeat-bone_scatter .duel-fleck svg {
+  fill: #e8dfca;
+}
+.defeat-petal_dissolve .duel-fleck svg {
+  fill: var(--battle-color);
+  stroke-width: 0.8;
+}
+.efficient .board-animation.battle-2d {
+  display: block;
+}
+.board-frame.has-battle2d .move-arrival {
+  visibility: hidden;
+}
+.battle-light .duel-beam,
+.battle-light .duel-fleck-cell {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-animation.battle-2d {
+    display: none !important;
+  }
+  .board-frame.has-battle2d .move-arrival {
+    visibility: visible;
+  }
+}

@@ -424,7 +424,7 @@ export function Armory({
               })
             }
           >
-            <option value="cinematic">Cinematic · full encounters in 3D</option>
+            <option value="cinematic">Cinematic · full fights in both views</option>
             <option value="brief">Brief · quick strikes</option>
             <option value="off">Off · instant moves</option>
           </select>
