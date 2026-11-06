@@ -16,12 +16,12 @@ with sync_playwright() as p:
  hostctx,host=context('elves',True);host.goto(BASE,wait_until='networkidle');expect(host.locator('.connection-status')).to_have_text('Connected')
  assert host.locator('canvas').count()==0
  assert host.locator('.miniature-board').get_attribute('data-renderer')=='atlas'
- host.get_by_role('button',name='Friend',exact=True).click();host.get_by_role('button',name='Share a friend link',exact=True).click()
+ host.get_by_role('button',name='Choose Silverwood Elves',exact=True).click();host.get_by_role('button',name='Friend',exact=True).click();host.get_by_role('button',name='Share a friend link',exact=True).click()
  host.get_by_label('Your side',exact=True).select_option('b');host.get_by_role('button',name='Create invite link',exact=True).click()
  field=host.get_by_label('Friend invite link',exact=True);expect(field).to_be_visible();url=field.input_value();assert '?play=' in url
  assert host.evaluate('document.documentElement.scrollWidth')==360
  host.screenshot(path=str(OUT/'phone-create-invite.png'),full_page=True)
- guestctx,guest=context('skeletons');guest.goto(url,wait_until='networkidle');expect(guest.get_by_role('button',name='Join match',exact=True)).to_be_enabled();guest.screenshot(path=str(OUT/'friend-join.png'),full_page=True);guest.get_by_role('button',name='Join match',exact=True).click()
+ guestctx,guest=context('skeletons');guest.goto(url,wait_until='networkidle');guest.get_by_role('dialog').get_by_role('button',name='Choose Hollow Legion',exact=True).click();expect(guest.get_by_role('button',name='Join match',exact=True)).to_be_enabled();guest.screenshot(path=str(OUT/'friend-join.png'),full_page=True);guest.get_by_role('button',name='Join match',exact=True).click()
  for pg in [host,guest]:pg.wait_for_function("window.__game?.phase==='playing'",timeout=25000)
  hg,gg=[pg.evaluate('window.__game') for pg in [host,guest]]
  assert hg['yourColor']=='b' and gg['yourColor']=='w';assert hg['arena']==gg['arena']=='ossuary';assert hg['armies']==gg['armies']=={'w':'skeletons','b':'elves'};assert hg['rated']==False
@@ -37,13 +37,13 @@ with sync_playwright() as p:
  # Installable shell is fetched on HTTPS/localhost; reload and play without the network.
  offctx,offline=context(mobile=True);offline.goto(BASE,wait_until='networkidle');offline.evaluate('navigator.serviceWorker.ready');offline.wait_for_function('navigator.serviceWorker.controller!==null')
  manifest=offline.evaluate("fetch('/manifest.webmanifest').then(r=>r.json())");assert manifest['display']=='standalone'
- offctx.new_cdp_session(offline).send('Emulation.setCPUThrottlingRate',{'rate':6});offctx.set_offline(True);offline.reload(wait_until='domcontentloaded');offline.get_by_role('button',name='Play computer',exact=True).click();offline.locator('[data-square=e2]').tap();offline.locator('[data-square=e4]').tap();offline.wait_for_function('document.querySelectorAll(".move-row button").length>=2',timeout=20000)
+ offctx.new_cdp_session(offline).send('Emulation.setCPUThrottlingRate',{'rate':6});offctx.set_offline(True);offline.reload(wait_until='domcontentloaded');offline.get_by_role('button',name='Choose Royal Guard',exact=True).click();offline.get_by_role('button',name='Play computer',exact=True).click();offline.locator('[data-square=e2]').tap();offline.locator('[data-square=e4]').tap();offline.wait_for_function('document.querySelectorAll(".move-row button").length>=2',timeout=20000)
  assert offline.locator('canvas').count()==0;offline.screenshot(path=str(OUT/'phone-offline-computer.png'),full_page=True)
  results.append({'installedWebShellOffline':True,'offlineComputerWorkerReplies':True,'default2DNoWebGL':True,'cpuThrottle6x':True})
- # The APK serves the bundled web build and uses this same native-platform branch.
- nativectx,native=context(mobile=True,native=True);native.goto(BASE,wait_until='networkidle');expect(native.locator('.connection-status')).to_have_text('Offline ready');assert native.evaluate('window.__api')==0
- native.get_by_role('button',name='Play computer',exact=True).click();native.locator('[data-square=d2]').tap();native.locator('[data-square=d4]').tap();native.wait_for_function('document.querySelectorAll(".move-row button").length>=2',timeout=20000)
- assert native.evaluate('window.__api')==0
- native.get_by_role('button',name='Appearance and preferences',exact=True).click();expect(native.get_by_label('Game website address',exact=True)).to_be_visible();native.screenshot(path=str(OUT/'android-online-settings.png'),full_page=True)
- results.append({'nativeModeNoHostNoApiCalls':True,'nativeModeComputerReplies':True,'nativeWebsiteSettingAvailable':True,'nativeRuntimeEmulatedNotPhysicalDevice':True})
+ # The APK keeps offline play while its preconfigured website reconnects.
+ nativectx,native=context(mobile=True,native=True)
+ nativectx.route('https://cheesy-indol.vercel.app/api/chess',lambda r:r.fulfill(status=503,headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'POST, OPTIONS','Content-Type':'application/json'},body='{"error":"Online play is temporarily unavailable."}'))
+ native.goto(BASE,wait_until='networkidle');native.get_by_role('button',name='Choose Royal Guard',exact=True).click();native.get_by_role('button',name='Play computer',exact=True).click();native.locator('[data-square=d2]').tap();native.locator('[data-square=d4]').tap();native.wait_for_function('document.querySelectorAll(".move-row button").length>=2',timeout=20000)
+ native.get_by_role('button',name='Menu',exact=True).click();native.get_by_role('button',name='Appearance and preferences',exact=True).click();expect(native.get_by_label('Game website address',exact=True)).to_have_value('https://cheesy-indol.vercel.app');native.screenshot(path=str(OUT/'android-online-settings.png'),full_page=True)
+ results.append({'nativeDefaultWebsiteConfigured':True,'nativeModeComputerRepliesWithServerUnavailable':True,'nativeWebsiteSettingAvailable':True,'nativeRuntimeEmulatedNotPhysicalDevice':True})
  assert not errors,errors;results.append({'browserErrors':errors});(OUT/'mobile-invite-checks.json').write_text(json.dumps(results,indent=2));print(json.dumps(results,indent=2));b.close()

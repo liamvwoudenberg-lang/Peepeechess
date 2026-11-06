@@ -1,3 +1,5 @@
+> Previous mobile release. Current results and screenshots are in [the legion update](../legion-update/VERIFICATION.md).
+
 # Mobile and invitation update verification
 
 - TypeScript check passed; all **39 Node tests** passed.

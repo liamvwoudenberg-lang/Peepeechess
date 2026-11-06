@@ -25,6 +25,8 @@ import {
   Lightbulb,
   LoaderCircle,
   Menu,
+  Maximize2,
+  Minimize2,
   MessageCircle,
   Pause,
   Play,
@@ -45,6 +47,7 @@ import {
 } from "lucide-react";
 import { FriendInvite } from "./next/FriendInvite";
 import { MobileSettings } from "./next/MobileSettings";
+import { LegionPicker } from "./next/LegionPicker";
 import { inviteCodeFrom, isNativeApp, inviteSessionKey } from "./next/mobile";
 import type { InviteInfo } from "./next/contracts";
 import { Board } from "./next/Board";
@@ -165,7 +168,14 @@ export function App() {
     [reviewCursor, setReviewCursor] = useState<number | null>(null);
   const [adaptiveLowPower, setAdaptiveLowPower] = useState(false);
   const [dialog, setDialog] = useState<
-      "settings" | "profile" | "resign" | "import" | "invite" | null
+      | "settings"
+      | "profile"
+      | "resign"
+      | "import"
+      | "invite"
+      | "legion"
+      | "more"
+      | null
     >(null),
     [profileName, setProfileName] = useState(""),
     [profileWatch, setProfileWatch] = useState(true),
@@ -175,7 +185,18 @@ export function App() {
   const [emoteOpen, setEmoteOpen] = useState(false),
     [emote, setEmote] = useState<EmoteEvent | null>(null),
     [emoteReadyAt, setEmoteReadyAt] = useState(0),
-    [view, setView] = useState<"2d" | "3d">("2d");
+    [view, setView] = useState<"2d" | "3d">("3d");
+  const [focusMode, setFocusMode] = useState(true),
+    [matchPanelOpen, setMatchPanelOpen] = useState(false),
+    [browserFullscreen, setBrowserFullscreen] = useState(false);
+  useEffect(() => {
+    const changed = () =>
+      setBrowserFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", changed);
+    return () => document.removeEventListener("fullscreenchange", changed);
+  }, []);
+  const [legionConfirmed, setLegionConfirmed] = useState(false),
+    [pendingChallenge, setPendingChallenge] = useState<any>(null);
   const [exercise, setExercise] = useState<Exercise | null>(null),
     [exerciseStep, setExerciseStep] = useState(0),
     [exerciseMessage, setExerciseMessage] = useState(""),
@@ -271,6 +292,8 @@ export function App() {
       setHint(null);
       setFeedback(null);
       if (fresh) {
+        setFocusMode(true);
+        setMatchPanelOpen(false);
         setDialog(null);
         setIncomingCode(null);
         setInvitePreview(null);
@@ -285,7 +308,6 @@ export function App() {
         setPremove(null);
         setPromotion(null);
         setExercise(null);
-        setView("2d");
         setSideTab("moves");
       }
       if (next.status === "completed") {
@@ -331,6 +353,13 @@ export function App() {
         (navigator.hardwareConcurrency || 8) <= 4 ||
         Number((navigator as any).deviceMemory || 8) <= 4 ||
         (navigator as any).connection?.saveData));
+  useEffect(() => {
+    if (efficient) setView("2d");
+  }, [efficient]);
+  function chooseLegion(army: Preferences["pieceSet"]) {
+    setPreferences((p) => ({ ...p, pieceSet: army }));
+    setLegionConfirmed(true);
+  }
   const armies = useMemo(() => {
     if (game?.armies) return game.armies;
     const own = preferences.pieceSet,
@@ -774,11 +803,16 @@ export function App() {
     setFeedback(null);
     setHint(null);
     setReviewCursor(null);
-    setView("2d");
     setSideTab("moves");
     setThinking(false);
+    setFocusMode(true);
+    setMatchPanelOpen(false);
   }
   function startComputer() {
+    if (!legionConfirmed) {
+      notify("Choose your legion before starting.");
+      return;
+    }
     if (busy) {
       notify("Finish your online game first.");
       return;
@@ -791,7 +825,19 @@ export function App() {
       chosenSide === "random" ? (Math.random() < 0.5 ? "w" : "b") : chosenSide;
     const c = new Chess();
     chessRef.current = c;
-    const human = user || { id: "local", name: "You", rating: 1200 };
+    const ownArmy = preferences.pieceSet,
+      otherArmy =
+        preferences.opponentSet === "matching"
+          ? ownArmy
+          : preferences.opponentSet,
+      matchArmies =
+        color === "w"
+          ? { w: ownArmy, b: otherArmy }
+          : { w: otherArmy, b: ownArmy };
+    const human = {
+      ...(user || { id: "local", name: "You", rating: 1200 }),
+      army: ownArmy,
+    };
     const bot = {
       id: "computer",
       name:
@@ -806,6 +852,8 @@ export function App() {
     updateGame({
       id: `local-${newId()}`,
       mode: "computer",
+      armies: matchArmies,
+      arena: homeArena(matchArmies.w),
       initialFen: c.fen(),
       fen: c.fen(),
       history: [],
@@ -834,6 +882,7 @@ export function App() {
     if (spectator) connection.send({ type: "game:unwatch" });
     resetTransient();
     updateGame(null);
+    setLegionConfirmed(false);
     setExercise(null);
     setPage("play");
     window.scrollTo(0, 0);
@@ -1159,7 +1208,17 @@ export function App() {
     requests,
     challenges,
     messages,
-    send: connection.send,
+    send: (data: any) => {
+      if (
+        data.type === "challenge:send" ||
+        (data.type === "challenge:respond" && data.accept)
+      ) {
+        setPendingChallenge(data);
+        setDialog("legion");
+        return true;
+      }
+      return connection.send(data);
+    },
     notify,
     online,
     busy: Boolean((active && !spectator) || queued),
@@ -1250,6 +1309,30 @@ export function App() {
               : game?.mode === "lesson"
                 ? "Training grounds"
                 : "Standard chess";
+  const focused = Boolean(
+    focusMode &&
+      game &&
+      active &&
+      page === "play" &&
+      !exercise &&
+      reviewCursor === null,
+  );
+  useEffect(() => {
+    if (!focused) return;
+    const before = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = before;
+    };
+  }, [focused]);
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {
+      notify("The board already fills the available screen.");
+    }
+  }
   function resultTitle() {
     if (!game?.result) return game?.reason || "Game complete";
     if (game.result === "1/2-1/2") return "A well-fought draw.";
@@ -1263,7 +1346,7 @@ export function App() {
 
   return (
     <div
-      className={`app ${game ? "playing" : ""} ${efficient ? "efficient" : ""} ${preferences.reducedMotion ? "reduced-motion" : ""}`}
+      className={`app board-view-${view} ${focused ? "focus-game" : ""} ${matchPanelOpen ? "match-panel-open" : ""} ${game ? "playing" : ""} ${efficient ? "efficient" : ""} ${preferences.reducedMotion ? "reduced-motion" : ""}`}
     >
       <aside className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}>
         <a
@@ -1285,24 +1368,41 @@ export function App() {
         </a>
         <div className="sidebar-divider" />
         <nav aria-label="Main navigation">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item ${page === item.id ? "active" : ""}`}
-              onClick={() => {
-                setPage(item.id);
-                setMobileMenu(false);
-              }}
-            >
-              <item.icon size={21} />
-              <span>{item.label}</span>
-              {item.id === "friends" && badgeCount > 0 ? (
-                <b className="nav-badge">{badgeCount}</b>
-              ) : page === item.id ? (
-                <ChevronRight size={15} className="nav-chevron" />
-              ) : null}
-            </button>
-          ))}
+          {navItems
+            .filter((item) => ["play", "learn", "friends"].includes(item.id))
+            .map((item) => (
+              <button
+                key={item.id}
+                aria-label={item.label}
+                title={item.label}
+                className={`nav-item ${page === item.id ? "active" : ""}`}
+                onClick={() => {
+                  if (item.id === "play" && game && active) {
+                    setFocusMode(true);
+                    setMatchPanelOpen(false);
+                  }
+                  setPage(item.id);
+                  setMobileMenu(false);
+                }}
+              >
+                <item.icon size={21} />
+                <span>{item.label}</span>
+                {item.id === "friends" && badgeCount > 0 ? (
+                  <b className="nav-badge">{badgeCount}</b>
+                ) : page === item.id ? (
+                  <ChevronRight size={15} className="nav-chevron" />
+                ) : null}
+              </button>
+            ))}
+          <button
+            className="nav-item"
+            aria-label="More"
+            title="More"
+            onClick={() => setDialog("more")}
+          >
+            <Menu size={21} />
+            <span>More</span>
+          </button>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note">
@@ -1417,11 +1517,14 @@ export function App() {
               className="small-primary"
               disabled={Boolean(active && !spectator)}
               onClick={() =>
-                connection.send({
-                  type: "challenge:respond",
-                  id: incoming[0].id,
-                  accept: true,
-                })
+                (() => {
+                  setPendingChallenge({
+                    type: "challenge:respond",
+                    id: incoming[0].id,
+                    accept: true,
+                  });
+                  setDialog("legion");
+                })()
               }
             >
               Accept
@@ -1442,7 +1545,14 @@ export function App() {
           </div>
         )}
         {game && active && page !== "play" && (
-          <button className="return-game" onClick={() => setPage("play")}>
+          <button
+            className="return-game"
+            onClick={() => {
+              setFocusMode(true);
+              setMatchPanelOpen(false);
+              setPage("play");
+            }}
+          >
             <span className="live-dot" />
             {spectator
               ? "Watching a friend"
@@ -1488,6 +1598,51 @@ export function App() {
               </div>
               <div className={`play-layout ${!game ? "has-setup" : ""}`}>
                 <section className="board-column" aria-label="Chess game">
+                  {focused && (
+                    <div className="game-focus-bar">
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setFocusMode(false);
+                          setMatchPanelOpen(false);
+                        }}
+                      >
+                        <ArrowLeft size={18} />
+                        Menu
+                      </button>
+                      <span>
+                        {isHuman && !online ? "Reconnecting…" : modeTitle}
+                      </span>
+                      <div>
+                        <button
+                          className="icon-button"
+                          aria-label="Moves and game options"
+                          aria-expanded={matchPanelOpen}
+                          onClick={() => setMatchPanelOpen((v) => !v)}
+                        >
+                          <Menu size={20} />
+                        </button>
+                        {document.fullscreenEnabled && (
+                          <button
+                            className="icon-button"
+                            aria-label={
+                              browserFullscreen
+                                ? "Exit fullscreen"
+                                : "Enter fullscreen"
+                            }
+                            onClick={() => void toggleFullscreen()}
+                          >
+                            {browserFullscreen ? (
+                              <Minimize2 size={18} />
+                            ) : (
+                              <Maximize2 size={18} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {isHuman && game?.phase === "connecting" && (
                     <div className="online-connection-panel" role="status">
                       <strong>Connecting to your opponent…</strong>
@@ -1523,7 +1678,7 @@ export function App() {
                       armies={armies}
                       arena={homeMap}
                       view={view}
-                      models={Boolean(game && !efficient)}
+                      models={!efficient}
                       allowSlow={preferences.efficiency === "off"}
                       competitive={Boolean(isHuman)}
                       animationMode={preferences.battleAnimations}
@@ -1652,7 +1807,19 @@ export function App() {
                       </button>
                     </div>
                     <div>
-                      {game && (
+                      {game && active && !focused && !exercise && (
+                        <button
+                          className="icon-button"
+                          aria-label="Focus on board"
+                          onClick={() => {
+                            setFocusMode(true);
+                            setMatchPanelOpen(false);
+                          }}
+                        >
+                          <Maximize2 size={18} />
+                        </button>
+                      )}
+                      {
                         <button
                           className="view-toggle"
                           aria-label={`Switch to ${view === "2d" ? "3D" : "2D"} board`}
@@ -1669,7 +1836,7 @@ export function App() {
                           {view === "2d" ? "2D pieces" : "3D castle"}
                           <ChevronDown size={13} />
                         </button>
-                      )}
+                      }
                       {game && active && !spectator && (
                         <div className="emote-control">
                           <button
@@ -1776,6 +1943,15 @@ export function App() {
                       </>
                     )}
                   </div>
+                  {focused && assistance && feedback && (
+                    <button
+                      className="focus-feedback text-button"
+                      onClick={() => setMatchPanelOpen(true)}
+                    >
+                      {feedback.san} · {feedback.verdict}
+                      <ChevronRight size={12} />
+                    </button>
+                  )}
                   {game && isHuman && (
                     <p className="fair-play-note">
                       <Shield size={13} />
@@ -1791,7 +1967,17 @@ export function App() {
                     </p>
                   )}
                 </section>
-                <aside className="game-panel-column">
+                <aside className="game-panel-column" aria-label="Match details">
+                  {focused && (
+                    <button
+                      className="focus-panel-close"
+                      aria-label="Close match details"
+                      onClick={() => setMatchPanelOpen(false)}
+                    >
+                      <X size={20} />
+                      Back to board
+                    </button>
+                  )}
                   {!game ? (
                     <section className="setup-panel panel">
                       <div className="panel-intro">
@@ -1827,143 +2013,144 @@ export function App() {
                           ),
                         )}
                       </div>
-                      {setupMode === "computer" ? (
-                        <>
-                          <div className="setup-group">
-                            <div className="field-heading">
-                              <label htmlFor="computer-elo">
-                                Computer strength
-                              </label>
-                              <span className="elo-pill">Simulated {elo}</span>
+                      <LegionPicker
+                        value={preferences.pieceSet}
+                        confirmed={legionConfirmed}
+                        disabled={queued}
+                        onChange={chooseLegion}
+                      />
+                      <details className="match-settings">
+                        <summary>
+                          <span>Match settings</span>
+                          <small>
+                            {setupMode === "computer"
+                              ? `Simulated ${elo} Elo · ${TIME_CONTROLS.find((t) => t.id === timeControl)?.label} · ${chosenSide === "w" ? "White" : chosenSide === "b" ? "Black" : "Random"} · Feedback ${moveFeedback ? "on" : "off"}`
+                              : setupMode === "online"
+                                ? `${TIME_CONTROLS.find((t) => t.id === timeControl)?.label} · Rated`
+                                : "Unrated · Choose time and side in your invite"}
+                          </small>
+                          <ChevronDown size={16} />
+                        </summary>
+                        {setupMode === "computer" ? (
+                          <>
+                            <div className="setup-group">
+                              <div className="field-heading">
+                                <label htmlFor="computer-elo">
+                                  Computer strength
+                                </label>
+                                <span className="elo-pill">
+                                  Simulated {elo}
+                                </span>
+                              </div>
+                              <input
+                                id="computer-elo"
+                                type="range"
+                                min="400"
+                                max="2000"
+                                step="200"
+                                value={elo}
+                                onChange={(e) => setElo(Number(e.target.value))}
+                              />
+                              <div className="range-labels">
+                                <span>Learning</span>
+                                <span>Challenging</span>
+                              </div>
+                              <p className="field-note">
+                                Simulated Elo is a training level, not a rated
+                                player.
+                              </p>
                             </div>
-                            <input
-                              id="computer-elo"
-                              type="range"
-                              min="400"
-                              max="2000"
-                              step="200"
-                              value={elo}
-                              onChange={(e) => setElo(Number(e.target.value))}
-                            />
-                            <div className="range-labels">
-                              <span>Learning</span>
-                              <span>Challenging</span>
+                            <div className="setup-group">
+                              <span className="field-label">Play as</span>
+                              <div className="side-picker">
+                                {(["w", "random", "b"] as const).map((side) => (
+                                  <button
+                                    key={side}
+                                    className={
+                                      chosenSide === side ? "chosen" : ""
+                                    }
+                                    aria-pressed={chosenSide === side}
+                                    onClick={() => setChosenSide(side)}
+                                  >
+                                    {side === "random" ? (
+                                      <span className="random-sides">◐</span>
+                                    ) : (
+                                      <Piece
+                                        type="k"
+                                        color={side}
+                                        set={preferences.pieceSet}
+                                      />
+                                    )}
+                                    <span>
+                                      {side === "w"
+                                        ? "White"
+                                        : side === "b"
+                                          ? "Black"
+                                          : "Random"}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <p className="field-note">
-                              Simulated Elo is a training level, not a rated
-                              player.
-                            </p>
-                          </div>
-                          <div className="setup-group">
-                            <span className="field-label">Play as</span>
-                            <div className="side-picker">
-                              {(["w", "random", "b"] as const).map((side) => (
-                                <button
-                                  key={side}
-                                  className={
-                                    chosenSide === side ? "chosen" : ""
-                                  }
-                                  aria-pressed={chosenSide === side}
-                                  onClick={() => setChosenSide(side)}
-                                >
-                                  {side === "random" ? (
-                                    <span className="random-sides">◐</span>
-                                  ) : (
-                                    <Piece
-                                      type="k"
-                                      color={side}
-                                      set={preferences.pieceSet}
-                                    />
-                                  )}
-                                  <span>
-                                    {side === "w"
-                                      ? "White"
-                                      : side === "b"
-                                        ? "Black"
-                                        : "Random"}
-                                  </span>
-                                </button>
-                              ))}
+                          </>
+                        ) : setupMode === "online" ? (
+                          <>
+                            <div className="online-intro">
+                              <Shield size={18} />
+                              <p>
+                                <strong>Real players. Real chess.</strong>
+                                <br />
+                                Rated standard chess. No tips or move feedback.
+                                White’s faction hosts the castle.
+                              </p>
                             </div>
-                          </div>
-                        </>
-                      ) : setupMode === "online" ? (
-                        <>
-                          <label className="select-field online-faction-choice">
-                            <strong>Your faction</strong>
-                            <select
-                              aria-label="Your faction"
-                              disabled={queued}
-                              value={preferences.pieceSet}
-                              onChange={(e) =>
-                                setPreferences((p) => ({
-                                  ...p,
-                                  pieceSet: e.target
-                                    .value as Preferences["pieceSet"],
-                                }))
-                              }
-                            >
-                              {SETS.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          </>
+                        ) : (
                           <div className="online-intro">
-                            <Shield size={18} />
+                            <Users size={19} />
                             <p>
-                              <strong>Real players. Real chess.</strong>
+                              <strong>A friendly rivalry.</strong>
                               <br />
-                              Rated standard chess. No tips or move feedback.
-                              White’s faction hosts the castle.
+                              Share a private link or choose someone from your
+                              friends list. Friendly games are unrated.
                             </p>
                           </div>
-                        </>
-                      ) : (
-                        <div className="online-intro">
-                          <Users size={19} />
-                          <p>
-                            <strong>A friendly rivalry.</strong>
-                            <br />
-                            Share a private link or choose someone from your
-                            friends list. Friendly games are unrated.
-                          </p>
-                        </div>
-                      )}
-                      {setupMode !== "friend" && (
-                        <div className="setup-group">
-                          <span className="field-label">Time control</span>
-                          <TimePicker
-                            value={timeControl}
-                            onChange={setTimeControl}
-                            allowUntimed={setupMode === "computer"}
-                            disabled={queued && setupMode === "online"}
-                          />
-                          {timeControl.includes("+") && (
-                            <p className="field-note">
-                              {timeControl.split("+")[0]} minutes each
-                              {timeControl.split("+")[1] !== "0"
-                                ? `, plus ${timeControl.split("+")[1]} seconds after every move`
-                                : ""}
-                              .
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      {setupMode === "computer" && (
-                        <div className="feedback-option">
-                          <Toggle
-                            checked={moveFeedback}
-                            onChange={setMoveFeedback}
-                            label="Move feedback"
-                            detail="See move quality and use optional hints."
-                          />
-                        </div>
-                      )}
+                        )}
+                        {setupMode !== "friend" && (
+                          <div className="setup-group">
+                            <span className="field-label">Time control</span>
+                            <TimePicker
+                              value={timeControl}
+                              onChange={setTimeControl}
+                              allowUntimed={setupMode === "computer"}
+                              disabled={queued && setupMode === "online"}
+                            />
+                            {timeControl.includes("+") && (
+                              <p className="field-note">
+                                {timeControl.split("+")[0]} minutes each
+                                {timeControl.split("+")[1] !== "0"
+                                  ? `, plus ${timeControl.split("+")[1]} seconds after every move`
+                                  : ""}
+                                .
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {setupMode === "computer" && (
+                          <div className="feedback-option">
+                            <Toggle
+                              checked={moveFeedback}
+                              onChange={setMoveFeedback}
+                              label="Move feedback"
+                              detail="See move quality and use optional hints."
+                            />
+                          </div>
+                        )}
+                      </details>
                       {setupMode === "computer" ? (
                         <button
                           className="primary-button start-game"
+                          disabled={!legionConfirmed}
                           onClick={startComputer}
                         >
                           Play computer <ArrowRight size={18} />
@@ -1972,7 +2159,7 @@ export function App() {
                         <>
                           <button
                             className="primary-button start-game"
-                            disabled={!online}
+                            disabled={!online || (!legionConfirmed && !queued)}
                             onClick={() =>
                               connection.send({
                                 type: queued ? "queue:leave" : "queue:join",
@@ -2013,7 +2200,9 @@ export function App() {
                         <div className="friend-start-actions">
                           <button
                             className="primary-button start-game"
-                            disabled={Boolean(active && isHuman)}
+                            disabled={
+                              !legionConfirmed || Boolean(active && isHuman)
+                            }
                             onClick={() => {
                               setIncomingCode(null);
                               setInvitePreview(null);
@@ -2449,114 +2638,123 @@ export function App() {
                   )}
                 </aside>
               </div>
-              {!game && (
-                <section className="under-board">
-                  <div className="under-heading">
-                    <h2>Your next chapter</h2>
-                    <span>A little practice goes a long way.</span>
-                  </div>
-                  <div className="quick-links">
-                    <button onClick={() => startExercise(PUZZLES[0], "puzzle")}>
-                      <span className="quick-icon">
-                        <Gem size={22} />
-                      </span>
-                      <div>
-                        <small>TACTICS</small>
-                        <strong>Find the winning move</strong>
-                        <span>A fresh perspective on the board.</span>
+              {(!game || game.status === "completed") && (
+                <details className="extra-tools">
+                  <summary>
+                    Study & recent games <ChevronDown size={16} />
+                  </summary>
+                  {!game && (
+                    <section className="under-board">
+                      <div className="under-heading">
+                        <h2>Your next chapter</h2>
+                        <span>A little practice goes a long way.</span>
                       </div>
-                      <ArrowRight size={18} />
-                    </button>
-                    <button onClick={() => setPage("friends")}>
-                      <span className="quick-icon">
-                        <Users size={23} />
-                      </span>
-                      <div>
-                        <small>GOOD COMPANY</small>
-                        <strong>Bring a friend to the table</strong>
-                        <span>Play, chat, and watch together.</span>
+                      <div className="quick-links">
+                        <button
+                          onClick={() => startExercise(PUZZLES[0], "puzzle")}
+                        >
+                          <span className="quick-icon">
+                            <Gem size={22} />
+                          </span>
+                          <div>
+                            <small>TACTICS</small>
+                            <strong>Find the winning move</strong>
+                            <span>A fresh perspective on the board.</span>
+                          </div>
+                          <ArrowRight size={18} />
+                        </button>
+                        <button onClick={() => setPage("friends")}>
+                          <span className="quick-icon">
+                            <Users size={23} />
+                          </span>
+                          <div>
+                            <small>GOOD COMPANY</small>
+                            <strong>Bring a friend to the table</strong>
+                            <span>Play, chat, and watch together.</span>
+                          </div>
+                          <ArrowRight size={18} />
+                        </button>
                       </div>
-                      <ArrowRight size={18} />
-                    </button>
-                  </div>
-                </section>
-              )}
-              {(!game || game.status === "completed") && !spectator && (
-                <div className="study-shortcuts">
-                  <button
-                    className="text-button"
-                    onClick={() => analyzePosition()}
-                  >
-                    <Sparkles size={16} />
-                    Open an analysis board
-                  </button>
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setPgnInput("");
-                      setImportError("");
-                      setDialog("import");
-                    }}
-                  >
-                    <BookOpen size={16} />
-                    Import PGN / FEN
-                  </button>
-                </div>
-              )}
-              {(!game || game.status === "completed") &&
-                archive.length + localArchive.length > 0 && (
-                  <section className="recent-games">
-                    <div className="under-heading">
-                      <h2>Recent games</h2>
+                    </section>
+                  )}
+                  {(!game || game.status === "completed") && !spectator && (
+                    <div className="study-shortcuts">
                       <button
                         className="text-button"
-                        disabled={busy || spectator}
+                        onClick={() => analyzePosition()}
+                      >
+                        <Sparkles size={16} />
+                        Open an analysis board
+                      </button>
+                      <button
+                        className="text-button"
                         onClick={() => {
                           setPgnInput("");
                           setImportError("");
                           setDialog("import");
                         }}
                       >
+                        <BookOpen size={16} />
                         Import PGN / FEN
                       </button>
                     </div>
-                    {[...archive, ...localArchive].slice(0, 5).map((g) => (
-                      <button
-                        className="archive-row"
-                        key={g.id}
-                        onClick={() => {
-                          resetTransient();
-                          chessRef.current = restore(g);
-                          updateGame({
-                            ...g,
-                            yourColor:
-                              g.white.id === user?.id
-                                ? "w"
-                                : g.black.id === user?.id
-                                  ? "b"
-                                  : g.yourColor,
-                          });
-                          setExercise(null);
-                          setReviewCursor(g.history.length);
-                        }}
-                      >
-                        <span className="archive-result">{g.result}</span>
-                        <span>
-                          {g.white.name} <small>vs</small> {g.black.name}
-                        </span>
-                        <small>
-                          {g.mode === "computer"
-                            ? "Computer"
-                            : g.rated
-                              ? "Rated"
-                              : "Friendly"}{" "}
-                          · {g.history.length} moves
-                        </small>
-                        <ChevronRight size={17} />
-                      </button>
-                    ))}
-                  </section>
-                )}
+                  )}
+                  {(!game || game.status === "completed") &&
+                    archive.length + localArchive.length > 0 && (
+                      <section className="recent-games">
+                        <div className="under-heading">
+                          <h2>Recent games</h2>
+                          <button
+                            className="text-button"
+                            disabled={busy || spectator}
+                            onClick={() => {
+                              setPgnInput("");
+                              setImportError("");
+                              setDialog("import");
+                            }}
+                          >
+                            Import PGN / FEN
+                          </button>
+                        </div>
+                        {[...archive, ...localArchive].slice(0, 5).map((g) => (
+                          <button
+                            className="archive-row"
+                            key={g.id}
+                            onClick={() => {
+                              resetTransient();
+                              chessRef.current = restore(g);
+                              updateGame({
+                                ...g,
+                                yourColor:
+                                  g.white.id === user?.id
+                                    ? "w"
+                                    : g.black.id === user?.id
+                                      ? "b"
+                                      : g.yourColor,
+                              });
+                              setExercise(null);
+                              setReviewCursor(g.history.length);
+                            }}
+                          >
+                            <span className="archive-result">{g.result}</span>
+                            <span>
+                              {g.white.name} <small>vs</small> {g.black.name}
+                            </span>
+                            <small>
+                              {g.mode === "computer"
+                                ? "Computer"
+                                : g.rated
+                                  ? "Rated"
+                                  : "Friendly"}{" "}
+                              · {g.history.length} moves
+                            </small>
+                            <ChevronRight size={17} />
+                          </button>
+                        ))}
+                      </section>
+                    )}
+                </details>
+              )}
             </>
           )}
           {(page === "learn" || page === "puzzles") && (
@@ -2649,17 +2847,32 @@ export function App() {
         </footer>
       </main>
       <nav className="bottom-nav" aria-label="Mobile navigation">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            className={page === item.id ? "active" : ""}
-            onClick={() => setPage(item.id)}
-          >
-            <item.icon size={20} />
-            <span>{item.label}</span>
-            {item.id === "friends" && badgeCount > 0 && <b>{badgeCount}</b>}
-          </button>
-        ))}
+        {navItems
+          .filter((item) => ["play", "learn", "friends"].includes(item.id))
+          .map((item) => (
+            <button
+              key={item.id}
+              className={page === item.id ? "active" : ""}
+              onClick={() => {
+                if (item.id === "play" && game && active) {
+                  setFocusMode(true);
+                  setMatchPanelOpen(false);
+                }
+                setPage(item.id);
+              }}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+              {item.id === "friends" && badgeCount > 0 && <b>{badgeCount}</b>}
+            </button>
+          ))}
+        <button
+          className={["puzzles", "armory"].includes(page) ? "active" : ""}
+          onClick={() => setDialog("more")}
+        >
+          <Menu size={20} />
+          <span>More</span>
+        </button>
       </nav>
       {toast && (
         <div className="toast" role="status">
@@ -2668,6 +2881,80 @@ export function App() {
             <X size={17} />
           </button>
         </div>
+      )}
+      {dialog === "more" && (
+        <Dialog title="More options" onClose={() => setDialog(null)}>
+          <div className="dialog-content more-menu">
+            <button
+              aria-label="Puzzles"
+              onClick={() => {
+                setPage("puzzles");
+                setDialog(null);
+              }}
+            >
+              <Gem size={20} />
+              <span>
+                Puzzles<small>Practice a tactical position</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+            <button
+              aria-label="Armory"
+              onClick={() => {
+                setPage("armory");
+                setDialog(null);
+              }}
+            >
+              <Shield size={20} />
+              <span>
+                Armory<small>Legions, castles and battle previews</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                analyzePosition();
+                setDialog(null);
+              }}
+            >
+              <Sparkles size={20} />
+              <span>
+                Open an analysis board<small>Explore a position freely</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                setPgnInput("");
+                setImportError("");
+                setDialog("import");
+              }}
+            >
+              <BookOpen size={20} />
+              <span>
+                Import PGN / FEN<small>Continue or review a saved game</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+            <button onClick={() => setDialog("settings")}>
+              <Settings2 size={20} />
+              <span>
+                Appearance and preferences
+                <small>Graphics, sound and phone settings</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+            <button onClick={() => setDialog("profile")}>
+              <Users size={20} />
+              <span>
+                Your profile<small>Name, friend code and privacy</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </Dialog>
       )}
       {dialog === "settings" && (
         <Dialog title="Make yourself at home." onClose={() => setDialog(null)}>
@@ -2780,6 +3067,8 @@ export function App() {
           offlineOnly={connection.offlineOnly}
           busy={Boolean(active && isHuman) || queued}
           faction={preferences.pieceSet}
+          legionConfirmed={legionConfirmed}
+          onFactionChange={chooseLegion}
           error={inviteError}
           notify={notify}
           onClose={() => {
@@ -2819,6 +3108,42 @@ export function App() {
           }}
           onSettings={() => setDialog("settings")}
         />
+      )}
+      {dialog === "legion" && pendingChallenge && (
+        <Dialog
+          title="Choose your legion."
+          onClose={() => {
+            setDialog(null);
+            setPendingChallenge(null);
+          }}
+        >
+          <div className="dialog-content">
+            <LegionPicker
+              value={preferences.pieceSet}
+              confirmed={legionConfirmed}
+              onChange={chooseLegion}
+            />
+            <p>Standard chess · Unrated · No move assistance</p>
+            <button
+              className="primary-button"
+              disabled={!legionConfirmed || !online || busy || queued}
+              onClick={() => {
+                connection.send({
+                  ...pendingChallenge,
+                  army: preferences.pieceSet,
+                });
+                setPendingChallenge(null);
+                setDialog(null);
+              }}
+            >
+              {" "}
+              {pendingChallenge.type === "challenge:send"
+                ? "Send challenge"
+                : "Accept challenge"}
+              <Swords size={17} />
+            </button>
+          </div>
+        </Dialog>
       )}
       {dialog === "profile" && (
         <Dialog

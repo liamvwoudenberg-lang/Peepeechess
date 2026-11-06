@@ -8,8 +8,8 @@ const files = [
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/apple-touch-icon.png",
-  "/pieces/miniatures-front.webp",
-  "/pieces/miniatures-front.png",
+  "/pieces/legions-drawn.webp",
+  "/pieces/legions-drawn.png",
   ...assets,
 ];
 const hash = createHash("sha256");

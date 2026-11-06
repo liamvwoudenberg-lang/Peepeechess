@@ -42,6 +42,7 @@ export interface CastleArenaBuild {
   weatherVelocities: Float32Array | null;
   updateWeather: (dt: number, weather: WeatherEffect) => void;
   updateArenaTheme: (theme: ArenaTheme) => void;
+  updateSightline: (camera: THREE.Vector3) => void;
   squareAtHit: (hit: THREE.Intersection) => string | null;
 }
 function stoneTexture() {
@@ -103,6 +104,22 @@ export function buildCastleEnvironment(
     palette = ARENAS.find((a) => a.id === style)!,
     root = new THREE.Group();
   root.name = palette.name;
+  const cutaways: {
+    mesh: THREE.InstancedMesh;
+    poses: THREE.Matrix4[];
+    shown: boolean[];
+  }[] = [];
+  const hiddenPose = new THREE.Matrix4().makeScale(0, 0, 0),
+    center = new THREE.Vector3();
+  function registerCutaway(instances: THREE.InstancedMesh) {
+    const poses = Array.from({ length: instances.count }, (_, i) => {
+      const pose = new THREE.Matrix4();
+      instances.getMatrixAt(i, pose);
+      return pose;
+    });
+    instances.computeBoundingSphere();
+    cutaways.push({ mesh: instances, poses, shown: poses.map(() => true) });
+  }
   const tex = stoneTexture();
   tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
   const stone = new THREE.MeshStandardMaterial({
@@ -160,8 +177,8 @@ export function buildCastleEnvironment(
     box(SQUARE_SIZE * 0.993, 0.075, SQUARE_SIZE * 0.993, 0.018),
     new THREE.MeshStandardMaterial({
       map: tex,
-      roughness: 0.56,
-      metalness: 0.1,
+      roughness: 0.92,
+      metalness: 0.0,
     }),
     64,
   );
@@ -450,6 +467,10 @@ export function buildCastleEnvironment(
       beam(root, start, end, 0.1, stone);
     }
     root.add(trunks, canopy);
+    trunks.name = "Silverwood trunks";
+    canopy.name = "Silverwood canopy";
+    registerCutaway(trunks);
+    registerCutaway(canopy);
     trunks.castShadow = shadows;
     canopy.castShadow = shadows;
     for (const side of [-1, 1]) {
@@ -592,5 +613,22 @@ export function buildCastleEnvironment(
         b.rotation.x = Math.sin(performance.now() * 0.0008 + b.id) * 0.035;
     },
     updateArenaTheme: () => {},
+    updateSightline: (camera) => {
+      // Keep the far forest; cut away near-camera trees that could hide a piece.
+      // Cached instance poses and visibility flags avoid rebuilding geometry.
+      for (const entry of cutaways) {
+        let dirty = false;
+        for (let i = 0; i < entry.poses.length; i++) {
+          center.setFromMatrixPosition(entry.poses[i]);
+          const show = center.x * camera.x + center.z * camera.z <= 0;
+          if (show !== entry.shown[i]) {
+            entry.mesh.setMatrixAt(i, show ? entry.poses[i] : hiddenPose);
+            entry.shown[i] = show;
+            dirty = true;
+          }
+        }
+        if (dirty) entry.mesh.instanceMatrix.needsUpdate = true;
+      }
+    },
   };
 }

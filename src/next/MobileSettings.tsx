@@ -22,8 +22,8 @@ export function MobileSettings({
       <section className="mobile-settings">
         <h3>Online game website</h3>
         <p>
-          Computer games work offline. Connect the hosted game website to play
-          online and use friend links.
+          Online play connects to the game website below. Computer games also
+          work offline.
         </p>
         <label className="select-field">
           <strong>Game website address</strong>
@@ -34,7 +34,7 @@ export function MobileSettings({
               setWebsite(e.target.value);
               setSaved(false);
             }}
-            placeholder="https://your-game.vercel.app"
+            placeholder="https://cheesy-indol.vercel.app"
             disabled={busy}
           />
         </label>

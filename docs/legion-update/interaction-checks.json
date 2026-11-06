@@ -1,0 +1,17 @@
+[
+  {
+    "dragAndDrop": "passed"
+  },
+  {
+    "keyboardTextEntryAndDialogFocus": "passed"
+  },
+  {
+    "allPromotionChoicesAndUnderpromotion": "passed"
+  },
+  {
+    "multiMovePuzzleAndDefendingReply": "passed"
+  },
+  {
+    "browserErrors": []
+  }
+]

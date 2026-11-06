@@ -1,0 +1,55 @@
+[
+  {
+    "viewport": [
+      320,
+      640
+    ],
+    "squareBoardWithinScreen": true,
+    "optionsDrawerAccessible": true,
+    "matchSettingsRetained": true,
+    "secondaryPagesInMoreMenu": true
+  },
+  {
+    "viewport": [
+      360,
+      800
+    ],
+    "squareBoardWithinScreen": true,
+    "optionsDrawerAccessible": true,
+    "matchSettingsRetained": true,
+    "secondaryPagesInMoreMenu": true
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ],
+    "squareBoardWithinScreen": true,
+    "optionsDrawerAccessible": true,
+    "matchSettingsRetained": true,
+    "secondaryPagesInMoreMenu": true
+  },
+  {
+    "viewport": [
+      844,
+      390
+    ],
+    "squareBoardWithinScreen": true,
+    "optionsDrawerAccessible": true,
+    "matchSettingsRetained": true,
+    "secondaryPagesInMoreMenu": true
+  },
+  {
+    "viewport": [
+      1440,
+      1000
+    ],
+    "squareBoardWithinScreen": true,
+    "optionsDrawerAccessible": true,
+    "matchSettingsRetained": true,
+    "secondaryPagesInMoreMenu": true
+  },
+  {
+    "errors": []
+  }
+]

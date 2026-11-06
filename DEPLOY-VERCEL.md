@@ -1,6 +1,6 @@
 # Deploy Sovereign’s Gambit on Vercel
 
-The project is prepared for Vercel. It has not been published to a Vercel account in this workspace. There are no hosting credentials or Redis credentials configured here.
+The Android app targets https://cheesy-indol.vercel.app. The project is prepared for Vercel; this workspace has GitHub access but no Vercel account or Redis credentials. The API entry and its dependencies use explicit `.js` module imports so emitted server files run under native Node ESM. `tests/vercel-runtime.test.ts` checks this without a TypeScript loader.
 
 ## What runs where
 

@@ -4654,7 +4654,7 @@ svg {
 
 /* One miniature family: real orthographic models, or their baked top renders. */
 .miniature-icon {
-  background-image: url("/pieces/miniatures-front.png");
+  background-image: url("/pieces/legions-drawn.png");
   background-repeat: no-repeat;
   background-size: 600% 600%;
   aspect-ratio: 1;
@@ -4921,8 +4921,8 @@ svg {
 }
 .miniature-icon {
   background-image: image-set(
-    url("/pieces/miniatures-front.webp") type("image/webp") 1x,
-    url("/pieces/miniatures-front.png") type("image/png") 1x
+    url("/pieces/legions-drawn.webp") type("image/webp") 1x,
+    url("/pieces/legions-drawn.png") type("image/png") 1x
   );
 }
 .home-castle-label {
@@ -5097,4 +5097,481 @@ svg {
   }
 }
 
-.friend-start-actions{display:flex;flex-direction:column;gap:10px}.friend-start-actions .secondary-button{justify-content:center}
+.friend-start-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.friend-start-actions .secondary-button {
+  justify-content: center;
+}
+
+/* Large, deliberate faction choices before a match. */
+.legion-picker {
+  margin: 20px 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.legion-picker legend {
+  font-size: 13px;
+  font-weight: 650;
+  margin-bottom: 12px;
+  color: #e4dfce;
+}
+.legion-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.legion-choice {
+  position: relative;
+  min-width: 0;
+  padding: 10px 4px 12px;
+  border: 1px solid #465242;
+  background: #18201b;
+  border-radius: 9px;
+  text-align: center;
+  min-height: 116px;
+}
+.legion-choice.chosen {
+  border-color: #d8b66e;
+  box-shadow: inset 0 0 0 1px #d8b66e;
+  background: #30372a;
+}
+.legion-choice:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.legion-choice strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.4;
+  min-height: 30px;
+  color: #ede7d5;
+}
+.legion-portrait {
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  height: 59px;
+  margin-bottom: 6px;
+}
+.legion-portrait .miniature-icon {
+  width: 48px;
+  height: 52px;
+  max-width: 58%;
+}
+.legion-portrait .miniature-icon + .miniature-icon {
+  margin-left: -14px;
+  width: 39px;
+  height: 43px;
+}
+.legion-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: #e0c27b;
+}
+.legion-picker > p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #b0b8a7;
+  margin: 10px 0 0;
+}
+.legion-choice:focus-visible {
+  outline: 3px solid #f2d99d;
+  outline-offset: 3px;
+}
+.board-frame .rank-coordinate,
+.board-frame .file-coordinate {
+  color: #101926;
+  text-shadow: 0 1px #dbe9f1;
+  font-weight: 700;
+}
+.square.dark .rank-coordinate,
+.square.dark .file-coordinate {
+  color: #f4f1e7;
+  text-shadow: 0 1px #162432;
+}
+@media (max-width: 380px) {
+  .legion-portrait .miniature-icon {
+    width: 43px;
+  }
+  .legion-choice {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+}
+
+/* Disclose configuration when needed, keep the primary route quiet. */
+.match-settings {
+  margin: 18px 0;
+  border: 1px solid #47513f;
+  border-radius: 9px;
+  padding: 0 13px;
+  background: #1b231c;
+}
+.match-settings summary {
+  position: relative;
+  cursor: pointer;
+  list-style: none;
+  padding: 13px 23px 13px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.match-settings summary::-webkit-details-marker {
+  display: none;
+}
+.match-settings summary small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.65;
+  font-weight: 400;
+  color: #b7bca9;
+  margin-top: 6px;
+}
+.match-settings summary > svg {
+  position: absolute;
+  right: 0;
+  top: 14px;
+}
+.match-settings[open] summary > svg {
+  transform: rotate(180deg);
+}
+.match-settings .setup-group:first-of-type {
+  padding-top: 12px;
+}
+.extra-tools {
+  margin-top: 24px;
+  border-top: 1px solid #38412f;
+  padding: 16px 0;
+}
+.extra-tools > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #c1c5b1;
+  font-size: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.more-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.more-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding: 14px;
+  border: 1px solid #3c4836;
+  border-radius: 8px;
+  background: #222c23;
+  min-height: 62px;
+}
+.more-menu > button > span {
+  flex: 1;
+  font-size: 14px;
+}
+.more-menu small {
+  display: block;
+  font-size: 11px;
+  color: #acb69d;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.more-menu > button > svg:first-child {
+  color: #d8bd7b;
+}
+.more-menu > button:disabled {
+  opacity: 0.4;
+}
+
+/* Matches fill the viewport; secondary tools remain in a drawer. */
+.focus-game {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.focus-game > .sidebar,
+.focus-game > .bottom-nav,
+.focus-game .topbar,
+.focus-game .app-footer,
+.focus-game .play-heading,
+.focus-game .extra-tools,
+.focus-game .connection-banner,
+.focus-game .challenge-banner {
+  display: none !important;
+}
+.focus-game .main-shell {
+  margin: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+.focus-game .page-content {
+  padding: 0;
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.focus-game .play-layout {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.focus-game .board-column {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  padding: env(safe-area-inset-top, 0px)
+    max(4px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
+    max(4px, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+}
+.game-focus-bar {
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  color: #aeb89f;
+  font-size: 12px;
+}
+.game-focus-bar > div {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.game-focus-bar .text-button {
+  min-height: 40px;
+  padding: 6px 12px;
+}
+.game-focus-bar .icon-button {
+  min-width: 40px;
+  min-height: 40px;
+}
+.focus-game .player-row {
+  height: 38px;
+  min-height: 38px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto !important;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+.focus-game .player-crest {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+.focus-game .player-details strong {
+  font-size: 11px;
+}
+.focus-game .player-details small {
+  font-size: 9px;
+  margin-top: 2px;
+}
+.focus-game .clock {
+  height: 32px;
+  min-width: 85px;
+  font-size: 23px;
+  padding: 3px 10px;
+}
+.focus-game .home-castle-label {
+  max-width: 1100px;
+  width: 100%;
+  min-height: 17px;
+  height: 17px;
+  font-size: 10px;
+  margin: 0 auto;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+.focus-game .home-castle-label .transport-pill {
+  display: none;
+}
+.focus-game .board-container {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.focus-game .miniature-board {
+  width: min(100%, calc(100vh - 235px));
+  width: min(100%, calc(100dvh - 235px));
+  flex: none;
+}
+.focus-game .miniature-board.camera-castle.model-active {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+.focus-game .board-toolbar {
+  min-height: 44px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+.focus-game .board-status {
+  height: 21px;
+  min-height: 21px;
+  margin: 0;
+  font-size: 11px;
+  padding: 0;
+  justify-content: center;
+}
+.focus-game .focus-feedback {
+  min-height: 23px;
+  margin: 0 auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #d6c890;
+}
+.focus-game .fair-play-note {
+  min-height: 19px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  font-size: 10px;
+}
+.focus-game .game-panel-column {
+  display: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(380px, 100vw);
+  max-width: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #171f19;
+  box-shadow: -10px 0 40px #0009;
+  padding: 60px 14px 20px;
+  z-index: 80;
+  gap: 14px;
+  box-sizing: border-box;
+}
+.focus-game.match-panel-open .game-panel-column {
+  display: flex;
+}
+.focus-panel-close {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: min(380px, 100vw);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  min-height: 48px;
+  border-bottom: 1px solid #49513b;
+  border-radius: 0;
+  background: #263125;
+  padding: 10px 16px;
+  z-index: 81;
+}
+.focus-game .game-panel-column .moves-panel {
+  flex: none;
+}
+.focus-game .toast {
+  bottom: 18px;
+}
+@media (max-height: 500px) {
+  .focus-game .home-castle-label {
+    display: none;
+  }
+  .focus-game .player-row {
+    min-height: 30px;
+    height: 30px;
+  }
+  .focus-game .player-crest {
+    height: 25px;
+    width: 25px;
+  }
+  .focus-game .player-details small {
+    display: none;
+  }
+  .focus-game .clock {
+    height: 27px;
+    font-size: 20px;
+  }
+  .focus-game .miniature-board {
+    width: min(100%, calc(100dvh - 170px));
+  }
+  .focus-game .game-focus-bar {
+    min-height: 36px;
+    height: 36px;
+  }
+  .focus-game .board-toolbar {
+    min-height: 36px;
+  }
+  .focus-game .focus-feedback {
+    display: none;
+  }
+}
+/* Keep the clocks beside a square 2D board while the outer controls stay put. */
+.focus-game.board-view-2d .board-column::before,
+.focus-game.board-view-2d .board-column::after {
+  content: "";
+  display: block;
+  flex: 1;
+  min-height: 0;
+}
+.focus-game.board-view-2d .game-focus-bar {
+  order: 0;
+}
+.focus-game.board-view-2d .board-column::before {
+  order: 1;
+}
+.focus-game.board-view-2d .board-column > .player-row:nth-child(2) {
+  order: 2;
+}
+.focus-game.board-view-2d .home-castle-label {
+  order: 3;
+}
+.focus-game.board-view-2d .board-container {
+  order: 4;
+  flex: none;
+}
+.focus-game.board-view-2d .player-row {
+  order: 5;
+}
+.focus-game.board-view-2d .board-column::after {
+  order: 6;
+}
+.focus-game.board-view-2d .board-toolbar {
+  order: 7;
+}
+.focus-game.board-view-2d .board-status {
+  order: 8;
+}
+.focus-game.board-view-2d .focus-feedback {
+  order: 9;
+}
+.focus-game.board-view-2d .fair-play-note {
+  order: 10;
+}
+.focus-game .board-toolbar,
+.focus-game .board-status {
+  display: flex;
+}

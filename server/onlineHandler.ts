@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
-import { OnlineService } from "./onlineService";
-import type { KV } from "./onlineStorage";
+import { OnlineService } from "./onlineService.js";
+import type { KV } from "./onlineStorage.js";
 export function applyAppCors(req: any, res: any) {
   const headers = req.headers || {},
     origin = headers.origin;

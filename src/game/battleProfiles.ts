@@ -1,3 +1,4 @@
+import { BOARD_PALETTES } from "./legionIdentity";
 import type { PieceSymbol, PieceColor, FactionSkin } from "./types";
 
 export type Army = "royal" | "elves" | "skeletons";
@@ -259,8 +260,8 @@ export const ARENAS: {
     stone: 0xb6b5a2,
     dark: 0x35434b,
     trim: 0xbd9d5e,
-    lightSquare: 0xe2dcc7,
-    darkSquare: 0x617667,
+    lightSquare: BOARD_PALETTES.citadel.light,
+    darkSquare: BOARD_PALETTES.citadel.dark,
     accent: 0xefce8e,
   },
   {
@@ -272,8 +273,8 @@ export const ARENAS: {
     stone: 0x849790,
     dark: 0x304b46,
     trim: 0xb4bd8a,
-    lightSquare: 0xdbe2cd,
-    darkSquare: 0x567d70,
+    lightSquare: BOARD_PALETTES.silverwood.light,
+    darkSquare: BOARD_PALETTES.silverwood.dark,
     accent: 0xa6e9d1,
   },
   {
@@ -285,8 +286,8 @@ export const ARENAS: {
     stone: 0x777787,
     dark: 0x2a2638,
     trim: 0xab9382,
-    lightSquare: 0xd5d3cb,
-    darkSquare: 0x667087,
+    lightSquare: BOARD_PALETTES.ossuary.light,
+    darkSquare: BOARD_PALETTES.ossuary.dark,
     accent: 0xc49bd9,
   },
 ];

@@ -60,7 +60,11 @@ export class PeerTransport {
         body: JSON.stringify({ action, peerId: this.peerId }),
         signal: controller.signal,
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => {
+        throw new Error(
+          "The online game server is temporarily unavailable. Computer games are still ready.",
+        );
+      });
       if (!response.ok)
         throw new Error(data.error || "The game server is unavailable.");
       if (this.stopped) return null;
@@ -70,6 +74,10 @@ export class PeerTransport {
     } catch (error) {
       if (controller.signal.aborted)
         throw new Error("The connection took too long. Reconnecting…");
+      if (error instanceof TypeError)
+        throw new Error(
+          "Cannot connect to online play. Computer games work offline.",
+        );
       throw error;
     } finally {
       clearTimeout(timeout);

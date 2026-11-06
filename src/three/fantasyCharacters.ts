@@ -1,3 +1,4 @@
+import { LEGION_PALETTES, PIECE_SILHOUETTES } from "../game/legionIdentity";
 import * as THREE from "three";
 import type { FactionSkin, PieceColor, PieceSymbol } from "../game/types";
 import {
@@ -86,37 +87,26 @@ export function createFactionMaterialRigs(
   faction: FactionSkin | Army = "royal",
 ): Record<PieceColor, CharacterMaterialRig> {
   const army = armyOf(faction);
-  const make = (white: boolean): CharacterMaterialRig => ({
-    faction: army,
-    primaryArmor: material(white ? 0xf0eee3 : 0x252331, 0.3, 0.52),
-    secondaryCloth: material(
-      white ? 0xf9f6e9 : army === "elves" ? 0x482458 : 0x681f3c,
-      0.85,
-      0.02,
-    ),
-    accentTrim: material(
-      white
-        ? army === "elves"
-          ? 0xc6cba5
-          : 0xc6a669
-        : army === "elves"
-          ? 0x9877bd
-          : 0xa45576,
-      0.3,
-      0.73,
-    ),
-    weaponSteel: material(white ? 0xdfe7e9 : 0x87909f, 0.25, 0.79),
-    bone: material(white ? 0xe8dfc8 : 0x888099, 0.67, 0.05),
-    face: material(white ? 0xe6dbc9 : 0x78657d, 0.65, 0.04),
-    dark: material(white ? 0x2d3e43 : 0x12131d, 0.6, 0.08),
-    arcaneCrystal: new THREE.MeshStandardMaterial({
-      color: white ? 0xe1f7eb : 0xc473cf,
-      emissive: white ? (army === "elves" ? 0x80d2bd : 0xd1a451) : 0x833ca6,
-      emissiveIntensity: 0.7,
-      roughness: 0.25,
-      metalness: 0.15,
-    }),
-  });
+  const make = (white: boolean): CharacterMaterialRig => {
+    const palette = LEGION_PALETTES[army][white ? "w" : "b"];
+    return {
+      faction: army,
+      primaryArmor: material(palette.armor, 0.42, 0.3),
+      secondaryCloth: material(palette.cloth, 0.85, 0.02),
+      accentTrim: material(palette.trim, 0.38, 0.45),
+      weaponSteel: material(palette.steel, 0.3, 0.55),
+      bone: material(palette.bone, 0.72, 0.02),
+      face: material(palette.face, 0.72, 0.02),
+      dark: material(palette.dark, 0.7, 0.04),
+      arcaneCrystal: new THREE.MeshStandardMaterial({
+        color: palette.gem,
+        emissive: white ? (army === "elves" ? 0x80d2bd : 0xd1a451) : 0x833ca6,
+        emissiveIntensity: 0.7,
+        roughness: 0.25,
+        metalness: 0.15,
+      }),
+    };
+  };
   return { w: make(true), b: make(false) };
 }
 function sword(parent: THREE.Group, rig: CharacterMaterialRig, kind: string) {
@@ -661,14 +651,7 @@ export function buildArticulatedCharacter(
   const root = new THREE.Group();
   root.name = `${army} ${type} ${id}`;
   root.userData = {
-    silhouette: {
-      p: "round-pawn",
-      n: "horse-knight",
-      b: "split-mitre",
-      r: "battlements",
-      q: "five-point-crown",
-      k: "royal-cross",
-    }[type],
+    silhouette: PIECE_SILHOUETTES[type],
     army,
     type,
     color,
@@ -684,7 +667,15 @@ export function buildArticulatedCharacter(
     0,
   );
   mesh(root, cylinder(0.35, 0.36, 0.025, 24), rig.accentTrim, 0, 0.095, 0);
-  mesh(root, ring(0.355, 0.011), rig.accentTrim, 0, 0.115, 0, Math.PI / 2);
+  mesh(
+    root,
+    ring(0.355, 0.017),
+    color === "w" ? rig.dark : rig.weaponSteel,
+    0,
+    0.115,
+    0,
+    Math.PI / 2,
+  );
   const shadowDisc = mesh(
     root,
     new THREE.CircleGeometry(0.39, 20),

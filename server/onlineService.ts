@@ -9,8 +9,8 @@ import {
   type TimeControl,
   type ChatMessage,
   type Challenge,
-} from "../src/next/contracts";
-import type { KV, Transaction } from "./onlineStorage";
+} from "../src/next/contracts.js";
+import type { KV, Transaction } from "./onlineStorage.js";
 
 type User = Player & {
   army: PieceSet;

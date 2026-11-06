@@ -1,3 +1,4 @@
+import { BOARD_PALETTES, hex } from "../game/legionIdentity";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Chess, type Color, type Square, type PieceSymbol } from "chess.js";
 import { Piece } from "./Piece";
@@ -153,7 +154,25 @@ export const Board = memo(function Board(props: Props) {
       : null;
   }
   return (
-    <div className={`board-frame arena-${arena} orientation-${orientation}`}>
+    <div
+      className={`board-frame arena-${arena} orientation-${orientation}`}
+      style={
+        {
+          "--light-square": hex(
+            (
+              BOARD_PALETTES[arena as keyof typeof BOARD_PALETTES] ||
+              BOARD_PALETTES.citadel
+            ).light,
+          ),
+          "--dark-square": hex(
+            (
+              BOARD_PALETTES[arena as keyof typeof BOARD_PALETTES] ||
+              BOARD_PALETTES.citadel
+            ).dark,
+          ),
+        } as React.CSSProperties
+      }
+    >
       <div
         className="chessboard"
         ref={grid}

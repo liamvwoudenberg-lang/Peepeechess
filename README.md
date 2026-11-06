@@ -1,10 +1,16 @@
 # Sovereign’s Gambit
 
-Classic chess inside a fantasy castle. The default 2D board uses front-facing illustrations of the shared 3D characters; the optional Castle view brings them into a real castle hall. White’s faction determines the home castle for both players.
+Classic chess inside a fantasy castle. The game opens in a 3D castle, with a lightweight drawn 2D board available any time. Choose a legion before starting; both views share its livery, faces, weapons and familiar chess silhouettes. White’s faction determines the home castle for both players.
 
 ## Phone and Android APK
 
-Start with [MOBILE-START-HERE.md](MOBILE-START-HERE.md). The Android APK bundles offline computer play. The installable web app supports iPhone/Android browsers. Online invite links require deploying the included website; no public URL exists yet.
+Start with [MOBILE-START-HERE.md](MOBILE-START-HERE.md). The Android APK bundles offline computer play and connects to https://cheesy-indol.vercel.app for multiplayer. The installable web app supports iPhone/Android browsers. The live API must be healthy and have its Redis variables configured for online matches.
+
+## Clear menus and a full-screen match
+
+Main navigation is **Play, Learn, Friends, More**. More contains puzzles, the armory and battle previews, analysis, PGN/FEN import, profile and appearance settings. Match settings disclose the computer strength, side, clock and feedback controls; the summary shows the chosen values before Play.
+
+Active matches fill the available window. **Moves and game options** opens the move history, chat, game actions and optional coaching drawer. **Menu** returns to the normal app; the browser fullscreen control can hide browser chrome where supported. Both clocks stay beside the square 2D board. In 3D, camera-facing elven trees cut away so scenery cannot cover the pieces.
 
 ## Run locally
 
@@ -34,8 +40,11 @@ The earlier Node WebSocket service remains as a compatibility implementation and
 
 ## Board, characters, and castles
 
-- **2D pieces** is the default familiar chessboard: front-facing illustrations baked from the same 3D character models, with a horse knight, bishop’s split mitre, rook battlements, queen crown and king cross. Pieces remain upright for both White and Black.
-- **Light graphics** and the standard 2D board use an approximately 150 KB WebP atlas with PNG fallback, plus brief piece-specific move/capture effects. They create no WebGL context. Tap, drag, keyboard navigation, promotion, check highlights and premoves remain available. The atlas script is `scripts/render-pieces.py`; it needs a running Vite server and Playwright/Chromium.
+- **3D castle** opens by default on capable devices, including the pre-game preview. Both sides have stronger livery contrast, readable role markers, and contrasting pedestal rims. Auto performance mode keeps older phones on the lightweight board. You can choose 2D before a game and keep that choice when play starts.
+- **Choose your legion** appears before computer games and matchmaking, in friend-link previews, and before sending/accepting friend challenges. Local and online matches keep the chosen factions fixed. Cosmetics do not change legal moves or strength.
+- **2D pieces** are original ink drawings: round-headed pawns, horse-profile knights, split bishop mitres, rook battlements, five-point queen crowns and king crosses. Elven ears, skull faces, shields and signature weapons are drawn relatives of their 3D counterparts. White stays ivory; Black wears obsidian, red and purple. Drawings and models share `src/game/legionIdentity.ts`.
+- **Board contrast** uses quieter midtone squares and matte 3D materials, with at least 3:1 contrast between the armor source colors and every board square. This is a source-color check, not a measurement of every lit 3D pixel. Strong ink edges keep illustrated pieces readable on both colors.
+- **Light graphics** uses a roughly 225 KB WebP atlas with PNG fallback, preserves touch/drag/keyboard play, and avoids WebGL. Editable artwork is `public/pieces/legions-drawn.svg`; regenerate it with `npm run art:draw`, then rasterize using `BASE_URL=http://localhost:3021 python scripts/render-drawn-pieces.py` against a running development server.
 - **Royal Guard** hosts Dawn Citadel, **Silverwood Elves** host Silverwood Sanctuary, and **Hollow Legion** hosts Ossuary Keep. The halls contain masonry walls, flagstone floors, galleries, windows, banners, a home throne, and faction details. There is no floating mountain backdrop or photograph texture download.
 - White always uses ivory/angelic armor and gold. Black uses obsidian, crimson and purple. Knights have real horses, including a skeletal mount. Both players see the actual factions chosen for that match.
 - Eighteen signature weapons and attack performances combine with six target reactions and faction defeat effects: 324 deterministic matchup profiles. These are procedural combinations, not 324 individually authored animation clips. Kings remain on the board at checkmate; king-target previews are explicitly staged.
@@ -62,11 +71,13 @@ npm run build
 Node tests cover chess, persistence, parallel matchmaking, authentication/permissions, social actions, clocks/ratings, all 324 battle profiles, 36 miniature models, recognizable role silhouettes, and bounded arena geometry. Browser tests require Playwright and Chromium; use `BASE_URL` to select the running server.
 
 ```sh
-BASE_URL=http://localhost:3004 python tests/browser.py
-BASE_URL=http://localhost:3004 python tests/interaction.py
+BASE_URL=http://localhost:3000 python tests/legions-browser.py
+BASE_URL=http://localhost:3000 python tests/focus-navigation-browser.py
+BASE_URL=http://localhost:3000 python tests/browser.py
+BASE_URL=http://localhost:3000 python tests/interaction.py
 ```
 
-For the current phone/invite checks, run `BASE_URL=http://localhost:3000 python tests/mobile-invite-browser.py`. Results and screenshots are in [docs/mobile/VERIFICATION.md](docs/mobile/VERIFICATION.md).
+For the current phone/invite checks, run `BASE_URL=http://localhost:3000 python tests/mobile-invite-browser.py`. Results and screenshots are in [docs/legion-update/VERIFICATION.md](docs/legion-update/VERIFICATION.md).
 
 The browser evidence and deployment notes distinguish a real connection test from simulation. Older-phone checks use browser CPU/memory emulation, not physical-device certification. No cloud deployment is implied by a successful local build.
 

@@ -1,3 +1,4 @@
+export const DEFAULT_GAME_WEBSITE = "https://cheesy-indol.vercel.app";
 export function isNativeApp() {
   return (
     typeof window !== "undefined" &&
@@ -10,11 +11,11 @@ export function gameWebsite() {
   try {
     return (
       localStorage.getItem("sg-game-website") ||
-      import.meta.env.VITE_PUBLIC_GAME_URL ||
-      ""
+      import.meta.env?.VITE_PUBLIC_GAME_URL ||
+      DEFAULT_GAME_WEBSITE
     );
   } catch {
-    return import.meta.env.VITE_PUBLIC_GAME_URL || "";
+    return import.meta.env?.VITE_PUBLIC_GAME_URL || DEFAULT_GAME_WEBSITE;
   }
 }
 export function normalizeWebsite(value: string) {

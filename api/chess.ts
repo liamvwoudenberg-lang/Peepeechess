@@ -1,9 +1,9 @@
-import { RedisKV } from "../server/onlineStorage";
+import { RedisKV } from "../server/onlineStorage.js";
 import {
   onlineHandler,
   peerSettings,
   applyAppCors,
-} from "../server/onlineHandler";
+} from "../server/onlineHandler.js";
 let handler: ReturnType<typeof onlineHandler> | null = null;
 export default async function chess(req: any, res: any) {
   if (!applyAppCors(req, res)) return;

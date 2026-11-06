@@ -311,6 +311,7 @@ export class ChessSceneController {
       this.controls.enabled = true;
       this.controls.minDistance = 7;
       this.controls.maxDistance = 24;
+      this.controls.maxPolarAngle = Math.PI / 3;
       this.controls.target.set(0, 0.15, 0);
       this.setFullBoardView(color);
     }
@@ -327,6 +328,7 @@ export class ChessSceneController {
     this.cameraMoving = true;
     this.controls.minDistance = 3.8;
     this.controls.maxDistance = 11;
+    this.controls.maxPolarAngle = 1.35;
   }
   setCameraPreset(_preset: string, color: PieceColor = "w") {
     this.setFullBoardView(color);
@@ -914,6 +916,7 @@ export class ChessSceneController {
         this.cameraMoving = false;
       }
       this.controls.update();
+      this.arena.updateSightline(this.camera.position);
       for (const ch of this.characters.values()) this.update(ch, dt);
       for (let i = this.victims.length - 1; i >= 0; i--)
         if (this.updateVictim(this.victims[i], dt)) {

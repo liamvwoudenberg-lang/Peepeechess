@@ -1,3 +1,4 @@
+import { LegionPicker } from "./LegionPicker";
 import React, { useState } from "react";
 import {
   Copy,
@@ -42,6 +43,8 @@ export function FriendInvite({
   offlineOnly,
   busy,
   faction,
+  legionConfirmed,
+  onFactionChange,
   error,
   onClose,
   onCreate,
@@ -58,6 +61,8 @@ export function FriendInvite({
   offlineOnly: boolean;
   busy: boolean;
   faction: PieceSet;
+  legionConfirmed: boolean;
+  onFactionChange: (army: PieceSet) => void;
   error: string;
   onClose: () => void;
   onCreate: (tc: TimeControl, color: "w" | "b" | "random") => void;
@@ -108,6 +113,14 @@ export function FriendInvite({
       onClose={onClose}
     >
       <div className="dialog-content invite-content">
+        {!active && (
+          <LegionPicker
+            value={faction}
+            confirmed={legionConfirmed}
+            disabled={busy}
+            onChange={onFactionChange}
+          />
+        )}
         {guest ? (
           <>
             {!preview && !error ? (
@@ -141,7 +154,9 @@ export function FriendInvite({
                 )}
                 <button
                   className="primary-button"
-                  disabled={!online || busy || !preview.hostOnline}
+                  disabled={
+                    !online || busy || !preview.hostOnline || !legionConfirmed
+                  }
                   onClick={() => onJoin(preview.code)}
                 >
                   Join match <ArrowRight size={17} />
@@ -289,7 +304,7 @@ export function FriendInvite({
                 </label>
                 <button
                   className="primary-button"
-                  disabled={!online || busy}
+                  disabled={!online || busy || !legionConfirmed}
                   onClick={() => onCreate(tc, side)}
                 >
                   <Link size={17} />

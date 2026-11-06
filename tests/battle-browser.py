@@ -16,15 +16,15 @@ with sync_playwright() as p:
  pg=ctx.new_page();errors=[];pg.on('pageerror',lambda e:errors.append(str(e)));pg.on('console',lambda m:errors.append(m.text) if m.type=='error' else None)
  pg.goto(BASE,wait_until='networkidle')
  resources=pg.evaluate('performance.getEntriesByType("resource").map(r=>r.name)')
- assert not any('ChessSceneController-' in r or 'BattleShowcase-' in r or '.jpg' in r for r in resources)
- observations.append({'default2DLoadsNo3DOrPhotographs':True})
+ expect(pg.locator('.miniature-board')).to_have_attribute('data-renderer','models',timeout=40000);pg.get_by_role('button',name='Switch to 2D board',exact=True).click();expect(pg.locator('canvas')).to_have_count(0)
+ observations.append({'3DDefaultAnd2DDisposesScene':True})
  pg.evaluate("""async path=>{const mod=await import(path),C=Object.values(mod).find(v=>typeof v==='function'&&v.prototype.previewCapture);window.__Controller=C;const old=C.prototype.syncBoardPieces;C.prototype.syncBoardPieces=function(...a){window.__scene=this;return old.apply(this,a);};window.__pause=()=>{const c=window.__scene;cancelAnimationFrame(c.frame);clearTimeout(c.frame);};window.__advance=(seconds)=>{const c=window.__scene;for(let t=0;t<seconds;t+=.025){c.elapsed+=.025;for(const ch of c.characters.values())c.update(ch,.025);for(let i=c.victims.length-1;i>=0;i--)if(c.updateVictim(c.victims[i],.025)){c.removeCharacter(c.victims[i]);c.victims.splice(i,1);}c.effects.update(.025);}return c.getPerformanceStats();};window.__render=()=>{const c=window.__scene;c.camera.position.copy(c.cameraGoal);c.controls.target.copy(c.targetGoal);c.controls.update();c.renderer.render(c.scene,c.camera);};}""",CHUNK)
  # WebGL with a discarded drawing buffer must keep painting during screenshots.
  def paint_for_snapshot():
   pg.evaluate("window.__paint=()=>{window.__render();window.__paintRAF=requestAnimationFrame(window.__paint)};window.__paint()")
  def end_snapshot():
   pg.evaluate("cancelAnimationFrame(window.__paintRAF)")
- pg.get_by_role('button',name='Armory',exact=True).click();pg.get_by_role('button',name='Open battle showcase').click();pg.locator('.showcase-stage canvas').wait_for();pg.wait_for_timeout(1000);pg.evaluate('window.__pause()')
+ pg.get_by_role('button',name='More',exact=True).click();pg.get_by_role('dialog').get_by_role('button',name='Armory',exact=True).click();pg.get_by_role('button',name='Open battle showcase').click();pg.locator('.showcase-stage canvas').wait_for();pg.wait_for_timeout(1000);pg.evaluate('window.__pause()')
  assert pg.evaluate('window.__scene.getPerformanceStats().lastCapture')=='royal/n>skeletons/r'
  pg.get_by_role('button',name='Mute preview sound',exact=True).click();before=pg.evaluate('window.__audio.starts');pg.get_by_role('button',name='Replay encounter',exact=True).or_(pg.get_by_role('button',name='Preview encounter',exact=True)).click();pg.evaluate('window.__advance(4)');assert pg.evaluate('window.__audio.starts')==before
  pg.get_by_role('button',name='Enable preview sound',exact=True).click();pg.get_by_role('button',name='Replay encounter',exact=True).or_(pg.get_by_role('button',name='Preview encounter',exact=True)).click();pg.evaluate('window.__advance(4)');assert pg.evaluate('window.__audio.starts')>before
@@ -38,7 +38,7 @@ with sync_playwright() as p:
   expected=f'{army}/{attacker}>{enemy}/{defender}';assert pg.evaluate('window.__scene.getPerformanceStats().lastCapture')==expected
   observations.append({'matchup':expected,'arena':arena,'drawCalls':pg.evaluate('window.__scene.getPerformanceStats().drawCalls')})
  pg.screenshot(path=str(OUT/'armory-desktop.png'),full_page=True)
- pg.get_by_role('button',name='Play',exact=True).click();pg.get_by_role('button',name='Import PGN / FEN',exact=True).click();pg.get_by_label('PGN game or FEN position').fill('7k/8/8/4r3/3P4/8/8/7K w - - 0 1');pg.get_by_role('button',name='Open analysis',exact=True).click();pg.get_by_role('button',name='Analyze position',exact=True).click()
+ pg.get_by_role('button',name='Play',exact=True).click();pg.get_by_role('button',name='More',exact=True).click();pg.get_by_role('dialog').get_by_role('button',name='Import PGN / FEN',exact=False).click();pg.get_by_label('PGN game or FEN position').fill('7k/8/8/4r3/3P4/8/8/7K w - - 0 1');pg.get_by_role('button',name='Open analysis',exact=True).click();pg.get_by_role('button',name='Analyze position',exact=True).click()
  print('Analysis ready',flush=True)
  # The game canvas is tested through actual raycast clicks below.
  pg.get_by_role('button',name='Switch to 3D board',exact=True).click();pg.locator('.scene-mount canvas').wait_for();pg.wait_for_timeout(500);pg.evaluate('window.__pause();window.__render()')
@@ -49,8 +49,8 @@ with sync_playwright() as p:
  pg.evaluate('window.__advance(4);window.__render()');stats=pg.evaluate('window.__scene.getPerformanceStats()');assert stats['characters']==3 and stats['activeAnimations']==0 and stats['victims']==0
  paint_for_snapshot();pg.screenshot(path=str(OUT/'live-3d-capture.png'),full_page=True);end_snapshot();observations.append({'live3DRaycastCaptureUpdatesChessImmediately':True,'scene':stats})
  pg.get_by_role('button',name='Switch to 2D board',exact=True).click();expect(pg.locator('[data-square="e5"] [data-piece="wp"]')).to_have_count(1)
- pg.get_by_role('button',name='Appearance and preferences',exact=True).click();pg.get_by_label('Performance mode',exact=False).select_option('on');pg.get_by_role('button',name='Close dialog',exact=True).click()
- pg.set_viewport_size({'width':360,'height':780});pg.get_by_role('button',name='Armory',exact=True).click();pg.screenshot(path=str(OUT/'armory-mobile.png'),full_page=True)
+ pg.get_by_role('button',name='Menu',exact=True).click();pg.get_by_role('button',name='Appearance and preferences',exact=True).click();pg.get_by_label('Performance mode',exact=False).select_option('on');pg.get_by_role('button',name='Close dialog',exact=True).click()
+ pg.set_viewport_size({'width':360,'height':780});pg.get_by_role('button',name='More',exact=True).click();pg.get_by_role('dialog').get_by_role('button',name='Armory',exact=True).click();pg.screenshot(path=str(OUT/'armory-mobile.png'),full_page=True)
  assert pg.evaluate('document.documentElement.scrollWidth')==360
  observations.append({'mobileArmoryNoOverflow':True,'browserErrors':errors});assert not errors,errors
  (OUT/'battle-browser-checks.json').write_text(json.dumps(observations,indent=2));print(json.dumps(observations,indent=2));b.close()

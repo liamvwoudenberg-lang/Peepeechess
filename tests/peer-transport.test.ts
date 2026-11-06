@@ -139,3 +139,25 @@ test("storage transactions serialize concurrent updates and roll back failed wor
   );
   assert.equal(await kv.get("count"), 30);
 });
+
+test("a non-JSON server failure gives a readable online status instead of a JSON parser error", async () => {
+  const original = globalThis.fetch;
+  try {
+    globalThis.fetch = (async () =>
+      new Response("A server error has occurred", {
+        status: 500,
+      })) as typeof fetch;
+    const t = new PeerTransport(
+      () => {},
+      () => {},
+      () => {},
+      () => {},
+    ) as any;
+    await assert.rejects(
+      t.call({ type: "auth" }),
+      /temporarily unavailable.*Computer games/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});

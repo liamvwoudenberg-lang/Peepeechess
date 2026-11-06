@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import type { PieceSymbol, Color } from "chess.js";
 import type { PieceSet } from "./contracts";
-// Front-facing, illustrated renders of the shared 3D miniature designs.
+// Original ink drawings share role silhouettes and livery with the 3D models.
 // Old phones display the same miniatures without creating a WebGL context.
 export const Piece = memo(function Piece({
   type,

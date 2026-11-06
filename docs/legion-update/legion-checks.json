@@ -1,0 +1,25 @@
+[
+  {
+    "defaultBeforeAndAfterStart3D": true,
+    "explicitLegionChoiceRequired": true,
+    "drawn2DPlayable": true,
+    "computerLegionLocked": true
+  },
+  {
+    "phone2DFallbackNoWebGL": true,
+    "phoneTouchMoves": true,
+    "noHorizontalOverflow360px": true
+  },
+  {
+    "inviteGuestChoosesLegion": true,
+    "humanLegionsAndWhiteHomeCorrect": true,
+    "humanMovesBothDirections": true
+  },
+  {
+    "offlinePwaIncludesNewDrawings": true,
+    "offlineComputerReplies": true
+  },
+  {
+    "browserErrors": []
+  }
+]
