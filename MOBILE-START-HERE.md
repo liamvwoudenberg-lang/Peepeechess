@@ -8,11 +8,17 @@ The game opens in 3D on capable phones. Choose a legion before starting. The 2D 
 
 Version 1.2 adds distinct 2D fights for all 18 legion units, with moving weapons, arrows and spells, plus faction defeat effects. **Appearance and preferences → Battle animations** controls both views. Light mode keeps 2D fights to 340 ms and removes particles; reduced motion or Off shows captures immediately. The APK and installed web app include the battle artwork for offline play. Untimed computer games let the fight finish before the reply; online and timed matches keep moves and clocks immediate.
 
+## Battle Chess in Android 1.3
+
+Select **Battle Chess — 3D Combat** for the new chess-and-fighting variant. Local two-player fights work offline and use independent touch joysticks, actions and cameras. Portrait stacks the two views; landscape puts them side by side. Movement to a joystick’s edge sprints. Classic computer games and learning modes remain available as before; Battle Chess requires two people and WebGL.
+
+The installed web app and APK bundle the 3D fighters and castle arena. Private Battle rooms run on the included persistent Node server, with authenticated seats and server-run combat. The Vercel website’s Classic API does not host this WebSocket service. If you deploy the Node host, the existing game-website setting can connect the APK to it. See [BATTLE-CHESS.md](BATTLE-CHESS.md).
+
 ## Online play uses the included website address
 
 The APK is preconfigured for **https://cheesy-indol.vercel.app/**. It keeps the game bundled for offline play; it uses that website’s API for online profiles, friend links and matchmaking. You can change the website in settings. Your browser and APK have separate player profiles.
 
-The website’s multiplayer API needs a working Vercel deployment with Upstash Redis. See [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md). A functioning website alone does not guarantee the API/storage are configured. The current endpoint returns `ONLINE_NOT_CONFIGURED` (HTTP 503); configure its Redis environment variables in Vercel before using online modes. The earlier native ESM import failure has been fixed.
+The website’s multiplayer API needs a working Vercel deployment with Upstash Redis. See [the Offline practice setup steps](DEPLOY-VERCEL.md#if-the-app-says-offline-practice). A functioning website alone does not guarantee the API/storage are configured. The current endpoint returns `ONLINE_NOT_CONFIGURED` (HTTP 503); connect Redis to Production and redeploy before using online modes. Both `UPSTASH_REDIS_REST_*` and Vercel's `KV_REST_API_*` credential pairs are supported. The earlier native ESM import failure has been fixed. Tap **Retry** after the host is ready.
 
 To play online once the server is ready:
 
@@ -28,6 +34,8 @@ Links admit one guest and expire after an hour. Games are unrated. The selected 
 Pick a mode and legion, then Play. Expand **Match settings** to change the time control, computer Elo, side or move feedback. Their selected values are shown while the section is closed.
 
 During a match the board fills the available screen. Open the top-right **Moves and game options** button for history, chat, pause, resignation, draws and training tools. **Menu** returns to the main app. **More** contains puzzles, the armory, analysis, imports, profile and preferences. No game features were removed.
+
+Version 1.2.1 keeps menus, game controls, settings and drawers clear of the phone's status bar, notch and home indicator in either orientation. Android 15's native window insets are handled by Capacitor; the installed iPhone web app uses the browser's safe-area insets.
 
 ## iPhone and Android browsers
 

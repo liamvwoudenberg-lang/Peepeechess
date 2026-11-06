@@ -1,7 +1,13 @@
 import type { Color, PieceSymbol, Square } from "chess.js";
 
 export type PieceSet = "royal" | "elves" | "skeletons";
-export type Page = "play" | "learn" | "puzzles" | "friends" | "armory";
+export type Page =
+  | "play"
+  | "learn"
+  | "puzzles"
+  | "friends"
+  | "armory"
+  | "battle";
 export interface Preferences {
   pieceSet: PieceSet;
   opponentSet: PieceSet | "matching";

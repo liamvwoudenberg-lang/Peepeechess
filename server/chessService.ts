@@ -53,7 +53,11 @@ export class ChessService {
     }
     this.wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
     server.on("upgrade", (req, socket, head) => {
-      if (req.url?.startsWith("/peerjs/")) return;
+      if (
+        req.url?.startsWith("/peerjs/") ||
+        req.url?.split("?")[0] === "/battle-ws"
+      )
+        return;
       // Vite owns its development hot-reload socket; the game owns /ws.
       if (
         process.env.NODE_ENV !== "production" &&

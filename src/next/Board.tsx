@@ -25,6 +25,7 @@ interface Props {
   playerColor: Color | null;
   interactive: boolean;
   legal: Square[];
+  captureTargets?: Square[];
   lastMove?: Ply;
   premove?: { from: Square; to: Square } | null;
   coordinates: boolean;
@@ -48,6 +49,7 @@ export const Board = memo(function Board(props: Props) {
     playerColor,
     interactive,
     legal,
+    captureTargets = [],
     lastMove,
     premove,
     coordinates,
@@ -281,7 +283,7 @@ export const Board = memo(function Board(props: Props) {
                   tabIndex={i === focus ? 0 : -1}
                   aria-selected={selected === sq}
                   aria-label={`${sq}${piece ? `, ${piece.color === "w" ? "White" : "Black"} ${PIECE_NAMES[piece.type]}` : ", empty"}${isLegal ? ", legal destination" : ""}${checked ? ", in check" : ""}`}
-                  className={`square ${dark ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${lastMove && [lastMove.from, lastMove.to].includes(sq) ? "last-move" : ""} ${premove && [premove.from, premove.to].includes(sq) ? "premove" : ""} ${hint && [hint.from, hint.to].includes(sq) ? "hinted" : ""} ${checked ? "king-check" : ""}`}
+                  className={`square ${dark ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${captureTargets.includes(sq) ? "battle-capture-ready" : ""} ${lastMove && [lastMove.from, lastMove.to].includes(sq) ? "last-move" : ""} ${premove && [premove.from, premove.to].includes(sq) ? "premove" : ""} ${hint && [hint.from, hint.to].includes(sq) ? "hinted" : ""} ${checked ? "king-check" : ""}`}
                   onFocus={() => setFocus(i)}
                   onKeyDown={(e) => {
                     const offsets: Record<string, number> = {

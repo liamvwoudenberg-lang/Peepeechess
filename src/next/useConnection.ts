@@ -13,6 +13,7 @@ export function useConnection(onMessage: (data: any) => void) {
       "server",
     ),
     [error, setError] = useState(""),
+    [errorCode, setErrorCode] = useState(""),
     [authError, setAuthError] = useState(false);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
@@ -23,15 +24,17 @@ export function useConnection(onMessage: (data: any) => void) {
   useEffect(() => {
     setAuthError(false);
     setError("");
+    setErrorCode("");
     setStatus("connecting");
     const t = new PeerTransport(
       (d) => {
         if (d.type === "auth:error") setAuthError(true);
         handler.current(d);
       },
-      (state, message) => {
+      (state, message, code) => {
         setStatus(state);
         setError(message || "");
+        setErrorCode(code || "");
       },
       setNetwork,
       (value) => (offset.current = value),
@@ -48,6 +51,8 @@ export function useConnection(onMessage: (data: any) => void) {
     status,
     network,
     error,
+    errorCode,
+    retry: () => setRevision((v) => v + 1),
     send,
     authError,
     offset,

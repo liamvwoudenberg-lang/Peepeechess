@@ -1,0 +1,21 @@
+[
+  {
+    "emulatedNotchTop": 44,
+    "homeIndicator": 34,
+    "headerBelowStatus": true,
+    "retryRecoveredWithRealApi": true
+  },
+  {
+    "fullscreenGameSafe": true,
+    "drawerSafe": true,
+    "settingsDialogSafe": true
+  },
+  {
+    "landscapeSideInsets": 44,
+    "landscapeBottomInset": 21,
+    "allMatchControlsWithinSafeArea": true
+  },
+  {
+    "browserErrors": []
+  }
+]

@@ -1,4 +1,6 @@
 import React, {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -124,8 +126,16 @@ const navItems = [
   { id: "armory", label: "Armory", icon: Shield },
 ] as const;
 
+const BattleChess = lazy(() => import("./battle/BattleChess"));
+
 export function App() {
-  const [page, setPage] = useState<Page>("play"),
+  const [page, setPage] = useState<Page>(() =>
+      /^[a-f0-9]{12}$/i.test(
+        new URLSearchParams(location.search).get("battle") || "",
+      ) && read<Game | null>("sg-local-game-v2", null)?.status !== "active"
+        ? "battle"
+        : "play",
+    ),
     [preferences, setPreferences] = useState<Preferences>(() => ({
       ...DEFAULT_PREFERENCES,
       ...read("sg-preferences-v2", {}),
@@ -471,6 +481,7 @@ export function App() {
   }, [dialog, user?.id]);
   useEffect(() => {
     function key(e: KeyboardEvent) {
+      if (page === "battle") return;
       if (e.key === "Escape") {
         setSelected(null);
         setPremove(null);
@@ -498,7 +509,7 @@ export function App() {
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [game]);
+  }, [game, page]);
 
   function completeLocal(next: Game, result: Game["result"], reason: string) {
     const finished = {
@@ -1399,7 +1410,7 @@ export function App() {
 
   return (
     <div
-      className={`app board-view-${view} ${focused ? "focus-game" : ""} ${matchPanelOpen ? "match-panel-open" : ""} ${game ? "playing" : ""} ${efficient ? "efficient" : ""} ${preferences.reducedMotion ? "reduced-motion" : ""}`}
+      className={`app ${page === "battle" ? "battle-mode" : ""} board-view-${view} ${focused ? "focus-game" : ""} ${matchPanelOpen ? "match-panel-open" : ""} ${game ? "playing" : ""} ${efficient ? "efficient" : ""} ${preferences.reducedMotion ? "reduced-motion" : ""}`}
     >
       <aside className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}>
         <a
@@ -1521,7 +1532,7 @@ export function App() {
                   ? "Connecting"
                   : connection.offlineOnly
                     ? "Offline ready"
-                    : connection.error.includes("not available on this server")
+                    : connection.errorCode === "ONLINE_NOT_CONFIGURED"
                       ? "Offline practice"
                       : "Reconnecting"}
             </span>
@@ -1536,7 +1547,18 @@ export function App() {
         </header>
         {connection.error && !connection.authError && (
           <div className="connection-banner" role="status">
-            {connection.error}
+            <span>
+              {connection.errorCode === "ONLINE_NOT_CONFIGURED"
+                ? "Online play is unavailable. Computer games are ready."
+                : connection.error}
+            </span>
+            <button
+              type="button"
+              onClick={connection.retry}
+              aria-label="Retry online connection"
+            >
+              Retry
+            </button>
           </div>
         )}
         {connection.authError && (
@@ -1597,7 +1619,7 @@ export function App() {
             </button>
           </div>
         )}
-        {game && active && page !== "play" && (
+        {game && active && !focused && (
           <button
             className="return-game"
             onClick={() => {
@@ -1616,8 +1638,34 @@ export function App() {
           </button>
         )}
         <div className="page-content">
+          {page === "battle" && (
+            <Suspense
+              fallback={<p className="battle-opening">Opening Battle Chess…</p>}
+            >
+              <BattleChess
+                preferences={preferences}
+                onExit={() => setPage("play")}
+              />
+            </Suspense>
+          )}
           {page === "play" && (
             <>
+              {!active && (
+                <div className="chess-mode-choice" aria-label="Chess game mode">
+                  <div>
+                    <strong>Classic Chess</strong>
+                    <small>Traditional rules, learning and online play</small>
+                  </div>
+                  <button disabled={queued} onClick={() => setPage("battle")}>
+                    <Swords size={20} />
+                    <span>
+                      Battle Chess — 3D Combat
+                      <small>Control your fighters. Win the capture.</small>
+                    </span>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
               <div className="play-heading">
                 <div>
                   <div className="section-eyebrow">
@@ -2943,6 +2991,25 @@ export function App() {
       {dialog === "more" && (
         <Dialog title="More options" onClose={() => setDialog(null)}>
           <div className="dialog-content more-menu">
+            <button
+              aria-label="Battle Chess — 3D Combat"
+              disabled={Boolean(active || queued)}
+              onClick={() => {
+                setPage("battle");
+                setDialog(null);
+              }}
+            >
+              <Swords size={20} />
+              <span>
+                Battle Chess — 3D Combat
+                <small>
+                  {active
+                    ? "Finish this match before changing modes"
+                    : "Chess strategy meets player-controlled fighting"}
+                </small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
             <button
               aria-label="Puzzles"
               onClick={() => {

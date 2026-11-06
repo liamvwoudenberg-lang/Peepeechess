@@ -31,7 +31,7 @@ test("the Vercel API runs as emitted native ESM without a TypeScript loader", ()
       [
         "--input-type=module",
         "-e",
-        `const {default:handler}=await import(${JSON.stringify(join(dir, "api/chess.js"))});delete process.env.UPSTASH_REDIS_REST_URL;delete process.env.UPSTASH_REDIS_REST_TOKEN;const headers={};let code=0,body;const res={setHeader:(k,v)=>headers[k]=v,status(n){code=n;return this;},json(v){body=v;}};await handler({method:'GET',headers:{origin:'https://localhost',host:'cheesy-indol.vercel.app'}},res);console.log(JSON.stringify({code,body,headers}));`,
+        `const {default:handler}=await import(${JSON.stringify(join(dir, "api/chess.js"))});delete process.env.UPSTASH_REDIS_REST_URL;delete process.env.UPSTASH_REDIS_REST_TOKEN;delete process.env.KV_REST_API_URL;delete process.env.KV_REST_API_TOKEN;const headers={};let code=0,body;const res={setHeader:(k,v)=>headers[k]=v,status(n){code=n;return this;},json(v){body=v;}};await handler({method:'GET',headers:{origin:'https://localhost',host:'cheesy-indol.vercel.app'}},res);console.log(JSON.stringify({code,body,headers}));`,
       ],
       { encoding: "utf8" },
     );

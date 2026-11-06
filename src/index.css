@@ -21,6 +21,10 @@
   --light-square: #ded9c6;
   --dark-square: #728575;
   --font-display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 * {
   box-sizing: border-box;
@@ -137,6 +141,7 @@ svg {
 }
 .app {
   min-height: 100vh;
+  padding: var(--safe-top) var(--safe-right) 0 var(--safe-left);
 }
 .sidebar {
   position: fixed;
@@ -5334,9 +5339,7 @@ svg {
   flex-direction: column;
   justify-content: center;
   gap: 0;
-  padding: env(safe-area-inset-top, 0px)
-    max(4px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
-    max(4px, env(safe-area-inset-left, 0px));
+  padding: 0 4px;
   box-sizing: border-box;
 }
 .game-focus-bar {
@@ -5414,8 +5417,8 @@ svg {
   justify-content: center;
 }
 .focus-game .miniature-board {
-  width: min(100%, calc(100vh - 235px));
-  width: min(100%, calc(100dvh - 235px));
+  width: min(100%, calc(100vh - 235px - var(--safe-top) - var(--safe-bottom)));
+  width: min(100%, calc(100dvh - 235px - var(--safe-top) - var(--safe-bottom)));
   flex: none;
 }
 .focus-game .miniature-board.camera-castle.model-active {
@@ -5516,7 +5519,10 @@ svg {
     font-size: 20px;
   }
   .focus-game .miniature-board {
-    width: min(100%, calc(100dvh - 170px));
+    width: min(
+      100%,
+      calc(100dvh - 170px - var(--safe-top) - var(--safe-bottom))
+    );
   }
   .focus-game .game-focus-bar {
     min-height: 36px;
@@ -5705,3 +5711,77 @@ svg {
     visibility: visible;
   }
 }
+
+/* One safe rectangle for the app; fixed overlays use the same system insets. */
+.app:not(.focus-game) .main-shell {
+  min-height: calc(100vh - var(--safe-top));
+  min-height: calc(100dvh - var(--safe-top));
+}
+.sidebar {
+  top: var(--safe-top);
+  left: var(--safe-left);
+  bottom: var(--safe-bottom);
+}
+.focus-game {
+  padding-bottom: var(--safe-bottom);
+}
+.focus-game .game-panel-column,
+.focus-panel-close {
+  top: var(--safe-top);
+  right: var(--safe-right);
+  width: min(380px, calc(100vw - var(--safe-left) - var(--safe-right)));
+}
+.focus-game .game-panel-column {
+  bottom: var(--safe-bottom);
+}
+.dialog-shade {
+  --dialog-gap: 20px;
+  padding: max(var(--dialog-gap), var(--safe-top))
+    max(var(--dialog-gap), var(--safe-right))
+    max(var(--dialog-gap), var(--safe-bottom))
+    max(var(--dialog-gap), var(--safe-left));
+}
+.dialog {
+  max-height: calc(
+    100vh - max(var(--dialog-gap), var(--safe-top)) -
+      max(var(--dialog-gap), var(--safe-bottom))
+  );
+  max-height: calc(
+    100dvh - max(var(--dialog-gap), var(--safe-top)) -
+      max(var(--dialog-gap), var(--safe-bottom))
+  );
+}
+.toast {
+  margin-bottom: var(--safe-bottom);
+}
+.connection-banner > span {
+  flex: 1;
+  min-width: 0;
+}
+.connection-banner button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 6px;
+}
+@media (max-width: 800px) {
+  .app:not(.focus-game) .main-shell {
+    padding-bottom: calc(69px + var(--safe-bottom));
+  }
+  .sidebar.mobile-open {
+    bottom: calc(68px + var(--safe-bottom));
+  }
+  .bottom-nav {
+    min-height: calc(66px + var(--safe-bottom));
+    padding: 5px max(8px, var(--safe-right)) calc(5px + var(--safe-bottom))
+      max(8px, var(--safe-left));
+  }
+  .dialog-shade {
+    --dialog-gap: 13px;
+  }
+}
+
+.chess-mode-choice{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;padding:14px 18px;border:1px solid #4d523b;border-radius:10px;background:#1a241c}
+.chess-mode-choice>div{font-size:13px;color:#e3d4ac}.chess-mode-choice small{display:block;font-size:11px;color:#a7b49e;margin-top:5px;line-height:1.5}
+.chess-mode-choice>button{display:flex;align-items:center;gap:12px;min-height:52px;padding:9px 14px;border:1px solid #8f754b;border-radius:7px;background:#3b3527;text-align:left;font-size:13px}
+.square.battle-capture-ready::after{content:'';position:absolute;inset:7%;border:3px solid #f4bd66;border-radius:50%;pointer-events:none;box-shadow:0 0 0 1px #49351c}
+@media(max-width:650px){.chess-mode-choice{align-items:stretch;flex-direction:column;padding:12px;gap:12px;margin-bottom:20px}.chess-mode-choice>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.chess-mode-choice>div small{font-size:9px;margin:0;text-align:right;max-width:160px}.chess-mode-choice>button{width:100%}.chess-mode-choice>button>span{flex:1}}

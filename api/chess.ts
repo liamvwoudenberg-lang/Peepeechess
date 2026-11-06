@@ -1,4 +1,4 @@
-import { RedisKV } from "../server/onlineStorage.js";
+import { RedisKV, redisConfig } from "../server/onlineStorage.js";
 import {
   onlineHandler,
   peerSettings,
@@ -7,10 +7,8 @@ import {
 let handler: ReturnType<typeof onlineHandler> | null = null;
 export default async function chess(req: any, res: any) {
   if (!applyAppCors(req, res)) return;
-  if (
-    !process.env.UPSTASH_REDIS_REST_URL ||
-    !process.env.UPSTASH_REDIS_REST_TOKEN
-  ) {
+  const storage = redisConfig();
+  if (!storage) {
     res.setHeader("Cache-Control", "no-store");
     res.status(503).json({
       error:
@@ -21,10 +19,7 @@ export default async function chess(req: any, res: any) {
   }
   if (!handler)
     handler = onlineHandler(
-      new RedisKV(
-        process.env.UPSTASH_REDIS_REST_URL,
-        process.env.UPSTASH_REDIS_REST_TOKEN,
-      ),
+      new RedisKV(storage.url, storage.token),
       peerSettings(),
     );
   return handler(req, res);

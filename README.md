@@ -2,6 +2,10 @@
 
 Classic chess inside a fantasy castle. The game opens in a 3D castle, with a lightweight drawn 2D board available any time. Choose a legion before starting; both views share its livery, faces, weapons and familiar chess silhouettes. White’s faction determines the home castle for both players.
 
+## Battle Chess — 3D Combat
+
+Choose **Battle Chess — 3D Combat** from Play or More. Quiet chess moves stay familiar; captures become real player-controlled third-person fights. Play with two people sharing a device, or use a private room on the included authoritative Node/WebSocket host. Attacker and defender victories have explicit variant rules; Classic Chess keeps its existing rules and features. The static Vercel site supports local Battle Chess, while private combat rooms need a persistent server. See [BATTLE-CHESS.md](BATTLE-CHESS.md) for controls, complete rules, hosting, architecture and limitations.
+
 ## Phone and Android APK
 
 Start with [MOBILE-START-HERE.md](MOBILE-START-HERE.md). The Android APK bundles offline computer play and connects to https://cheesy-indol.vercel.app for multiplayer. The installable web app supports iPhone/Android browsers. The live API must be healthy and have its Redis variables configured for online matches.
@@ -11,6 +15,8 @@ Start with [MOBILE-START-HERE.md](MOBILE-START-HERE.md). The Android APK bundles
 Main navigation is **Play, Learn, Friends, More**. More contains puzzles, the armory and battle previews, analysis, PGN/FEN import, profile and appearance settings. Match settings disclose the computer strength, side, clock and feedback controls; the summary shows the chosen values before Play.
 
 Active matches fill the available window. **Moves and game options** opens the move history, chat, game actions and optional coaching drawer. **Menu** returns to the normal app; the browser fullscreen control can hide browser chrome where supported. Both clocks stay beside the square 2D board. In 3D, camera-facing elven trees cut away so scenery cannot cover the pieces.
+
+Menus and fixed controls respect phone safe areas in both orientations. An unavailable online server shows a short notice with **Retry**; the host setup steps are in [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md#if-the-app-says-offline-practice). Vercel's `KV_REST_API_URL`/`KV_REST_API_TOKEN` and Upstash's REST credential pair are both supported.
 
 ## Run locally
 
@@ -78,9 +84,12 @@ BASE_URL=http://localhost:3000 python tests/focus-navigation-browser.py
 BASE_URL=http://localhost:3000 python tests/browser.py
 BASE_URL=http://localhost:3000 python tests/interaction.py
 BASE_URL=http://localhost:3000 python tests/battle2d-app-browser.py
+BASE_URL=http://localhost:3000 python tests/mobile-safe-area-browser.py
 ```
 
 The 2D choreography fixture runs only on the development server: `BASE_URL=http://localhost:3000 python tests/battle2d-browser.py`. It is excluded from the production bundle. Current 2D results are in [docs/battle2d/VERIFICATION.md](docs/battle2d/VERIFICATION.md).
+
+Phone safe-area reproduction, retry recovery and Android 1.2.1 results are in [docs/mobile-safe-area/VERIFICATION.md](docs/mobile-safe-area/VERIFICATION.md).
 
 For the current phone/invite checks, run `BASE_URL=http://localhost:3000 python tests/mobile-invite-browser.py`. Results and screenshots are in [docs/legion-update/VERIFICATION.md](docs/legion-update/VERIFICATION.md).
 

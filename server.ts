@@ -4,9 +4,10 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Store } from "./server/store";
+import { BattleServer } from "./server/battleServer";
 import { ChessService } from "./server/chessService";
 import { WebSocketServer } from "ws";
-import { LocalKV, RedisKV } from "./server/onlineStorage";
+import { LocalKV, RedisKV, redisConfig } from "./server/onlineStorage";
 import { onlineHandler, peerSettings } from "./server/onlineHandler";
 
 export async function createChessServer(
@@ -25,14 +26,21 @@ export async function createChessServer(
     server,
     options.now,
   );
+  const battle = new BattleServer(server, options.now);
+  app.get("/api/battle-capabilities", (_req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.json({
+      enabled: true,
+      transport: "websocket",
+      authority: "server",
+      persistence: "memory",
+    });
+  });
   app.use(express.json({ limit: "10kb" }));
-  const kv =
-    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-      ? new RedisKV(
-          process.env.UPSTASH_REDIS_REST_URL,
-          process.env.UPSTASH_REDIS_REST_TOKEN,
-        )
-      : new LocalKV(service.store.db);
+  const storage = redisConfig();
+  const kv = storage
+    ? new RedisKV(storage.url, storage.token)
+    : new LocalKV(service.store.db);
   app.all(
     "/api/chess",
     onlineHandler(
@@ -96,19 +104,22 @@ export async function createChessServer(
       void vite.close();
     });
   }
-  return { app, server, service };
+  return { app, server, service, battle };
 }
 
 if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  const { server, service } = await createChessServer({ peerServer: true });
+  const { server, service, battle } = await createChessServer({
+    peerServer: true,
+  });
   const port = Number(process.env.PORT) || 3000;
   server.listen(port, "0.0.0.0", () =>
     console.log(`Sovereign’s Gambit is ready on port ${port}`),
   );
   const stop = () => {
+    battle.close();
     service.close();
     server.close(() => process.exit(0));
   };

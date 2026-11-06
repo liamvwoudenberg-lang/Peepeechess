@@ -1,0 +1,23 @@
+[
+  {
+    "localCompleteChessCombatLoop": true,
+    "independentThirdPersonViews": 2,
+    "actualKeyboardMovementAndAttacks": true,
+    "attackerWonAndMoved": true,
+    "continuedChessAfterCombat": true,
+    "arenaUnmounted": true,
+    "dedicatedResults": true,
+    "classicStateUnaffected": true,
+    "activeClassicSurvivesBattleLink": true
+  },
+  {
+    "privateRoomTwoBrowsers": true,
+    "oneOwnedFighterPerClient": true,
+    "serverDefenderWon": true,
+    "positionsAgreeAfterReturn": true,
+    "continuedAuthoritativeMoves": true
+  },
+  {
+    "browserErrors": []
+  }
+]

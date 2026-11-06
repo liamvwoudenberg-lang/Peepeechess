@@ -2,6 +2,17 @@
 
 The Android app targets https://cheesy-indol.vercel.app. The project is prepared for Vercel; this workspace has GitHub access but no Vercel account or Redis credentials. The API entry and its dependencies use explicit `.js` module imports so emitted server files run under native Node ESM. `tests/vercel-runtime.test.ts` checks this without a TypeScript loader.
 
+## If the app says “Offline practice”
+
+`ONLINE_NOT_CONFIGURED` means the deployed Function cannot see a complete Redis credential pair. The Android APK and browser both depend on this API for friends and online games. Reinstalling the app will not configure the server.
+
+1. Open **Vercel → your game project → Storage → Connect Database** and connect an **Upstash Redis** database from the Marketplace (create one if needed).
+2. Make the database available to **Production**. In **Settings → Environment Variables**, confirm either `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`, or `KV_REST_API_URL` + `KV_REST_API_TOKEN`. The app accepts either complete pair. A `REDIS_URL` alone or a read-only token is insufficient. If your integration uses a custom prefix, map its REST URL and write token to one of these pairs.
+3. **Redeploy the latest production deployment** after connecting the database or changing variables. Check that the domain `cheesy-indol.vercel.app` points to that deployment.
+4. Open [the live API health check](https://cheesy-indol.vercel.app/api/chess). It should return `{"ok":true,"transport":"peerjs","storage":"ready"}`. Then tap **Retry** in the game. `ONLINE_STORAGE_UNAVAILABLE` means credentials exist but the database request failed; check the database status and credentials in Vercel.
+
+Database credentials belong in Vercel's server environment, not in the APK or a chat message. This workspace cannot change your Vercel project without connected account access.
+
 ## What runs where
 
 - **Vercel** serves the built Vite interface and `/api/chess` Node Function. It does not run the long-lived `server.ts` process or host a WebSocket server.
@@ -20,7 +31,7 @@ The Android app targets https://cheesy-indol.vercel.app. The project is prepared
    | `UPSTASH_REDIS_REST_URL` | The database REST URL |
    | `UPSTASH_REDIS_REST_TOKEN` | The database REST token |
 
-   Never name these with a `VITE_` prefix. Use separate databases for Preview and Production if preview games should be isolated.
+   Vercel Marketplace may instead create `KV_REST_API_URL` and `KV_REST_API_TOKEN`; that complete pair is also supported. The token must allow writes. Never name these with a `VITE_` prefix. Use separate databases for Preview and Production if preview games should be isolated.
 4. Deploy. When adding or changing environment variables later, redeploy for the Function to use them.
 5. Open `/api/chess`: a configured host returns `{"ok":true,"transport":"peerjs","storage":"ready"}`. Without Redis variables, online play explicitly reports unavailable and computer/learning modes continue to work. The API does not silently substitute an in-memory queue on Vercel.
 6. For a direct invitation, choose **Friend → Share a friend link → Create invite link** and open the copied URL in another browser. Verify joining and moves. Enter the same HTTPS origin in the Android app’s website setting for APK multiplayer.
@@ -50,3 +61,7 @@ Run `npm run lint`, `npm test`, and `npm run build` before deploying. Automated 
 This environment enforces Chromium’s `WebRtcIPHandling=disable_non_proxied_udp`. Local testing verified PeerJS signaling and offer/answer exchange, with zero ICE candidates in that browser policy. Real two-browser gameplay was verified through the HTTPS fallback. A live managed TURN connection and an actual Vercel/Upstash deployment require your configured services; neither is claimed as verified here.
 
 This remains an MVP with browser-secret identities and provisional Elo. Account recovery, public-service moderation, measured fair-play enforcement, monitoring, and load testing remain deployment work. Polling and shared matchmaking locks suit a modest initial player pool; measure Redis usage, Function latency and game traffic before opening a large ranked pool. Clocks expire authoritatively on the next request, so sleeping clients cannot extend a game.
+
+## Battle Chess hosting
+
+The static build includes local two-player Battle Chess, its arena and offline assets. Private real-time fighting rooms need the included persistent Node/WebSocket server (`/battle-ws`), which Vercel Functions cannot host. The app checks `/api/battle-capabilities` before offering those rooms. Classic Vercel/Redis/PeerJS matches are unchanged. See [BATTLE-CHESS.md](BATTLE-CHESS.md#private-rooms-and-hosting) for the Node host, origin policy and room persistence limits.

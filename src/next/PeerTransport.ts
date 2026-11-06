@@ -1,6 +1,14 @@
 import { gameWebsite, isNativeApp, inviteSessionKey } from "./mobile";
 import type { Peer, DataConnection } from "peerjs";
 type Status = "connecting" | "online" | "offline";
+class OnlineError extends Error {
+  constructor(
+    message: string,
+    readonly code = "",
+  ) {
+    super(message);
+  }
+}
 export class PeerTransport {
   private origin = gameWebsite();
   private sessionKey = inviteSessionKey();
@@ -29,7 +37,7 @@ export class PeerTransport {
   private lastHint = 0;
   constructor(
     private message: (d: any) => void,
-    private state: (s: Status, error?: string) => void,
+    private state: (s: Status, error?: string, code?: string) => void,
     private route: (s: "connecting" | "direct" | "server") => void,
     private offset: (n: number) => void,
   ) {}
@@ -66,7 +74,10 @@ export class PeerTransport {
         );
       });
       if (!response.ok)
-        throw new Error(data.error || "The game server is unavailable.");
+        throw new OnlineError(
+          data.error || "The game server is unavailable.",
+          typeof data.code === "string" ? data.code : "",
+        );
       if (this.stopped) return null;
       if (typeof data.serverTime === "number")
         this.offset(data.serverTime - Date.now());
@@ -114,8 +125,13 @@ export class PeerTransport {
       this.state(
         "offline",
         e instanceof Error ? e.message : "Could not connect.",
+        e instanceof OnlineError ? e.code : "",
       );
-      this.schedule(6000);
+      this.schedule(
+        e instanceof OnlineError && e.code === "ONLINE_NOT_CONFIGURED"
+          ? 60000
+          : 6000,
+      );
     }
   }
   private emit(key: string, data: any) {
@@ -250,6 +266,7 @@ export class PeerTransport {
       return;
     }
     this.polling = true;
+    let retryDelay: number | undefined;
     try {
       const data = await this.call({
         type: "poll",
@@ -265,13 +282,16 @@ export class PeerTransport {
         this.state(
           "offline",
           e instanceof Error ? e.message : "Connection lost. Reconnecting…",
+          e instanceof OnlineError ? e.code : "",
         );
+      if (e instanceof OnlineError && e.code === "ONLINE_NOT_CONFIGURED")
+        retryDelay = 60000;
     } finally {
       this.polling = false;
       if (this.pending) {
         this.pending = false;
-        this.schedule(50);
-      } else this.schedule();
+        this.schedule(retryDelay ?? 50);
+      } else this.schedule(retryDelay);
     }
   }
   private async ensurePeer() {

@@ -1,0 +1,16 @@
+[
+  {
+    "offlineArenaLoaded": true,
+    "olderWebViewCloneFallback": true,
+    "cpuThrottle6x": true,
+    "gamepadPolicyDoesNotBlockTouch": true,
+    "twoSimultaneousTouchJoysticks": true,
+    "simultaneousAttackAndDodge": true,
+    "staminaCostsApplied": true,
+    "landscapeControlsFit": true,
+    "portraitControls44px": true,
+    "savedDuelResumed": true,
+    "arenaDisposedOnExit": true,
+    "browserErrors": []
+  }
+]

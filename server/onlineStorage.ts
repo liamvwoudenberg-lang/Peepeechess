@@ -1,5 +1,18 @@
 import { randomUUID } from "node:crypto";
 
+/** Keep each provider's URL and write token together; never mix credential pairs. */
+export function redisConfig(env: NodeJS.ProcessEnv = process.env) {
+  for (const [urlKey, tokenKey] of [
+    ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+    ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
+  ]) {
+    const url = env[urlKey]?.trim(),
+      token = env[tokenKey]?.trim();
+    if (url && token) return { url, token };
+  }
+  return null;
+}
+
 export interface KV {
   get<T = any>(key: string): Promise<T | null>;
   many<T = any>(keys: string[]): Promise<(T | null)[]>;

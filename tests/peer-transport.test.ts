@@ -94,10 +94,14 @@ test("TURN REST credentials are short-lived per player; the shared secret never 
 });
 test("Vercel without configured Redis returns an explicit unavailable state instead of ephemeral matchmaking", async () => {
   const url = process.env.UPSTASH_REDIS_REST_URL,
-    token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    token = process.env.UPSTASH_REDIS_REST_TOKEN,
+    kvUrl = process.env.KV_REST_API_URL,
+    kvToken = process.env.KV_REST_API_TOKEN;
   try {
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
     let status = 0,
       payload: any;
     const res = {
@@ -117,6 +121,8 @@ test("Vercel without configured Redis returns an explicit unavailable state inst
   } finally {
     if (url !== undefined) process.env.UPSTASH_REDIS_REST_URL = url;
     if (token !== undefined) process.env.UPSTASH_REDIS_REST_TOKEN = token;
+    if (kvUrl !== undefined) process.env.KV_REST_API_URL = kvUrl;
+    if (kvToken !== undefined) process.env.KV_REST_API_TOKEN = kvToken;
   }
 });
 test("storage transactions serialize concurrent updates and roll back failed work", async () => {
@@ -157,6 +163,49 @@ test("a non-JSON server failure gives a readable online status instead of a JSON
       t.call({ type: "auth" }),
       /temporarily unavailable.*Computer games/,
     );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("an unconfigured deployment keeps its error code, backs off retries, and recovers after setup", async () => {
+  const original = globalThis.fetch,
+    states: any[] = [],
+    delays: any[] = [];
+  try {
+    let configured = false;
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify(
+          configured
+            ? { messages: [] }
+            : {
+                code: "ONLINE_NOT_CONFIGURED",
+                error: "Online play is not available on this server yet.",
+              },
+        ),
+        {
+          status: configured ? 200 : 503,
+          headers: { "Content-Type": "application/json" },
+        },
+      )) as typeof fetch;
+    const t = new PeerTransport(
+      () => {},
+      (...args) => states.push(args),
+      () => {},
+      () => {},
+    ) as any;
+    t.schedule = (delay: any) => delays.push(delay);
+    await t.authenticate();
+    assert.equal(states.at(-1)[2], "ONLINE_NOT_CONFIGURED");
+    assert.equal(delays.at(-1), 60000);
+    await t.poll();
+    assert.equal(states.at(-1)[2], "ONLINE_NOT_CONFIGURED");
+    assert.equal(delays.at(-1), 60000);
+    configured = true;
+    await t.authenticate();
+    assert.deepEqual(states.at(-1), ["online"]);
+    assert.equal(delays.at(-1), undefined);
   } finally {
     globalThis.fetch = original;
   }

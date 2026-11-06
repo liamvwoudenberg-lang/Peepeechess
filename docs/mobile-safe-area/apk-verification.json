@@ -1,0 +1,15 @@
+{
+  "versionName": "1.2.1",
+  "versionCode": 4,
+  "applicationId": "com.sovereignsgambit.chess",
+  "minSdk": 23,
+  "targetSdk": 35,
+  "signedDebugApk": true,
+  "v1AndV2Verified": true,
+  "sameSigningCertificateAs1_2": true,
+  "webFilesMatchBuild": 26,
+  "nativeEdgeToEdgeMargins": "auto",
+  "physicalDeviceTest": false,
+  "bytes": 6755595,
+  "sha256": "0bb7dfed5854f86f735638d42f527b539bccc049ea7dfde42955b069f7f68871"
+}
