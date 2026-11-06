@@ -1,0 +1,11 @@
+{
+  "nativeOrigin": "https://localhost",
+  "apiOrigin": "https://127.0.0.1:3011",
+  "nativeBrowserCredentialScopedToServer": true,
+  "crossOriginAuthAndPreflight": true,
+  "privateLinkNativeHostToBrowserGuest": true,
+  "movesBothDirections": true,
+  "physicalAndroidRuntime": false,
+  "testLoopbackNetworkPermissionGranted": true,
+  "errors": []
+}

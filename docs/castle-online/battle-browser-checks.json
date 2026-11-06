@@ -1,0 +1,49 @@
+[
+  {
+    "default2DLoadsNo3DOrPhotographs": true
+  },
+  {
+    "weaponSoundsScheduleAndMuteStopsScheduling": true
+  },
+  {
+    "encounters": 324,
+    "off": true,
+    "reducedMotion": true,
+    "competitiveUnder600ms": true
+  },
+  {
+    "matchup": "royal/n>skeletons/r",
+    "arena": "Dawn Citadel",
+    "drawCalls": 105
+  },
+  {
+    "matchup": "elves/q>skeletons/n",
+    "arena": "Silverwood Sanctuary",
+    "drawCalls": 110
+  },
+  {
+    "matchup": "skeletons/b>elves/q",
+    "arena": "Ossuary Keep",
+    "drawCalls": 89
+  },
+  {
+    "live3DRaycastCaptureUpdatesChessImmediately": true,
+    "scene": {
+      "fps": 1,
+      "pixelRatio": 0.8,
+      "isSoftwareGl": true,
+      "contextLost": false,
+      "drawCalls": 111,
+      "triangles": 88896,
+      "animationsPlayed": 1,
+      "lastCapture": "skeletons/p>elves/r",
+      "activeAnimations": 0,
+      "characters": 3,
+      "victims": 0
+    }
+  },
+  {
+    "mobileArmoryNoOverflow": true,
+    "browserErrors": []
+  }
+]

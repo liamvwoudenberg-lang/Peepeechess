@@ -1,0 +1,90 @@
+[
+  {
+    "friendsChatChallengeSpectatingEmotesReconnect": "passed",
+    "onlineWorkerCount": 0
+  },
+  {
+    "computerFeedbackOff": "passed",
+    "simulatedElo1600": [
+      "Magister ElowenBOTSimulated 1600 Elo",
+      "ElowenyouThe Radiant Order"
+    ]
+  },
+  {
+    "verifiedPuzzleOnBoard": "passed",
+    "pieceSetPersistence": "passed"
+  },
+  {
+    "viewport": [
+      320,
+      640
+    ],
+    "board": {
+      "x": 14,
+      "y": 228.859375,
+      "width": 292,
+      "height": 292
+    },
+    "horizontalOverflow": false,
+    "webglLoaded": false
+  },
+  {
+    "viewport": [
+      360,
+      740
+    ],
+    "board": {
+      "x": 14,
+      "y": 228.859375,
+      "width": 332,
+      "height": 332
+    },
+    "horizontalOverflow": false,
+    "webglLoaded": false
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ],
+    "board": {
+      "x": 18,
+      "y": 228.859375,
+      "width": 354,
+      "height": 354
+    },
+    "horizontalOverflow": false,
+    "webglLoaded": false
+  },
+  {
+    "viewport": [
+      768,
+      1024
+    ],
+    "board": {
+      "x": 26,
+      "y": 262.109375,
+      "width": 406,
+      "height": 406
+    },
+    "horizontalOverflow": false,
+    "webglLoaded": false
+  },
+  {
+    "viewport": [
+      1440,
+      900
+    ],
+    "board": {
+      "x": 388.5,
+      "y": 282.9375,
+      "width": 523,
+      "height": 523
+    },
+    "horizontalOverflow": false,
+    "webglLoaded": false
+  },
+  {
+    "browserErrors": []
+  }
+]

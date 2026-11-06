@@ -1,0 +1,26 @@
+[
+  {
+    "privateLinkTwoBrowsers": true,
+    "phoneTapMoves": true,
+    "fixedSidesAndWhiteHome": true,
+    "usedLinkRejected": true,
+    "reconnect": true,
+    "blackPiecesStayUpright": true,
+    "phoneWidth": 360
+  },
+  {
+    "installedWebShellOffline": true,
+    "offlineComputerWorkerReplies": true,
+    "default2DNoWebGL": true,
+    "cpuThrottle6x": true
+  },
+  {
+    "nativeModeNoHostNoApiCalls": true,
+    "nativeModeComputerReplies": true,
+    "nativeWebsiteSettingAvailable": true,
+    "nativeRuntimeEmulatedNotPhysicalDevice": true
+  },
+  {
+    "browserErrors": []
+  }
+]

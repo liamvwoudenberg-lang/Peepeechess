@@ -1,0 +1,24 @@
+{
+  "method": "Production build, interaction after load, Chromium emulates a 6x slower CPU; not a real old-phone benchmark",
+  "cpuSlowdown": 6,
+  "emulatedHardware": {
+    "cores": 4,
+    "memoryGiB": 2
+  },
+  "viewport": [
+    390,
+    844
+  ],
+  "moveToTwoAnimationFramesMs": [
+    162.8,
+    97.1,
+    88.2,
+    70.5
+  ],
+  "maxMs": 162.8,
+  "resources": [
+    "index-B9zvtVej.js",
+    "index-EUJHVvpW.css"
+  ],
+  "canvasCount": 0
+}

@@ -1,0 +1,8 @@
+{
+  "appId": "com.sovereignsgambit.chess",
+  "appName": "Sovereign’s Gambit",
+  "webDir": "dist",
+  "backgroundColor": "#151917",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}

@@ -1,0 +1,31 @@
+{
+  "method": "Production build, interaction after load, Chromium emulates a 6x slower CPU; not a real old-phone benchmark",
+  "cpuSlowdown": 6,
+  "emulatedHardware": {
+    "cores": 4,
+    "memoryGiB": 2
+  },
+  "viewport": [
+    390,
+    844
+  ],
+  "moveToTwoAnimationFramesMs": [
+    143.2,
+    108.4,
+    76.8,
+    48.5
+  ],
+  "maxMs": 143.2,
+  "resources": [
+    "miniatures-top.webp",
+    "index-BsEVMx2d.js",
+    "index-BVHWGGg1.css",
+    "rolldown-runtime-XKyaHtl9.js",
+    "chess",
+    "chess"
+  ],
+  "canvasCount": 0,
+  "olderAbortSignalAPIUnavailable": true,
+  "olderAudioPannerUnavailable": true,
+  "authenticatedOnlineAPIWorks": "Connected"
+}

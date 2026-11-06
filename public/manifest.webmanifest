@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "Sovereign’s Gambit",
+  "short_name": "Gambit",
+  "description": "Fantasy chess. Play a computer offline or invite a friend online.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#151917",
+  "theme_color": "#1b251b",
+  "icons": [
+    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

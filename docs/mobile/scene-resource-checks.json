@@ -1,0 +1,10 @@
+{
+  "replayedRenderedBattles": 16,
+  "geometryCountAfterWarmup": 62,
+  "geometryCountAfter16": 62,
+  "enPassantTargetAndDestination": true,
+  "castlingBothActors": true,
+  "captureUnderpromotionToHorseKnight": true,
+  "checkmateKingRemains": true,
+  "fastMoveInterruptSettlesCapture": true
+}

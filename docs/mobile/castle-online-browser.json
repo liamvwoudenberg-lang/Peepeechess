@@ -1,0 +1,55 @@
+[
+  {
+    "queueCancelAndLockedSetup": true,
+    "twoHumansExchangeMoves": true,
+    "sameFactionsAndWhiteHomeOnBothClients": true,
+    "home": "silverwood",
+    "transport": [
+      "Server connection",
+      "Server connection"
+    ],
+    "rtc": [
+      [
+        {
+          "ice": "closed",
+          "local": null,
+          "remote": null,
+          "candidates": 0
+        },
+        {
+          "ice": "closed",
+          "local": null,
+          "remote": null,
+          "candidates": 0
+        }
+      ],
+      [
+        {
+          "ice": "closed",
+          "local": null,
+          "remote": null,
+          "candidates": 0
+        },
+        {
+          "ice": "closed",
+          "local": "offer",
+          "remote": null,
+          "candidates": 0
+        }
+      ]
+    ]
+  },
+  {
+    "reconnectAndServerResult": true
+  },
+  {
+    "defaultFrontFacingAtlas": true,
+    "default2DNoWebGL": true,
+    "legalCaptureIn2D": true
+  },
+  {
+    "castleCameraAndFactionHalls": true,
+    "closePreviewDisposesCanvas": true,
+    "browserErrors": []
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "lowMemoryDeviceBlocksOptionalWebGL": true,
+  "previewCanCloseAndDisposesCanvas": true,
+  "browserErrors": []
+}

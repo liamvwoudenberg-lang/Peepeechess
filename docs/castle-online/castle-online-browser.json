@@ -1,0 +1,68 @@
+[
+  {
+    "queueCancelAndLockedSetup": true,
+    "twoHumansExchangeMoves": true,
+    "sameFactionsAndWhiteHomeOnBothClients": true,
+    "home": "citadel",
+    "transport": [
+      "Server connection",
+      "Server connection"
+    ],
+    "rtc": [
+      [
+        {
+          "ice": "closed",
+          "local": null,
+          "remote": null,
+          "candidates": 0
+        },
+        {
+          "ice": "closed",
+          "local": "offer",
+          "remote": "answer",
+          "candidates": 0
+        }
+      ],
+      [
+        {
+          "ice": "closed",
+          "local": null,
+          "remote": null,
+          "candidates": 0
+        },
+        {
+          "ice": "closed",
+          "local": "answer",
+          "remote": "offer",
+          "candidates": 0
+        }
+      ]
+    ]
+  },
+  {
+    "reconnectAndServerResult": true
+  },
+  {
+    "exactOrthographicCamera": true,
+    "boardOverlayAlignmentPx": 0.005829671699735622,
+    "captureAnimationFromAbove": "royal/p>skeletons/p",
+    "scene": {
+      "fps": 0,
+      "pixelRatio": 0.8,
+      "isSoftwareGl": true,
+      "contextLost": false,
+      "drawCalls": 1050,
+      "triangles": 232114,
+      "animationsPlayed": 3,
+      "lastCapture": "royal/p>skeletons/p",
+      "activeAnimations": 0,
+      "characters": 31,
+      "victims": 0
+    }
+  },
+  {
+    "castleCameraAndFactionHalls": true,
+    "closePreviewDisposesCanvas": true,
+    "browserErrors": []
+  }
+]

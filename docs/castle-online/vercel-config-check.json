@@ -1,0 +1,12 @@
+{
+  "officialSchema": "https://openapi.vercel.sh/vercel.json",
+  "configValidated": true,
+  "validator": "JSON Schema Draft 2020-12",
+  "viteProductionBuild": true,
+  "nodeTestsPassed": 33,
+  "cloudDeploymentPerformed": false,
+  "liveRedisConfigured": false,
+  "peerSignalingOfferAndAnswerVerified": true,
+  "peerDataChannelVerifiedOnRealNetwork": false,
+  "reason": "Managed Chromium disables non-proxied UDP; both peers produced zero ICE candidates. Authenticated HTTPS fallback was verified with real browser players."
+}

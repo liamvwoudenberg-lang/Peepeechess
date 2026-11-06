@@ -1,0 +1,11 @@
+{
+  "apkApplicationId": "com.sovereignsgambit.chess",
+  "minAndroidSdk": 23,
+  "targetAndroidSdk": 35,
+  "signing": "debug / v1 and v2 verified with apksigner",
+  "webFilesMatchBuild": 20,
+  "nativeSharingPluginBundled": true,
+  "sha256": "08f945b3304da5f80efd01250e173874c78f0db7a9132c12bb77431a646e4d7b",
+  "sizeBytes": 5575154,
+  "physicalDeviceTest": false
+}
