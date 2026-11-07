@@ -1,5 +1,9 @@
 # Shared contracts v1
 
+The newer user-directed Battle king gauntlet is recorded in
+[BATTLE_ROYAL_GAUNTLET.md](BATTLE_ROYAL_GAUNTLET.md). It requires a future ruleset
+and contract version; it does not silently change these legacy v1 shapes.
+
 Normative shape: [`godot/contracts/v1/schema.json`](../../godot/contracts/v1/schema.json),
 JSON Schema 2020-12. Concrete valid and invalid payloads:
 [`fixtures.json`](../../godot/contracts/v1/fixtures.json). Node types are in
@@ -71,7 +75,10 @@ contract changes before Claude updates consumers. `.godot-version` pins 4.6.3.
   `clientTick` is an untrusted diagnostic/prediction hint, not permission to
   rewind/hit. Snapshots target 15 Hz; ticks are independent of display FPS.
 - `revision`: chess commit counter, increments exactly once per resolved ply.
-  Pending combat keeps the previous FEN, ply and revision. State phase changes
+  The native Classic local-only undo operation also increments revision to
+  invalidate abandoned-line requests; ply may decrease on that operation.
+  Online undo remains forbidden. Pending combat keeps the previous FEN, ply and
+  revision. State phase changes
   are ordered by serverTick; one pending battle per match. Completion without
   a move does not invent a chess ply. `expectedRevision` identifies the frozen
   board. Requests must also pass phase/seat checks, not revision alone.

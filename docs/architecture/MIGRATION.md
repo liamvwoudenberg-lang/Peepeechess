@@ -3,10 +3,11 @@
 1. **Foundation (this change):** preserve the web client/server/Capacitor wrapper;
    add contracts, ownership, isolated workflow, runnable Godot status scene,
    schema codec, compatibility tests and CI.
-2. **Chess slice (Codex):** authoritative state adapter, stable piece registry,
+2. **Chess slice (Codex; local Classic now implemented):** authoritative state adapter, stable piece registry,
    standard initial board, one legal move loop, both board projections. Verify
    castling, EP, pins, all promotions, check/mate/draw parity before replacing
-   any existing rules. No UI-side FEN becomes trusted input.
+   any existing rules. The native engine is independently implemented and tested;
+   the existing web authority remains unchanged. See `docs/classic/CLASSIC.md`. No UI-side FEN becomes trusted input.
 3. **Combat slice (Claude):** isolated arena/controller and headless simulation,
    BattleRequest/FighterStats ingestion, CombatInput consumption, snapshots and
    terminal result. Start with placeholder assets; maintain unit/tick conventions.

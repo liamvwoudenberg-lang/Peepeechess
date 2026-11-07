@@ -106,9 +106,9 @@ The browser evidence and deployment notes distinguish a real connection test fro
 
 ## Godot migration and two-agent development
 
-The working web/Capacitor game is preserved. The native Godot client is a
-separate foundation in `godot/`, pinned to Godot 4.6.3; gameplay migration is
-pending. Start with [the repository audit](docs/architecture/REPOSITORY_AUDIT.md),
+The working web/Capacitor game is preserved. The native Godot client in
+`godot/` now supports local Classic Chess in 2D and 3D, pinned to Godot 4.6.3.
+Native online and Battle integration remain separate migration steps. Start with [the repository audit](docs/architecture/REPOSITORY_AUDIT.md),
 [architecture](docs/architecture/ARCHITECTURE.md),
 [migration plan](docs/architecture/MIGRATION.md),
 [shared v1 contracts](docs/architecture/CONTRACTS.md), and
@@ -118,3 +118,12 @@ Before editing, read [collaboration/worktrees](docs/development/COLLABORATION.md
 and [file ownership](docs/development/OWNERSHIP.md). Run the checks in
 [toolchain](docs/development/TOOLCHAIN.md); current results are recorded in
 [validation](docs/development/VALIDATION.md). Integration targets `develop`.
+
+## Native Classic Chess (Godot 4.6.3)
+
+Run `godot --path godot` for local two-player Classic Chess in illustrated 2D
+or interactive 3D. Both views share one match, with legal moves, clocks,
+promotion, notation, FEN, draw claims and local undo. See
+[controls and architecture](docs/classic/CLASSIC.md) and
+[Classic validation](docs/classic/VALIDATION.md). Run `npm run test:classic`.
+Native online transport and combat integration are separate follow-up work.

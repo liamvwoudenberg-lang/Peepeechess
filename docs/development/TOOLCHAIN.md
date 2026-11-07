@@ -32,6 +32,7 @@ npm run lint
 npm test
 npm run build
 npm run test:contracts
+npm run test:classic
 godot --headless --path godot --editor --import
 godot --headless --path godot --quit-after 2
 # Interactive native foundation:
