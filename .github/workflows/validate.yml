@@ -33,7 +33,8 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:contracts
-      - name: Import and run Godot foundation
+      - run: npm run test:classic
+      - name: Import and run Godot
         shell: bash
         run: |
           set -euo pipefail

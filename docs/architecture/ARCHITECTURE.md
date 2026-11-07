@@ -1,6 +1,9 @@
 # Architecture decision 001: preserve and migrate incrementally
 
-Status: accepted foundation decision; native implementation is pending.
+Status: accepted foundation decision at `c0dfe92`. The native Classic slice
+now implements local rules, clocks and both board views; see
+[Classic implementation](../classic/CLASSIC.md). References below to the initial
+status scene describe the foundation baseline, not the current Classic client.
 
 The existing web application is the working reference. The new Godot application
 lives in `godot/` and initially contains a runnable status scene and contract
