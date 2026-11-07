@@ -15,7 +15,8 @@
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "art:draw": "node --import tsx scripts/draw-legions.ts",
     "test:contracts": "node --import tsx scripts/test-contracts.mjs",
-    "test:classic": "node --import tsx scripts/test-classic.mjs"
+    "test:classic": "node --import tsx scripts/test-classic.mjs",
+    "test:battle": "node --import tsx scripts/test-battle.mjs --check"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.10",

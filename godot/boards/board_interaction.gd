@@ -4,6 +4,7 @@ signal selection_changed
 signal move_requested(from: String, to: String, promotion_needed: bool)
 const Rules = preload("res://chess/chess_engine.gd")
 var game: ClassicMatch
+var enabled = true
 var selected = -1
 var destinations: Array = []
 
@@ -21,7 +22,7 @@ func clear() -> void:
 	selection_changed.emit()
 
 func select(at: int) -> void:
-	if at < 0 or at >= 64 or game.paused or not game.engine.result.is_empty():
+	if not enabled or at < 0 or at >= 64 or not game.board_input_allowed():
 		clear()
 		return
 	if Rules.side(game.engine.board[at]) != game.engine.turn:
@@ -32,6 +33,8 @@ func select(at: int) -> void:
 	selection_changed.emit()
 
 func click(at: int) -> void:
+	if not enabled or not game.board_input_allowed():
+		return
 	if at < 0:
 		clear()
 		return

@@ -18,7 +18,8 @@ Preserve the React/Three/Capacitor game while the Godot client is migrated.
   or forced worktree removal. Checkpoint existing work before any cleanup.
 - Run `npm run lint`, `npm test`, `npm run build`, and `npm run test:contracts`
   before integration. Native Classic changes additionally require
-  `npm run test:classic`. Native changes also require the headless Godot import and
+  `npm run test:classic`. Battle integration changes additionally require
+  `npm run test:battle`. Native changes also require the headless Godot import and
   scene smoke commands in TOOLCHAIN.md. Report checks you actually ran.
 - No ranked/native crossplay, export, device validation, or deployment is implied
   by this foundation. Do not advertise unimplemented functionality.

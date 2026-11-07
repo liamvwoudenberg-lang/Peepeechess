@@ -144,6 +144,15 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	expect(not app.body.vertical, "landscape layout")
+	for button in app.mode_select.get_parent().get_children():
+		if button is Button and button.text == "New game":
+			var point = button.global_position + button.size * 0.5
+			touch(point, true)
+			touch(point, false)
+			Input.flush_buffered_events()
+			await process_frame
+			expect(app.new_dialog.visible, "Classic new-game button responds to touch")
+			app.new_dialog.hide()
 	app._show_position()
 	await process_frame
 	await process_frame
