@@ -85,5 +85,14 @@ func _init() -> void:
 	expect('[SetUp "1"]' in e.pgn() and "24... Kg8 *" in e.pgn(), "PGN Black start and FEN setup")
 	e.load_fen("7k/8/8/r4pPK/8/8/8/8 w - f6 0 1")
 	expect(e.position_key().split(" ")[3] == "-", "repetition ignores pinned EP")
+	for item in [
+		["7k/7q/8/8/8/8/N7/K7 w - - 0 1", false],
+		["7k/7q/8/8/8/8/B7/K7 w - - 0 1", false],
+		["7k/7r/8/8/8/8/B7/K7 w - - 0 1", false],
+		["7k/7r/8/8/8/8/N7/K7 w - - 0 1", true],
+		["7k/7n/8/8/8/8/B7/K7 w - - 0 1", true],
+		["7k/8/8/8/8/8/NN6/K7 w - - 0 1", true],
+	]:
+		expect(e.load_fen(item[0]).ok and e.can_mate("w") == item[1], "timeout mating possibility " + item[0])
 	print("ENGINE: ", checks, " checks; failures=", failures.size())
 	quit(0 if failures.is_empty() else 1)

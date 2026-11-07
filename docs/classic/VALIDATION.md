@@ -11,7 +11,7 @@ Godot 4.6.3 stable, Node 24.22.1, Linux. No combat-owned file was modified.
 | `npm test` | 71 passed, 0 failed; existing web/Battle tests preserved |
 | `npm run build` | Passed; the existing procedural-character chunk-size warning remains |
 | `npm run test:contracts` | 23 Node tests, 21 Godot shared schema cases, malformed JSON rejection, and 9 exact Node→Godot→Node round trips passed |
-| `npm run test:classic` | Passed: 77 engine checks, 52 authority/clock checks, 344 view/UI checks, differential corpus and main-scene smoke |
+| `npm run test:classic` | Passed: 83 engine checks, 53 authority/clock checks, 344 view/UI checks, differential corpus and main-scene smoke |
 | Perft | Start position depths 1–4: 20 / 400 / 8,902 / 197,281; four special standard positions through depth 3: Kiwipete 48 / 2,039 / 97,862; rook/pawn endgame 14 / 191 / 2,812; promotion/castling position 6 / 264 / 9,467; tactical promotion position 44 / 1,486 / 62,379 |
 | Differential reference | 72 seeded/special positions, 1,962 legal moves; legal sets, SAN, resulting FEN and undo matched existing chess.js |
 | v1 native state compatibility | Real ongoing/special-move native MatchState snapshots passed Godot and Node/Ajv schema validation |
@@ -27,7 +27,7 @@ The input generator flushes buffered drag events as real frames do.
 
 The authority suite covers seat/revision rejection, idempotent retries,
 conflicting request IDs, clocks/increments, pause, timeout, insufficient mating
-material at timeout, untimed play, flag-before-move admission, local-only undo,
+material at timeout (including a lone knight versus only enemy queens), untimed play, flag-before-move admission, local-only undo,
 transactional invalid imports, stable identities across castling/EP/promotion,
 agreed draws and resignation. Engine tests include checkmate/stalemate,
 insufficient material, pinned EP, castling through check, all promotions,

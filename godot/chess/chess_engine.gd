@@ -375,19 +375,36 @@ func insufficient_material() -> bool:
 	return minors.count("b") == minors.size() and (bishop_colors.count(0) == bishop_colors.size() or bishop_colors.count(1) == bishop_colors.size())
 
 func can_mate(color: String) -> bool:
-	# FIDE timeout: a lone minor can mate with help from enemy material.
-	if insufficient_material():
-		return false
+	# Timeout asks whether mate is possible by ANY legal series, not forceable.
 	var own: Array = []
 	var enemy: Array = []
-	for p in board:
-		if not p.is_empty() and p.to_lower() != "k":
-			(own if side(p) == color else enemy).append(p.to_lower())
+	var bishop_colors: Array = []
+	var has_pawn_or_knight = false
+	for at in range(64):
+		var piece: String = board[at]
+		var role = piece.to_lower()
+		if role in ["p", "n"]:
+			has_pawn_or_knight = true
+		if role == "b":
+			bishop_colors.append((at % 8 + at / 8) % 2)
+		if not piece.is_empty() and role != "k":
+			(own if side(piece) == color else enemy).append(role)
 	if own.is_empty():
 		return false
-	if own.size() == 1 and own[0] in ["b", "n"] and enemy.is_empty():
+	for role in ["p", "r", "q"]:
+		if role in own:
+			return true
+	if "n" in own:
+		if own.size() > 1:
+			return true
+		# A lone knight cannot mate a bare king or a king with only queens.
+		for role in enemy:
+			if role != "q":
+				return true
 		return false
-	return true
+	# Bishops confined to one color cannot mate without pawn/knight help;
+	# heavy enemy pieces alone cannot supply a mating construction.
+	return has_pawn_or_knight or (0 in bishop_colors and 1 in bishop_colors)
 
 func claimable_draws(intended: Dictionary = {}) -> Array:
 	if not result.is_empty():
