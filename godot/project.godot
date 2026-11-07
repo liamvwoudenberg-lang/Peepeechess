@@ -1,0 +1,20 @@
+; Native migration foundation; the existing web application remains at repository root.
+config_version=5
+
+[application]
+config/name="Peepeechess"
+config/version="0.1.0-foundation"
+run/main_scene="res://app/main.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[display]
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/stretch/mode="canvas_items"
+
+[physics]
+common/physics_ticks_per_second=60
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

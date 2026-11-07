@@ -1,0 +1,26 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="Peepeechess" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.055, 0.075, 0.11, 1)
+
+[node name="Status" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 24
+text = "Peepeechess — native client foundation\nGodot 4.6.3 · shared contracts v1\n\nChess and combat migration are pending.\nThe existing game runs from the web application."
+horizontal_alignment = 1
+vertical_alignment = 1

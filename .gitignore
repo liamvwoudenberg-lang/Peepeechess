@@ -13,3 +13,8 @@ android/local.properties
 android/**/build/
 artifacts/
 __pycache__/
+
+# Native Godot/editor caches and local collaboration scratch
+.godot/
+work/
+*.blend1

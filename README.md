@@ -103,3 +103,18 @@ The browser evidence and deployment notes distinguish a real connection test fro
 - `server/onlineStorage.ts`: durable local KV and Redis locking/atomic commits.
 - `src/three/`: shared miniature models, orthographic/perspective cameras, castle architecture and battles.
 - Older components and analytics/variant prototypes remain reference code and are not exposed as unfinished game modes.
+
+## Godot migration and two-agent development
+
+The working web/Capacitor game is preserved. The native Godot client is a
+separate foundation in `godot/`, pinned to Godot 4.6.3; gameplay migration is
+pending. Start with [the repository audit](docs/architecture/REPOSITORY_AUDIT.md),
+[architecture](docs/architecture/ARCHITECTURE.md),
+[migration plan](docs/architecture/MIGRATION.md),
+[shared v1 contracts](docs/architecture/CONTRACTS.md), and
+[Battle rules](docs/architecture/BATTLE_RULES.md).
+
+Before editing, read [collaboration/worktrees](docs/development/COLLABORATION.md)
+and [file ownership](docs/development/OWNERSHIP.md). Run the checks in
+[toolchain](docs/development/TOOLCHAIN.md); current results are recorded in
+[validation](docs/development/VALIDATION.md). Integration targets `develop`.

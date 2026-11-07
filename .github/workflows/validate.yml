@@ -1,0 +1,44 @@
+name: Validate integration
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install pinned Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(cat .godot-version)
+          test "$version" = "4.6.3"
+          archive="Godot_v${version}-stable_linux.x86_64.zip"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/$archive" "https://github.com/godotengine/godot-builds/releases/download/${version}-stable/$archive"
+          echo "d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3  $RUNNER_TEMP/$archive" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/$archive" -d "$RUNNER_TEMP/godot-bin"
+          mv "$RUNNER_TEMP/godot-bin/Godot_v${version}-stable_linux.x86_64" "$RUNNER_TEMP/godot-bin/godot"
+          echo "$RUNNER_TEMP/godot-bin" >> "$GITHUB_PATH"
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:contracts
+      - name: Import and run Godot foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version | tee "$RUNNER_TEMP/godot-version.log"
+          grep -q '^4.6.3.stable' "$RUNNER_TEMP/godot-version.log"
+          godot --headless --path godot --editor --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+          godot --headless --path godot --quit-after 2 2>&1 | tee "$RUNNER_TEMP/scene.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|^ERROR:' "$RUNNER_TEMP/import.log" "$RUNNER_TEMP/scene.log"; then exit 1; fi
