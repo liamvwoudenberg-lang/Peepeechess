@@ -28,6 +28,8 @@ const BODY_HEIGHT := 1.8
 
 const LAYER_WORLD := 1
 const LAYER_FIGHTER := 2
+## Only the outer wall is on this layer: the camera is pushed in by the wall, never by pillars.
+const LAYER_CAMERA := 4
 
 ## Gameplay states. Names are the exact strings the CombatSnapshot schema permits.
 enum State { IDLE, MOVING, ATTACKING, BLOCKING, PARRYING, DODGING, STAGGERED, ABILITY_CASTING, DEFEATED }

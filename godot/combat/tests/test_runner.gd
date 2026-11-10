@@ -14,6 +14,7 @@ const SUITES: Dictionary = {
 	"defense": "res://combat/tests/test_defense.gd",
 	"abilities": "res://combat/tests/test_abilities.gd",
 	"endings": "res://combat/tests/test_endings.gd",
+	"adapter": "res://combat/tests/test_adapter.gd",
 	"soak": "res://combat/tests/test_soak.gd",
 }
 

@@ -16,12 +16,13 @@ const WALL_HEIGHT := 3.0
 const WALL_THICKNESS := 0.6
 
 var colliders: StaticBody3D = null
+var pillar_body: StaticBody3D = null
 
 
 func build_colliders() -> void:
 	colliders = StaticBody3D.new()
 	colliders.name = "WorldColliders"
-	colliders.collision_layer = CombatConstants.LAYER_WORLD
+	colliders.collision_layer = CombatConstants.LAYER_WORLD | CombatConstants.LAYER_CAMERA
 	colliders.collision_mask = 0
 	add_child(colliders)
 
@@ -39,6 +40,11 @@ func build_colliders() -> void:
 		shape.rotation.y = angle  # local +Z maps onto the outward normal
 		colliders.add_child(shape)
 
+	pillar_body = StaticBody3D.new()
+	pillar_body.name = "PillarColliders"
+	pillar_body.collision_layer = CombatConstants.LAYER_WORLD
+	pillar_body.collision_mask = 0
+	add_child(pillar_body)
 	for pos in PILLAR_POSITIONS:
 		var cylinder := CylinderShape3D.new()
 		cylinder.radius = PILLAR_RADIUS
@@ -46,4 +52,4 @@ func build_colliders() -> void:
 		var pillar := CollisionShape3D.new()
 		pillar.shape = cylinder
 		pillar.position = pos + Vector3(0.0, 1.75, 0.0)
-		colliders.add_child(pillar)
+		pillar_body.add_child(pillar)
