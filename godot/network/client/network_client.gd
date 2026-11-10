@@ -17,6 +17,7 @@ var transport: ChessEnetTransport
 var authenticated = false
 var player_id = ""
 var session_token = ""
+var _account_ticket = ""
 var server_id = ""
 var combat_roles: Array = []
 var frame: Dictionary = {}
@@ -58,6 +59,11 @@ func connect_server(hostname: String, server_port: int = 2456, certificate_autho
 	_retry_until = Time.get_ticks_msec() + 15000
 	return _connect()
 
+func connect_account_server(hostname: String, server_port: int, ticket: String, certificate_authority: String = "", allow_loopback_plaintext: bool = false) -> void:
+	disconnect_server(true)
+	_account_ticket = ticket
+	connect_server(hostname, server_port, certificate_authority, allow_loopback_plaintext)
+
 func _connect() -> Error:
 	authenticated = false
 	_started = Time.get_ticks_msec()
@@ -70,6 +76,9 @@ func _connect() -> Error:
 
 func _connected(id: int) -> void:
 	if id != transport.server_peer:
+		return
+	if not _account_ticket.is_empty() and session_token.is_empty():
+		_send("AccountHello", {"schemaVersion": 1, "protocol": "peepeechess-enet-v1", "ticket": _account_ticket})
 		return
 	_send("Hello", {"schemaVersion": 1, "protocol": "peepeechess-enet-v1", "resumeToken": session_token if not session_token.is_empty() else null})
 
@@ -94,6 +103,7 @@ func disconnect_server(forget: bool = false) -> void:
 	connection_changed.emit(false)
 	if forget:
 		session_token = ""
+		_account_ticket = ""
 		player_id = ""
 		server_id = ""
 		frame.clear()
@@ -139,6 +149,7 @@ func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 			return
 		player_id = payload.playerId
 		session_token = payload.sessionToken
+		_account_ticket = ""
 		server_id = payload.serverId
 		combat_roles = payload.combatRoles.duplicate()
 		authenticated = true
