@@ -55,5 +55,7 @@ def make_lod(objects, ratio: float):
         mod.ratio = ratio
         make_active(copy)
         bpy.ops.object.modifier_apply(modifier=mod.name)
+        copy.data.validate(clean_customdata=True)  # decimation can leave duplicate/degenerate faces
+        copy.data.update()
         out.append(copy)
     return out

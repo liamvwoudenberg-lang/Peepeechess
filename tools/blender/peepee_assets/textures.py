@@ -126,7 +126,7 @@ def generate(kind: str, color, seed: int) -> np.ndarray:
         value = value * grout * (0.82 + 0.3 * n) + 0.1 * _scratches(rng, 60)
     elif kind == "rust":
         value = 0.55 + 0.45 * n + 0.2 * (fbm(rng, 8, 3) - 0.5)
-        base = base * (0.7 + 0.5 * fbm(rng, 3, 2)[..., None])
+        value = value * (0.7 + 0.5 * fbm(rng, 3, 2))
     else:
         raise ValueError(f"unknown texture kind {kind}")
     rgb = np.clip(base[None, None, :] * np.asarray(value)[..., None], 0.0, 1.0)
