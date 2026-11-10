@@ -124,12 +124,12 @@ static func _with_presentation(h, tree: SceneTree) -> void:
 	for _i in 120:
 		await tree.physics_frame
 	h.check(arena.sim.server_tick > 100, "ticking")
-	var fighter_visuals := arena.find_children("Visual_*", "FighterVisual", false, false)
+	var fighter_visuals := arena.find_children("Visual_*", "", false, false)
 	h.eq(fighter_visuals.size(), 2, "both fighters have visuals")
 	h.check(not arena.cameras[0].camera.global_position.is_equal_approx(Vector3.ZERO), "the camera was placed")
 	h.check(arena.cameras[0].camera.global_position.length() < CombatConstants.ARENA_WALL_RADIUS + 0.5, "the camera stays inside the arena wall")
 	arena.start_battle(FighterRoster.build_request("p", "p", "w", "adapter-5", 12, 0))
 	await tree.process_frame
-	h.eq(arena.find_children("Visual_*", "FighterVisual", false, false).size() + 0 >= 2, true, "a rematch builds fresh visuals")
+	h.eq(arena.find_children("Visual_*", "", false, false).size() + 0 >= 2, true, "a rematch builds fresh visuals")
 	arena.stop_battle()
 	arena.queue_free()

@@ -29,6 +29,8 @@ const Codec := preload("res://contracts/codec.gd")
 @export var mode: Mode = Mode.AUTHORITY
 ## false = no meshes, cameras, HUD or input: a dedicated-server style headless arena.
 @export var presentation_enabled: bool = true
+## Use the Blender-generated models when their GLBs exist; otherwise the procedural placeholder.
+@export var use_models: bool = true
 
 var sim: CombatSimulation
 var hud: CombatHud
@@ -37,7 +39,7 @@ var seats: Dictionary = {}
 
 var _codec = null
 var _visuals: StoneArenaVisuals = null
-var _fighter_visuals: Array[FighterVisual] = []
+var _fighter_visuals: Array[Node3D] = []
 var _inputs: Array[LocalInputSource] = []
 var _ais: Array[CombatAI] = []
 var _split_layer: CanvasLayer = null
@@ -190,14 +192,24 @@ func _build_presentation(request: Dictionary) -> void:
 		_visuals = StoneArenaVisuals.new()
 		_visuals.name = "ArenaVisuals"
 		add_child(_visuals)
-		_visuals.build()
+		_visuals.build(CharacterModel.prefer_lod1)
 	for f in sim.fighters:
-		var fv := FighterVisual.new()
-		fv.name = "Visual_" + f.color
-		add_child(fv)
-		fv.setup(f)
-		_fighter_visuals.append(fv)
-		# Hide the collision-capsule owner's own meshes: fighters carry no meshes, visuals do.
+		var visual: Node3D = null
+		if use_models and CharacterModel.available(f.role, 1 if CharacterModel.prefer_lod1 else 0):
+			var model := CharacterModel.new()
+			add_child(model)
+			if model.setup(f):
+				visual = model
+			else:
+				remove_child(model)
+				model.queue_free()
+		if visual == null:
+			var placeholder := FighterVisual.new()
+			add_child(placeholder)
+			placeholder.setup(f)
+			visual = placeholder
+		visual.name = "Visual_" + f.color
+		_fighter_visuals.append(visual)
 
 	hud = CombatHud.new()
 	hud.name = "Hud"

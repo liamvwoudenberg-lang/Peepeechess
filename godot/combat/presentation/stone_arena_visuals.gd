@@ -11,12 +11,22 @@ var _flames: Array[MeshInstance3D] = []
 var _time: float = 0.0
 
 
-func build() -> void:
-	_environment()
-	_floor()
-	_wall()
-	_pillars()
-	_banners()
+const GLB := "res://assets/combat/arena/stone_arena.glb"
+const GLB_LOD1 := "res://assets/combat/arena/stone_arena_lod1.glb"
+const LIGHTS := "res://assets/combat/arena/stone_arena_lights.json"
+
+## True when the Blender-generated arena (tools/blender/.../arena.py) was loaded.
+var uses_generated_arena: bool = false
+
+
+func build(mobile_lod: bool = false) -> void:
+	var generated := _build_generated(mobile_lod)
+	if not generated:
+		_environment()
+		_floor()
+		_wall()
+		_pillars()
+		_banners()
 	var sun := DirectionalLight3D.new()
 	sun.name = "MoonLight"
 	sun.rotation_degrees = Vector3(-55.0, -35.0, 0.0)
@@ -27,12 +37,51 @@ func build() -> void:
 	add_child(sun)
 
 
+## Generated arena + its light/fog sidecar. Falls back to the procedural arena when absent.
+func _build_generated(mobile_lod: bool) -> bool:
+	var path := GLB_LOD1 if mobile_lod else GLB
+	var scene := CharacterModel.load_scene(path)
+	if scene == null or not FileAccess.file_exists(LIGHTS):
+		return false
+	scene.name = "GeneratedArena"
+	add_child(scene)
+	uses_generated_arena = true
+	var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LIGHTS))
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = _color(cfg["background"])
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = _color(cfg["ambient"]["color"])
+	env.ambient_light_energy = float(cfg["ambient"]["energy"])
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.fog_enabled = true
+	env.fog_light_color = _color(cfg["fog"]["color"])
+	env.fog_density = float(cfg["fog"]["density"])
+	var holder := WorldEnvironment.new()
+	holder.environment = env
+	add_child(holder)
+	for entry in cfg["lights"]:
+		var light := OmniLight3D.new()
+		light.position = Vector3(entry["position"][0], entry["position"][1], entry["position"][2])
+		light.light_color = _color(entry["color"])
+		light.light_energy = float(entry["energy"])
+		light.omni_range = float(entry["range"])
+		add_child(light)
+		_torches.append(light)
+	return true
+
+
+static func _color(a: Array) -> Color:
+	return Color(a[0], a[1], a[2])
+
+
 func _process(delta: float) -> void:
 	_time += delta
 	for i in _torches.size():
 		var flicker := 1.0 + 0.16 * sin(_time * 11.0 + float(i) * 1.7) + 0.08 * sin(_time * 23.0 + float(i) * 0.6)
 		_torches[i].light_energy = 1.9 * flicker
-		_flames[i].scale = Vector3(1.0, 1.0 + 0.25 * sin(_time * 14.0 + float(i)), 1.0)
+		if i < _flames.size():
+			_flames[i].scale = Vector3(1.0, 1.0 + 0.25 * sin(_time * 14.0 + float(i)), 1.0)
 
 
 func _environment() -> void:

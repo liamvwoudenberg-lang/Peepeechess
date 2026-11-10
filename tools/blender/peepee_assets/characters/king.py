@@ -17,7 +17,9 @@ from ..modeling import MeshBuilder, attach_to_bone
 
 NAME = "king"
 PROPORTIONS = dict(scale=1.06, shoulder_width=1.15, hip_width=1.05)
-STYLE = {"weapon_r": "longsword", "weapon_l": None, "grip": "blade_forward", "stance": "champion", "two_handed": False}
+# Schema: animation/library.py. The longsword extends forward (-Y) from the fist at rest.
+STYLE = dict(grip="sword1", weapon_axis=(0.0, -1.0, 0.0),
+             stance=0.25, arm_clear=0.7, swagger=0.85, power=1.1)
 
 S = PROPORTIONS["scale"]
 SW = PROPORTIONS["shoulder_width"]
