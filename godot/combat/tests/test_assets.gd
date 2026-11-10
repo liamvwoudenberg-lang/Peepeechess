@@ -143,17 +143,23 @@ static func _check_class(h, tree: SceneTree, cls: String, manifest: Dictionary, 
 		if attach != null and not attach.get_children().is_empty():
 			var prop: MeshInstance3D = attach.get_child(0)
 			var before: Vector3 = (prop.global_transform * prop.get_aabb()).get_center()
-			ap.play("light_1")
-			var active := 0.5 * (ap.get_animation("light_1").length) * 0.9
-			ap.seek(active, true)
-			await tree.physics_frame
-			await tree.physics_frame
-			var after_box: AABB = prop.global_transform * prop.get_aabb()
-			h.check(before.distance_to(after_box.get_center()) > 0.15, "the weapon moved with the arm during light_1 (%.2f m)" % before.distance_to(after_box.get_center()))
+			# Sample the clip at fixed instants with the player PAUSED (a playing clip would advance during the awaited
+			# frames and make a steep strike frame-timing dependent). Strike extent = the maximum over the clip.
+			var length := ap.get_animation("light_1").length
 			var far := 0.0
-			for corner in 8:
-				var c := after_box.get_endpoint(corner)
-				far = maxf(far, Vector2(c.x, c.z).length())
+			var moved := 0.0
+			for i in 9:
+				ap.play("light_1")
+				ap.seek(length * float(i) / 8.0, true)
+				ap.pause()
+				await tree.physics_frame
+				await tree.physics_frame
+				var box: AABB = prop.global_transform * prop.get_aabb()
+				moved = maxf(moved, before.distance_to(box.get_center()))
+				for corner in 8:
+					var c := box.get_endpoint(corner)
+					far = maxf(far, Vector2(c.x, c.z).length())
+			h.check(moved > 0.15, "the weapon moved with the arm during light_1 (max %.2f m)" % moved)
 			var reach: float = REACH[cls]
 			h.check(far >= reach - 0.8 and far <= reach + 1.4, "strike extent %.2f m is plausible for reachM %.2f" % [far, reach])
 		else:

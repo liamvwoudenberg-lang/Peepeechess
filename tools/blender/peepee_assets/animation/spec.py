@@ -1,20 +1,21 @@
 """Single source of truth for clip names, lengths and attack markers (frames == 60 Hz sim ticks).
 
 Attack clip lengths equal the simulation's tick lengths so a clip plays 1:1 with the AttackDefinition
-timeline in godot/combat/core/attack_library.gd. Pawn and Knight numbers are taken from that file
-(lightTicks/heavyTicks x ticks_scale, parryTicks + recovery, lunge 72). Bishop/Rook/Queen/King have no
-simulation stats yet: their lengths come from the legacy config (seconds * 60) and are PROPOSALS.
+timeline in godot/combat/core/attack_library.gd. Light/heavy/parry numbers equal Codex's approved godot/chess/battle_stats.json (c0-balance-v1) for all six
+roles; ability lengths equal the simulation's cast ticks (King: proposal, no simulation).
 """
 CLASSES = ["pawn", "knight", "bishop", "rook", "queen", "king"]
 ROLE = {"pawn": "p", "knight": "n", "bishop": "b", "rook": "r", "queen": "q", "king": "k"}
 
 # lightTicks, heavyTicks, parryWindowTicks, parryRecoveryTicks
-STATS = {
-    "pawn": (24, 53, 11, 16), "knight": (32, 63, 13, 14), "bishop": (29, 59, 11, 16),
-    "rook": (41, 74, 10, 18), "queen": (28, 58, 11, 14), "king": (32, 63, 13, 14),
+STATS = {  # == godot/chess/battle_stats.json (c0-balance-v1) lightTicks, heavyTicks, parryTicks + our recovery
+    "pawn": (24, 53, 11, 16), "knight": (32, 63, 13, 14), "bishop": (29, 59, 11, 15),
+    "rook": (42, 74, 10, 18), "queen": (29, 58, 11, 14), "king": (33, 63, 13, 14),
 }
 DODGE = {"pawn": 22, "knight": 26, "bishop": 24, "rook": 30, "queen": 20, "king": 26}
-ABILITY = {"pawn": 24, "knight": 72, "bishop": 30, "rook": 36, "queen": 30, "king": 40}
+# Ability clip frames == the sim's cast ticks (ability_component.gd): last-stand 12, lunge 72, blink 20,
+# fortress-guard 18, royal-fury 14. King has no simulation (v2 gauntlet); 40 is a proposal.
+ABILITY = {"pawn": 12, "knight": 72, "bishop": 20, "rook": 18, "queen": 14, "king": 40}
 ABILITY_NAME = {"pawn": "last-stand", "knight": "lunging-strike", "bishop": "blink",
                 "rook": "fortress-guard", "queen": "royal-fury", "king": "royal-counter"}
 LIGHT_SCALE = [1.0, 0.95, 1.35]          # pawn; others use 1.3 for the finisher
