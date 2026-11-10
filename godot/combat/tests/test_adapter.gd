@@ -49,12 +49,9 @@ static func _authority(h, tree: SceneTree) -> void:
 	h.check(again["ok"], "start_battle again replaces the running battle")
 	h.eq(arena.sim.request["battleId"], "adapter-2", "the new battle is active")
 	h.eq(arena.sim.countdown_remaining, 180, "fresh countdown")
-	var queen := FighterRoster.build_request("p", "n")
-	queen["defender"]["role"] = "q"
-	queen["defender"]["stats"]["role"] = "q"
-	queen["defender"]["stats"]["abilityId"] = "royal-fury"
-	queen["defender"]["characterId"] = "skeletons.q"
-	h.eq(arena.start_battle(queen)["code"], "INVALID_PAYLOAD", "an unimplemented role is refused through the adapter")
+	var unimplemented := FighterRoster.build_request("p", "q")
+	unimplemented["defender"]["stats"]["abilityId"] = "royal-counter"
+	h.eq(arena.start_battle(unimplemented)["code"], "INVALID_PAYLOAD", "an unimplemented ability is refused through the adapter")
 	arena.stop_battle()
 	h.check(not arena.sim.is_running() and arena.sim.result.is_empty(), "stop_battle ends without fabricating a result")
 	arena.queue_free()

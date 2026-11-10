@@ -27,6 +27,9 @@ const PARRY_STEER := 0.25
 func tick(f: FighterController, intent: FighterIntent, opponent: FighterController) -> void:
 	var sm := f.sm
 	_update_facing(f, intent, opponent)
+	if sm.state == S.ABILITY_CASTING and sm.cast_kind == "blink" and sm.attack == null \
+			and sm.state_ticks == int(f.ability.definition["blink_tick"]):
+		_blink(f, opponent)
 
 	var wish := intent.move_vector()
 	if wish.length() > 1.0:
@@ -124,6 +127,40 @@ func _dodge_speed(f: FighterController) -> float:
 	var distance: float = float(f.profile["dodge_distance"])
 	var weight := 2.0 * (1.0 - (float(f.sm.state_ticks) + 0.5) / float(total))
 	return distance / (float(total) * CombatConstants.DT) * maxf(weight, 0.0)
+
+
+## Bishop's Blink: instant displacement along the direction fixed at cast start. The path is cut short
+## by the opponent's body (never through or inside them), then by engine collision with walls and
+## pillars (move_and_collide stops at first contact), then the arena backstop. Teleporting leaves no
+## momentum and no render smear (prev_position follows), and the reported velocity stays 0.
+func _blink(f: FighterController, opponent: FighterController) -> void:
+	var distance: float = float(f.ability.definition["blink_distance"])
+	var dir := CombatConstants.flat(f.sm.blink_dir).normalized()
+	if dir == Vector3.ZERO:
+		return
+	if opponent != null and opponent.health.is_alive():
+		var reach_circle := f.hurt_radius() + opponent.hurt_radius() + 0.02
+		var rel := CombatConstants.flat(f.global_position - opponent.global_position)
+		var b := dir.dot(rel)
+		var c := rel.length_squared() - reach_circle * reach_circle
+		var disc := b * b - c
+		if disc >= 0.0:
+			var t := -b - sqrt(disc)
+			if t >= 0.0 and t < distance:
+				distance = maxf(0.0, t)
+	if distance > 0.0:
+		f.move_and_collide(dir * distance)
+	var pos := f.global_position
+	pos.y = 0.0
+	var radial := Vector2(pos.x, pos.z)
+	if radial.length() > CombatConstants.ARENA_WALK_RADIUS:
+		radial = radial.normalized() * CombatConstants.ARENA_WALK_RADIUS
+		pos.x = radial.x
+		pos.z = radial.y
+	f.global_position = pos
+	f.carried_velocity = Vector3.ZERO
+	f.knock_velocity = Vector3.ZERO
+	f.prev_position = f.global_position
 
 
 ## Fighters are solid to each other: if the move left the bodies overlapping, push the mover out

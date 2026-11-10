@@ -29,6 +29,8 @@ static func _exchange(rig, black_script: Dictionary, steps_after: int = 45) -> i
 					rig.b.block = true
 				"light":
 					rig.b.press("light")
+				"ability":
+					rig.b.press("ability")
 		rig.tick()
 		if r == 0:
 			start_tick = rig.sim.server_tick

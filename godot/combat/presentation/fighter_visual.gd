@@ -90,7 +90,8 @@ func setup(f: FighterController) -> void:
 	aura.mesh = ring
 	var aura_mat := StandardMaterial3D.new()
 	aura_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	aura_mat.albedo_color = Color(1.0, 0.25, 0.15) if f.role == "p" else Color(0.5, 0.7, 1.0)
+	aura_mat.albedo_color = {"p": Color(1.0, 0.25, 0.15), "n": Color(0.5, 0.7, 1.0), "b": Color(0.7, 0.4, 1.0),
+			"r": Color(1.0, 0.7, 0.2), "q": Color(1.0, 0.3, 0.7)}.get(f.role, Color(0.5, 0.7, 1.0))
 	aura.material_override = aura_mat
 	aura.position = Vector3(0.0, 0.1, 0.0)
 	aura.visible = false

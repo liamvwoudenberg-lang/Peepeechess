@@ -127,7 +127,7 @@ func on_event(event: Dictionary) -> void:
 
 func _ability_name(player_id: String) -> String:
 	var f := sim.fighter_by_id(player_id)
-	return "Last Stand" if f != null and f.role == "p" else "Lunging Strike"
+	return FighterRoster.ability_name(f.role) if f != null else "Ability"
 
 
 func show_result(text: String) -> void:
@@ -186,7 +186,7 @@ class _BarPanel extends Control:
 		var label := "READY" if ready else "%.1fs" % (float(cd) / 60.0)
 		if f.ability.buff_active():
 			label = "ACTIVE"
-		var ability_name := "Last Stand" if f.role == "p" else "Lunging Strike"
+		var ability_name := FighterRoster.ability_name(f.role)
 		_bar(Vector2(x, 80), Vector2(w * 0.8, 12), 1.0 - float(cd) / float(total), Color(0.5, 0.35, 0.9) if not ready else Color(0.35, 0.85, 0.5), "", font)
 		draw_string(font, Vector2(x, 106), "%s: %s" % [ability_name, label], HORIZONTAL_ALIGNMENT_LEFT, w, 14, Color(0.9, 0.9, 0.9))
 		if f.sm.last_denied != "" and f.local_tick - f.sm.last_denied_tick < 45:

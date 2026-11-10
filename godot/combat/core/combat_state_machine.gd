@@ -49,6 +49,9 @@ var stagger_immunity: int = 0
 
 var riposte_ticks: int = 0
 var cast_total: int = 0
+## "buff" / "blink" while casting a non-attack ability, "" otherwise.
+var cast_kind: String = ""
+var blink_dir: Vector3 = Vector3.ZERO
 
 var last_denied: String = ""
 var last_denied_tick: int = -1000
@@ -68,6 +71,8 @@ func is_free() -> bool:
 
 
 func iframes_active() -> bool:
+	if state == S.ABILITY_CASTING and cast_kind == "blink" and attack == null:
+		return state_ticks < int(f.ability.definition["iframe_ticks"])  # Bishop: vanished
 	return state == S.DODGING and state_ticks >= int(f.profile["dodge_iframe_start"]) \
 			and state_ticks < int(f.profile["dodge_iframe_end"])
 
@@ -201,7 +206,7 @@ func _tick_attack() -> void:
 func _finish_attack() -> void:
 	var was_light := attack.kind == AttackDefinition.Kind.LIGHT
 	_close_swing()
-	if was_light and combo_index < CombatConstants.COMBO_LENGTH - 1:
+	if was_light and combo_index < f.combo_limit() - 1:
 		combo_timer = CombatConstants.COMBO_GRACE_TICKS
 	else:
 		combo_index = -1
@@ -277,7 +282,7 @@ func _start_light() -> int:
 		index = combo_index + 1
 	elif combo_timer > 0 and combo_index >= 0:
 		index = combo_index + 1
-	if index >= CombatConstants.COMBO_LENGTH:
+	if index >= f.combo_limit():
 		index = 0  # chain exhausted: a new press begins a fresh chain
 	return _begin_attack(AttackLibrary.light(f.role, index), index)
 
@@ -338,11 +343,16 @@ func _start_ability() -> int:
 		attack = AttackLibrary.ability_attack(f.role, f.ability.ability_id)
 		attack_total = attack.total_ticks(f.stats, f.ability.attack_speed_mult())
 		combo_index = -1
+		cast_kind = "attack"
 		_enter(S.ABILITY_CASTING)
 		f.hitbox.begin_swing()
 	else:
 		attack = null
 		cast_total = int(f.ability.definition["cast_ticks"])
+		cast_kind = String(f.ability.definition["kind"])
+		if cast_kind == "blink":
+			# Direction is fixed when the cast starts: held move direction, else straight ahead.
+			blink_dir = _intent.move_vector().normalized() if _intent.has_move() else CombatConstants.heading(f.yaw)
 		_enter(S.ABILITY_CASTING)
 	f.queue_event("ability")
 	return Result.STARTED
