@@ -1,18 +1,24 @@
 # Battle Chess C0 integration
 
-Base: integrated Classic commit `8b13047` on develop. Feature branch:
+Base: integrated develop commit `b4c6dab` (including Classic `8b13047`). Feature branch:
 `codex/battle-loop`. Classic remains the default and retains its 2D/3D game.
 
 ## Current dependency status
 
-The available remote branches and local Claude worktree contained no native
-combat scene or scripts when this integration was built. `godot/combat/arena.tscn`
-is absent. The rules, transaction boundary, transitions and UI have deterministic
-integration coverage with a **test-only** combat double. A real playable combat
-loop cannot be certified until Claude's native component is supplied and tested.
-The application disables Start battle when the component is missing, preserves
-the board and offers cancellation. There is no production fake/random winner.
-No Claude-owned source, model, shader or configuration file is changed.
+Claude's published `ccr-a4637d6e-lypbb4` branch through `5706131` is merged into
+this isolated integration branch. `res://combat/arena.tscn` now supplies real
+fighters, input, split-screen cameras, countdown, simulation and results. The
+adapter configures White as human `kb1` and Black as human `kb2`, preventing the
+arena's default AI seats from silently taking over. Real Pawn/Knight combat is
+tested through the board transaction, including consecutive battles and returns.
+
+**Full-roster acceptance remains blocked:** `FighterProfile.supports_role()`
+implements only Pawn and Knight. Bishop, Rook and Queen captures cannot be played
+yet. The preview queries the combat owner's capability function and explains a
+missing role before disabling Start; cancellation preserves the board. The new
+Blender generator sources do not implement missing fighter simulation. No
+substitute fighter or production fake/random winner is used. Claude's imported
+combat source, assets, tests and Blender scripts are unchanged by Codex.
 
 ## Combat handoff required
 
@@ -24,7 +30,7 @@ be a PackedScene with the following root API (per the architecture contract):
 ```gdscript
 signal combat_snapshot(snapshot: Dictionary)
 signal battle_finished(result: Dictionary)
-func start_battle(request: Dictionary): # void or {ok: bool, error?: String}
+func start_battle(request: Dictionary): # void or {ok: bool, code?, message?/error?}
     # Initialize exactly the request's attacker and defender from immutable stats.
     # Run authoritative fixed 60 Hz combat, including 180 countdown ticks.
     pass
@@ -43,20 +49,27 @@ rules. Capture outcomes never come from client UI buttons.
 
 The adapter checks root methods/signals, loads asynchronously, binds callbacks
 to a generation, ignores stopped-scene callbacks and reports loading failures.
+It normalizes the combat module's `message` errors to the flow's `error` field.
+Its `submit_input(packet, authenticated_player_id)` bridge validates intent-only
+CombatInput and binds the supplied authenticated seat to the active battle;
+local human controllers submit to the mounted offline authority. Neither path
+makes a client authoritative for an online match.
 The match accepts snapshots/results only from its bound authority object and
 checks the frozen board, identities, revision, HP bounds, timing and terminal
 cause. A terminal snapshot and result must agree. Online hosting/authentication
 is separate; no client-sent result is made authoritative by this local adapter.
 
-After Claude's handoff: import the scene, verify root compatibility, run all
-checks below plus actual two-player arena play, confirm both fighters/controllers
-and every real outcome, and review input routing in the nested SubViewport. Controls receive standard
+The real-scene tests verify both human controllers, camera setup and keyboard
+input through the nested SubViewport from either board view. Controls receive standard
 mouse emulation for touch. The board filters emulated mouse events when handling
 raw touch gestures, and its input callbacks are disabled throughout combat. A
 combat controller handling both mouse and raw touch must likewise avoid double
 consumption of emulated input.
-Only then mark real-combat acceptance complete. Update this dependency status
-with the exact combat commit and checks actually run.
+Before full acceptance, Claude must implement Bishop, Rook and Queen simulation,
+their role-specific attacks/abilities and portable visuals, publish its branch,
+and extend combat-owned tests. Codex can then merge that handoff, extend these
+real input-driven cases to every role and rerun the complete suite. King combat
+belongs to the separately versioned v2 gauntlet, not this C0 contract.
 
 ## C0 rules and lifecycle
 
@@ -104,6 +117,20 @@ move intent. Results return to the same 2D/3D view and local orientation. The
 A failed capture is custom history, not legal SAN/PGN: Copy battle log exports
 an explicit JSON chronicle. Classic's PGN behavior stays intact.
 
+Local combat uses two human seats on one keyboard with split-screen cameras:
+
+| Control | White (P1) | Black (P2) |
+| --- | --- | --- |
+| Move | WASD | Arrow keys |
+| Light / heavy attack | F / G | J / K |
+| Sprint / dodge | Shift / Space | Ctrl / L |
+| Block / parry | Q / E | U / I |
+| Ability / lock target | R / Tab | O / P |
+| Orbit camera | Z / X | Comma / Period |
+
+These controls come from Claude's `LocalInputSource`. Native combat touch controls
+are not implemented there; board touch support does not imply mobile combat.
+
 ## Checks
 
 ```sh
@@ -120,6 +147,11 @@ godot --path godot
 `test:battle` runs C0 match/rules tests, source/replay/result validation,
 consecutive battles, interruptions, UI/view preservation, real missing-scene
 failure and a differential corpus against the existing C0 TypeScript authority.
+`real_combat_test.gd` mounts Claude's actual arena and drives its fighters only
+with contract-valid input. No HP, placement, attack state or results are injected.
+It covers both outcomes, consecutive captures, EP, promotion, checkmate, input
+authentication, normalized errors, teardown and both board preferences.
+`npm test` also runs Claude's combat suite via `tests/combat/*.test.ts`.
 `godot/tests/battle/test_combat_adapter.gd` is an explicitly injected test double,
 not a combat implementation or production fallback. Native online play, physical
 Windows/Android devices, exports and king-gauntlet combat are not certified here.

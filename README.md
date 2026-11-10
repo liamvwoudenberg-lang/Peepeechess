@@ -126,13 +126,14 @@ or interactive 3D. Both views share one match, with legal moves, clocks,
 promotion, notation, FEN, draw claims and local undo. See
 [controls and architecture](docs/classic/CLASSIC.md) and
 [Classic validation](docs/classic/VALIDATION.md). Run `npm run test:classic`.
-Native online transport and combat integration are separate follow-up work.
+Native online transport remains separate follow-up work.
 
 ## Native Battle C0 integration
 
-The mode selector exposes the C0 Battle board, capture previews and the native
-scene adapter. See [integration and combat handoff](docs/battle/INTEGRATION.md)
-and [validation](docs/battle/VALIDATION.md). The real native combat scene has not
-been supplied in the available branches, so Start battle is disabled in this
-build. Deterministic tests exercise the complete transaction/transition sequence
-with a test-only double; they do not certify real combat. Run `npm run test:battle`.
+The mode selector exposes the C0 Battle board, capture previews and Claude's real
+split-screen combat arena. Pawn/Knight captures now run from either board view
+through input-driven combat and back to the shared board. **The full mode is
+incomplete:** Bishop, Rook and Queen fighter mechanics are still missing, and
+those previews explicitly disable Start. See [integration, controls and combat
+handoff](docs/battle/INTEGRATION.md) and [validation](docs/battle/VALIDATION.md).
+Run `npm run test:battle` for real combat plus transaction/transition coverage.

@@ -596,9 +596,10 @@ func _capture_preview(request: Dictionary) -> void:
 	var a: Dictionary = request.attacker
 	var d: Dictionary = request.defender
 	battle_detail.text = "%s %s → %s %s\nAttacker: %s · %s HP\nDefender: %s · %s HP\n\nAttacker wins: captures on %s.\nDefender wins: attacker is removed;\ndefender stays on %s." % [roles[a.role], request.from, roles[d.role], d.square, "White" if a.color == "w" else "Black", a.stats.maxHp, "White" if d.color == "w" else "Black", d.stats.maxHp, request.to, d.square]
-	if not battle_adapter.available():
-		battle_detail.text += "\n\nCombat is unavailable in this build.\nCancel to return to the board."
-	fight_button.disabled = not battle_adapter.available()
+	var readiness = battle_adapter.check_request(request) if battle_adapter.has_method("check_request") else {"ok": battle_adapter.available(), "error": "Combat is unavailable in this build."}
+	if not readiness.ok:
+		battle_detail.text += "\n\n" + readiness.error
+	fight_button.disabled = not readiness.ok
 
 func _battle_phase(value: String) -> void:
 	interaction.enabled = value == "board"

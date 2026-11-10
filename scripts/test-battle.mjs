@@ -23,6 +23,7 @@ try {
   run(['--script', 'res://tests/battle/flow_test.gd']);
   run(['--script', 'res://tests/battle/adapter_test.gd']);
   run(['--script', 'res://tests/battle/ui_test.gd']);
+  run(['--script', 'res://tests/battle/real_combat_test.gd']);
   let seed = 41831;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed; };
   const canonical = fen => {
@@ -66,5 +67,5 @@ try {
   const corpus = join(temporary, 'reference.json');
   writeFileSync(corpus, JSON.stringify(cases));
   run(['--script', 'res://tests/battle/differential_test.gd', '--', corpus]);
-  console.log('PASS: C0 rules, frozen requests, result validation, repeated battle transitions and UI (test-only combat double)');
+  console.log('PASS: C0 rules, frozen requests, result validation, transitions, UI and real Pawn/Knight combat integration');
 } finally { rmSync(temporary, { recursive: true, force: true }); }
