@@ -8,13 +8,13 @@ extends Node
 ## CombatInput path a server would use - only the host differs.
 ##
 ## Automation flags (after `--`): --auto=pve|pvp|demo  --p1=p|n  --p2=p|n  --seed=N
-##   --frames=N (quit after N frames)  --shot=PATH (save a PNG at the end)
+##   --frames=N (quit after N frames)  --shot=PATH (save a PNG at the end)  --touch (virtual touch controls for P1)
 
 const ARENA_SCENE := "res://combat/arena.tscn"
 
 var arena: CombatArena
 var menu: Node
-var config: Dictionary = {"mode": "pve", "white": "p", "black": "n"}
+var config: Dictionary = {"mode": "pve", "white": "p", "black": "n", "controls": "kbm"}
 var _round: int = 0
 var _args: Dictionary = {}
 var _frame: int = 0
@@ -25,10 +25,15 @@ func _ready() -> void:
 		if arg.begins_with("--") and "=" in arg:
 			var parts := arg.substr(2).split("=", true, 1)
 			_args[parts[0]] = parts[1]
+		elif arg.begins_with("--"):
+			_args[arg.substr(2)] = "1"
 	if _args.has("p1"):
 		config["white"] = _args["p1"]
 	if _args.has("p2"):
 		config["black"] = _args["p2"]
+	# Touch controls for P1: automatic on a touchscreen device, or forced with --touch / --touch=1.
+	if _args.has("touch") or DisplayServer.is_touchscreen_available():
+		config["controls"] = "touch"
 	arena = (load(ARENA_SCENE) as PackedScene).instantiate()
 	add_child(arena)
 	arena.rematch_requested.connect(rematch)
@@ -93,6 +98,7 @@ func _build_menu() -> Node:
 	panel.add_child(note)
 
 	panel.add_child(_chooser("Mode", ["pve", "pvp", "demo"], ["1 Player vs AI", "2 Players (split screen)", "AI vs AI demo"], "mode"))
+	panel.add_child(_chooser("P1 controls", ["kbm", "touch"], ["Keyboard + mouse", "Touch (landscape)"], "controls"))
 	panel.add_child(_chooser("White fighter", ["p", "n"], ["Pawn — spear, Last Stand", "Knight — longsword, Lunging Strike"], "white"))
 	panel.add_child(_chooser("Black fighter", ["p", "n"], ["Pawn — spear, Last Stand", "Knight — longsword, Lunging Strike"], "black"))
 	var start := Button.new()
@@ -132,9 +138,9 @@ func start_fight() -> void:
 	var seats := {}
 	match String(config["mode"]):
 		"pve":
-			seats = {"player-white": {"type": "human", "scheme": "kb1"}, "player-black": {"type": "ai", "skill": 0.6}}
+			seats = {"player-white": {"type": "human", "scheme": _p1_scheme()}, "player-black": {"type": "ai", "skill": 0.6}}
 		"pvp":
-			seats = {"player-white": {"type": "human", "scheme": "kb1"}, "player-black": {"type": "human", "scheme": "kb2"}}
+			seats = {"player-white": {"type": "human", "scheme": _p1_scheme()}, "player-black": {"type": "human", "scheme": "kb2"}}
 			if Input.get_connected_joypads().size() >= 2:
 				seats["player-white"]["scheme"] = "pad%d" % Input.get_connected_joypads()[0]
 				seats["player-black"]["scheme"] = "pad%d" % Input.get_connected_joypads()[1]
@@ -147,6 +153,14 @@ func start_fight() -> void:
 	var reply: Dictionary = arena.start_battle(request)
 	if not reply["ok"]:
 		push_error("could not start the fight: %s" % str(reply))
+		return
+	# The on-screen PAUSE button returns to the menu (touch has no Esc key).
+	for source in arena.find_children("*", "LocalInputSource", false, false):
+		source.pause_requested.connect(show_menu)
+
+
+func _p1_scheme() -> String:
+	return "touch" if config["controls"] == "touch" else "kb1"
 
 
 func rematch() -> void:

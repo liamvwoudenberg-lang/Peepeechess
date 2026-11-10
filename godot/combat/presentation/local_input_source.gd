@@ -6,8 +6,10 @@ extends Node
 ## counters. Project input maps are not touched (project.godot is Codex-owned): bindings are read
 ## from raw keys/buttons here.
 ##
-## Schemes: "kb1" WASD + mouse, "kb2" arrow keys, "pad0"/"pad1" gamepads. Left stick / keys move
+## Schemes: "kb1" WASD + mouse, "kb2" arrow keys, "pad0"/"pad1" gamepads, "touch" virtual controls
+## (presentation/touch_controls.gd, landscape multi-touch). Left stick / keys move
 ## relative to the camera; the camera converts to the world-space vector the contract expects.
+## Mouse events synthesised from touch (device == DEVICE_ID_EMULATION) are always ignored here.
 
 const SCHEMES := {
 	"kb1": {"up": KEY_W, "down": KEY_S, "left": KEY_A, "right": KEY_D, "sprint": KEY_SHIFT, "light": KEY_F, "heavy": KEY_G,
@@ -15,7 +17,13 @@ const SCHEMES := {
 	"kb2": {"up": KEY_UP, "down": KEY_DOWN, "left": KEY_LEFT, "right": KEY_RIGHT, "sprint": KEY_CTRL, "light": KEY_J, "heavy": KEY_K,
 		"dodge": KEY_L, "block": KEY_U, "parry": KEY_I, "ability": KEY_O, "lock": KEY_P, "orbit_l": KEY_COMMA, "orbit_r": KEY_PERIOD},
 }
+const TouchControls := preload("res://combat/presentation/touch_controls.gd")
 const MOUSE_SENSITIVITY := 0.0032
+## Camera orbit for touch drags: radians per screen-height of finger travel.
+const TOUCH_LOOK_RADIANS_PER_SCREEN := 4.5
+const TOUCH_LAYER := 20  # above the HUD (10), below menus (50)
+
+signal pause_requested
 const STICK_DEADZONE := 0.18
 
 var scheme: String = "kb1"
@@ -26,13 +34,81 @@ var submit: Callable
 var mouse_look: bool = false
 ## Online mode: intent and presses go to the CombatNetClient (which owns sequencing) instead of `builder`/`submit`.
 var net_client = null
-var enabled: bool = true
+var enabled: bool = true:
+	set(value):
+		enabled = value
+		if touch != null:
+			touch.enabled = value  # also releases every held finger when disabled
+## The virtual controls when scheme == "touch" (null otherwise).
+var touch = null
+var _touch_layer: CanvasLayer = null
 
 var _attack_pressed_this_tick: bool = false
 var _last_facing: float = 0.0
 
 
+func _ready() -> void:
+	if scheme != "touch":
+		return
+	_touch_layer = CanvasLayer.new()
+	_touch_layer.layer = TOUCH_LAYER
+	_touch_layer.name = "TouchLayer"
+	touch = TouchControls.new()
+	touch.name = "TouchControls"
+	touch.enabled = enabled
+	touch.ability_state = Callable(self, "_ability_state")
+	touch.action_pressed.connect(_on_touch_action)
+	touch.lock_pressed.connect(func(): if camera != null: camera.toggle_lock())
+	touch.pause_pressed.connect(func(): pause_requested.emit())
+	touch.look_delta.connect(_on_touch_look)
+	_touch_layer.add_child(touch)
+	add_child(_touch_layer)
+	touch.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # needs to be in the tree to resolve against the viewport
+	# Haptics: in offline/authority mode the fighter's parent is the simulation, which emits combat events.
+	if fighter != null and fighter.get_parent() != null and fighter.get_parent().has_signal("event_emitted"):
+		fighter.get_parent().event_emitted.connect(_on_sim_event)
+
+
+func _on_touch_action(action: String) -> void:
+	if action == "light" or action == "heavy":
+		_press(action)
+	else:
+		_do_press(action)
+
+
+func _on_touch_look(delta: Vector2) -> void:
+	if camera == null:
+		return
+	var h := maxf(float(get_viewport().get_visible_rect().size.y), 1.0)
+	var k := TOUCH_LOOK_RADIANS_PER_SCREEN / h
+	camera.add_look(delta.x * k, delta.y * k)
+
+
+## Cosmetic ability state for the SPECIAL button (read-only).
+func _ability_state() -> Dictionary:
+	if fighter == null or not is_instance_valid(fighter):
+		return {}
+	return {"cooldown": fighter.ability.cooldown_remaining, "total": fighter.ability.cooldown_total, "active": fighter.ability.buff_active()}
+
+
+func _on_sim_event(event: Dictionary) -> void:
+	if touch == null or fighter == null or String(event.get("targetPlayerId", "")) != fighter.player_id:
+		return
+	match String(event.get("type", "")):
+		"parry":
+			touch.haptic(35)
+		"guardbreak":
+			touch.haptic(80)
+		"hit":
+			touch.haptic(20)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	# Godot turns touches into mouse events (emulate_mouse_from_touch). Those are never real mouse input.
+	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
+	if scheme == "touch":
+		return  # the virtual controls consume raw touch themselves
 	if not enabled or (builder == null and net_client == null):
 		return
 	var keys: Dictionary = SCHEMES.get(scheme, {})
@@ -111,6 +187,12 @@ func _physics_process(_delta: float) -> void:
 		var orbit := float(Input.is_physical_key_pressed(keys["orbit_r"])) - float(Input.is_physical_key_pressed(keys["orbit_l"]))
 		if orbit != 0.0:
 			camera.add_look(orbit * 0.035, 0.0)
+	elif scheme == "touch":
+		if touch != null:
+			move = touch.move_vector
+			sprint = touch.sprint
+			block = touch.block_held
+			touch.lock_active = camera.locked
 	else:
 		var dev := _pad_device()
 		move = Vector2(Input.get_joy_axis(dev, JOY_AXIS_LEFT_X), -Input.get_joy_axis(dev, JOY_AXIS_LEFT_Y))

@@ -20,6 +20,7 @@ const SUITES: Dictionary = {
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",
 	"audio": "res://combat/tests/test_audio.gd",
+	"touch": "res://combat/tests/test_touch.gd",
 	"assets": "res://combat/tests/test_assets.gd",
 	"soak": "res://combat/tests/test_soak.gd",
 }
