@@ -12,7 +12,7 @@ func run() -> void:
 			quit(2)
 			return
 		var parts = arg.trim_prefix("--").split("=", true, 1)
-		if parts[0] not in ["bind", "port", "certificate", "private-key", "insecure-local", "run-seconds"]:
+		if parts[0] not in ["bind", "port", "certificate", "private-key", "insecure-local", "run-seconds", "backend-url", "server-id", "outbox-dir", "backend-insecure-local"]:
 			printerr("Unknown server option: ", parts[0])
 			quit(2)
 			return
@@ -24,6 +24,12 @@ func run() -> void:
 		return
 	server = Server.new()
 	root.add_child(server)
+	if options.has("backend-url"):
+		var configured = server.configure_backend(options["backend-url"], options.get("server-id", "local-1"), OS.get_environment("PEEPEECHESS_BACKEND_SECRET"), options.get("outbox-dir", "user://server-outbox"), options.get("backend-insecure-local", "false") == "true")
+		if configured != OK:
+			printerr("Account backend configuration/outbox failed: ", error_string(configured))
+			quit(2)
+			return
 	var result = server.start(options.get("bind", "127.0.0.1"), int(port_text), options.get("certificate", ""), options.get("private-key", ""), options.get("insecure-local", "false") == "true")
 	if result != OK:
 		printerr("Server startup failed: ", error_string(result), ". Supply a certificate/key or explicit loopback development mode.")
