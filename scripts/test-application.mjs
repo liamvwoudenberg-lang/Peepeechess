@@ -2,7 +2,7 @@
  * Run from repository root. No client directly writes records, ratings or outcomes.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import net from 'node:net';
@@ -85,7 +85,7 @@ async function ticketsFor(accounts, allocation) {
     return response;
   }));
 }
-async function play(accounts, allocation, scenario, label) {
+async function play(accounts, allocation, scenario, label, hooks = {}) {
   const tickets = await ticketsFor(accounts, allocation);
   const reports = [];
   const bots = accounts.map((account, index) => {
@@ -96,10 +96,16 @@ async function play(accounts, allocation, scenario, label) {
     const report = join(directory, `${label}-${seat}.json`);
     const bot = start(`${label}-${seat}`, godot, ['--headless', '--path', 'godot', '--script', 'res://tests/application_bot.gd', '--',
       `--seat=${seat}`, `--scenario=${scenario}`, `--port=${allocation.endpoint.port}`, '--insecure_local=true',
-      `--ticket_file=${ticketFile}`, `--expected_player=${account.profile.playerId}`, `--invite=${join(directory, `${label}-unused-invite`)}`, `--report=${report}`]);
+      `--ticket_file=${ticketFile}`, `--expected_player=${account.profile.playerId}`, `--begin_after=${hooks.afterAuth ? 3000 : 0}`, `--invite=${join(directory, `${label}-unused-invite`)}`, `--report=${report}`]);
     return { ...bot, report };
   });
-  for (const [index, result] of (await Promise.all(bots.map(bot => bot.done))).entries()) {
+  if (hooks.afterAuth) {
+    await waitFor(() => bots.every(bot => bot.log().includes('ACCOUNT_AUTHENTICATED')), `${label}: both account handshakes`, 15000);
+    await hooks.afterAuth();
+  }
+  const botResults = await Promise.all(bots.map(bot => bot.done));
+  if (hooks.afterBots) await hooks.afterBots();
+  for (const [index, result] of botResults.entries()) {
     assert.equal(result.code, 0, result.log);
     assert.doesNotMatch(result.log, diagnostics);
     const report = JSON.parse(readFileSync(bots[index].report, 'utf8'));
@@ -139,6 +145,19 @@ async function play(accounts, allocation, scenario, label) {
   }
   return record;
 }
+async function holdMatch(accounts, allocation) {
+  const tickets = await ticketsFor(accounts, allocation);
+  const bots = accounts.map((account, index) => {
+    const seat = account.profile.playerId === allocation.whitePlayerId ? 'w' : 'b';
+    const ticketFile = join(directory, `interrupted-${seat}.ticket`);
+    writeFileSync(ticketFile, tickets[index].ticket, { mode: 0o600 });
+    return start(`interrupted-${seat}`, godot, ['--headless', '--path', 'godot', '--script', 'res://tests/application_bot.gd', '--',
+      `--seat=${seat}`, '--scenario=clock', `--port=${allocation.endpoint.port}`, '--insecure_local=true',
+      `--ticket_file=${ticketFile}`, `--expected_player=${account.profile.playerId}`, `--invite=${join(directory, 'interrupted-invite')}`, `--report=${join(directory, `interrupted-${seat}.json`)}`]);
+  });
+  await waitFor(() => bots.every(bot => bot.log().includes('ACCOUNT_AUTHENTICATED')), 'interrupted match authenticated', 15000);
+  return bots;
+}
 async function quick(accounts, mode, ranked) {
   const body = { mode, ranked, initialMs: mode === 'battle' ? 0 : 60000, incrementMs: 0 };
   await success('/v1/queue', { token: accounts[0].token, method: 'POST', body });
@@ -164,9 +183,14 @@ try {
   const ready = async () => waitFor(async () => { try { return (await api('/health')).body.ok === true; } catch { return false; } }, 'backend health', 20000);
   let backend = startBackend('backend');
   await ready();
-  const server = start('dedicated', godot, ['--headless', '--path', 'godot', '--script', 'res://network/server/server_main.gd', '--', '--bind=127.0.0.1', `--port=${gamePort}`, '--insecure-local', `--backend-url=${base}`, '--backend-insecure-local', '--server-id=local-1', `--outbox-dir=${join(directory, 'outbox')}`, '--run-seconds=360'], { PEEPEECHESS_BACKEND_SECRET: secret }, 360000);
-  await waitFor(() => server.log().includes('SERVER_READY') || diagnostics.test(server.log()), 'dedicated ready');
-  assert.doesNotMatch(server.log(), diagnostics);
+  const startDedicated = name => start(name, godot, ['--headless', '--path', 'godot', '--script', 'res://network/server/server_main.gd', '--', '--bind=127.0.0.1', `--port=${gamePort}`, '--insecure-local', `--backend-url=${base}`, '--backend-insecure-local', '--server-id=local-1', `--outbox-dir=${join(directory, 'outbox')}`, '--run-seconds=360'], { PEEPEECHESS_BACKEND_SECRET: secret }, 360000);
+  let server = startDedicated('dedicated');
+  const serverReady = async () => {
+    await waitFor(() => server.log().includes('SERVER_READY') || diagnostics.test(server.log()), 'dedicated ready');
+    assert.doesNotMatch(server.log(), diagnostics);
+  };
+  await serverReady();
+  const outbox = () => readdirSync(join(directory, 'outbox')).filter(name => name.endsWith('.json')).map(name => JSON.parse(readFileSync(join(directory, 'outbox', name), 'utf8')));
   assert.equal((await api('/v1/me')).status, 401);
   const credentials = ['alice', 'bob'].map(username => ({ username, password: `Test-only-${randomBytes(16).toString('hex')}`, displayName: username === 'alice' ? 'Alice Native' : 'Bob Native' }));
   const accounts = await Promise.all(credentials.map(body => success('/v1/auth/register', { method: 'POST', body })));
@@ -184,7 +208,19 @@ try {
   const joined = await success('/v1/private/join', { token: accounts[1].token, method: 'POST', body: { code: privateInvite.status.invite.code } });
   assert.equal(joined.status.allocation.whitePlayerId, accounts[0].profile.playerId);
   assert.equal(joined.status.allocation.ranked, false);
-  records.push(await play(accounts, joined.status.allocation, 'classic', 'private-classic'));
+  records.push(await play(accounts, joined.status.allocation, 'classic', 'private-classic', {
+    afterAuth: async () => { await stop(backend); },
+    afterBots: async () => {
+      await waitFor(() => outbox().some(job => job.report.matchId === joined.status.allocation.matchId && !job.active && job.report.result === 'black'), 'terminal result durably written while backend offline');
+      assert.doesNotMatch(server.log(), diagnostics);
+      await stop(server);
+      backend = startBackend('backend-outbox-reopened');
+      await ready();
+      server = startDedicated('dedicated-outbox-reopened');
+      await serverReady();
+    },
+  }));
+  console.log('PASS application outage: completed offline result survives dedicated restart and delivers once');
   records.push(await play(accounts, await quick(accounts, 'battle', true), 'battle', 'ranked-battle'));
   assert.doesNotMatch(server.log(), diagnostics);
   const profiles = await Promise.all(accounts.map(account => success('/v1/me', { token: account.token })));
@@ -199,12 +235,28 @@ try {
     const history = await success('/v1/history?limit=100', { token: accounts[index].token });
     assert.equal(history.matches.length, 3);
   }
+  const interrupted = await quick(accounts, 'classic', false);
+  const interruptedBots = await holdMatch(accounts, interrupted);
+  await waitFor(() => outbox().some(job => job.report.matchId === interrupted.matchId && job.active), 'active allocation durably journaled');
+  assert.doesNotMatch(server.log(), diagnostics);
+  await Promise.all([stop(server), ...interruptedBots.map(stop)]);
+  server = startDedicated('dedicated-active-reopened');
+  await serverReady();
+  let aborted;
+  await waitFor(async () => {
+    aborted = (await success('/v1/history?limit=100', { token: accounts[0].token })).matches.find(match => match.matchId === interrupted.matchId);
+    return !!aborted;
+  }, 'active match restart recorded as aborted', 15000);
+  assert.equal(aborted.result, 'aborted');
+  assert.deepEqual(aborted.ratingChange, { white: 0, black: 0 });
+  for (const [index, account] of accounts.entries()) assert.deepEqual((await success('/v1/me', { token: account.token })).profile, profiles[index].profile, 'infrastructure abort changes neither statistics nor ratings');
+  console.log('PASS application active restart: interrupted match aborts explicitly without rating or statistics');
   await stop(backend);
   backend = startBackend('backend-reopened');
   await ready();
   for (const [index, account] of accounts.entries()) {
     assert.deepEqual((await success('/v1/me', { token: account.token })).profile, profiles[index].profile, 'SQLite reopen preserves account session and mode-specific stats');
-    assert.equal((await success('/v1/history?limit=100', { token: account.token })).matches.length, 3);
+    assert.equal((await success('/v1/history?limit=100', { token: account.token })).matches.length, 4);
   }
   const leaders = await success('/v1/leaderboard?mode=classic&limit=20', { token: accounts[0].token });
   assert.ok(leaders.players[0].classic.rating >= leaders.players[1].classic.rating);

@@ -22,9 +22,14 @@ The reproducible scenarios are:
   attacker and defender victories, en passant, same-session reconnection,
   rejected forged winner/damage, and resignation. Both clients receive the
   same committed chess state and battle results.
+- Take the account service offline after ticket admission, complete the private
+  match, then restart both dedicated and account service. The persisted terminal
+  outbox must deliver exactly one unchanged result.
+- Restart a dedicated server with a journaled active match. It must record an
+  explicit unrated infrastructure abort, without statistics or rating changes.
 - Check independent mode ratings, aggregate statistics, history ownership,
   leaderboard order, then restart the backend and confirm account sessions,
-  profiles, ratings, and all match records persist.
+  profiles, ratings, and all three completed records plus the aborted record persist.
 
 The harness uses explicit plaintext loopback development transport. It does not
 claim TLS/DTLS coverage; `npm run test:multiplayer` separately tests DTLS trust,
@@ -33,7 +38,7 @@ Production requires HTTPS for accounts and DTLS for game transport. PostgreSQL
 transaction/persistence checks are documented with the backend test suite.
 
 Set `APPLICATION_REPORT_DIR=/absolute/path` to retain JSON reports for the three
-matches. Reports include public allocation IDs, client-observed states and
+completed matches. Reports include public allocation IDs, client-observed states and
 persisted records, never account bearer tokens, passwords, ticket secrets or
 the dedicated server secret. On failure, the script prints an isolated temporary
 directory containing process logs and reports for diagnosis; that directory may

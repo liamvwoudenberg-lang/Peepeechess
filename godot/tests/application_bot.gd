@@ -1,6 +1,7 @@
 extends "res://tests/network/bot_client.gd"
 ## Account-authenticated independent client. Reuses the real chess/combat input
 ## strategy from transport tests, never server internals or fabricated damage.
+var _move_after = 0
 func run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		var parts = arg.trim_prefix("--").split("=", true, 1)
@@ -28,8 +29,21 @@ func run() -> void:
 
 func _welcome(_value: Dictionary) -> void:
 	reports.welcomes += 1
+	_move_after = Time.get_ticks_msec() + int(options.get("begin_after", "0"))
+	print("ACCOUNT_AUTHENTICATED seat=", seat)
 	if client.player_id != options.expected_player:
 		finish(false, "dedicated player identity differs from authenticated account")
 		return
 	if reports.welcomes > 1:
 		reports.reconnected = true
+
+func _frame(value: Dictionary) -> void:
+	if value.status == "active" and value.state.phase == "board" and Time.get_ticks_msec() < _move_after:
+		return
+	super._frame(value)
+
+func _process(delta: float) -> bool:
+	if _move_after > 0 and Time.get_ticks_msec() >= _move_after and client != null and client.authenticated and not client.frame.is_empty():
+		_move_after = 0
+		_frame(client.frame)
+	return super._process(delta)
