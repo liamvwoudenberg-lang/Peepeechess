@@ -1,4 +1,10 @@
 extends Control
+const AppSettings = preload("res://ui/application_settings.gd")
+const AppResults = preload("res://ui/results.gd")
+var _result_key = ""
+var _provisioned = false
+var _connection_row: Control
+var _lobby_row: Control
 const Client = preload("res://network/client/network_client.gd")
 const Remote = preload("res://network/client/remote_match.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
@@ -38,6 +44,7 @@ var promotion_dialog: AcceptDialog
 var _promotion: Dictionary = {}
 
 func _ready() -> void:
+	AppSettings.load_preferences()
 	client = Client.new()
 	add_child(client)
 	game = Remote.new()
@@ -68,6 +75,14 @@ func _ready() -> void:
 		var selected = role
 		_button(row, {"q":"Queen", "r":"Rook", "b":"Bishop", "n":"Knight"}[role], func(): promotion_dialog.hide(); _move(_promotion.from, _promotion.to, selected))
 	add_child(promotion_dialog)
+	set_view(AppSettings.preferred_3d)
+	board_2d.animation_enabled = AppSettings.animations
+	board_3d.animation_enabled = AppSettings.animations
+	touch_toggle.button_pressed = AppSettings.touch_controls
+	var launch = AppSettings.take_launch()
+	if launch.has("allocation") and launch.has("ticket"):
+		_provisioned = true
+		_connect_allocation(launch)
 
 func _button(parent: Node, text: String, action: Callable) -> Button:
 	var button = Button.new()
@@ -102,6 +117,7 @@ func _build_ui() -> void:
 	_label(column, "PEEPEECHESS · Online native crossplay")
 	var connection_row = HFlowContainer.new()
 	column.add_child(connection_row)
+	_connection_row = connection_row
 	hostname = LineEdit.new()
 	hostname.text = "localhost"
 	hostname.placeholder_text = "Server hostname"
@@ -118,8 +134,10 @@ func _build_ui() -> void:
 	connection_row.add_child(ca_path)
 	_button(connection_row, "Connect / resume", func(): client.connect_server(hostname.text.strip_edges(), int(port.value), ca_path.text.strip_edges()))
 	_button(connection_row, "Local game", _return_local)
+	_button(column, "Main menu", _return_menu)
 	var lobby = HFlowContainer.new()
 	column.add_child(lobby)
+	_lobby_row = lobby
 	_button(lobby, "Create Classic · 10 min", func(): client.create_match("classic", 600000))
 	_button(lobby, "Create Battle C0", func(): client.create_match("battle", 0))
 	match_id = LineEdit.new()
@@ -241,6 +259,9 @@ func _frame(value: Dictionary) -> void:
 	if _displayed_phase in ["combat", "aftermath"] and not in_combat:
 		board_host.modulate.a = 0.5
 		create_tween().tween_property(board_host, "modulate:a", 1.0, 0.4)
+	if phase == "complete" and _result_key != value.state.matchId:
+		_result_key = value.state.matchId
+		call_deferred("_show_online_result", value.duplicate(true))
 	_displayed_phase = phase
 	if not _capture.is_empty() and (_capture.revision != game.revision or _capture.matchId != game.match_id or phase != "board"):
 		capture_dialog.hide()
@@ -312,6 +333,8 @@ func _resign() -> void:
 
 func set_view(use_3d: bool) -> void:
 	_view_3d = use_3d
+	AppSettings.preferred_3d = use_3d
+	AppSettings.save_preferences()
 	var board_visible = client.frame.is_empty() or client.frame.state.phase not in ["combat", "aftermath"]
 	board_2d.visible = board_visible and not use_3d
 	board_3d.visible = board_visible and use_3d
@@ -338,3 +361,54 @@ func _exit_tree() -> void:
 		combat_view.stop()
 	if interaction != null:
 		interaction.dispose()
+
+func _connect_allocation(launch: Dictionary) -> void:
+	var allocation: Dictionary = launch.allocation
+	var endpoint: Dictionary = allocation.endpoint
+	var ca_file = ""
+	if not str(endpoint.get("caCertificate", "")).is_empty():
+		var pem = str(endpoint.caCertificate)
+		if pem.length() > 65536 or not pem.begins_with("-----BEGIN CERTIFICATE-----"):
+			notices.text = "The account service returned an invalid server certificate."
+			return
+		ca_file = "user://dedicated-ca.crt"
+		var file = FileAccess.open(ca_file, FileAccess.WRITE)
+		if file == null:
+			notices.text = "Could not store the trusted server certificate."
+			return
+		file.store_string(pem)
+		file.close()
+	match_id.text = allocation.matchId
+	hostname.text = str(endpoint.host)
+	port.value = int(endpoint.port)
+	_connection_row.hide()
+	_lobby_row.hide()
+	# A provisioned account already owns a seat. Ready still requires a deliberate tap.
+	_button(info.get_parent(), "Ready to play", func(): client.command("ready"))
+	notices.text = "Connecting to your " + ("ranked" if allocation.ranked else "unranked") + " " + str(allocation.mode).capitalize() + " match…"
+	client.call("connect_account_server", str(endpoint.host), int(endpoint.port), str(launch.ticket), ca_file, bool(endpoint.get("insecureLocal", false)))
+	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
+
+func _show_online_result(value: Dictionary) -> void:
+	if not is_inside_tree():
+		return
+	var data = {"result": value.state.result, "reason": value.state.reason, "mode": value.state.mode, "plies": value.state.chess.history.size(), "playerId": client.player_id, "players": value.state.players}
+	AppResults.show_dialog(self, data, func(): pass, _return_menu_now)
+
+func _return_menu() -> void:
+	if client.frame.is_empty() or client.frame.status == "complete":
+		_return_menu_now()
+		return
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Leave online match?"
+	dialog.dialog_text = "The server keeps the match running. Leaving an active match can forfeit your seat after the reconnect timeout."
+	dialog.ok_button_text = "Leave match"
+	dialog.confirmed.connect(func(): dialog.queue_free(); _return_menu_now())
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _return_menu_now() -> void:
+	notices.text = "Disconnecting…"
+	await client.disconnect_gracefully()
+	get_tree().change_scene_to_file("res://ui/application.tscn")
