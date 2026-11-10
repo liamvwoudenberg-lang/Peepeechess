@@ -39,8 +39,8 @@ godot --headless --path godot --quit-after 2
 godot --path godot
 ```
 
-The nested `tests/combat/` directory is reserved for Claude's future tests;
-add its glob to the test script when tests are introduced. The foundation's
+The nested `tests/combat/` directory contains Claude's native combat wrapper;
+its glob is included in `npm test`. The foundation's
 contract tests are a separate mandatory check (`test:contracts`), not included
 silently in the existing `npm test` glob.
 

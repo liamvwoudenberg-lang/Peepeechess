@@ -97,6 +97,9 @@ func start_clock() -> void:
 	last_poll = Time.get_ticks_msec()
 	changed.emit()
 
+func board_input_allowed() -> bool:
+	return not paused and engine.result.is_empty()
+
 func _error(request_id: Variant, code: String, message: String) -> Dictionary:
 	rejected.emit(message)
 	return {"ok": false, "error": {"schemaVersion": 1, "requestId": request_id, "code": code, "message": message, "retryable": code in ["STALE_REVISION", "WRONG_PHASE"], "currentRevision": revision}}
