@@ -39,8 +39,11 @@ godot --headless --path godot --quit-after 2
 godot --path godot
 ```
 
-The nested `tests/combat/` directory is reserved for Claude's future tests;
-add its glob to the test script when tests are introduced. The foundation's
+`npm test` runs Claude's unchanged native combat suites and standalone arena
+through `scripts/test-native-combat.mjs`. Its fixed 60 Hz presentation clock
+keeps animated asset sampling reproducible; socket/server clock tests use real
+time. Claude's optional `tests/combat/` Node wrapper still uses its own launch
+configuration. No combat-owned assertions are skipped or changed. The foundation's
 contract tests are a separate mandatory check (`test:contracts`), not included
 silently in the existing `npm test` glob.
 

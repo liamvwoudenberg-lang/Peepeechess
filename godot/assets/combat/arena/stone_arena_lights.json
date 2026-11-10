@@ -1,0 +1,179 @@
+{
+  "note": "Godot-space (x, y, z). Instantiate OmniLight3D per entry; fog/ambient are suggestions matching stone_arena_visuals.gd.",
+  "lights": [
+    {
+      "kind": "torch",
+      "position": [
+        2.955,
+        2.7,
+        2.955
+      ],
+      "color": [
+        1.0,
+        0.66,
+        0.34
+      ],
+      "energy": 1.9,
+      "range": 8.0
+    },
+    {
+      "kind": "torch",
+      "position": [
+        -2.955,
+        2.7,
+        2.955
+      ],
+      "color": [
+        1.0,
+        0.66,
+        0.34
+      ],
+      "energy": 1.9,
+      "range": 8.0
+    },
+    {
+      "kind": "torch",
+      "position": [
+        2.955,
+        2.7,
+        -2.955
+      ],
+      "color": [
+        1.0,
+        0.66,
+        0.34
+      ],
+      "energy": 1.9,
+      "range": 8.0
+    },
+    {
+      "kind": "torch",
+      "position": [
+        -2.955,
+        2.7,
+        -2.955
+      ],
+      "color": [
+        1.0,
+        0.66,
+        0.34
+      ],
+      "energy": 1.9,
+      "range": 8.0
+    },
+    {
+      "kind": "brazier",
+      "position": [
+        5.233,
+        3.9,
+        5.233
+      ],
+      "color": [
+        1.0,
+        0.55,
+        0.25
+      ],
+      "energy": 2.4,
+      "range": 10.0
+    },
+    {
+      "kind": "brazier",
+      "position": [
+        5.233,
+        3.9,
+        -5.233
+      ],
+      "color": [
+        1.0,
+        0.55,
+        0.25
+      ],
+      "energy": 2.4,
+      "range": 10.0
+    },
+    {
+      "kind": "brazier",
+      "position": [
+        -5.233,
+        3.9,
+        -5.233
+      ],
+      "color": [
+        1.0,
+        0.55,
+        0.25
+      ],
+      "energy": 2.4,
+      "range": 10.0
+    },
+    {
+      "kind": "brazier",
+      "position": [
+        -5.233,
+        3.9,
+        5.233
+      ],
+      "color": [
+        1.0,
+        0.55,
+        0.25
+      ],
+      "energy": 2.4,
+      "range": 10.0
+    },
+    {
+      "kind": "candle",
+      "position": [
+        -7.02,
+        2.4,
+        -0.0
+      ],
+      "color": [
+        1.0,
+        0.7,
+        0.4
+      ],
+      "energy": 0.5,
+      "range": 3.0
+    }
+  ],
+  "directional": {
+    "rotation_degrees": [
+      -55.0,
+      -35.0,
+      0.0
+    ],
+    "color": [
+      0.72,
+      0.78,
+      1.0
+    ],
+    "energy": 0.75,
+    "shadows": true
+  },
+  "ambient": {
+    "color": [
+      0.34,
+      0.36,
+      0.48
+    ],
+    "energy": 0.85
+  },
+  "fog": {
+    "color": [
+      0.07,
+      0.08,
+      0.13
+    ],
+    "density": 0.012
+  },
+  "background": [
+    0.025,
+    0.03,
+    0.05
+  ],
+  "flicker": {
+    "amplitude": 0.16,
+    "hz": 11.0
+  }
+}

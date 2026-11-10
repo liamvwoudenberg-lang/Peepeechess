@@ -2,7 +2,26 @@ extends Control
 const Match = preload("res://chess/classic_match.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
 const Board2D = preload("res://boards/board_2d.gd")
+const BattleMatch = preload("res://chess/battle_match.gd")
+const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
+const Flow = preload("res://app/battle_flow.gd")
 const Board3D = preload("res://boards/board_3d.gd")
+var mode_select: OptionButton
+var mode_label: Label
+var copy_notation_button: Button
+var battle_flow: BattleFlow
+var battle_adapter: Node
+var battle_overlay: Control
+var combat_host: SubViewport
+var combat_container: SubViewportContainer
+var battle_title: Label
+var battle_detail: Label
+var battle_card: PanelContainer
+var fight_button: Button
+var battle_cancel: Button
+var battle_return: Button
+var battle_resign: Button
+var _return_tween: Tween
 var game = Match.new()
 var interaction = Interaction.new(game)
 var board_2d: ChessBoard2D
@@ -40,6 +59,7 @@ func _ready() -> void:
 	_build_theme()
 	_build_ui()
 	_build_dialogs()
+	_build_battle_overlay()
 	game.changed.connect(_refresh)
 	game.rejected.connect(_message)
 	interaction.move_requested.connect(_request_move)
@@ -124,12 +144,19 @@ func _build_ui() -> void:
 	column.add_child(heading)
 	var brand = _label(heading, "PEEPEECHESS", 28, Color("f0d69c"))
 	brand.size_flags_horizontal = SIZE_EXPAND_FILL
-	_label(heading, "CLASSIC", 13, Color("85b9ae"))
+	mode_label = _label(heading, "CLASSIC", 13, Color("85b9ae"))
 	_label(column, "One match. Two perspectives.", 16, Color("a2b7b8"))
 	var toolbar = HFlowContainer.new()
 	toolbar.add_theme_constant_override("h_separation", 8)
 	toolbar.add_theme_constant_override("v_separation", 6)
 	column.add_child(toolbar)
+	mode_select = OptionButton.new()
+	mode_select.custom_minimum_size.y = 44
+	mode_select.add_item("Classic Chess")
+	mode_select.add_item("Battle Chess · C0")
+	mode_select.item_selected.connect(_switch_mode)
+	toolbar.add_child(mode_select)
+	_button(toolbar, "Online", func(): get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"), "Connect to a dedicated ENet server.")
 	_button(toolbar, "New game", _show_new, "Choose a time control and start a local two-player match.")
 	view_button = _button(toolbar, "3D board", func(): set_view(not _view_3d), "Switch views without restarting the match.")
 	flip_button = _button(toolbar, "Flip board", func(): set_flipped(not _flipped), "Change only your local perspective.")
@@ -251,7 +278,7 @@ func _build_dialogs() -> void:
 	var row = HFlowContainer.new()
 	box.add_child(row)
 	_button(row, "Copy FEN", func(): DisplayServer.clipboard_set(game.engine.fen()); _message("FEN copied."))
-	_button(row, "Copy PGN", func(): DisplayServer.clipboard_set(game.engine.pgn()); _message("PGN copied."))
+	copy_notation_button = _button(row, "Copy PGN", func(): DisplayServer.clipboard_set(game.engine.pgn()); _message("Battle log copied." if game is BattleChessMatch else "PGN copied."))
 	fen_dialog.confirmed.connect(_load_position)
 	add_child(fen_dialog)
 	new_dialog = ConfirmationDialog.new()
@@ -297,13 +324,16 @@ func _choose_promotion(role: String) -> void:
 	_promotion.clear()
 
 func _show_new() -> void:
+	new_dialog.title = "New Battle Chess game" if game is BattleChessMatch else "New Classic game"
+	new_dialog.dialog_text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
+	time_select.disabled = game is BattleChessMatch
 	new_dialog.popup_centered(Vector2i(mini(440, int(size.x) - 24), 180))
 
 func _start_game() -> void:
 	var control: Array = TIME_CONTROLS[time_select.selected]
 	game.new_game(control[1], control[2])
 	game.start_clock()
-	_message("New game · " + control[0])
+	_message("New Battle C0 game · chess is untimed." if game is BattleChessMatch else "New game · " + control[0])
 
 func _show_position() -> void:
 	fen_edit.text = game.engine.fen()
@@ -320,7 +350,7 @@ func _load_position() -> void:
 		_message(outcome.error)
 		fen_dialog.call_deferred("popup_centered", Vector2i(mini(680, int(size.x) - 24), 270))
 	else:
-		_message("Position loaded. Start the clock when ready.")
+		_message("Battle position loaded." if game is BattleChessMatch else "Position loaded. Start the clock when ready.")
 
 func _confirm_resign() -> void:
 	if not game.engine.result.is_empty():
@@ -335,6 +365,11 @@ func _confirm_resign() -> void:
 	dialog.popup_centered()
 
 func _show_draw() -> void:
+	if game is BattleChessMatch:
+		if not game.board_input_allowed():
+			return
+		_offer_draw()
+		return
 	intended_edit.text = ""
 	draw_dialog.popup_centered(Vector2i(mini(480, int(size.x) - 24), 270))
 
@@ -386,6 +421,10 @@ func _time_text(ms: int) -> String:
 
 func _process(_delta: float) -> void:
 	game.poll_clock()
+	if is_instance_valid(battle_flow) and battle_flow.phase == "countdown":
+		var snapshot = game.combat_snapshot()
+		if not snapshot.is_empty():
+			battle_title.text = "Battle begins in %d" % ceili(snapshot.countdownTicksRemaining / 60.0)
 	if clock_white != null:
 		clock_white.text = _time_text(game.remaining.w)
 		clock_black.text = _time_text(game.remaining.b)
@@ -401,13 +440,15 @@ func _refresh() -> void:
 		status_label.text = "Game paused"
 	else:
 		status_label.text = ("Check · " if game.engine.in_check() else "") + color + " to move"
+	if game is BattleChessMatch and game.phase != "board":
+		status_label.text = "Capture battle pending"
 	clock_white.add_theme_color_override("font_color", Color("f0d69c") if game.engine.turn == "w" else Color("a2b7b8"))
 	clock_black.add_theme_color_override("font_color", Color("f0d69c") if game.engine.turn == "b" else Color("a2b7b8"))
 	pause_button.text = "Resume" if game.paused else "Pause"
-	pause_button.disabled = not game.engine.result.is_empty() or game.authority_mode != "local"
+	pause_button.disabled = not game.engine.result.is_empty() or game.authority_mode != "local" or (game is BattleChessMatch and game.phase != "board")
 	undo_button.disabled = game.engine.history.is_empty() or not game.allow_undo or game.authority_mode != "local"
 	start_button.visible = game.timed and not game.started and game.engine.result.is_empty()
-	claim_button.disabled = not game.engine.result.is_empty() or game.paused
+	claim_button.disabled = not game.board_input_allowed()
 	claim_button.text = "Claim draw available" if not game.engine.claimable_draws().is_empty() else "Draw options"
 	history_text.clear()
 	if game.engine.history.is_empty():
@@ -421,7 +462,7 @@ func _refresh() -> void:
 				history_text.append_text("[color=#829c9f]%d.[/color]  " % number)
 			elif i == 0:
 				history_text.append_text("[color=#829c9f]%d...[/color]  " % number)
-			history_text.append_text(game.engine.history[i].san + ("\n" if color_to_play == "b" else "     "))
+			history_text.add_text(game.engine.history[i].san + ("\n" if color_to_play == "b" else "     "))
 			if color_to_play == "b":
 				number += 1
 			color_to_play = ClassicChess.opposite(color_to_play)
@@ -432,4 +473,169 @@ func _message(text: String) -> void:
 		message_label.text = text
 
 func _exit_tree() -> void:
+	if is_instance_valid(battle_flow):
+		battle_flow.dispose()
 	interaction.dispose()
+
+func _build_battle_overlay() -> void:
+	battle_overlay = Control.new()
+	battle_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(battle_overlay)
+	var bg = ColorRect.new()
+	bg.color = Color("101f27")
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	battle_overlay.add_child(bg)
+	combat_container = SubViewportContainer.new()
+	combat_container.stretch = true
+	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	combat_container.offset_top = 72
+	combat_container.offset_bottom = -80
+	battle_overlay.add_child(combat_container)
+	combat_host = SubViewport.new()
+	combat_host.size = Vector2i(900, 600)
+	combat_host.own_world_3d = true
+	combat_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	combat_container.add_child(combat_host)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	battle_overlay.add_child(center)
+	battle_card = PanelContainer.new()
+	battle_card.add_theme_stylebox_override("panel", _panel(Color("1b3039")))
+	center.add_child(battle_card)
+	var column = VBoxContainer.new()
+	column.custom_minimum_size.x = 280
+	column.add_theme_constant_override("separation", 12)
+	battle_card.add_child(column)
+	battle_detail = _label(column, "", 16)
+	battle_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	battle_detail.custom_minimum_size.x = 280
+	fight_button = _button(column, "Start battle", func(): battle_flow.confirm_capture())
+	battle_cancel = _button(column, "Cancel capture", _cancel_battle_transition)
+	battle_return = _button(column, "Return to board", func(): battle_flow.return_to_board())
+	var header = MarginContainer.new()
+	header.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	header.offset_left = 20
+	header.offset_top = 16
+	header.offset_right = -20
+	battle_overlay.add_child(header)
+	battle_title = _label(header, "Capture battle", 24, Color("f0d69c"))
+	var footer = HBoxContainer.new()
+	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	footer.offset_left = 20
+	footer.offset_right = -20
+	footer.offset_top = -64
+	battle_overlay.add_child(footer)
+	battle_resign = _button(footer, "Acting player resigns", _confirm_resign)
+	battle_overlay.hide()
+
+func _switch_mode(index: int) -> void:
+	if _return_tween:
+		_return_tween.kill()
+	if (index == 1) == (game is BattleChessMatch):
+		return
+	if is_instance_valid(battle_flow):
+		battle_flow.dispose()
+		battle_flow.queue_free()
+		battle_flow = null
+	if is_instance_valid(battle_adapter):
+		battle_adapter.queue_free()
+		battle_adapter = null
+	game.changed.disconnect(_refresh)
+	game.rejected.disconnect(_message)
+	interaction.dispose()
+	var board_host = board_2d.get_parent()
+	for old in [board_2d, board_3d]:
+		old.hide()
+		board_host.remove_child(old)
+		old.queue_free()
+	game = BattleMatch.new() if index == 1 else Match.new()
+	interaction = Interaction.new(game)
+	game.changed.connect(_refresh)
+	game.rejected.connect(_message)
+	interaction.move_requested.connect(_request_move)
+	board_2d = Board2D.new()
+	board_2d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	board_host.add_child(board_2d)
+	board_2d.setup(game, interaction)
+	board_3d = Board3D.new()
+	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	board_host.add_child(board_3d)
+	board_3d.setup(game, interaction)
+	mode_label.text = "BATTLE · C0" if index == 1 else "CLASSIC"
+	mode_select.select(index)
+	copy_notation_button.text = "Copy battle log" if index == 1 else "Copy PGN"
+	if index == 1:
+		_configure_battle_flow(CombatAdapter.new())
+	game.new_game(0 if index == 1 else 600000)
+	set_view(_view_3d)
+	set_flipped(_flipped)
+	battle_overlay.hide()
+	_refresh()
+	if index == 1:
+		_message("Battle C0: kings do not duel. Combat is unavailable in this build." if not battle_adapter.available() else "Battle C0 · captures trigger combat; chess is untimed.")
+
+func _configure_battle_flow(adapter: Node) -> void:
+	if is_instance_valid(battle_flow):
+		battle_flow.dispose()
+		battle_flow.queue_free()
+	if is_instance_valid(battle_adapter):
+		battle_adapter.queue_free()
+	battle_adapter = adapter
+	add_child(adapter)
+	battle_flow = Flow.new()
+	add_child(battle_flow)
+	battle_flow.setup(game, adapter, combat_host)
+	battle_flow.phase_changed.connect(_battle_phase)
+	battle_flow.preview_requested.connect(_capture_preview)
+	battle_flow.result_ready.connect(_battle_result)
+	battle_flow.returning_to_board.connect(_animate_board_return)
+	battle_flow.failed.connect(_message)
+
+func _capture_preview(request: Dictionary) -> void:
+	var roles = {"p": "Pawn", "n": "Knight", "b": "Bishop", "r": "Rook", "q": "Queen", "k": "King"}
+	var a: Dictionary = request.attacker
+	var d: Dictionary = request.defender
+	battle_detail.text = "%s %s → %s %s\nAttacker: %s · %s HP\nDefender: %s · %s HP\n\nAttacker wins: captures on %s.\nDefender wins: attacker is removed;\ndefender stays on %s." % [roles[a.role], request.from, roles[d.role], d.square, "White" if a.color == "w" else "Black", a.stats.maxHp, "White" if d.color == "w" else "Black", d.stats.maxHp, request.to, d.square]
+	var readiness = battle_adapter.check_request(request) if battle_adapter.has_method("check_request") else {"ok": battle_adapter.available(), "error": "Combat is unavailable in this build."}
+	if not readiness.ok:
+		battle_detail.text += "\n\n" + readiness.error
+	fight_button.disabled = not readiness.ok
+
+func _battle_phase(value: String) -> void:
+	interaction.enabled = value == "board"
+	board_2d.set_process_input(value == "board")
+	board_3d.set_process_input(value == "board")
+	battle_overlay.visible = value not in ["board", "returning"]
+	combat_container.visible = value in ["countdown", "combat"]
+	combat_host.render_target_update_mode = SubViewport.UPDATE_ALWAYS if combat_container.visible else SubViewport.UPDATE_DISABLED
+	battle_card.visible = value in ["preview", "loading", "aftermath"]
+	fight_button.visible = value == "preview"
+	battle_cancel.visible = value in ["preview", "loading"]
+	battle_cancel.text = "Cancel capture" if value == "preview" else "Cancel loading"
+	battle_return.visible = value == "aftermath"
+	battle_resign.visible = value in ["countdown", "combat"]
+	battle_title.text = {"preview": "Capture preview", "loading": "Loading arena…", "countdown": "Get ready", "combat": "Battle Chess · capture duel", "aftermath": "Battle result"}.get(value, "Battle Chess")
+	if value == "loading":
+		battle_detail.text = "Preparing the arena and two fighters…\nThe chess position is frozen."
+
+func _cancel_battle_transition() -> void:
+	if battle_flow.phase == "preview":
+		battle_flow.cancel_preview()
+	elif battle_flow.phase == "loading":
+		battle_flow.interrupt("Loading canceled.")
+
+func _battle_result(value: Dictionary) -> void:
+	battle_detail.text = "%s wins\n%s\n\nAttacker HP: %s\nDefender HP: %s" % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " "), value.attackerHp, value.defenderHp]
+
+func _animate_board_return() -> void:
+	if _return_tween:
+		_return_tween.kill()
+	_return_tween = create_tween().set_parallel(true)
+	if _view_3d and board_3d.animation_enabled:
+		var camera = board_3d.camera
+		camera.v_offset = 0.6
+		_return_tween.tween_property(camera, "v_offset", 0.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	elif board_2d.animation_enabled:
+		board_2d.modulate.a = 0.4
+		_return_tween.tween_property(board_2d, "modulate:a", 1.0, 0.35)
