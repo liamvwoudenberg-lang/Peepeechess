@@ -1,0 +1,50 @@
+PEEPEECHESS - COMBAT TEST BUILD   (commit @SHA@)
+=================================================
+A standalone build of the third-person combat arena. No chess board, no online play, no account: just fights.
+Same simulation code the online server will use, running locally.
+
+START
+  Windows : double-click Peepeechess-Combat.exe
+            (Start-with-console.bat opens it with a console window that prints errors - use it if something breaks)
+            Keep the .exe, the .console.exe and the .pck in the SAME folder.
+            Windows SmartScreen may warn about an unsigned app: "More info" -> "Run anyway".
+  Linux   : ./Peepeechess-Combat.x86_64
+
+MENU
+  Mode           1 Player vs AI  |  2 Players (split screen)  |  AI vs AI demo
+  P1 controls    Keyboard + mouse  |  Gamepad (first connected; chosen automatically if a pad is plugged in)
+  White / Black  Pawn, Knight, Bishop, Rook, Queen  (each has its own special ability)
+  Menu navigation works with mouse, keyboard (arrows + Enter) or gamepad (D-pad + A).
+  F11 = fullscreen.  Esc = back to menu.  After a fight: Enter / F5 = rematch.
+
+CONTROLS
+  Action                    P1 keyboard + mouse    P2 keyboard (2-player)   Gamepad
+  Move                      W A S D                Arrow keys               Left stick
+  Light attack (x3 combo)   LMB or F               J                        X
+  Heavy attack              RMB or G               K                        Y
+  Block (hold)              Q                      U                        LB
+  Parry (tap just before    E                      I                        RB
+    a hit lands)
+  Dodge (hold a direction)  Space                  L                        A
+  Special ability           R                      O                        B
+  Sprint                    Shift                  Ctrl                     LT
+  Lock-on                   Tab / middle mouse     P                        L3 (stick click)
+  Camera                    Mouse (captured)       , and .                  Right stick
+
+2 PLAYERS
+  One keyboard: P1 uses WASD + F/G..., P2 uses the arrows + J/K...
+  One gamepad: the pad is P1, the keyboard arrows are P2.   Two gamepads: one each.
+
+WHAT THIS BUILD IS - AND IS NOT
+  * The fights, damage, stamina, blocking, parry, dodge i-frames and the five special abilities are the real
+    authoritative rules (4,000+ automated checks pass). Balance numbers are first-pass tuning, not playtested.
+  * Nobody has played this with a real keyboard/gamepad yet: input feel, camera comfort and difficulty are exactly
+    what we want you to judge. The AI is a basic opponent.
+  * Visuals are generated placeholder-quality art; the fighting-game polish pass (trails, hit effects, hitstop,
+    victory poses) is in progress and NOT in this build.
+  * Audio is procedurally generated placeholder sound.
+
+PLEASE REPORT
+  - Which two fighters, which controls (keyboard / which pad), what happened, and what felt wrong
+    (unresponsive input, unreadable attacks, unfair AI, camera problems, stutter - with your PC and GPU).
+  - If it crashes or looks broken, run Start-with-console.bat and send the text in the console window.

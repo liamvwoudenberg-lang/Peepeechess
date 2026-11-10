@@ -49,7 +49,10 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_ESCAPE:
+		if event.keycode == KEY_F11:
+			var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		elif event.keycode == KEY_ESCAPE:
 			show_menu()
 		elif (event.keycode == KEY_F5 or event.keycode == KEY_ENTER) and arena.sim.phase == CombatSimulation.Phase.FINISHED:
 			rematch()
