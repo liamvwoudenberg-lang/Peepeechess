@@ -11,3 +11,6 @@ export type AuthResponse = { token: string; expiresAt: number; profile: Profile 
 export type MatchRecord = { matchId: string; mode: Mode; ranked: boolean; whitePlayerId: string; blackPlayerId: string; whiteName: string; blackName: string; result: MatchResult; reason: string; finalFen: string; history: unknown[]; startedAt: number; completedAt: number; ratingChange: { white: number; black: number } };
 export type MatchOptions = { mode: Mode; ranked: boolean; initialMs: number; incrementMs: number };
 export type ResultReport = { matchId: string; result: MatchResult; reason: string; finalFen: string; history: unknown[] };
+
+/** Additive ENet account handshake, reliable channel 0; distinct from anonymous Hello. */
+export type AccountHello = { schemaVersion: 1; protocol: "peepeechess-enet-v1"; ticket: string };

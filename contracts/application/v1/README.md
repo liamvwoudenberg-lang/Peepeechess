@@ -39,3 +39,11 @@ Example ticket response (abbreviated):
 ```json
 {"schemaVersion":1,"ticket":"64-hex-random-secret","expiresAt":1800000060000,"allocation":{"matchId":"a5093b3e-c2dc-4c02-83c0-33c94d52c707","mode":"classic","ranked":true,"whitePlayerId":"b6b1e29e-a3cc-4700-ae10-a522d1549db5","blackPlayerId":"78f20a29-ea36-4ed9-a16d-6849baac9a30","initialMs":600000,"incrementMs":0,"serverId":"local-1","endpoint":{"host":"127.0.0.1","port":2456,"serverName":"localhost","caCertificate":"","insecureLocal":true},"createdAt":1800000000000}}
 ```
+
+## Account-bound ENet admission
+
+The separate additive `AccountHello` message is defined by
+`godot/contracts/application/v1/schema.json`, with valid/invalid fixtures alongside.
+Send `{type:"AccountHello",payload:{schemaVersion:1,protocol:"peepeechess-enet-v1",ticket:"<64 lowercase hex>"}}` reliably on channel0. It replaces initial anonymous Hello only for backend allocations. The dedicated server redeems the ticket over its authenticated internal HTTP connection, provisions the exact allocated seats/time controls once, and returns the existing Welcome and MatchFrame. No player ID comes from this client message. Existing Hello with a nonnull resumeToken resumes the resulting process-local ENet session without replaying the single-use ticket. Backend-enabled dedicated servers reject anonymous sessions, CreateMatch and JoinMatch; allocation and competitive mode are controlled by the account backend. An unconfigured standalone server retains the existing unranked development protocol. Older servers reject AccountHello rather than downgrading to anonymous identity.
+
+Result delivery is a durable server outbox: terminal match data is written locally before retrying the authenticated idempotent internal result POST. On restart, queued reports retry, and provisioned unfinished matches are reported aborted/unrated; active combat state is not reconstructed. Account sessions belong to the HTTPS backend, while ENet resume tokens are memory-only and bound to one dedicated process. Neither token is a player ID. Never accept client-reported match results or competitive mode changes.
