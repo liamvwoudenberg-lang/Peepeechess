@@ -1,6 +1,6 @@
 /** Application HTTP v1. Independent from the ENet/game v1 schema. */
 export type Mode = "classic" | "battle";
-export type MatchResult = "white" | "black" | "draw";
+export type MatchResult = "white" | "black" | "draw" | "aborted";
 export type Stats = { rating: number; wins: number; losses: number; draws: number; games: number };
 export type Profile = { playerId: string; username: string; displayName: string; createdAt: number; classic: Stats; battle: Stats };
 export type Endpoint = { host: string; port: number; serverName: string; caCertificate: string; insecureLocal: boolean };
