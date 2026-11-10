@@ -5,7 +5,7 @@ Base: integrated develop commit `b4c6dab` (including Classic `8b13047`). Feature
 
 ## Current dependency status
 
-Claude's published `ccr-a4637d6e-lypbb4` branch through `5706131` is merged into
+Claude's published `ccr-a4637d6e-lypbb4` branch through `2bc368d` is merged into
 this isolated integration branch. `res://combat/arena.tscn` now supplies real
 fighters, input, split-screen cameras, countdown, simulation and results. The
 adapter configures White as human `kb1` and Black as human `kb2`, preventing the
@@ -15,8 +15,9 @@ tested through the board transaction, including consecutive battles and returns.
 **Full-roster acceptance remains blocked:** `FighterProfile.supports_role()`
 implements only Pawn and Knight. Bishop, Rook and Queen captures cannot be played
 yet. The preview queries the combat owner's capability function and explains a
-missing role before disabling Start; cancellation preserves the board. The new
-Blender generator sources do not implement missing fighter simulation. No
+missing role before disabling Start; cancellation preserves the board. Claude's
+latest update adds generated GLBs/animation clips for all six classes and the
+arena, but those assets do not implement missing fighter simulation. No
 substitute fighter or production fake/random winner is used. Claude's imported
 combat source, assets, tests and Blender scripts are unchanged by Codex.
 

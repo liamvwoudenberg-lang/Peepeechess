@@ -168,6 +168,8 @@ func presentation(use_3d: bool) -> void:
 	expect(is_instance_valid(arena) and app.combat_container.visible, "real arena displays inside application's combat viewport")
 	if is_instance_valid(arena):
 		expect(arena.cameras.size() == 2 and arena._inputs.size() == 2 and arena._ais.is_empty(), "two real human cameras/controllers; no unintended AI seats")
+		expect(arena._visuals.uses_generated_arena, "application mounts Claude's generated arena")
+		expect(arena._fighter_visuals.size() == 2 and arena._fighter_visuals.all(func(visual): return visual is CharacterModel and visual.has_clip("light_1") and visual.has_clip("defeat")), "application uses imported animated fighter models")
 		var counts = []
 		for source in arena._inputs:
 			counts.append(source.builder.counters.light)
