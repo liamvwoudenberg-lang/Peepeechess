@@ -126,14 +126,14 @@ or interactive 3D. Both views share one match, with legal moves, clocks,
 promotion, notation, FEN, draw claims and local undo. See
 [controls and architecture](docs/classic/CLASSIC.md) and
 [Classic validation](docs/classic/VALIDATION.md). Run `npm run test:classic`.
-Native online transport remains separate follow-up work.
+Native dedicated multiplayer now uses ENet/DTLS; see [server startup and local crossplay tests](docs/network/README.md). Physical Windows/Android crossplay is not yet verified.
 
 ## Native Battle C0 integration
 
 The mode selector exposes the C0 Battle board, capture previews and Claude's real
-split-screen combat arena. Pawn/Knight captures now run from either board view
-through input-driven combat and back to the shared board. **The full mode is
-incomplete:** Bishop, Rook and Queen fighter mechanics are still missing, and
-those previews explicitly disable Start. See [integration, controls and combat
-handoff](docs/battle/INTEGRATION.md) and [validation](docs/battle/VALIDATION.md).
-Run `npm run test:battle` for real combat plus transaction/transition coverage.
+combat arena. All five C0 fighter roles are supported. Captures run from either
+board view through input-driven combat and back to shared chess state. See
+[integration and controls](docs/battle/INTEGRATION.md) and
+[native server/testing instructions](docs/network/README.md). Run
+`npm run test:battle` and `npm run test:multiplayer`. King-gauntlet combat remains
+a separate v2 ruleset.

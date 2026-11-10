@@ -4,6 +4,7 @@ extends RefCounted
 var _text = ""
 var _at = 0
 var _valid = true
+var _number = RegEx.create_from_string("^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:e[+-]?[0-9]+)?$")
 
 func decode(bytes: PackedByteArray, maximum: int) -> Dictionary:
 	if bytes.is_empty() or bytes.size() > maximum:
@@ -53,7 +54,13 @@ func _string() -> Variant:
 	while _at < _text.length():
 		var c = _text[_at]
 		_at += 1
+		if c.unicode_at(0) < 32:
+			_valid = false
+			return null
 		if c == "\\":
+			if _at >= _text.length() or _text[_at] not in ['"', "\\", "/", "b", "f", "n", "r", "t", "u"]:
+				_valid = false
+				return null
 			_at += 1
 		elif c == '"':
 			var parser = JSON.new()
@@ -114,6 +121,8 @@ func _value(depth: int) -> void:
 		if _at == start:
 			_valid = false
 		var token = _text.substr(start, _at - start).to_lower()
+		if token not in ["true", "false", "null"] and _number.search(token) == null:
+			_valid = false
 		if token.length() > 64:
 			_valid = false
 		if token.contains("e"):

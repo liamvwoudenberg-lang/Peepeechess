@@ -40,7 +40,8 @@ func sync(frame: Dictionary) -> void:
 		source.camera = arena.cameras[0]
 		source.submit = client.submit_combat_input
 		source.mouse_look = input_scheme == "kb1"
-		arena.add_child(source)
+		# Input lives in the application's viewport; the arena viewport only draws.
+		add_child(source)
 	if source != null:
 		source.builder = client.input_builder
 		source.enabled = client.authenticated and frame.state.phase == "combat" and not touch_enabled
@@ -54,6 +55,8 @@ func apply_snapshot(snapshot: Dictionary) -> void:
 func stop() -> void:
 	if source != null:
 		source.enabled = false
+		remove_child(source)
+		source.queue_free()
 		source = null
 	if arena != null:
 		arena.stop_battle()

@@ -174,6 +174,8 @@ func _hello(id: int, payload: Dictionary, now: int) -> void:
 	_send(id, "Welcome", {"schemaVersion": 1, "protocol": "peepeechess-enet-v1", "playerId": player, "sessionToken": token, "serverId": server_id, "expiresInSeconds": maxi(1, (session.expires - now) / 1000), "combatRoles": Room.supported_roles()})
 	if room != null:
 		_send(id, "MatchFrame", room.frame(player))
+		for receipt in room.receipts:
+			_send(id, "BattleResult", receipt)
 
 func _live_room(session: Dictionary) -> bool:
 	return rooms.has(session.matchId) and rooms[session.matchId].status != "complete"
@@ -191,6 +193,7 @@ func _create(session: Dictionary, player: String, payload: Dictionary, now: int)
 	room.configure(id, payload.mode, player, int(payload.initialMs), int(payload.incrementMs), now)
 	room.changed.connect(func(): dirty[id] = true)
 	room.combat_snapshot.connect(func(snapshot): _broadcast(id, "CombatSnapshot", snapshot, false))
+	room.battle_receipt.connect(func(result): _broadcast(id, "BattleResult", result))
 	rooms[id] = room
 	session.matchId = id
 	dirty[id] = true
@@ -277,6 +280,11 @@ func _process(_delta: float) -> void:
 
 func step(now: int) -> void:
 	for room in rooms.values():
+		if room.combat_host != null and transport != null:
+			for player in room.game.players.values():
+				if sessions.has(player) and transport.peers.has(sessions[player].peer):
+					var peer: ENetPacketPeer = transport.peers[sessions[player].peer]
+					room.combat_host.set_seat_rtt_ms(player, clampf(peer.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME), 0, 1000))
 		room.step(now)
 	for id in dirty.keys():
 		_full_frame(id)

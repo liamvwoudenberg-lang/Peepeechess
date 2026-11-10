@@ -4,6 +4,7 @@ extends Node
 signal session_ready(welcome: Dictionary)
 signal frame_received(frame: Dictionary)
 signal combat_received(snapshot: Dictionary)
+signal battle_result_received(result: Dictionary)
 signal clocks_received(clocks: Dictionary)
 signal acknowledged(ack: Dictionary)
 signal protocol_error(error: Dictionary)
@@ -20,6 +21,7 @@ var server_id = ""
 var combat_roles: Array = []
 var frame: Dictionary = {}
 var latest_combat: Dictionary = {}
+var battle_results: Dictionary = {}
 var input_builder: CombatInputBuilder
 var pending: Dictionary = {}
 var address = "localhost"
@@ -37,6 +39,7 @@ var _last_ping = 0
 var _nonce = 0
 var _serial = 0
 var _last_frame_sequence = 0
+var _latest_clock: Dictionary = {}
 
 func _ready() -> void:
 	transport = Transport.new()
@@ -95,9 +98,11 @@ func disconnect_server(forget: bool = false) -> void:
 		server_id = ""
 		frame.clear()
 		latest_combat.clear()
+		battle_results.clear()
 		input_builder = null
 		pending.clear()
 		_last_frame_sequence = 0
+		_latest_clock.clear()
 
 func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 	if id != transport.server_peer:
@@ -151,7 +156,12 @@ func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 			if player_id not in payload.state.players.values():
 				return
 			_last_frame_sequence = payload.frameSequence
+			if not frame.is_empty() and frame.state.matchId != payload.state.matchId:
+				battle_results.clear()
+				_latest_clock.clear()
 			frame = payload.duplicate(true)
+			if _latest_clock.get("matchId") == frame.state.matchId and _latest_clock.serverTick > frame.state.serverTick:
+				frame.clocks = _latest_clock.clocks.duplicate(true)
 			if frame.state.battle != null:
 				_restore_input(frame)
 				if frame.state.combat != null and (latest_combat.get("battleId") != frame.state.combat.battleId or latest_combat.get("serverTick", -1) <= frame.state.combat.serverTick):
@@ -160,15 +170,35 @@ func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 				latest_combat.clear()
 				input_builder = null
 			frame_received.emit(frame.duplicate(true))
+			if frame.state.combat != null and frame.state.combat.result != null:
+				_receipt(frame.state.combat.result)
 		"CombatSnapshot":
 			if frame.is_empty() or frame.state.phase not in ["combat", "aftermath"] or frame.state.battle == null or payload.matchId != frame.state.matchId or payload.battleId != frame.state.battle.battleId or payload.serverTick <= latest_combat.get("serverTick", -1):
 				return
 			latest_combat = payload.duplicate(true)
 			combat_received.emit(payload.duplicate(true))
+			if payload.result != null:
+				_receipt(payload.result)
+		"BattleResult":
+			_receipt(payload)
 		"ClockSync":
-			if frame.is_empty() or payload.matchId != frame.state.matchId or payload.serverTick < frame.state.serverTick:
+			if frame.is_empty() or payload.matchId != frame.state.matchId or payload.serverTick < frame.state.serverTick or payload.serverTick < _latest_clock.get("serverTick", -1):
 				return
+			_latest_clock = payload.duplicate(true)
+			frame.clocks = payload.clocks.duplicate(true)
+			frame.connected = payload.connected.duplicate()
 			clocks_received.emit(payload.duplicate(true))
+
+func _receipt(result: Dictionary) -> void:
+	# Trusted-server receipt is presentation data, never a board settlement path.
+	if frame.is_empty() or result.matchId != frame.state.matchId or result.winnerPlayerId not in frame.state.players.values():
+		return
+	if battle_results.has(result.battleId):
+		if battle_results[result.battleId] != result:
+			protocol_error.emit(_error("INVALID_PAYLOAD", "Conflicting authoritative battle receipt."))
+		return
+	battle_results[result.battleId] = result.duplicate(true)
+	battle_result_received.emit(result.duplicate(true))
 
 func _restore_input(value: Dictionary) -> void:
 	var battle: Dictionary = value.state.battle

@@ -177,6 +177,7 @@ func _build_ui() -> void:
 	history.visible = size.x >= 700
 	combat_container = SubViewportContainer.new()
 	combat_container.stretch = true
+	combat_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board_host.add_child(combat_container)
 	combat_host = SubViewport.new()
@@ -224,6 +225,8 @@ func _frame(value: Dictionary) -> void:
 		var h: Dictionary = value.state.chess.history[i]
 		history.add_text("%d. %s%s%s\n" % [i + 1, h.from, h.to, " [defended]" if h.outcome == "defender" else ""])
 	var in_combat = phase in ["combat", "aftermath"]
+	if in_combat and _displayed_phase == "board":
+		get_viewport().gui_release_focus()
 	board_2d.set_process_input(not in_combat)
 	board_3d.set_process_input(not in_combat)
 	interaction.enabled = not in_combat and client.authenticated
@@ -282,6 +285,7 @@ func _move(from: String, to: String, promotion: String) -> void:
 	game.play(from, to, promotion)
 
 func _confirm_capture() -> void:
+	capture_dialog.hide()
 	if not _capture.is_empty() and _capture.revision == game.revision and _capture.matchId == game.match_id:
 		game.play(_capture.from, _capture.to, _capture.promotion)
 	_capture.clear()

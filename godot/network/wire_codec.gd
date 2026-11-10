@@ -3,7 +3,7 @@ extends "res://contracts/codec.gd"
 const GAME_ID = "https://peepeechess.invalid/contracts/v1/schema.json#/$defs/"
 const GAME_TYPES = ["ChessMoveRequest", "CombatInput", "CombatSnapshot", "BattleResult", "ProtocolError", "MatchState"]
 const CLIENT_TYPES = ["Hello", "CreateMatch", "JoinMatch", "MatchCommand", "Ping", "ChessMoveRequest", "CombatInput"]
-const SERVER_TYPES = ["Welcome", "Ack", "ProtocolError", "MatchFrame", "Pong", "CombatSnapshot", "ClockSync"]
+const SERVER_TYPES = ["Welcome", "Ack", "ProtocolError", "MatchFrame", "Pong", "CombatSnapshot", "ClockSync", "BattleResult"]
 const MAX_CLIENT_BYTES = 65536
 const MAX_SERVER_BYTES = 1048576
 var _game = preload("res://contracts/codec.gd").new()

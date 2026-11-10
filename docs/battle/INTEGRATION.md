@@ -5,21 +5,19 @@ Base: integrated develop commit `b4c6dab` (including Classic `8b13047`). Feature
 
 ## Current dependency status
 
-Claude's published `ccr-a4637d6e-lypbb4` branch through `2bc368d` is merged into
-this isolated integration branch. `res://combat/arena.tscn` now supplies real
-fighters, input, split-screen cameras, countdown, simulation and results. The
-adapter configures White as human `kb1` and Black as human `kb2`, preventing the
-arena's default AI seats from silently taking over. Real Pawn/Knight combat is
-tested through the board transaction, including consecutive battles and returns.
+Claude's published `ccr-a4637d6e-lypbb4` through `c2110ea` is consumed by
+`codex/native-multiplayer`, including the five-role mechanics in `0c522d4` and
+new transport-agnostic combat host. The C0 roster now supports Pawn, Knight,
+Bishop, Rook and Queen. Generated models/clips and the arena are mounted in
+local and online presentation. No substitute fighter or fake winner is used;
+Claude-owned code remains unchanged by Codex.
 
-**Full-roster acceptance remains blocked:** `FighterProfile.supports_role()`
-implements only Pawn and Knight. Bishop, Rook and Queen captures cannot be played
-yet. The preview queries the combat owner's capability function and explains a
-missing role before disabling Start; cancellation preserves the board. Claude's
-latest update adds generated GLBs/animation clips for all six classes and the
-arena, but those assets do not implement missing fighter simulation. No
-substitute fighter or production fake/random winner is used. Claude's imported
-combat source, assets, tests and Blender scripts are unchanged by Codex.
+The earlier `67101fe` report covered Pawn/Knight and recorded a roster blocker.
+That dependency is now supplied. The network roster tests drive ten knockouts
+through the actual combat host, with both outcomes and Bishop/Rook/Queen
+abilities. Online ENet tests exercise repeated captures, reconnect, and return
+to independently chosen 2D/3D boards. King duels remain the separately versioned
+v2 gauntlet, outside C0. See [native multiplayer](../network/README.md).
 
 ## Combat handoff required
 
@@ -66,11 +64,10 @@ mouse emulation for touch. The board filters emulated mouse events when handling
 raw touch gestures, and its input callbacks are disabled throughout combat. A
 combat controller handling both mouse and raw touch must likewise avoid double
 consumption of emulated input.
-Before full acceptance, Claude must implement Bishop, Rook and Queen simulation,
-their role-specific attacks/abilities and portable visuals, publish its branch,
-and extend combat-owned tests. Codex can then merge that handoff, extend these
-real input-driven cases to every role and rerun the complete suite. King combat
-belongs to the separately versioned v2 gauntlet, not this C0 contract.
+Claude's five-role simulation and networking host are now available and tested
+at the native transport boundary. Future combat changes should preserve the v1
+interfaces or coordinate a versioned contract change with Codex. King combat
+still requires the separately designed gauntlet ruleset.
 
 ## C0 rules and lifecycle
 
@@ -129,8 +126,8 @@ Local combat uses two human seats on one keyboard with split-screen cameras:
 | Ability / lock target | R / Tab | O / P |
 | Orbit camera | Z / X | Comma / Period |
 
-These controls come from Claude's `LocalInputSource`. Native combat touch controls
-are not implemented there; board touch support does not imply mobile combat.
+These controls come from Claude's `LocalInputSource`. The online client adds a separate virtual touch adapter that emits the same
+CombatInput packets; physical Android touch testing is not claimed.
 
 ## Checks
 

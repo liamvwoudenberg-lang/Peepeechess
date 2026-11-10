@@ -23,6 +23,7 @@ const run = (name, args) => {
 const children = [];
 function start(name, args) {
   const child = spawn(godot, ['--headless', '--path', 'godot', ...args], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] });
+  const timeout = setTimeout(() => child.kill('SIGTERM'), 175000);
   children.push(child);
   let log = '';
   child.stdout.on('data', data => { log += data; });
@@ -30,7 +31,8 @@ function start(name, args) {
   const done = new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('exit', (code, signal) => {
-      writeFileSync(join(directory, `${name}.log`), log);
+      clearTimeout(timeout);
+      if (existsSync(directory)) writeFileSync(join(directory, `${name}.log`), log);
       resolve({ code, signal, log });
     });
   });
@@ -85,6 +87,8 @@ try {
   }
   run('import', ['--editor', '--import']);
   run('authority', ['--script', 'res://tests/network/network_test.gd']);
+  run('roster', ['--script', 'res://tests/network/roster_test.gd']);
+  run('online-ui', ['--script', 'res://tests/network/online_ui_test.gd']);
   run('client-scene', ['res://network/client/online_lobby.tscn', '--quit-after', '3']);
   const cert = join(directory, 'localhost.crt');
   const key = join(directory, 'localhost.key');
@@ -113,8 +117,14 @@ try {
       }
       assert.deepEqual(reports[0].final.chess, reports[1].final.chess, `${scenario}: synchronized authoritative final chess state`);
       assert.equal(reports[0].final.result, reports[1].final.result);
-      for (const [revision, board] of Object.entries(reports[0].boards)) {
-        assert.deepEqual(reports[1].boards[revision], board, `${scenario}: both clients saw identical revision ${revision}`);
+      for (const [i, report] of reports.entries()) {
+        for (const [revision, board] of Object.entries(report.boards)) {
+          const other = reports[1 - i].boards[revision];
+          if (other) assert.deepEqual(other, board, `${scenario}: clients agree at observed revision ${revision}`);
+          else assert.ok(reports[1 - i].reconnected, `${scenario}: only reconnect may skip a reliable intermediate revision`);
+          assert.deepEqual(board.history, report.final.chess.history.slice(0, board.ply), `${scenario}: exact committed history prefix at revision ${revision}`);
+          assert.equal(board.fen, board.ply ? reports[1 - i].final.chess.history[board.ply - 1].fen : report.final.chess.initialFen, `${scenario}: both clients recover every committed board through complete history`);
+        }
       }
       if (scenario === 'classic') {
         assert.equal(reports[0].final.result, '0-1');
@@ -144,6 +154,21 @@ try {
     } finally { proxies.forEach(p => p.close()); }
   }
   assert.doesNotMatch(server.log(), diagnostics);
+  const wrongCert = join(directory, 'wrong.crt');
+  const wrongKey = join(directory, 'wrong.key');
+  const wrong = spawnSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=unrelated', '-keyout', wrongKey, '-out', wrongCert], { encoding: 'utf8' });
+  assert.equal(wrong.status, 0);
+  const rejected = spawnSync(godot, ['--headless', '--path', 'godot', '--script', 'res://tests/network/tls_probe.gd', '--', `--port=${serverPort}`, `--ca=${wrongCert}`], { env: envFor('untrusted-client'), encoding: 'utf8', timeout: 10000 });
+  assert.equal(rejected.status, 0, rejected.stdout + rejected.stderr);
+  assert.match(rejected.stdout, /PASS: incorrect CA never authenticated/);
+  assert.doesNotMatch(rejected.stdout + rejected.stderr, /SCRIPT ERROR|Parse Error|FAIL:/);
+  const errorLines = (rejected.stdout + rejected.stderr).split('\n').filter(line => line.startsWith('ERROR:'));
+  assert.ok(errorLines.every(line => line.startsWith('ERROR: TLS handshake error:')), rejected.stdout + rejected.stderr);
+  run('trusted-client', ['--script', 'res://tests/network/tls_probe.gd', '--', `--port=${serverPort}`, `--ca=${cert}`, '--expect-valid=true']);
+  await pause(100);
+  assert.doesNotMatch(server.log(), /SCRIPT ERROR|Parse Error|FAIL:/);
+  assert.ok(server.log().split('\n').filter(line => line.startsWith('ERROR:')).every(line => line.startsWith('ERROR: TLS handshake error:')), server.log());
+  console.log('PASS ENet/DTLS trust: incorrect CA refused (expected TLS-handshake diagnostic)');
   console.log('PASS: authoritative ENet/DTLS multiplayer; physical Windows/Android crossplay NOT tested');
 } catch (error) {
   console.error(`Multiplayer failed. Diagnostic logs retained at ${directory}`);

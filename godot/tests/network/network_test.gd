@@ -56,6 +56,8 @@ func run() -> void:
 	for bytes in [PackedByteArray([0xc0, 0x80]), PackedByteArray([0xed, 0xa0, 0x80]), PackedByteArray([0xff])]:
 		expect(not wire.unpack(bytes, 65536).ok, "invalid UTF-8 rejected before parsing")
 	expect(not wire.unpack(" ".repeat(65537).to_utf8_buffer(), 65536).ok, "client frame size bounded")
+	for literal in ["01", "+1", "1.", "True"]:
+		expect(not wire.unpack(('{"type":"Ping","payload":{"schemaVersion":1,"nonce":' + literal + '}}').to_utf8_buffer(), 65536).ok, "non-JSON scalar rejected before schema")
 	server = Server.new()
 	root.add_child(server)
 	server.set_process(false)
@@ -164,6 +166,35 @@ func run() -> void:
 	for i in range(300):
 		server.receive(8, ping, 0, ENetPacketPeer.FLAG_RELIABLE, now)
 	expect(sent.any(func(reply): return reply.type == "ProtocolError" and reply.payload.code == "RATE_LIMITED"), "flood bounded before repeated schema/command work")
+	for id in [10, 11, 12, 13]:
+		hello(id)
+	var first = start_room(10, 11, "battle", 0)
+	var second = start_room(12, 13, "battle", 0)
+	for entry in [[10, 11, first], [12, 13, second]]:
+		move(entry[0], entry[2], "e2", "e4")
+		move(entry[1], entry[2], "d7", "d5")
+		move(entry[0], entry[2], "e4", "d5")
+	await physics_frame
+	expect(first.sim.get_world_3d().space != second.sim.get_world_3d().space, "simultaneous matches isolate collision worlds")
+	var player: String = server.connections[10].player
+	var neutral = Builder.new(first.game.match_id, first.game.pending_request().battleId, player)
+	sent.clear()
+	for i in range(300):
+		var packet_input = neutral.build(0, 0, 0, true, false, false)
+		packet_input.clientTick = 2147483647
+		server.receive(10, wire.pack("CombatInput", packet_input), 1, 0, now)
+	expect(first.combat_host.counters.accepted <= 120 and first.sim.fighter_by_id(player).last_input_sequence <= 120, "combat input rate budget caps accepted packets before simulation")
+	expect(first.combat_host.grace_for(player) == 0, "untrusted client tick cannot override transport RTT")
+	expect(sent.any(func(reply): return reply.type == "ProtocolError" and reply.payload.code == "RATE_LIMITED"), "combat input flood reports bounded rate error")
+	var other_player: String = first.game.players.b
+	var other = Builder.new(first.game.match_id, first.game.pending_request().battleId, other_player)
+	for i in range(601):
+		if first.status == "complete":
+			break
+		first.input(other.build(0, 0, PI, true, false, false), other_player)
+		first.step(now + i * 1000 / 60)
+	expect(first.status == "complete" and first.game.engine.reason == "Combat input timeout" and first.game.engine.result == "0-1", "existing combat host abandonment terminates the chess match")
+	expect(first.receipts.is_empty() and first.sim == null and first.game.pending_request().is_empty(), "abandonment emits no fabricated BattleResult receipt")
 	server.queue_free()
 	await process_frame
 	print("NETWORK AUTHORITY: ", checks, " checks; failures=", failures.size())

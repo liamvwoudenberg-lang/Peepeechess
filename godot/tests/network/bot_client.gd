@@ -33,6 +33,7 @@ func run() -> void:
 	game.bind(client)
 	client.session_ready.connect(_welcome)
 	client.frame_received.connect(_frame)
+	client.battle_result_received.connect(func(result): reports.battles[result.battleId] = result.duplicate(true))
 	client.protocol_error.connect(_error)
 	if client.connect_server("127.0.0.1", int(options.port), options.ca) != OK:
 		finish(false, "could not connect")
@@ -58,7 +59,6 @@ func _frame(frame: Dictionary) -> void:
 		client.command("ready")
 	if frame.status == "complete":
 		reports.final = frame.state.duplicate(true)
-		finish(true)
 		return
 	if frame.status != "active" or frame.state.phase != "board" or frame.state.players[game.engine.turn] != client.player_id or _sent_revision == frame.state.chess.revision:
 		return
@@ -70,6 +70,7 @@ func _frame(frame: Dictionary) -> void:
 		_sent_revision = frame.state.chess.revision
 		client.chess_move(moves[ply][0], moves[ply][1])
 	elif seat == "w" and scenario == "battle":
+		_sent_revision = frame.state.chess.revision
 		client.command("resign")
 func _error(value: Dictionary) -> void:
 	if value.code == "FORBIDDEN" and _forgery_sent:
@@ -114,6 +115,11 @@ func _physics_process(_delta: float) -> bool:
 	return false
 func _process(_delta: float) -> bool:
 	if _closing:
+		return false
+	if reports.has("final"):
+		var expected = reports.final.chess.history.filter(func(entry): return entry.outcome != "quiet").size() if scenario == "battle" else 0
+		if reports.battles.size() >= expected:
+			finish(true)
 		return false
 	if client != null and client.authenticated and seat == "b" and not _joined and FileAccess.file_exists(options.invite):
 		var id = FileAccess.get_file_as_string(options.invite).strip_edges()

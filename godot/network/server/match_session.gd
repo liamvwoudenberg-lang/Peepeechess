@@ -3,10 +3,12 @@ extends Node
 ## One server-owned chess match and isolated combat world. No rendering or client winners.
 signal changed
 signal combat_snapshot(snapshot: Dictionary)
+signal battle_receipt(result: Dictionary)
 const Classic = preload("res://chess/classic_match.gd")
 const Battle = preload("res://chess/battle_match.gd")
 const Rules = preload("res://chess/chess_engine.gd")
 const Sim = preload("res://combat/core/combat_simulation.gd")
+const CombatHost = preload("res://combat/net/combat_net_server.gd")
 const Profile = preload("res://combat/core/fighter_profile.gd")
 var game: ClassicMatch
 var status = "waiting"
@@ -19,9 +21,12 @@ var frame_sequence = 0
 var created_ms = 0
 var completed_ms = -1
 var sim: CombatSimulation
+var combat_host: RefCounted
+var receipts: Array = []
 var _world: SubViewport
 var _resume: Dictionary = {}
 var _aftermath_end = 0
+var _retired_battle_id = ""
 var _now = 0
 
 static func supported_roles() -> Array:
@@ -75,6 +80,8 @@ func set_connected(player_id: String, present: bool, now: int) -> void:
 		return
 	connected[color] = present
 	missing_since[color] = -1 if present else now
+	if combat_host != null:
+		combat_host.set_seat_connected(player_id, present)
 	changed.emit()
 
 func command(payload: Dictionary, player_id: String, now: int) -> Dictionary:
@@ -150,14 +157,35 @@ func _start_combat() -> void:
 	_world.add_child(sim)
 	game.bind_combat_authority(sim)
 	_resume.clear()
-	var reply = sim.start(game.pending_request())
+	combat_host = CombatHost.new(sim)
+	combat_host.snapshot_ready.connect(_combat_snapshot)
+	combat_host.seat_abandoned.connect(func(player): finish("0-1" if color_of(player) == "w" else "1-0", "Combat input timeout", _now))
+	combat_host.battle_aborted_draw.connect(func(): finish("1/2-1/2", "Both combat seats abandoned", _now))
+	var reply = combat_host.start(game.pending_request())
 	if not reply.ok:
 		finish("1/2-1/2", "Service aborted: combat initialization failed", _now)
+		return
+	for color in ["w", "b"]:
+		# Always override clientTick-based estimates with transport-owned RTT.
+		combat_host.set_seat_rtt_ms(game.players[color], 0)
+		combat_host.set_seat_connected(game.players[color], connected[color])
+
+func _combat_snapshot(snapshot: Dictionary) -> void:
+	if sim == null or not game.accept_snapshot(snapshot, sim):
+		finish("1/2-1/2", "Service aborted: invalid combat snapshot", _now)
+		return
+	combat_snapshot.emit(snapshot)
 
 func input(payload: Dictionary, player_id: String) -> Dictionary:
-	if status != "active" or sim == null or not sim.is_running() or payload.playerId != player_id or color_of(player_id).is_empty():
+	if payload.playerId != player_id or color_of(player_id).is_empty() or payload.matchId != game.match_id:
 		return error("FORBIDDEN", "No active battle for this authenticated seat.")
-	var response = sim.submit_input(payload)
+	# A valid packet already in flight can arrive after knockout/return. It must
+	# not become an error banner, a new action, or input to a subsequent duel.
+	if payload.battleId == _retired_battle_id or (sim != null and not sim.is_running() and payload.battleId == sim.request.battleId):
+		return {"ok": true, "ignored": true}
+	if status != "active" or sim == null or combat_host == null:
+		return error("FORBIDDEN", "No active battle for this authenticated seat.")
+	var response = combat_host.receive_input(player_id, payload)
 	if response.ok:
 		_resume[player_id] = payload.duplicate(true)
 	return response
@@ -174,17 +202,17 @@ func step(now: int) -> void:
 		finish("1/2-1/2", "Service aborted: protocol counter limit", now)
 		return
 	if game is BattleChessMatch and game.phase == "combat" and sim != null:
-		sim.step_tick()
-		if tick % 4 == 0 or not sim.is_running():
-			var snapshot = sim.snapshot()
-			if not game.accept_snapshot(snapshot, sim):
-				finish("1/2-1/2", "Service aborted: invalid combat snapshot", now)
-				return
-			combat_snapshot.emit(snapshot)
+		combat_host.step()
+		if sim == null or status == "complete":
+			return
 		if not sim.result.is_empty():
 			if not game.accept_result(sim.result, sim).ok:
 				finish("1/2-1/2", "Service aborted: invalid combat result", now)
 				return
+			receipts.append(sim.result.duplicate(true))
+			if receipts.size() > 32:
+				receipts.pop_front()
+			battle_receipt.emit(sim.result.duplicate(true))
 			_aftermath_end = tick + 120
 	elif game is BattleChessMatch and game.phase == "aftermath":
 		if tick >= _aftermath_end:
@@ -227,11 +255,13 @@ func finish(result: String, reason: String, now: int) -> void:
 
 func _stop_combat() -> void:
 	if sim != null:
+		_retired_battle_id = sim.request.get("battleId", "")
 		game.bind_combat_authority(null)
 		sim.stop()
 		_world.remove_child(sim)
 		sim.queue_free()
 		sim = null
+	combat_host = null
 	_resume.clear()
 
 func frame(player_id: String) -> Dictionary:

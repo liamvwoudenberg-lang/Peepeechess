@@ -16,7 +16,7 @@ and Android; it does not make legacy web/WebSocket clients wire compatible.
 | --- | --- | --- |
 | Client → server | Hello, CreateMatch, JoinMatch, MatchCommand, Ping, ChessMoveRequest | 0 reliable |
 | Client → server | CombatInput | 1 sequenced/unreliable |
-| Server → client | Welcome, Ack, ProtocolError, MatchFrame, Pong | 0 reliable |
+| Server → client | Welcome, Ack, ProtocolError, MatchFrame, Pong, BattleResult receipts | 0 reliable |
 | Server → client | CombatSnapshot, ClockSync | 1 sequenced/unreliable |
 
 Hello negotiates `schemaVersion:1` and `protocol:peepeechess-enet-v1` before
@@ -50,6 +50,10 @@ changes and periodically for recovery. CombatSnapshot targets 15 Hz and clocks
 5 Hz; discard stale snapshots by match/battle/tick and never let an unreliable
 snapshot replace a newer reliable board state. Rendering preferences never
 appear in the protocol. Clients keep their own 2D/3D choice and camera.
+The room retains its latest 32 validated BattleResult receipts and resends them
+after the reconnect MatchFrame. Clients deduplicate by battleId; receipts are
+presentation/history evidence and never a client-side board commit. Full chess
+history retains every outcome even outside this bounded receipt window.
 
 The server uses fixed 60 Hz combat ticks and its own monotonic wall clock for
 chess clocks, heartbeat deadlines and abandonment. Disconnect never pauses a
