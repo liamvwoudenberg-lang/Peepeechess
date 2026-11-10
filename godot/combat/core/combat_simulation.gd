@@ -34,7 +34,16 @@ var duration_remaining: int = 0
 var result: Dictionary = {}
 var recent_events: Array[Dictionary] = []
 
+## Hit-commit grace (the ONLY latency compensation, see godot/combat/NETWORKING.md). A hit detected at
+## tick T against a defender who has a grace of g ticks (and who is not already defended at T) is held
+## PENDING and resolved at T+g against the defender's state at that moment, so a parry/dodge input that
+## arrives late (network delay) can still turn it into a parry/dodge. No rewinding, no client hit claims:
+## the geometry was fixed at T on the server, the rule is symmetric, and g is capped.
+const HIT_GRACE_CAP := 6
+
 var _inputs: Dictionary = {}
+var _grace: Dictionary = {}
+var _pending: Array[Dictionary] = []
 var _codec = null
 var _next_event_id: int = 1
 var _tick_count: int = 0
@@ -102,6 +111,8 @@ func _reset() -> void:
 	result = {}
 	recent_events.clear()
 	_inputs.clear()
+	_grace.clear()
+	_pending.clear()
 	_next_event_id = 1
 	_tick_count = 0
 	server_tick = 0
@@ -131,6 +142,20 @@ func fighter_by_id(player_id: String) -> FighterController:
 
 func opponent_of(fighter: FighterController) -> FighterController:
 	return fighters[1] if fighter == fighters[0] else fighters[0]
+
+
+## Sets the hit-commit grace (ticks, clamped to 0..HIT_GRACE_CAP) for hits AGAINST this player.
+## Default 0 = hits resolve on the tick they are detected (the original behaviour).
+func set_hit_grace(player_id: String, ticks: int) -> void:
+	_grace[player_id] = clampi(ticks, 0, HIT_GRACE_CAP)
+
+
+func hit_grace(player_id: String) -> int:
+	return int(_grace.get(player_id, 0))
+
+
+func pending_hit_count() -> int:
+	return _pending.size()
 
 
 # ---- input ---------------------------------------------------------------------------------
@@ -204,6 +229,8 @@ func step_tick() -> void:
 	for i in order:
 		fighters[i].move(intents[i], fighters[1 - i])
 	_resolve_hits()
+	if _fight_ending():
+		_flush_pending()  # nothing may stay in flight when the result is decided
 	for i in order:
 		fighters[i].end_tick()
 	_flush_fighter_events()
@@ -212,7 +239,16 @@ func step_tick() -> void:
 
 # ---- hit resolution ------------------------------------------------------------------------
 func _resolve_hits() -> void:
-	# Detect first, apply afterwards: a fighter whose hit is already "in flight" still lands it
+	# 1) Pending hits that fall due this tick resolve first, against the defender's CURRENT state.
+	if not _pending.is_empty():
+		var still: Array[Dictionary] = []
+		for hit in _pending:
+			if int(hit["due"]) <= server_tick:
+				_apply_hit(hit["a"], hit["d"], hit["atk"], int(hit["dmg"]))
+			else:
+				still.append(hit)
+		_pending = still
+	# 2) Detect first, apply afterwards: a fighter whose hit is already "in flight" still lands it
 	# even if they were hit on the same tick (trades and double knock-outs are possible).
 	var landed: Array[Dictionary] = []
 	for i in 2:
@@ -223,6 +259,39 @@ func _resolve_hits() -> void:
 			landed.append({"a": a, "d": d, "atk": atk, "dmg": a.compute_damage(atk)})
 			a.sm.riposte_ticks = 0
 	for hit in landed:
+		var defender_grace := hit_grace(hit["d"].player_id)
+		if defender_grace > 0 and not _resolves_now(hit["d"], hit["a"]):
+			hit["due"] = server_tick + defender_grace
+			_pending.append(hit)
+		else:
+			_apply_hit(hit["a"], hit["d"], hit["atk"], int(hit["dmg"]))
+
+
+## A hit resolves immediately when the defender is already defending (dodge i-frames, an open parry
+## window or a raised guard facing the attacker) or cannot defend at all (staggered / defeated).
+func _resolves_now(d: FighterController, a: FighterController) -> bool:
+	if d.sm.state == S.STAGGERED or d.sm.state == S.DEFEATED:
+		return true
+	if d.sm.iframes_active():
+		return true
+	if d.sm.parry_window_open() and d.faces_toward(a.global_position, float(d.profile["parry_arc_deg"])):
+		return true
+	return d.sm.guard_up() and d.faces_toward(a.global_position, float(d.profile["block_arc_deg"]))
+
+
+func _fight_ending() -> bool:
+	if duration_remaining <= 0:
+		return true
+	for fighter in fighters:
+		if not fighter.health.is_alive():
+			return true
+	return false
+
+
+func _flush_pending() -> void:
+	var hits := _pending
+	_pending = []
+	for hit in hits:
 		_apply_hit(hit["a"], hit["d"], hit["atk"], int(hit["dmg"]))
 
 
@@ -346,6 +415,7 @@ func _finish(outcome: String, reason: String) -> void:
 		"attackerHp": a.health.current,
 		"defenderHp": d.health.current,
 	}
+	_pending.clear()
 	phase = Phase.FINISHED
 	finished.emit(result)
 
