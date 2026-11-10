@@ -170,6 +170,8 @@ history and stable piece IDs and checks every observed/recovered revision.
 
 The Battle case uses two seeded raw UDP proxies with 40–59 ms one-way delay
 and 10% loss in each direction, covering DTLS/ENet packets as well as game data.
+Each new client UDP socket gets its own upstream endpoint, preserving NAT/DTLS
+session identity during reconnect rather than merging sessions onto one port.
 The seed fixes loss decisions; OS timing determines packet counts, so packet
 counts/outcomes are reported rather than advertised as bitwise cross-machine
 lockstep. A wrong-CA probe must never authenticate; a subsequent trusted probe

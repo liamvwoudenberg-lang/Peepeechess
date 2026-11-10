@@ -55,27 +55,35 @@ async function freePort() {
 }
 async function proxy(serverPort, initialSeed, enabled) {
   const socket = dgram.createSocket('udp4');
-  let target;
+  // Preserve each client UDP endpoint across NAT. Reusing one upstream port
+  // for a NEW client socket conflates separate DTLS sessions while ENet still
+  // has queued packets for the old one (a Godot 4.6.3 handshake-state error).
+  const upstreams = new Map();
   let seed = initialSeed;
   const stats = { received: 0, dropped: 0, forwarded: 0, delayMs: enabled ? 40 : 0, loss: enabled ? 0.10 : 0 };
   const timers = new Set();
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2 ** 32; };
-  socket.on('message', (data, info) => {
+  function forward(data, sender, destination) {
     stats.received++;
-    const fromServer = info.port === serverPort;
-    if (!fromServer) target = { port: info.port, address: info.address };
-    const destination = fromServer ? target : { port: serverPort, address: '127.0.0.1' };
-    if (!destination) return;
     if (random() < stats.loss) { stats.dropped++; return; }
     const timer = setTimeout(() => {
       timers.delete(timer);
-      socket.send(data, destination.port, destination.address);
+      sender.send(data, destination.port, destination.address);
       stats.forwarded++;
     }, stats.delayMs + (enabled ? Math.floor(random() * 20) : 0));
     timers.add(timer);
+  }
+  socket.on('message', (data, info) => {
+    const key = `${info.address}:${info.port}`;
+    if (!upstreams.has(key)) {
+      const upstream = dgram.createSocket('udp4');
+      upstream.on('message', reply => forward(reply, socket, { port: info.port, address: info.address }));
+      upstreams.set(key, upstream);
+    }
+    forward(data, upstreams.get(key), { port: serverPort, address: '127.0.0.1' });
   });
   await new Promise(resolve => socket.bind(0, '127.0.0.1', resolve));
-  return { port: socket.address().port, stats, close() { for (const timer of timers) clearTimeout(timer); socket.close(); } };
+  return { port: socket.address().port, stats, close() { for (const timer of timers) clearTimeout(timer); for (const upstream of upstreams.values()) upstream.close(); socket.close(); } };
 }
 try {
   const gameSchema = JSON.parse(readFileSync('godot/contracts/v1/schema.json', 'utf8'));

@@ -31,10 +31,11 @@ successful results drive the matches.
 
 The Battle case passed through seeded raw UDP proxies (seeds 173 and 941):
 40–59 ms one-way delay and a configured 10% packet loss in each direction.
-In the successful run, proxy A received 4,263 datagrams, dropped 452 and forwarded
-3,811; proxy B received 4,447, dropped 439 and forwarded 4,007 (one datagram was
-still queued when counters were captured). Packet counts and resolved ticks
-vary with OS scheduling; both clients must still agree on every observed board,
+In the successful run, proxy A received 4,080 datagrams, dropped 434 and forwarded
+3,646; proxy B received 4,477, dropped 440 and forwarded 4,037. Packet counts and resolved ticks
+vary with OS scheduling. The proxy preserves a distinct upstream endpoint for
+each new client UDP socket, including reconnects, instead of conflating DTLS
+sessions on one port. Both clients must still agree on every observed board,
 recovered history prefix, final stable piece registry and authoritative result.
 No claim of cross-platform lockstep or internet-scale capacity follows.
 
