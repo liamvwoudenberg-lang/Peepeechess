@@ -156,6 +156,7 @@ func _build_ui() -> void:
 	mode_select.add_item("Battle Chess · C0")
 	mode_select.item_selected.connect(_switch_mode)
 	toolbar.add_child(mode_select)
+	_button(toolbar, "Online", func(): get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"), "Connect to a dedicated ENet server.")
 	_button(toolbar, "New game", _show_new, "Choose a time control and start a local two-player match.")
 	view_button = _button(toolbar, "3D board", func(): set_view(not _view_3d), "Switch views without restarting the match.")
 	flip_button = _button(toolbar, "Flip board", func(): set_flipped(not _flipped), "Change only your local perspective.")
