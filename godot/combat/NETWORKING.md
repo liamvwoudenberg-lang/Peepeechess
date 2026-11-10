@@ -153,9 +153,11 @@ Other scenarios (all asserted):
   startup 7 ticks) cannot be reacted to from the remote view at any latency.
 * Snapshots at 15 Hz are not a rollback checkpoint (the contract says so): there is no full-state rollback netcode.
 * Bishop **Blink** moves 4 m instantly; it is interpolated as a short fast slide (below the 5 m jump guard). Untested.
-* A restarted client (new process) can continue its **sequence** (from `lastInputSequence`) but not its **cumulative action
-  counters**, which no v1 message carries: if it had pressed any action earlier the server rejects its packets as decreasing
-  counters (tested). Same-session reconnects (client object kept) work.
+* A restarted client (new process) loses its **cumulative action counters**; no v1 CombatSnapshot carries them, so without help
+  the server rejects its packets (tested). Codex's ENet protocol (`InputResume`, see below) supplies exactly the accepted
+  sequence + counters, and `CombatNetClient.resume_input()` applies them: tested that a restarted client is rejected
+  until it resumes, then continues with no rejected packet and no replayed press. Same-session reconnects (client object kept)
+  always worked.
 * Defender hit feedback is delayed by up to 6 ticks at high latency (inherent to the grace).
 * Tests use Pawn/Knight fighters; other roles share the same code paths but were not run through the network suites.
 
@@ -163,8 +165,8 @@ Other scenarios (all asserted):
 
 1. Feed the transport's measured RTT into `CombatNetServer.set_seat_rtt_ms()` every few seconds (removes the lying-client
    bonus entirely).
-2. Contract v2 candidates: `FighterSnapshot.actionId` (which attack/combo link is playing), a `serverTimeMs`/tick-phase
-   field, and returning each seat's action counters in the reconnect snapshot (or accepting a counter reset on reconnect).
+2. Contract v2 candidates: `FighterSnapshot.actionId` (which attack/combo link is playing; remote animation currently
+   infers it, see `presentation/remote_action_inference.gd`) and a `serverTimeMs`/tick-phase field.
 3. Treat `seat_abandoned(player_id)` / `battle_aborted_draw` as match-level forfeit/draw (they bypass `BattleResult`).
 4. Clients should send one `CombatInput` per 60 Hz tick (`CombatNetClient.tick()` does) and the transport should not batch
    or reorder them across seats.
@@ -197,12 +199,36 @@ client.event_confirmed.connect(play_cue)          # once per event
 # every frame:        draw client.view(player_id, local_tick_float)   # position/yaw/state/hp/... per fighter
 ```
 
-`CombatArena` (PRESENTATION mode) is not yet wired to `CombatNetClient`; its current `apply_snapshot()` path eases to the
-latest snapshot. Wiring is the next step (presentation-owned, not required for the authority).
+### CombatArena (online presentation) is wired
+
+`CombatArena.configure_network(local_player_id, send)` + `start_battle(request)` in `PRESENTATION` mode creates a
+`CombatNetClient`; `apply_snapshot()` feeds it; each 60 Hz physics tick the arena calls `net_step()` (one `CombatInput`
+sent through your `send` Callable) and copies `client.view()` onto the proxy fighters: local fighter predicted, remote
+fighter interpolated, HP/stamina/cooldown from snapshots only, events de-duplicated, the terminal `BattleResult` delivered
+once via `battle_finished`. The input source forwards intent to the client (`LocalInputSource.net_client`). Remote attack
+kind/combo link is inferred (`remote_action_inference.gd`) because snapshots carry no action id. Tested in `net_arena`
+(arena + real `CombatNetServer` over a 100 ms RTT simulated link, incl. full presentation with models/HUD/camera).
+Without `configure_network` PRESENTATION mode keeps its older ease-to-snapshot behaviour. The offline AUTHORITY mode that
+Codex's battle adapter mounts is unchanged.
+
+## Mapping to Codex's ENet session protocol v1
+
+Read from `origin/codex/native-multiplayer` (`docs/network/PROTOCOL.md`, `godot/contracts/network/v1/schema.json`); that
+branch defines the transport contract but has no implementation yet, so none of this is exercised against a real transport.
+
+| Codex message / rule | This layer |
+| --- | --- |
+| `CombatInput` on channel 1 (sequenced/unreliable), strictly increasing sequence + cumulative counters | `CombatNetClient.tick()` sends one per 60 Hz tick; `CombatNetServer.receive_input(seat, packet)`; stale/reordered/duplicated packets are harmless (tested) |
+| `CombatSnapshot` 15 Hz on channel 1 | `CombatNetServer.snapshot_ready` signal; `CombatNetClient.on_snapshot()` / `CombatArena.apply_snapshot()` |
+| `Ping` / `Pong` (nonce) | measure RTT in the transport and call `CombatNetServer.set_seat_rtt_ms(seat, ms)`; it replaces the claim-based estimate, so a lying client gains nothing |
+| `ClockSync` (serverTick, 5 Hz) | `CombatNetClient.on_clock_sync(serverTick, localTick)` |
+| `InputResume` (battleId, sequence, clientTick, 5 counters) | `CombatNetServer.input_resume(seat)` builds it (field names match the schema, tested); `CombatNetClient.resume_input()` applies it |
+| Disconnect never pauses; 15-tick input neutralisation; 10 s to resume, forfeit unless both absent (then draw); forfeit bypasses `BattleResult` | same behaviour: `seat_abandoned`, `battle_aborted_draw`, `reconnect_seat()` (tested at exactly 600 server ticks) |
+| Client-reported results / HP / damage forbidden | the client has no code path that sets them (tested) |
 
 ## Reproduce
 
 ```sh
 godot --headless --path godot --editor --import
-godot --headless --path godot --script res://combat/tests/test_runner.gd -- net net_latency   # ~45 s
+godot --headless --path godot --script res://combat/tests/test_runner.gd -- net net_latency net_arena   # ~50 s
 ```

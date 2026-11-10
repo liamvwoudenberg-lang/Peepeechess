@@ -453,6 +453,26 @@ func resume_after_restart(snapshot: Dictionary) -> void:
 			builder.sequence = maxi(builder.sequence, int(f["lastInputSequence"]))
 
 
+## Applies the server's InputResume (docs/network/PROTOCOL.md): continue above the accepted sequence and at
+## or above the cumulative press counters, so a restarted client is neither rejected (decreasing counters)
+## nor able to replay an old press. Returns false for another battle's resume.
+func resume_input(resume: Dictionary) -> bool:
+	if String(resume.get("battleId", "")) != String(request["battleId"]):
+		return false
+	builder.sequence = maxi(builder.sequence, int(resume["sequence"]))
+	for action in ["light", "heavy", "dodge", "parry", "ability"]:
+		builder.counters[action] = maxi(int(builder.counters[action]), int(resume[action]))
+	_unacked.clear()
+	_pending_action = {}
+	return true
+
+
+## Server tick carried by the 5 Hz ClockSync message: another sample for the clock estimate.
+func on_clock_sync(server_tick: int, local_tick: int) -> void:
+	_local_tick = local_tick
+	_update_clock(server_tick, local_tick)
+
+
 ## Persisting this lets a recreated client (app restart / reconnect) keep events from firing twice.
 func export_dedupe_state() -> Array:
 	return _seen_events.keys()

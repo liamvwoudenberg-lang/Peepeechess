@@ -133,6 +133,16 @@ func defender() -> FighterController:
 	return fighter_by_id(request["defender"]["playerId"])
 
 
+## Accepted input bookkeeping for one seat: last accepted sequence and the cumulative press counters the
+## simulation has seen. A transport embeds this in its resume message (Codex's InputResume).
+func accepted_input(player_id: String) -> Dictionary:
+	var state: CombatInputState = _inputs.get(player_id, null)
+	if state == null:
+		return {}
+	return {"sequence": state.last_sequence, "light": int(state.seen["light"]), "heavy": int(state.seen["heavy"]),
+			"dodge": int(state.seen["dodge"]), "parry": int(state.seen["parry"]), "ability": int(state.seen["ability"])}
+
+
 func fighter_by_id(player_id: String) -> FighterController:
 	for fighter in fighters:
 		if fighter != null and fighter.player_id == player_id:

@@ -118,11 +118,11 @@
         ]
       },
       "bytes_collision": 15804,
-      "bytes_lod0": 767544,
-      "bytes_lod1": 653380,
+      "bytes_lod0": 765296,
+      "bytes_lod1": 651028,
       "class": "bishop",
       "clips": {
-        "ability": 30,
+        "ability": 20,
         "block": 40,
         "defeat": 60,
         "dodge": 24,
@@ -131,7 +131,7 @@
         "light_1": 29,
         "light_2": 28,
         "light_3": 38,
-        "parry": 27,
+        "parry": 26,
         "run": 30,
         "stagger": 30,
         "strafe_left": 40,
@@ -166,9 +166,9 @@
           2.194200038909912
         ]
       },
-      "bytes_collision": 16872,
-      "bytes_lod0": 955476,
-      "bytes_lod1": 761640,
+      "bytes_collision": 16744,
+      "bytes_lod0": 956672,
+      "bytes_lod1": 762628,
       "class": "king",
       "clips": {
         "ability": 40,
@@ -177,9 +177,9 @@
         "dodge": 26,
         "heavy": 63,
         "idle": 120,
-        "light_1": 32,
-        "light_2": 30,
-        "light_3": 42,
+        "light_1": 33,
+        "light_2": 31,
+        "light_3": 43,
         "parry": 27,
         "run": 30,
         "stagger": 30,
@@ -217,7 +217,7 @@
       },
       "bytes_collision": 16312,
       "bytes_lod0": 817488,
-      "bytes_lod1": 682536,
+      "bytes_lod1": 682588,
       "class": "knight",
       "clips": {
         "ability": 72,
@@ -265,12 +265,12 @@
           1.7756600379943848
         ]
       },
-      "bytes_collision": 15244,
-      "bytes_lod0": 705956,
-      "bytes_lod1": 627436,
+      "bytes_collision": 15084,
+      "bytes_lod0": 703352,
+      "bytes_lod1": 624832,
       "class": "pawn",
       "clips": {
-        "ability": 24,
+        "ability": 12,
         "block": 40,
         "defeat": 60,
         "dodge": 22,
@@ -315,19 +315,19 @@
         ]
       },
       "bytes_collision": 13740,
-      "bytes_lod0": 884160,
-      "bytes_lod1": 737668,
+      "bytes_lod0": 881160,
+      "bytes_lod1": 734772,
       "class": "queen",
       "clips": {
-        "ability": 30,
+        "ability": 14,
         "block": 40,
         "defeat": 60,
         "dodge": 20,
         "heavy": 58,
         "idle": 120,
-        "light_1": 28,
-        "light_2": 27,
-        "light_3": 36,
+        "light_1": 29,
+        "light_2": 28,
+        "light_3": 38,
         "parry": 25,
         "run": 30,
         "stagger": 30,
@@ -364,20 +364,20 @@
           2.1938998699188232
         ]
       },
-      "bytes_collision": 15688,
-      "bytes_lod0": 871612,
-      "bytes_lod1": 715716,
+      "bytes_collision": 15624,
+      "bytes_lod0": 867768,
+      "bytes_lod1": 711864,
       "class": "rook",
       "clips": {
-        "ability": 36,
+        "ability": 18,
         "block": 40,
         "defeat": 60,
         "dodge": 30,
         "heavy": 74,
         "idle": 120,
-        "light_1": 41,
-        "light_2": 39,
-        "light_3": 53,
+        "light_1": 42,
+        "light_2": 40,
+        "light_3": 55,
         "parry": 28,
         "run": 30,
         "stagger": 30,
@@ -397,7 +397,7 @@
       },
       "role": "r",
       "tris_lod0": 3880,
-      "tris_lod1": 1535
+      "tris_lod1": 1534
     }
   },
   "generator": {

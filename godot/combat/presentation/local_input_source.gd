@@ -24,6 +24,8 @@ var camera: ThirdPersonCamera
 var fighter: FighterController
 var submit: Callable
 var mouse_look: bool = false
+## Online mode: intent and presses go to the CombatNetClient (which owns sequencing) instead of `builder`/`submit`.
+var net_client = null
 var enabled: bool = true
 
 var _attack_pressed_this_tick: bool = false
@@ -31,7 +33,7 @@ var _last_facing: float = 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not enabled or builder == null:
+	if not enabled or (builder == null and net_client == null):
 		return
 	var keys: Dictionary = SCHEMES.get(scheme, {})
 	if event is InputEventKey and event.pressed and not event.echo and not keys.is_empty():
@@ -41,11 +43,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif code == keys["heavy"]:
 			_press("heavy")
 		elif code == keys["dodge"]:
-			builder.press("dodge")
+			_do_press("dodge")
 		elif code == keys["parry"]:
-			builder.press("parry")
+			_do_press("parry")
 		elif code == keys["ability"]:
-			builder.press("ability")
+			_do_press("ability")
 		elif code == keys["lock"]:
 			camera.toggle_lock()
 	elif event is InputEventMouseButton and event.pressed and mouse_look and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -69,18 +71,25 @@ func _unhandled_input(event: InputEvent) -> void:
 			JOY_BUTTON_Y:
 				_press("heavy")
 			JOY_BUTTON_A:
-				builder.press("dodge")
+				_do_press("dodge")
 			JOY_BUTTON_RIGHT_SHOULDER:
-				builder.press("parry")
+				_do_press("parry")
 			JOY_BUTTON_B:
-				builder.press("ability")
+				_do_press("ability")
 			JOY_BUTTON_LEFT_STICK:
 				camera.toggle_lock()
 
 
 func _press(action: String) -> void:
-	builder.press(action)
+	_do_press(action)
 	_attack_pressed_this_tick = true
+
+
+func _do_press(action: String) -> void:
+	if net_client != null:
+		net_client.press(action)
+	elif builder != null:
+		builder.press(action)
 
 
 func _pad_device() -> int:
@@ -88,7 +97,7 @@ func _pad_device() -> int:
 
 
 func _physics_process(_delta: float) -> void:
-	if not enabled or builder == null or fighter == null or not submit.is_valid():
+	if not enabled or fighter == null or (net_client == null and (builder == null or not submit.is_valid())):
 		return
 	var move := Vector2.ZERO  # x = right, y = forward (screen/camera relative)
 	var sprint := false
@@ -128,5 +137,8 @@ func _physics_process(_delta: float) -> void:
 	_last_facing = facing
 	_attack_pressed_this_tick = false
 
+	if net_client != null:
+		net_client.set_intent(world.x, world.z, facing, camera.locked, sprint, block)
+		return
 	var packet := builder.build(world.x, world.z, facing, camera.locked, sprint, block)
 	submit.call(packet)
