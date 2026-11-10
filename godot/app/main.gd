@@ -1,4 +1,7 @@
 extends Control
+const AppSettings = preload("res://ui/application_settings.gd")
+const AppResults = preload("res://ui/results.gd")
+var _result_key = ""
 const Match = preload("res://chess/classic_match.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
 const Board2D = preload("res://boards/board_2d.gd")
@@ -56,6 +59,7 @@ var intended_edit: LineEdit
 const TIME_CONTROLS = [["Untimed", 0, 0], ["Bullet · 1 + 0", 60000, 0], ["Blitz · 3 + 2", 180000, 2000], ["Blitz · 5 + 0", 300000, 0], ["Rapid · 10 + 0", 600000, 0], ["Rapid · 15 + 10", 900000, 10000], ["Classical · 30 + 0", 1800000, 0]]
 
 func _ready() -> void:
+	AppSettings.load_preferences()
 	_build_theme()
 	_build_ui()
 	_build_dialogs()
@@ -67,6 +71,15 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = true
 	_responsive()
 	_refresh()
+	var launch = AppSettings.take_launch()
+	if launch.get("mode", "classic") == "battle":
+		_switch_mode(1)
+	if not launch.is_empty():
+		game.new_game(int(launch.get("initialMs", 600000)), int(launch.get("incrementMs", 0)))
+		game.start_clock()
+	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
+	board_2d.animation_enabled = AppSettings.animations
+	board_3d.animation_enabled = AppSettings.animations
 
 func _panel(color: Color, radius: int = 12) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
@@ -156,6 +169,7 @@ func _build_ui() -> void:
 	mode_select.add_item("Battle Chess · C0")
 	mode_select.item_selected.connect(_switch_mode)
 	toolbar.add_child(mode_select)
+	_button(toolbar, "Main menu", _main_menu, "Return to the application menu.")
 	_button(toolbar, "Online", func(): get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"), "Connect to a dedicated ENet server.")
 	_button(toolbar, "New game", _show_new, "Choose a time control and start a local two-player match.")
 	view_button = _button(toolbar, "3D board", func(): set_view(not _view_3d), "Switch views without restarting the match.")
@@ -163,7 +177,7 @@ func _build_ui() -> void:
 	_button(toolbar, "FEN / PGN", _show_position, "Import a position, or copy FEN and PGN.")
 	var settings = CheckButton.new()
 	settings.text = "Animate"
-	settings.button_pressed = true
+	settings.button_pressed = AppSettings.animations
 	settings.tooltip_text = "Turn off movement animations."
 	settings.toggled.connect(func(on): board_2d.animation_enabled = on; board_3d.animation_enabled = on)
 	toolbar.add_child(settings)
@@ -400,6 +414,8 @@ func _claim_draw() -> void:
 
 func set_view(use_3d: bool) -> void:
 	_view_3d = use_3d
+	AppSettings.preferred_3d = use_3d
+	AppSettings.save_preferences()
 	board_2d.visible = not use_3d
 	board_3d.visible = use_3d
 	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if use_3d else SubViewport.UPDATE_DISABLED
@@ -436,6 +452,9 @@ func _refresh() -> void:
 	if not game.engine.result.is_empty():
 		var outcome = "Draw" if game.engine.result == "1/2-1/2" else ("White wins" if game.engine.result == "1-0" else "Black wins")
 		status_label.text = outcome + "\n" + game.engine.reason
+		if _result_key != game.match_id + game.engine.result:
+			_result_key = game.match_id + game.engine.result
+			call_deferred("_show_game_result", game.match_id, game.engine.result)
 	elif game.paused:
 		status_label.text = "Game paused"
 	else:
@@ -639,3 +658,21 @@ func _animate_board_return() -> void:
 	elif board_2d.animation_enabled:
 		board_2d.modulate.a = 0.4
 		_return_tween.tween_property(board_2d, "modulate:a", 1.0, 0.35)
+
+func _main_menu() -> void:
+	if game.engine.history.is_empty() or not game.engine.result.is_empty():
+		get_tree().change_scene_to_file("res://ui/application.tscn")
+		return
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Leave local match?"
+	dialog.dialog_text = "This local match is not saved. Return to the main menu?"
+	dialog.ok_button_text = "Main menu"
+	dialog.confirmed.connect(func(): get_tree().change_scene_to_file("res://ui/application.tscn"))
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _show_game_result(expected_match: String, expected_result: String) -> void:
+	if game.match_id != expected_match or game.engine.result != expected_result:
+		return
+	AppResults.show_dialog(self, {"result": expected_result, "reason": game.engine.reason, "mode": "battle" if game is BattleChessMatch else "classic", "plies": game.engine.history.size()}, func(): pass, func(): get_tree().change_scene_to_file("res://ui/application.tscn"))
