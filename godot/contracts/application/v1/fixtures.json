@@ -1,0 +1,31 @@
+{
+  "valid": [
+    {
+      "type": "AccountHello",
+      "payload": {
+        "schemaVersion": 1,
+        "protocol": "peepeechess-enet-v1",
+        "ticket": "abababababababababababababababababababababababababababababababab"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "type": "AccountHello",
+      "payload": {
+        "schemaVersion": 1,
+        "protocol": "peepeechess-enet-v1",
+        "ticket": "bad"
+      }
+    },
+    {
+      "type": "AccountHello",
+      "payload": {
+        "schemaVersion": 1,
+        "protocol": "peepeechess-enet-v1",
+        "ticket": "abababababababababababababababababababababababababababababababab",
+        "playerId": "forged"
+      }
+    }
+  ]
+}
