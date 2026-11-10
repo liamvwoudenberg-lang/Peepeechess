@@ -6,18 +6,50 @@ status check. No existing tracked source was removed. Branch protections and
 required checks must be configured on GitHub by a repository administrator;
 version-controlled guidance does not configure those settings automatically.
 
+## GitHub is the shared source of truth
+
+Codex and Claude Code fetch the newest published versions before every task and
+publish their own changes when finishing. A local directory can lag behind the
+other agent's remote branch. Check remote branches and PRs before declaring a
+handoff missing; record the exact published commit being consumed.
+
+Some environments initially fetch only `main`. Ensure all branches are fetched:
+
+```sh
+git status --short --branch
+git worktree list
+git config --get-all remote.origin.fetch
+# If this clone is restricted to one branch, widen its fetch configuration:
+git config --replace-all remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+git fetch origin --prune
+git branch -r
+git log -1 --oneline origin/develop
+```
+
+Use the newest integrated `origin/develop` as the baseline for a new feature.
+Also inspect the latest relevant agent branches/PRs: unmerged handoffs must be
+reviewed and integrated into an isolated feature branch before use. Do not pick
+a baseline solely because its commit has the newest timestamp.
+
+For an existing feature, compare its local and remote histories before merging
+updates. Preserve local changes first; fast-forward when possible, otherwise
+review and merge divergent history without forcing or discarding either side.
+Fetch again before final integration/handoff to check for concurrent updates.
+These steps never grant permission to edit another agent's active files.
+
 ## Start a task
 
 ```sh
 git status --short --branch
 git worktree list
-git fetch origin
+git fetch origin --prune
 # On a shared machine, only one person creates/reuses each worktree.
 git worktree add -b codex/native-chess ../peepeechess-codex origin/develop
 git worktree add -b claude/native-combat ../peepeechess-claude origin/develop
 ```
 
-For local-only setup use `develop` instead of `origin/develop`. Never check out
+Use local `develop` only after verifying it matches freshly fetched
+`origin/develop`; if GitHub cannot be reached, state that limitation. Never check out
 the same branch in two worktrees. Each worktree installs its own dependencies
 with `npm ci`. Do not share mutable node_modules or Godot .godot directories.
 Before starting, announce the exact owned paths in the shared task/PR and name
@@ -44,6 +76,14 @@ git push -u origin HEAD
 # Open a PR targeting develop; include baseline SHA, owner, changed paths,
 # contract version, tests actually run, and migration limitations.
 ```
+
+Finishing a task includes pushing its commits and creating/updating the PR so
+both agents can consume the same version. Verify the pushed branch with
+`git ls-remote origin refs/heads/<feature-branch>` and compare the full commit
+SHA. Include the baseline, latest consumed handoff commits, test results and any
+unfinished work in the PR/final handoff. Keep incomplete work in a clearly
+identified draft PR. If a push fails, report the local commit and failure;
+do not claim GitHub is updated. Read-only/status checks need no empty commit.
 
 Codex reviews the diff, contract fixtures, chess safety and resource references.
 Resolve overlapping changes with the owner; do not choose an entire side of a
