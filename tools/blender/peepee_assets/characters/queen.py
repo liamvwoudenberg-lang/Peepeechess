@@ -17,7 +17,9 @@ from ..modeling import MeshBuilder, attach_to_bone
 
 NAME = "queen"
 PROPORTIONS = dict(scale=1.0, shoulder_width=0.9, hip_width=0.95)
-STYLE = {"weapon_r": "saber", "weapon_l": "saber", "grip": "blade_forward", "stance": "duelist", "two_handed": False}
+# Schema: animation/library.py. Both sabres extend forward (-Y) from the fists at rest.
+STYLE = dict(grip="dual", weapon_axis=(0.0, -1.0, 0.0), weapon2_axis=(0.0, -1.0, 0.0),
+             stance=0.19, arm_clear=0.3, swagger=1.2, power=1.0)
 
 S = PROPORTIONS["scale"]
 SW = PROPORTIONS["shoulder_width"]
