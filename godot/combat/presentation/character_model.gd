@@ -167,7 +167,8 @@ func _drive(alpha: float) -> void:
 		S.ATTACKING:
 			if sm.attack != null:
 				total = sm.attack_total
-				clip = "heavy" if sm.attack.kind == AttackDefinition.Kind.HEAVY else "light_%d" % (clampi(sm.combo_index, 0, 2) + 1)
+				# Links 4 and 5 (Queen's Royal Fury chain) reuse the light_1 / light_2 clips.
+				clip = "heavy" if sm.attack.kind == AttackDefinition.Kind.HEAVY else "light_%d" % (maxi(sm.combo_index, 0) % 3 + 1)
 		S.ABILITY_CASTING:
 			clip = "ability"
 			total = sm.attack_total if sm.attack != null else sm.cast_total

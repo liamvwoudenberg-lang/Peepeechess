@@ -96,7 +96,7 @@ static func _admission(h, tree: SceneTree) -> void:
 
 
 static func _start_validation(h, tree: SceneTree) -> void:
-	h.begin("start: request validation and unsupported fighters")
+	h.begin("start: request validation and unsupported abilities")
 	var sim := CombatSimulation.new()
 	tree.root.add_child(sim)
 	var bad := FighterRoster.build_request("p", "n")
@@ -112,17 +112,12 @@ static func _start_validation(h, tree: SceneTree) -> void:
 	same_seat["defender"]["playerId"] = same_seat["attacker"]["playerId"]
 	h.eq(sim.start(same_seat)["code"], "INVALID_PAYLOAD", "attacker and defender must be different players")
 
-	var queen := FighterRoster.build_request("p", "n")
-	queen["defender"]["role"] = "q"
-	queen["defender"]["characterId"] = "skeletons.q"
-	queen["defender"]["stats"] = {
-		"schemaVersion": 1, "statsId": "balance-v1.q", "role": "q", "maxHp": 135, "maxStamina": 115, "baseDamage": 24,
-		"moveSpeedMps": 3.66, "reachM": 1.65, "lightTicks": 28, "heavyTicks": 58, "parryTicks": 10,
-		"abilityId": "royal-fury", "cooldownTicks": 840,
-	}
-	var refused: Dictionary = sim.start(queen)
-	h.eq(refused["code"], "INVALID_PAYLOAD", "a schema-valid queen is refused (not implemented), not silently weakened")
-	h.check("not implemented" in String(refused["message"]), "the reason says the role is not implemented")
+	# The queen IS implemented now (see test_roles.gd); an ability the module does not have is not.
+	var unknown_ability := FighterRoster.build_request("p", "q")
+	unknown_ability["defender"]["stats"]["abilityId"] = "royal-counter"
+	var refused: Dictionary = sim.start(unknown_ability)
+	h.eq(refused["code"], "INVALID_PAYLOAD", "a schema-valid fighter with an unimplemented ability is refused, not silently weakened")
+	h.check("not implemented" in String(refused["message"]), "the reason says it is not implemented")
 	h.check(not sim.is_running() and sim.fighters.is_empty(), "no half-built battle is left behind")
 
 	var mismatch := FighterRoster.build_request("p", "n")

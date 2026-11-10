@@ -18,6 +18,9 @@ var color: String = "w"
 var role: String = "p"
 var stats: Dictionary = {}
 var profile: Dictionary = {}
+## Unmodified role tuning; `profile` is this plus any active buff (Fortress Guard) applied each tick.
+var base_profile: Dictionary = {}
+var _poise_scale: float = 1.0
 
 var health := HealthComponent.new()
 var stamina := StaminaComponent.new()
@@ -51,7 +54,7 @@ func setup(combatant: Dictionary, spawn_position: Vector3, spawn_yaw: float) -> 
 	role = combatant["role"]
 	stats = combatant["stats"]
 	profile = FighterProfile.for_role(role)
-	if profile.is_empty() or not AttackLibrary.supports_role(role):
+	if profile.is_empty() or not AttackLibrary.supports_role(role) or not FighterProfile.supports_role(role):
 		return "role '%s' is not implemented in the combat module" % role
 
 	health.setup(float(stats["maxHp"]))
@@ -61,6 +64,7 @@ func setup(combatant: Dictionary, spawn_position: Vector3, spawn_yaw: float) -> 
 		return "ability '%s' is not implemented" % String(stats["abilityId"])
 	if String(ability.definition["role"]) != role:
 		return "ability '%s' does not belong to role '%s'" % [ability.ability_id, role]
+	base_profile = profile.duplicate()
 	poise = float(profile["poise"])
 	sm.bind(self)
 
@@ -119,6 +123,28 @@ func compute_damage(def: AttackDefinition) -> int:
 	return maxi(1, roundi(damage))
 
 
+## Current light-chain length (3, or longer while Royal Fury is active).
+func combo_limit() -> int:
+	return ability.combo_length()
+
+
+## Applies buff-driven changes to the role tuning before this tick's decisions and hit resolution.
+## Fortress Guard: blocking costs nothing and can never exhaust the guard, and the poise pool is
+## scaled (the current pool scales with it, so the buff is felt immediately and fades cleanly).
+func _apply_buff_modifiers() -> void:
+	profile["block_cost_mult"] = float(base_profile["block_cost_mult"]) * ability.guard_cost_mult()
+	var scale := ability.poise_mult()
+	if not is_equal_approx(scale, _poise_scale):
+		poise = poise * scale / _poise_scale
+		_poise_scale = scale
+	profile["poise"] = float(base_profile["poise"]) * scale
+	poise = minf(poise, float(profile["poise"]))
+	if ability.guard_unbreakable():
+		# Never exhausted while the buff lasts, so the guard cannot collapse for lack of stamina.
+		stamina.exhausted = false
+		stamina.current = maxf(stamina.current, 0.5)
+
+
 func queue_event(type: String) -> void:
 	_pending_events.append(type)
 
@@ -142,6 +168,7 @@ func think(intent: FighterIntent) -> void:
 	prev_position = global_position
 	prev_yaw = yaw
 	stamina.regen_multiplier = ability.regen_mult()
+	_apply_buff_modifiers()
 	sm.tick(intent)
 
 

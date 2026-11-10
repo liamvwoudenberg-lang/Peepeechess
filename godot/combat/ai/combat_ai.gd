@@ -29,6 +29,9 @@ var _follow_ups_left := 0
 var _strafe_dir := 1.0
 var _strafe_ticks := 0
 var _opp_lunge := false
+var _my_cooldown := 0
+var _blink_evade := false
+var _under_pressure := 0
 
 
 func _init(input_builder: CombatInputBuilder, my_stats: Dictionary, opponent_stats: Dictionary,
@@ -61,7 +64,11 @@ func think(snapshot: Dictionary) -> Dictionary:
 	var move := Vector3.ZERO
 	var sprint := false
 	var block := false
+	var force_sidestep := false
 	var my_state: String = me["state"]
+	_my_cooldown = int(me["cooldownTicks"])
+	if _under_pressure > 0:
+		_under_pressure -= 1
 	var free := my_state == "Idle" or my_state == "Moving" or my_state == "Blocking"
 
 	# ---- read the opponent's attack and schedule a defence ---------------------------------
@@ -84,6 +91,9 @@ func think(snapshot: Dictionary) -> Dictionary:
 		_scheduled_in -= 1
 		if _scheduled_in == 0 and _scheduled_action != "":
 			builder.press(_scheduled_action)
+			if _scheduled_action == "ability" and _blink_evade:
+				force_sidestep = true  # Blink goes where the move vector points: sidestep the blow
+				_blink_evade = false
 			_scheduled_action = ""
 	if _block_ticks > 0:
 		_block_ticks -= 1
@@ -128,6 +138,8 @@ func think(snapshot: Dictionary) -> Dictionary:
 				_attack_cooldown = int(_my_stats["lightTicks"]) + rng.randi_range(14, 45)
 		_maybe_use_ability(me, dist)
 
+	if force_sidestep:
+		move = side * _strafe_dir
 	return builder.build(move.x, move.z, yaw_to, true, sprint, block)
 
 
@@ -145,9 +157,14 @@ func _choose_defence(opp: Dictionary, dist: float) -> void:
 		_scheduled_in = maxi(1, remaining - int(_my_stats["parryTicks"]) / 2)
 	elif roll < parry_chance + 0.35:
 		_block_ticks = rng.randi_range(26, 44)
+	elif String(_my_stats["abilityId"]) == "blink" and _my_cooldown == 0 and rng.randf() < 0.7:
+		_scheduled_action = "ability"  # vanish through the blow (i-frames cover the first 10 ticks)
+		_scheduled_in = maxi(1, remaining - 4)
+		_blink_evade = true
 	else:
 		_scheduled_action = "dodge"
 		_scheduled_in = maxi(1, remaining - 6)
+	_under_pressure = 180
 	_follow_up_in = -1
 	_follow_ups_left = 0
 
@@ -161,6 +178,18 @@ func _maybe_use_ability(me: Dictionary, dist: float) -> void:
 				builder.press("ability")
 		"lunging-strike":
 			if dist > 2.6 and dist < 4.0 and rng.randf() < 0.04:
+				builder.press("ability")
+		"blink":
+			# Close a gap, or disengage when hurt and crowded.
+			if dist > 4.2 and rng.randf() < 0.03:
+				builder.press("ability")
+			elif dist < 1.6 and float(me["hp"]) < float(_my_stats["maxHp"]) * 0.5 and rng.randf() < 0.05:
+				builder.press("ability")
+		"fortress-guard":
+			if _under_pressure > 0 and dist < 3.2 and rng.randf() < 0.08:
+				builder.press("ability")
+		"royal-fury":
+			if dist <= float(_my_stats["reachM"]) + 0.8 and rng.randf() < 0.06:
 				builder.press("ability")
 
 

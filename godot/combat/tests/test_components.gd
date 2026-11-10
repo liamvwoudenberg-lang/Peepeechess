@@ -130,7 +130,7 @@ static func _ability(h) -> void:
 	var stamina := StaminaComponent.new()
 	stamina.setup(120.0, 0.45, 36)
 	var ability := AbilityComponent.new()
-	h.check(not ability.setup("royal-fury", 840), "unimplemented ability ids are refused")
+	h.check(not ability.setup("royal-counter", 600), "unimplemented ability ids (the King's royal-counter) are refused")
 	h.check(ability.setup("last-stand", 900), "last-stand is implemented")
 	var verdict: Dictionary = ability.check(health, stamina)
 	h.eq(verdict["reason"], "condition", "Last Stand needs HP at or below 35%")

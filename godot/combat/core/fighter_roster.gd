@@ -7,10 +7,35 @@ extends RefCounted
 ## that request and never from this file. statsIds here are "combat-proto-v1.*" on purpose, so
 ## they cannot be mistaken for the authority-approved "balance-v1.*" registry.
 ##
+## Pawn and Knight keep the original prototype numbers (statsId combat-proto-v1.*). Bishop, Rook and
+## Queen load the approved snapshot res://chess/battle_stats.json (statsId c0-balance-v1.*, owned by
+## Codex, read only here) so tests exercise the numbers the real Battle flow will send.
+##
 ## Values convert the legacy src/battle/config.ts per CONTRACTS.md:
 ##   walk speed = 1.05 + speed * 0.29 m/s;   ticks = ceil(seconds * 60), min one tick.
 
 const MATCH_ID := "local-match"
+const C0_STATS_PATH := "res://chess/battle_stats.json"
+const ABILITY_NAMES := {"p": "Last Stand", "n": "Lunging Strike", "b": "Blink", "r": "Fortress Guard", "q": "Royal Fury"}
+const ROLES := ["p", "n", "b", "r", "q"]
+
+static var _c0_cache: Dictionary = {}
+
+
+static func ability_name(role: String) -> String:
+	return String(ABILITY_NAMES.get(role, "Ability"))
+
+
+## FighterStats for `role` from the approved C0 snapshot, with whole numbers as ints (JSON gives floats).
+static func _c0_stats(role: String) -> Dictionary:
+	if _c0_cache.is_empty():
+		_c0_cache = JSON.parse_string(FileAccess.get_file_as_string(C0_STATS_PATH))
+	var src: Dictionary = _c0_cache.get(role, {})
+	var out := src.duplicate()
+	for key in ["schemaVersion", "maxHp", "maxStamina", "baseDamage", "lightTicks", "heavyTicks", "parryTicks", "cooldownTicks"]:
+		if out.has(key):
+			out[key] = int(out[key])
+	return out
 
 ## role -> FighterStats (contract shape)
 static func stats_for(role: String) -> Dictionary:
@@ -27,6 +52,8 @@ static func stats_for(role: String) -> Dictionary:
 				"maxHp": 125, "maxStamina": 110, "baseDamage": 22, "moveSpeedMps": 3.08, "reachM": 1.65,
 				"lightTicks": 32, "heavyTicks": 63, "parryTicks": 13, "abilityId": "lunging-strike", "cooldownTicks": 540,
 			}
+		"b", "r", "q":
+			return _c0_stats(role)
 	return {}
 
 
@@ -34,9 +61,17 @@ static func display_name(role: String) -> String:
 	return String(FighterProfile.for_role(role).get("display", role))
 
 
-const _PIECE_IDS := {"w-p": "w-p-d2", "b-p": "b-p-e7", "w-n": "w-n-b1", "b-n": "b-n-g8"}
-## attacker origin squares chosen so the capture on e5/e4 is geometrically a real chess capture
-const _FROM := {"w-p": "d4", "w-n": "d3", "b-p": "d5", "b-n": "d6"}
+const _PIECE_IDS := {
+	"w-p": "w-p-d2", "b-p": "b-p-e7", "w-n": "w-n-b1", "b-n": "b-n-g8",
+	"w-b": "w-b-c1", "b-b": "b-b-f8", "w-r": "w-r-a1", "b-r": "b-r-h8", "w-q": "w-q-d1", "b-q": "b-q-d8",
+}
+## attacker origin squares chosen so the capture on e5/e4 is geometrically a real chess capture:
+## pawn diagonal step, knight L, bishop diagonal (c3->e5, c6->e4), rook along the e-file (e1->e5, e8->e4),
+## queen along a diagonal (b2->e5, b7->e4). All paths are empty in the generated position.
+const _FROM := {
+	"w-p": "d4", "w-n": "d3", "b-p": "d5", "b-n": "d6",
+	"w-b": "c3", "b-b": "c6", "w-r": "e1", "b-r": "e8", "w-q": "b2", "b-q": "b7",
+}
 
 
 static func faction_for(color: String) -> String:

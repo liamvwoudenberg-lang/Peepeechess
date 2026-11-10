@@ -15,6 +15,25 @@ const DEFINITIONS := {
 	"lunging-strike": {
 		"kind": "attack", "stamina_cost": 28.0, "role": "n",
 	},
+	# Bishop: directional teleport. The body vanishes (invulnerable) for `iframe_ticks`, reappears
+	# `blink_tick` ticks after the cast started up to `blink_distance` metres away (stopped by walls,
+	# pillars and the opponent), then recovers for the rest of `cast_ticks`.
+	"blink": {
+		"kind": "blink", "cast_ticks": 20, "stamina_cost": 20.0, "blink_distance": 4.0, "blink_tick": 3,
+		"iframe_ticks": 10, "role": "b",
+	},
+	# Rook: 4 s of stronger guard (blocking costs no stamina and cannot be guard-broken), 3x poise,
+	# slower movement. Casting is armoured and costs a little stamina.
+	"fortress-guard": {
+		"kind": "buff", "cast_ticks": 18, "stamina_cost": 10.0, "buff_ticks": 240,
+		"move_mult": 0.7, "guard_cost_mult": 0.0, "guard_unbreakable": true, "poise_mult": 3.0, "role": "r",
+	},
+	# Queen: 6 s of quicker attacks, stronger hits, faster stamina regeneration and a chain of FIVE light
+	# links instead of three (links 4 and 5 are only reachable while the buff is active).
+	"royal-fury": {
+		"kind": "buff", "cast_ticks": 14, "stamina_cost": 15.0, "buff_ticks": 360,
+		"move_mult": 1.1, "attack_speed_mult": 1.35, "damage_mult": 1.1, "regen_mult": 1.5, "combo_length": 5, "role": "q",
+	},
 }
 
 var ability_id: String = ""
@@ -82,16 +101,37 @@ func buff_active() -> bool:
 
 
 func move_mult() -> float:
-	return float(definition["move_mult"]) if buff_active() else 1.0
+	return float(definition.get("move_mult", 1.0)) if buff_active() else 1.0
 
 
 func attack_speed_mult() -> float:
-	return float(definition["attack_speed_mult"]) if buff_active() else 1.0
+	return float(definition.get("attack_speed_mult", 1.0)) if buff_active() else 1.0
 
 
 func damage_mult() -> float:
-	return float(definition["damage_mult"]) if buff_active() else 1.0
+	return float(definition.get("damage_mult", 1.0)) if buff_active() else 1.0
 
 
 func regen_mult() -> float:
-	return float(definition["regen_mult"]) if buff_active() else 1.0
+	return float(definition.get("regen_mult", 1.0)) if buff_active() else 1.0
+
+
+## Length of the light chain: CombatConstants.COMBO_LENGTH, longer while a buff extends it (Royal Fury).
+func combo_length() -> int:
+	if buff_active():
+		return int(definition.get("combo_length", CombatConstants.COMBO_LENGTH))
+	return CombatConstants.COMBO_LENGTH
+
+
+## Multiplier on the stamina a blocked hit costs (Fortress Guard: 0).
+func guard_cost_mult() -> float:
+	return float(definition.get("guard_cost_mult", 1.0)) if buff_active() else 1.0
+
+
+func guard_unbreakable() -> bool:
+	return buff_active() and bool(definition.get("guard_unbreakable", false))
+
+
+## Multiplier on the maximum poise pool (Fortress Guard: 3x).
+func poise_mult() -> float:
+	return float(definition.get("poise_mult", 1.0)) if buff_active() else 1.0
