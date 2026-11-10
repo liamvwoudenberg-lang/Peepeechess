@@ -6,8 +6,8 @@ board state, capture requests, the combat simulation, costs/damage/results and
 termination. This implementation was tested on Linux. **Physical
 Windows-to-Android crossplay and exported binaries have not been verified.**
 
-The integration includes Claude combat `c2110ea` (including five-role mechanics
-`0c522d4`) and Battle board integration `67101fe`, based on develop `b4c6dab`.
+The integration includes Claude handoff `6cc2ea7` (including combat net host
+`c2110ea` and five-role mechanics `0c522d4`) and Battle board integration `67101fe`, based on develop `b4c6dab`.
 C0 supports Pawn, Knight, Bishop, Rook and Queen battles. King duels belong to the
 separate, unimplemented v2 gauntlet. Classic keeps standard chess rules.
 

@@ -24,7 +24,6 @@ var sim: CombatSimulation
 var combat_host: RefCounted
 var receipts: Array = []
 var _world: SubViewport
-var _resume: Dictionary = {}
 var _aftermath_end = 0
 var _retired_battle_id = ""
 var _now = 0
@@ -156,7 +155,6 @@ func _start_combat() -> void:
 	sim = Sim.new()
 	_world.add_child(sim)
 	game.bind_combat_authority(sim)
-	_resume.clear()
 	combat_host = CombatHost.new(sim)
 	combat_host.snapshot_ready.connect(_combat_snapshot)
 	combat_host.seat_abandoned.connect(func(player): finish("0-1" if color_of(player) == "w" else "1-0", "Combat input timeout", _now))
@@ -185,10 +183,7 @@ func input(payload: Dictionary, player_id: String) -> Dictionary:
 		return {"ok": true, "ignored": true}
 	if status != "active" or sim == null or combat_host == null:
 		return error("FORBIDDEN", "No active battle for this authenticated seat.")
-	var response = combat_host.receive_input(player_id, payload)
-	if response.ok:
-		_resume[player_id] = payload.duplicate(true)
-	return response
+	return combat_host.receive_input(player_id, payload)
 
 func step(now: int) -> void:
 	_now = now
@@ -262,16 +257,12 @@ func _stop_combat() -> void:
 		sim.queue_free()
 		sim = null
 	combat_host = null
-	_resume.clear()
 
 func frame(player_id: String) -> Dictionary:
 	frame_sequence += 1
 	var resume: Variant = null
-	if sim != null:
-		var accepted: Dictionary = _resume.get(player_id, {})
-		resume = {"battleId": sim.request.battleId, "sequence": accepted.get("sequence", 0), "clientTick": accepted.get("clientTick", 0)}
-		for action in ["light", "heavy", "dodge", "parry", "ability"]:
-			resume[action] = accepted.get(action, 0)
+	if combat_host != null:
+		resume = combat_host.input_resume(player_id)
 	return {"schemaVersion": 1, "frameSequence": frame_sequence, "status": status, "state": game.match_state(), "clocks": game.clock_state(), "connected": connected.duplicate(), "ready": readiness.duplicate(), "drawOffer": draw_offer, "inputResume": resume}
 
 func error(code: String, message: String) -> Dictionary:

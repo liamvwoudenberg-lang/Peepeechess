@@ -117,7 +117,7 @@ func _build_ui() -> void:
 	ca_path.custom_minimum_size = Vector2(230, 42)
 	connection_row.add_child(ca_path)
 	_button(connection_row, "Connect / resume", func(): client.connect_server(hostname.text.strip_edges(), int(port.value), ca_path.text.strip_edges()))
-	_button(connection_row, "Local game", func(): client.disconnect_server(); get_tree().change_scene_to_file("res://app/main.tscn"))
+	_button(connection_row, "Local game", _return_local)
 	var lobby = HFlowContainer.new()
 	column.add_child(lobby)
 	_button(lobby, "Create Classic · 10 min", func(): client.create_match("classic", 600000))
@@ -148,7 +148,7 @@ func _build_ui() -> void:
 	touch_toggle.button_pressed = DisplayServer.is_touchscreen_available()
 	touch_toggle.toggled.connect(func(on): _set_touch(on))
 	actions.add_child(touch_toggle)
-	_button(actions, "Capture mouse", func(): if combat_view.arena != null: Input.mouse_mode = Input.MOUSE_MODE_CAPTURED)
+	_button(actions, "Capture mouse", _capture_mouse)
 	info = _label(column, "Connect securely to a dedicated server. Invite a second player, then both choose Ready.")
 	notices = _label(column, "DTLS verifies server certificates. Esc releases the combat mouse. Models for other roles do not imply implemented combat.")
 	var split = HBoxContainer.new()
@@ -231,6 +231,7 @@ func _frame(value: Dictionary) -> void:
 	board_3d.set_process_input(not in_combat)
 	interaction.enabled = not in_combat and client.authenticated
 	combat_container.visible = in_combat
+	set_view(_view_3d)
 	combat_host.render_target_update_mode = SubViewport.UPDATE_ALWAYS if in_combat else SubViewport.UPDATE_DISABLED
 	combat_view.sync(value)
 	_set_touch(touch_toggle.button_pressed)
@@ -311,10 +312,21 @@ func _resign() -> void:
 
 func set_view(use_3d: bool) -> void:
 	_view_3d = use_3d
-	board_2d.visible = not use_3d
-	board_3d.visible = use_3d
-	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if use_3d else SubViewport.UPDATE_DISABLED
+	var board_visible = client.frame.is_empty() or client.frame.state.phase not in ["combat", "aftermath"]
+	board_2d.visible = board_visible and not use_3d
+	board_3d.visible = board_visible and use_3d
+	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if board_3d.visible else SubViewport.UPDATE_DISABLED
 	view_button.text = "2D board" if use_3d else "3D board"
+
+func _capture_mouse() -> void:
+	if combat_view.arena != null:
+		get_viewport().gui_release_focus()
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _return_local() -> void:
+	notices.text = "Disconnecting…"
+	await client.disconnect_gracefully()
+	get_tree().change_scene_to_file("res://app/main.tscn")
 
 func set_flipped(flipped: bool) -> void:
 	_flipped = flipped

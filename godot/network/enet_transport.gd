@@ -91,15 +91,23 @@ func poll() -> void:
 	host.flush()
 
 func send(peer_id: int, bytes: PackedByteArray, reliable: bool = true) -> Error:
-	if not peers.has(peer_id) or bytes.is_empty():
+	if not peers.has(peer_id) or bytes.is_empty() or peers[peer_id].get_state() != ENetPacketPeer.STATE_CONNECTED:
 		return ERR_UNAVAILABLE
 	return peers[peer_id].send(0 if reliable else 1, bytes, ENetPacketPeer.FLAG_RELIABLE if reliable else ENetPacketPeer.FLAG_UNRELIABLE_FRAGMENT)
 
 func drop(peer_id: int) -> void:
 	if peers.has(peer_id):
-		peers[peer_id].peer_disconnect_now()
+		# A failed DTLS peer cannot carry an ENet disconnect datagram. Reset its
+		# queues locally; the remote heartbeat/timeout performs its own recovery.
+		peers[peer_id].reset()
 		peers.erase(peer_id)
 		disconnected.emit(peer_id)
+
+func disconnect_gracefully(peer_id: int) -> void:
+	if peers.has(peer_id):
+		peers[peer_id].peer_disconnect_later()
+		if host != null:
+			host.flush()
 
 func close() -> void:
 	peers.clear()

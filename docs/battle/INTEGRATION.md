@@ -1,11 +1,11 @@
 # Battle Chess C0 integration
 
-Base: integrated develop commit `b4c6dab` (including Classic `8b13047`). Feature branch:
-`codex/battle-loop`. Classic remains the default and retains its 2D/3D game.
+Base: integrated develop commit `b4c6dab` (including Classic `8b13047`). The capture layer originated on
+`codex/battle-loop`; its latest integration is `codex/native-multiplayer`. Classic remains the default and retains its 2D/3D game.
 
 ## Current dependency status
 
-Claude's published `ccr-a4637d6e-lypbb4` through `c2110ea` is consumed by
+Claude's published `ccr-a4637d6e-lypbb4` through `6cc2ea7` is consumed by
 `codex/native-multiplayer`, including the five-role mechanics in `0c522d4` and
 new transport-agnostic combat host. The C0 roster now supports Pawn, Knight,
 Bishop, Rook and Queen. Generated models/clips and the arena are mounted in

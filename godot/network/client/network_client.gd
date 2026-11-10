@@ -31,7 +31,7 @@ var insecure_local = false
 var auto_reconnect = true
 var _wanted = false
 var _retry_at = 0
-var _retry_delay = 1000
+var _retry_delay = 250
 var _retry_until = 0
 var _started = 0
 var _last_receive = 0
@@ -83,7 +83,7 @@ func _lost() -> void:
 	connection_changed.emit(false)
 	if _wanted and auto_reconnect:
 		_retry_at = Time.get_ticks_msec() + _retry_delay
-		_retry_delay = mini(4000, _retry_delay * 2)
+		_retry_delay = mini(1000, _retry_delay * 2)
 
 func disconnect_server(forget: bool = false) -> void:
 	_wanted = false
@@ -103,6 +103,22 @@ func disconnect_server(forget: bool = false) -> void:
 		pending.clear()
 		_last_frame_sequence = 0
 		_latest_clock.clear()
+
+func reconnect_session() -> void:
+	if authenticated:
+		transport.disconnect_gracefully(transport.server_peer)
+
+func disconnect_gracefully() -> void:
+	_wanted = false
+	_retry_at = 0
+	authenticated = false
+	connection_changed.emit(false)
+	var id = transport.server_peer
+	transport.disconnect_gracefully(id)
+	var deadline = Time.get_ticks_msec() + 2000
+	while transport.host != null and transport.peers.has(id) and Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+	transport.close()
 
 func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 	if id != transport.server_peer:
@@ -126,7 +142,7 @@ func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 		server_id = payload.serverId
 		combat_roles = payload.combatRoles.duplicate()
 		authenticated = true
-		_retry_delay = 1000
+		_retry_delay = 250
 		_retry_at = 0
 		_last_frame_sequence = 0
 		connection_changed.emit(true)

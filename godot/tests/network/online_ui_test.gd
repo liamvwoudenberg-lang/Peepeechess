@@ -83,6 +83,7 @@ func run() -> void:
 		expect(arena.sim.server_tick == before, "client arena physics never advances authority")
 		expect(arena.cameras.size() == 1 and arena.cameras[0].target.player_id == app.client.player_id, "each client independently views its own fighter")
 		expect(not app.board_2d.is_processing_input() and not app.board_3d.is_processing_input(), "board handlers yield input during network combat")
+		expect(not app.board_2d.visible and not app.board_3d.visible, "hidden board GUI cannot consume combat mouse input")
 	white.touch_toggle.button_pressed = true
 	white._set_touch(true)
 	expect(not white.combat_view.source.enabled and white.touch_controls.enabled, "touch adapter replaces keyboard packet production")

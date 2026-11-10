@@ -31,6 +31,7 @@ func _process(_delta: float) -> bool:
 
 func _authenticated(_welcome: Dictionary) -> void:
 	if expect_valid:
+		await client.disconnect_gracefully()
 		print("PASS: trusted server remains available after rejected handshake")
 		quit(0)
 	else:
