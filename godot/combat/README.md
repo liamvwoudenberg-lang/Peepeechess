@@ -109,8 +109,8 @@ abilities, endings, adapter, AI soak (incl. determinism). Every check goes throu
   play it with a real keyboard/mouse/gamepad, so input feel, camera comfort and balance are unvalidated. The AI soak is not a balance claim
   (the Knight beat the Pawn in all mixed AI matches; Pawn is untuned).
 * No audio, no networking, no Android/Windows export or device testing, no replay/rollback.
-* Placeholder fighters are primitive shapes; see `godot/assets/combat/` for the model pipeline status.
+* Fighters use the Blender-generated models when their GLBs exist (`godot/assets/combat/`, pipeline in `tools/blender/`), otherwise primitive placeholders. The art is stylized low-poly; animation was reviewed as still frames, not in motion, on software GL only.
 * Fighter-vs-fighter contact is analytic (not engine physics) on purpose; line-of-sight is not modelled for hits (pillars do not block).
 * Engine-collision world geometry needs one physics frame to register before the first tick.
-* Bishop, Rook, Queen, King have no stats/abilities in the simulation yet.
+* Bishop, Rook, Queen, King have models and clips (see `tools/blender/README.md`) but no stats/abilities in the simulation yet, so they cannot fight.
 * Snapshot-driven presentation (`apply_snapshot`) is basic (eases position; infers animation) and untested against a live server.
