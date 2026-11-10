@@ -1,0 +1,437 @@
+{
+  "bit_depth": 16,
+  "channels": 1,
+  "generator": "tools/audio/generate_sfx.py",
+  "licence": "Generated procedurally by this repository's script; no third-party audio.",
+  "sample_rate": 44100,
+  "sounds": {
+    "ability_blink": {
+      "category": "ability",
+      "crest_db": 11.33,
+      "duration_s": 0.35,
+      "files": [
+        "ability_blink.wav"
+      ],
+      "loop": false,
+      "peak_db": -4.0,
+      "rms_db": -15.33,
+      "variants": 1
+    },
+    "ability_counter": {
+      "category": "ability",
+      "crest_db": 11.9,
+      "duration_s": 0.65,
+      "files": [
+        "ability_counter.wav"
+      ],
+      "loop": false,
+      "peak_db": -5.05,
+      "rms_db": -16.95,
+      "variants": 1
+    },
+    "ability_fortress": {
+      "category": "ability",
+      "crest_db": 12.0,
+      "duration_s": 0.6,
+      "files": [
+        "ability_fortress.wav"
+      ],
+      "loop": false,
+      "peak_db": -4.0,
+      "rms_db": -16.0,
+      "variants": 1
+    },
+    "ability_fury": {
+      "category": "ability",
+      "crest_db": 12.03,
+      "duration_s": 0.6,
+      "files": [
+        "ability_fury.wav"
+      ],
+      "loop": false,
+      "peak_db": -4.0,
+      "rms_db": -16.03,
+      "variants": 1
+    },
+    "ability_last_stand": {
+      "category": "ability",
+      "crest_db": 12.95,
+      "duration_s": 0.65,
+      "files": [
+        "ability_last_stand.wav"
+      ],
+      "loop": false,
+      "peak_db": -4.0,
+      "rms_db": -16.95,
+      "variants": 1
+    },
+    "ability_lunge": {
+      "category": "ability",
+      "crest_db": 16.19,
+      "duration_s": 0.6,
+      "files": [
+        "ability_lunge.wav"
+      ],
+      "loop": false,
+      "peak_db": -4.0,
+      "rms_db": -20.19,
+      "variants": 1
+    },
+    "block": {
+      "category": "defence",
+      "crest_db": 16.66,
+      "duration_s": 0.28,
+      "files": [
+        "block_1.wav",
+        "block_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.0,
+      "rms_db": -19.83,
+      "variants": 2
+    },
+    "countdown_tick": {
+      "category": "cue",
+      "crest_db": 10.99,
+      "duration_s": 0.08,
+      "files": [
+        "countdown_tick.wav"
+      ],
+      "loop": false,
+      "peak_db": -8.0,
+      "rms_db": -18.99,
+      "variants": 1
+    },
+    "defeat": {
+      "category": "result",
+      "crest_db": 10.8,
+      "duration_s": 0.7,
+      "files": [
+        "defeat.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.0,
+      "rms_db": -13.8,
+      "variants": 1
+    },
+    "dodge": {
+      "category": "movement",
+      "crest_db": 15.96,
+      "duration_s": 0.22,
+      "files": [
+        "dodge_1.wav",
+        "dodge_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -8.0,
+      "rms_db": -23.96,
+      "variants": 2
+    },
+    "fight_cue": {
+      "category": "cue",
+      "crest_db": 13.76,
+      "duration_s": 0.5,
+      "files": [
+        "fight_cue.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.0,
+      "rms_db": -16.76,
+      "variants": 1
+    },
+    "footstep_stone": {
+      "category": "movement",
+      "crest_db": 12.07,
+      "duration_s": 0.09,
+      "files": [
+        "footstep_stone_1.wav",
+        "footstep_stone_2.wav",
+        "footstep_stone_3.wav"
+      ],
+      "loop": false,
+      "peak_db": -17.0,
+      "rms_db": -29.07,
+      "variants": 3
+    },
+    "guard_break": {
+      "category": "defence",
+      "crest_db": 17.16,
+      "duration_s": 0.45,
+      "files": [
+        "guard_break.wav"
+      ],
+      "loop": false,
+      "peak_db": -2.5,
+      "rms_db": -19.66,
+      "variants": 1
+    },
+    "hit_flesh_heavy": {
+      "category": "hit",
+      "crest_db": 10.75,
+      "duration_s": 0.22,
+      "files": [
+        "hit_flesh_heavy_1.wav",
+        "hit_flesh_heavy_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -2.5,
+      "rms_db": -13.25,
+      "variants": 2
+    },
+    "hit_flesh_light": {
+      "category": "hit",
+      "crest_db": 11.19,
+      "duration_s": 0.14,
+      "files": [
+        "hit_flesh_light_1.wav",
+        "hit_flesh_light_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.0,
+      "rms_db": -14.19,
+      "variants": 2
+    },
+    "hit_leather_heavy": {
+      "category": "hit",
+      "crest_db": 14.55,
+      "duration_s": 0.22,
+      "files": [
+        "hit_leather_heavy_1.wav",
+        "hit_leather_heavy_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -2.5,
+      "rms_db": -17.05,
+      "variants": 2
+    },
+    "hit_leather_light": {
+      "category": "hit",
+      "crest_db": 14.45,
+      "duration_s": 0.14,
+      "files": [
+        "hit_leather_light_1.wav",
+        "hit_leather_light_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.0,
+      "rms_db": -17.48,
+      "variants": 2
+    },
+    "hit_plate_heavy": {
+      "category": "hit",
+      "crest_db": 10.86,
+      "duration_s": 0.22,
+      "files": [
+        "hit_plate_heavy_1.wav",
+        "hit_plate_heavy_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -2.5,
+      "rms_db": -13.36,
+      "variants": 2
+    },
+    "hit_plate_light": {
+      "category": "hit",
+      "crest_db": 12.31,
+      "duration_s": 0.14,
+      "files": [
+        "hit_plate_light_1.wav",
+        "hit_plate_light_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.0,
+      "rms_db": -15.31,
+      "variants": 2
+    },
+    "hit_steel_heavy": {
+      "category": "hit",
+      "crest_db": 15.12,
+      "duration_s": 0.22,
+      "files": [
+        "hit_steel_heavy_1.wav",
+        "hit_steel_heavy_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -2.5,
+      "rms_db": -18.25,
+      "variants": 2
+    },
+    "hit_steel_light": {
+      "category": "hit",
+      "crest_db": 15.42,
+      "duration_s": 0.14,
+      "files": [
+        "hit_steel_light_1.wav",
+        "hit_steel_light_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -3.8,
+      "rms_db": -19.69,
+      "variants": 2
+    },
+    "parry": {
+      "category": "defence",
+      "crest_db": 13.54,
+      "duration_s": 0.58,
+      "files": [
+        "parry_1.wav",
+        "parry_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -2.0,
+      "rms_db": -15.54,
+      "variants": 2
+    },
+    "stagger": {
+      "category": "reaction",
+      "crest_db": 12.14,
+      "duration_s": 0.15,
+      "files": [
+        "stagger_1.wav",
+        "stagger_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -18.14,
+      "variants": 2
+    },
+    "swing_dual": {
+      "category": "swing",
+      "crest_db": 13.68,
+      "duration_s": 0.1644,
+      "files": [
+        "swing_dual_1.wav",
+        "swing_dual_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -19.69,
+      "variants": 2
+    },
+    "swing_hammer": {
+      "category": "swing",
+      "crest_db": 9.82,
+      "duration_s": 0.4037,
+      "files": [
+        "swing_hammer_1.wav",
+        "swing_hammer_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -15.82,
+      "variants": 2
+    },
+    "swing_king": {
+      "category": "swing",
+      "crest_db": 12.54,
+      "duration_s": 0.3154,
+      "files": [
+        "swing_king_1.wav",
+        "swing_king_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -18.54,
+      "variants": 2
+    },
+    "swing_spear": {
+      "category": "swing",
+      "crest_db": 14.79,
+      "duration_s": 0.2277,
+      "files": [
+        "swing_spear_1.wav",
+        "swing_spear_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -20.79,
+      "variants": 2
+    },
+    "swing_staff": {
+      "category": "swing",
+      "crest_db": 12.68,
+      "duration_s": 0.3441,
+      "files": [
+        "swing_staff_1.wav",
+        "swing_staff_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -18.68,
+      "variants": 2
+    },
+    "swing_sword": {
+      "category": "swing",
+      "crest_db": 14.57,
+      "duration_s": 0.2922,
+      "files": [
+        "swing_sword_1.wav",
+        "swing_sword_2.wav"
+      ],
+      "loop": false,
+      "peak_db": -6.0,
+      "rms_db": -20.57,
+      "variants": 2
+    },
+    "ui_back": {
+      "category": "ui",
+      "crest_db": 9.41,
+      "duration_s": 0.14,
+      "files": [
+        "ui_back.wav"
+      ],
+      "loop": false,
+      "peak_db": -10.0,
+      "rms_db": -19.41,
+      "variants": 1
+    },
+    "ui_click": {
+      "category": "ui",
+      "crest_db": 13.25,
+      "duration_s": 0.06,
+      "files": [
+        "ui_click.wav"
+      ],
+      "loop": false,
+      "peak_db": -10.86,
+      "rms_db": -24.11,
+      "variants": 1
+    },
+    "ui_confirm": {
+      "category": "ui",
+      "crest_db": 10.12,
+      "duration_s": 0.2,
+      "files": [
+        "ui_confirm.wav"
+      ],
+      "loop": false,
+      "peak_db": -9.0,
+      "rms_db": -19.12,
+      "variants": 1
+    },
+    "ui_hover": {
+      "category": "ui",
+      "crest_db": 12.31,
+      "duration_s": 0.04,
+      "files": [
+        "ui_hover.wav"
+      ],
+      "loop": false,
+      "peak_db": -16.75,
+      "rms_db": -29.06,
+      "variants": 1
+    },
+    "victory": {
+      "category": "result",
+      "crest_db": 10.64,
+      "duration_s": 0.65,
+      "files": [
+        "victory.wav"
+      ],
+      "loop": false,
+      "peak_db": -4.0,
+      "rms_db": -14.64,
+      "variants": 1
+    }
+  }
+}

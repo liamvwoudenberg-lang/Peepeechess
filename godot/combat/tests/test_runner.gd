@@ -19,6 +19,7 @@ const SUITES: Dictionary = {
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",
+	"audio": "res://combat/tests/test_audio.gd",
 	"assets": "res://combat/tests/test_assets.gd",
 	"soak": "res://combat/tests/test_soak.gd",
 }
