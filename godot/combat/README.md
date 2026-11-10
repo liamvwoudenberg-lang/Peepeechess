@@ -54,7 +54,9 @@ Controls (also shown in the menu and HUD). Project input maps are not touched; k
 * Results: knockout; at the limit the higher remaining-HP percentage wins (exact integer cross-multiplication);
   exact tie and double knockout go to the **defender**; no randomness.
 
-Roles other than Pawn (`p`) and Knight (`n`) are **refused** with `INVALID_PAYLOAD` ("not implemented"), not faked.
+Supported fighters: Pawn, Knight, Bishop (Blink), Rook (Fortress Guard), Queen (Royal Fury). The King is **refused** with
+`INVALID_PAYLOAD` (the v1 schema also forbids it; king combat belongs to the v2 gauntlet). Unknown roles/abilities are refused,
+never faked. Role tuning beyond the contract's stats is initial and unmeasured.
 
 ## Integration with `BattleRequest` / `BattleResult`
 
@@ -97,10 +99,14 @@ signals `combat_snapshot`, `battle_finished`, `battle_started` (matches ARCHITEC
 4. `parryTicks` in the contract's examples is 10 for the pawn (`round(0.17*60)`) while the text says `ceil`; the prototype roster uses 11.
 5. Add `tests/combat/*.test.ts` to the root `test` script (root config is Codex-owned). The wrapper greps for engine diagnostics.
 
+## Networking
+
+`godot/combat/net/` + `NETWORKING.md`: server host, client prediction/reconciliation/interpolation, hit-commit grace (the only lag compensation), event de-duplication, disconnect handling, a simulated-link test harness, and the mapping to Codex's ENet protocol v1. `CombatArena.configure_network()` enables the online presentation path.
+
 ## Tests
 
 `godot/combat/tests/` (runner `test_runner.gd`): components, contracts/admission, input, movement, attacks, defense,
-abilities, endings, adapter, AI soak (incl. determinism). Every check goes through the real `CombatInput` channel.
+abilities, endings, adapter, assets, roles, AI soak (incl. determinism), net, net_latency, net_arena. Every check goes through the real `CombatInput` channel.
 `tests/combat/combat.test.ts` runs import + suite + a headless arena run and fails on any `SCRIPT ERROR`/`Parse Error`/`ERROR:`.
 
 ## Known limitations (honest list)
@@ -108,9 +114,9 @@ abilities, endings, adapter, AI soak (incl. determinism). Every check goes throu
 * **Not human-playtested.** I verified behaviour by tests, headless runs, and software-GL screenshots under Xvfb; I did not
   play it with a real keyboard/mouse/gamepad, so input feel, camera comfort and balance are unvalidated. The AI soak is not a balance claim
   (the Knight beat the Pawn in all mixed AI matches; Pawn is untuned).
-* No audio, no networking, no Android/Windows export or device testing, no replay/rollback.
+* No audio, no Android/Windows export or device testing. **No real network transport**: `net/` is a transport-agnostic client/server model tested over an in-process simulated link (see `NETWORKING.md` for what is and is not proven); no rollback netcode.
 * Fighters use the Blender-generated models when their GLBs exist (`godot/assets/combat/`, pipeline in `tools/blender/`), otherwise primitive placeholders. The art is stylized low-poly; animation was reviewed as still frames, not in motion, on software GL only.
 * Fighter-vs-fighter contact is analytic (not engine physics) on purpose; line-of-sight is not modelled for hits (pillars do not block).
 * Engine-collision world geometry needs one physics frame to register before the first tick.
-* Bishop, Rook, Queen, King have models and clips (see `tools/blender/README.md`) but no stats/abilities in the simulation yet, so they cannot fight.
+* The King has a model and clips but no simulation (v2 gauntlet). Pawn/Knight/Bishop/Rook/Queen fight; their balance is untuned (in the AI soak the Pawn is weak, Knight/Queen strong - not a balance claim).
 * Snapshot-driven presentation (`apply_snapshot`) is basic (eases position; infers animation) and untested against a live server.

@@ -47,6 +47,17 @@ var _last_snapshot_tick: int = -1
 var _targets: Dictionary = {}
 var _mouse_captured: bool = false
 
+## Online (PRESENTATION) mode only. See NETWORKING.md. The client model predicts the LOCAL fighter's
+## movement, reconciles with snapshots, interpolates the remote fighter and de-duplicates events; it never
+## sets HP or results (those are copied from validated snapshots).
+const NetClient := preload("res://combat/net/combat_net_client.gd")
+const RemoteInference := preload("res://combat/presentation/remote_action_inference.gd")
+var net_client = null
+var _net_local_id: String = ""
+var _net_send: Callable = Callable()
+var _local_tick: int = 0
+var _inference: Dictionary = {}
+
 
 func _ready() -> void:
 	sim = CombatSimulation.new()
@@ -60,6 +71,16 @@ func configure_seats(config: Dictionary) -> void:
 	seats = config
 
 
+## Online client: `local_player_id` is the authenticated seat this machine controls; `send` receives each
+## CombatInput (one per 60 Hz tick) for the transport to deliver to the server. Call before start_battle().
+## Snapshots from the server go to apply_snapshot(). Without this call PRESENTATION mode keeps its simple
+## ease-to-snapshot behaviour (no prediction).
+func configure_network(local_player_id: String, send: Callable) -> void:
+	_net_local_id = local_player_id
+	_net_send = send
+	seats = {local_player_id: {"type": "human", "scheme": "kb1"}}
+
+
 # ---- public API ----------------------------------------------------------------------------
 func start_battle(request: Dictionary) -> Dictionary:
 	if _codec == null:
@@ -68,6 +89,15 @@ func start_battle(request: Dictionary) -> Dictionary:
 	var reply: Dictionary = sim.start(request)
 	if not reply["ok"]:
 		return reply
+	_local_tick = 0
+	net_client = null
+	_inference.clear()
+	if mode == Mode.PRESENTATION and _net_local_id != "":
+		net_client = NetClient.new(request, _net_local_id, _net_send)
+		net_client.event_confirmed.connect(_on_event)
+		net_client.result_received.connect(_on_net_result)
+		for f in sim.fighters:
+			_inference[f.player_id] = RemoteInference.new()
 	if presentation_enabled:
 		_build_presentation(request)
 	_last_snapshot_tick = -1
@@ -85,6 +115,9 @@ func submit_input(input: Dictionary) -> Dictionary:
 ## ease toward the new state rather than teleporting.
 func apply_snapshot(snapshot: Dictionary) -> void:
 	if mode != Mode.PRESENTATION or sim == null or sim.request.is_empty():
+		return
+	if net_client != null:
+		net_client.on_snapshot(snapshot, _local_tick)  # validates, orders, de-duplicates events, reconciles
 		return
 	if not _codec.valid("CombatSnapshot", snapshot):
 		return
@@ -118,6 +151,8 @@ var _seen_event: int = 0
 
 
 func stop_battle() -> void:
+	net_client = null
+	_inference.clear()
 	_clear_presentation()
 	if sim != null:
 		sim.stop()
@@ -127,6 +162,9 @@ func stop_battle() -> void:
 
 # ---- ticking -------------------------------------------------------------------------------
 func _physics_process(_delta: float) -> void:
+	if mode == Mode.PRESENTATION and net_client != null and sim != null and sim.is_running():
+		net_step()
+		return
 	if mode != Mode.AUTHORITY or sim == null or not sim.is_running():
 		return
 	if not _ais.is_empty():
@@ -139,11 +177,13 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	if net_client != null:
+		_refresh_net_views(float(_local_tick) + Engine.get_physics_interpolation_fraction())
 	if _visuals != null:
 		for cam in cameras:
 			if is_instance_valid(cam) and cam.target != null:
 				_visuals.fade_occluders(cam.camera.global_position, cam.target.global_position + Vector3(0, 1.0, 0))
-	if mode != Mode.PRESENTATION:
+	if mode != Mode.PRESENTATION or net_client != null:
 		return
 	for pid in _targets:
 		var f := sim.fighter_by_id(pid)
@@ -251,7 +291,7 @@ func _build_presentation(request: Dictionary) -> void:
 	for f in sim.fighters:
 		var seat: Dictionary = seats.get(f.player_id, {"type": "ai", "skill": 0.6})
 		var builder := CombatInputBuilder.new(request["matchId"], request["battleId"], f.player_id)
-		if mode != Mode.AUTHORITY:
+		if mode != Mode.AUTHORITY and net_client == null:
 			continue
 		if seat.get("type", "ai") == "human":
 			var source := LocalInputSource.new()
@@ -260,13 +300,15 @@ func _build_presentation(request: Dictionary) -> void:
 			source.fighter = f
 			source.camera = cameras[humans.find(f.player_id)] if viewers.size() > 0 else null
 			source.submit = Callable(self, "_submit_ignore_result")
+			if net_client != null:
+				source.net_client = net_client
 			source.mouse_look = humans.size() == 1 and source.scheme == "kb1"
 			add_child(source)
 			_inputs.append(source)
 			if source.mouse_look:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 				_mouse_captured = true
-		else:
+		elif mode == Mode.AUTHORITY:
 			var opp := sim.opponent_of(f)
 			_ais.append(CombatAI.new(builder, f.stats, opp.stats, int(request["seed"]) + (7 if f.color == "w" else 13), float(seat.get("skill", 0.6))))
 
@@ -349,3 +391,44 @@ func _release_mouse() -> void:
 	if _mouse_captured:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_mouse_captured = false
+
+
+# ---- online (net client) path ------------------------------------------------------------------
+## One 60 Hz client tick: the net client sends this tick's CombatInput and advances prediction.
+func net_step() -> void:
+	_local_tick += 1
+	net_client.tick(_local_tick)
+	_refresh_net_views(float(_local_tick))
+
+
+func _on_net_result(result: Dictionary) -> void:
+	if sim.result.is_empty():
+		sim.result = result
+		_on_finished(result)
+
+
+## Copies what the net client says to draw onto the proxy fighters. HP/stamina/cooldown come from
+## validated snapshots; position of the local fighter is predicted, the remote one interpolated.
+func _refresh_net_views(local_tick: float) -> void:
+	if net_client == null or net_client.latest.is_empty():
+		return
+	for f in sim.fighters:
+		var v: Dictionary = net_client.view(f.player_id, local_tick)
+		if v.is_empty():
+			continue
+		f.global_position = v["position"]
+		f.prev_position = f.global_position
+		f.yaw = float(v["yawRadians"]) if v.has("yawRadians") else f.yaw
+		f.prev_yaw = f.yaw
+		f.health.current = int(v["hp"])
+		f.stamina.current = float(v["stamina"])
+		f.ability.cooldown_remaining = int(v["cooldownTicks"])
+		f.velocity = v["velocity"]
+		var state_index: int = CombatConstants.STATE_NAMES.find(String(v["state"]))
+		if state_index >= 0:
+			_inference[f.player_id].apply(f, state_index, int(v["stateTicks"]))
+	var latest: Dictionary = net_client.latest["snap"] if net_client.latest.has("snap") else net_client.latest
+	if latest.has("serverTick"):
+		sim.server_tick = int(latest["serverTick"])
+		sim.countdown_remaining = int(latest["countdownTicksRemaining"])
+		sim.duration_remaining = int(latest["durationTicksRemaining"])

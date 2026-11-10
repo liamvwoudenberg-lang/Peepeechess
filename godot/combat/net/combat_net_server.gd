@@ -92,6 +92,18 @@ func reconnect_seat(player_id: String) -> Dictionary:
 	return sim.snapshot()
 
 
+## InputResume (docs/network/PROTOCOL.md on codex/native-multiplayer): what this seat may resume from after
+## a reconnect or client restart. A resuming client must continue ABOVE this sequence and at or above these
+## cumulative counters; nothing older is ever replayed. Field names match that schema exactly.
+func input_resume(player_id: String) -> Dictionary:
+	var accepted: Dictionary = sim.accepted_input(player_id)
+	if accepted.is_empty() or not seats.has(player_id):
+		return {}
+	return {"battleId": sim.request["battleId"], "sequence": accepted["sequence"],
+			"clientTick": int(seats[player_id].get("last_client_tick", 0)), "light": accepted["light"],
+			"heavy": accepted["heavy"], "dodge": accepted["dodge"], "parry": accepted["parry"], "ability": accepted["ability"]}
+
+
 ## The tick an input accepted right now will first take effect on.
 func applied_tick() -> int:
 	return sim.server_tick + 1
@@ -127,6 +139,7 @@ func receive_input(player_id: String, packet: Dictionary) -> Dictionary:
 	counters["accepted"] += 1
 	var arrival := applied_tick()
 	seat["last_input_tick"] = arrival
+	seat["last_client_tick"] = int(packet["clientTick"])
 	_sample_rtt(seat, arrival, int(packet["clientTick"]))
 	record.append({"t": arrival, "k": "in", "p": player_id, "packet": packet.duplicate(true)})
 	return reply
