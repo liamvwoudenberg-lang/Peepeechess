@@ -30,8 +30,11 @@ function start(name, command, args, extraEnv = {}, timeout = 180000) {
   child.stderr.on('data', data => { log += data; });
   const timer = setTimeout(() => child.kill('SIGTERM'), timeout);
   const done = new Promise((resolve, reject) => {
-    child.on('error', reject);
-    child.on('exit', (code, signal) => {
+    child.on('error', error => {
+      log += `Process startup error: ${error.message}\n`;
+    });
+    child.on('close', (code, signal) => {
+      child.applicationClosed = true;
       clearTimeout(timer);
       writeFileSync(join(directory, `${name}.log`), log);
       resolve({ code, signal, log });
@@ -268,6 +271,6 @@ try {
   process.exitCode = 1;
 } finally {
   for (const child of children) if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
-  await Promise.allSettled(children.map(child => new Promise(resolve => child.exitCode !== null || child.signalCode !== null ? resolve() : child.once('exit', resolve))));
+  await Promise.allSettled(children.map(child => new Promise(resolve => child.applicationClosed ? resolve() : child.once('close', resolve))));
   if (!process.exitCode) rmSync(directory, { recursive: true, force: true });
 }
