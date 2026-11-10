@@ -29,6 +29,14 @@ CLASS_DEFAULTS[cls] and then DEFAULT_STYLE):
   arm_clear       extra outward elbow clearance, 0..1 (armour bulk: 0 slim, 1 very bulky). Default 0.4.
   swagger         locomotion amplitude multiplier (0.7 heavy ... 1.2 agile). Default 1.0.
   power           attack body-motion multiplier (lean, step, torso twist). Default 1.0.
+  stride          walk/run/strafe leg swing multiplier (default 1.0)
+  bob             vertical bounce multiplier while walking/running (default 1.0)
+  sway            torso/pelvis/hip lateral sway multiplier while walking/running (default 1.0)
+  lean            forward lean multiplier while walking/running (default 1.0)
+  lift            knee-lift multiplier while walking/running (default 1.0)
+  idle_amp        breathing amplitude multiplier (default 1.0)
+  idle_sway       lateral hip weight-shift amplitude in metres while idle (default 0)
+  idle_hover      vertical float amplitude in metres while idle (default 0)
 
 Weapons are authored "tip up" in the rest pose. The solver rotates the wrist so the weapon points
 where the animation wants (e.g. forward for a thrust), so the prop only needs to be modelled upright
@@ -52,12 +60,20 @@ DEFAULT_STYLE = {
 }
 
 CLASS_DEFAULTS = {
-    "pawn": {"grip": "spear2", "offhand_grip": 0.55, "stance": 0.2, "arm_clear": 0.25, "swagger": 1.15, "power": 1.0},
-    "knight": {"grip": "sword_shield", "stance": 0.24, "arm_clear": 0.6, "swagger": 0.95, "power": 1.05},
-    "bishop": {"grip": "staff2", "offhand_grip": 0.5, "stance": 0.19, "arm_clear": 0.4, "swagger": 1.0, "power": 0.9},
-    "rook": {"grip": "hammer_shield", "stance": 0.3, "arm_clear": 1.0, "swagger": 0.75, "power": 1.2},
-    "queen": {"grip": "dual", "stance": 0.19, "arm_clear": 0.3, "swagger": 1.2, "power": 1.0},
-    "king": {"grip": "sword1", "stance": 0.25, "arm_clear": 0.7, "swagger": 0.85, "power": 1.1},
+    # Locomotion/idle "character": Pawn light and bouncy, Knight measured, Bishop gliding and floating, Rook a heavy
+    # plod with a waddle, Queen quick and springy, King steady and upright.
+    "pawn": {"grip": "spear2", "offhand_grip": 0.55, "stance": 0.2, "arm_clear": 0.25, "swagger": 1.15, "power": 1.0,
+             "stride": 1.1, "bob": 1.6, "sway": 1.0, "lean": 1.1, "lift": 1.0, "idle_amp": 1.2, "idle_sway": 0.012},
+    "knight": {"grip": "sword_shield", "stance": 0.24, "arm_clear": 0.6, "swagger": 0.95, "power": 1.05,
+               "stride": 1.0, "bob": 0.9, "sway": 0.9, "lean": 1.0, "lift": 1.0, "idle_amp": 1.0, "idle_sway": 0.004},
+    "bishop": {"grip": "staff2", "offhand_grip": 0.5, "stance": 0.19, "arm_clear": 0.4, "swagger": 1.0, "power": 0.9,
+               "stride": 0.9, "bob": 0.3, "sway": 0.5, "lean": 0.8, "lift": 0.7, "idle_amp": 0.8, "idle_hover": 0.025},
+    "rook": {"grip": "hammer_shield", "stance": 0.3, "arm_clear": 1.0, "swagger": 0.75, "power": 1.2,
+             "stride": 0.8, "bob": 1.3, "sway": 1.6, "lean": 0.6, "lift": 0.85, "idle_amp": 1.8, "idle_sway": 0.006},
+    "queen": {"grip": "dual", "stance": 0.19, "arm_clear": 0.3, "swagger": 1.2, "power": 1.0,
+              "stride": 1.2, "bob": 1.4, "sway": 1.1, "lean": 1.2, "lift": 1.0, "idle_amp": 1.1, "idle_sway": 0.014},
+    "king": {"grip": "sword1", "stance": 0.25, "arm_clear": 0.7, "swagger": 0.85, "power": 1.1,
+             "stride": 0.95, "bob": 0.6, "sway": 0.6, "lean": 0.9, "lift": 1.0, "idle_amp": 0.7, "idle_sway": 0.002},
 }
 
 

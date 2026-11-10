@@ -73,13 +73,15 @@ pillar radius 0.5501 at (+-3.4, +-3.4), floor at y=0.
 ## Verification status (honest)
 
 Verified here: the scripts run end to end in real Blender 4.3.0; the GLBs import into Godot 4.6.3 and pass
-`godot/combat/tests/test_assets.gd` (skeleton identical across classes, all 15 clips with exact lengths, rotation-only
+`godot/combat/tests/test_assets.gd` (skeleton identical across classes, all 15 gameplay clips plus the polish clips `victory`, `hit_react_light` (14 f), `hit_react_heavy` (24 f) with exact lengths, rotation-only
 tracks, sockets, props following the animated hand, LOD1, collision hull, textures, tint surface, reach plausibility);
 renders under Xvfb software GL were reviewed by eye (line-up, clips, a live fight with the generated arena).
 
 NOT verified: real GPU / Android / Windows rendering or performance, mobile frame budget, the LOD1 visual quality at
 distance, locomotion in motion (walk/run/strafe/dodge/ability were looked at as single still frames only, plus loop-closure checks), foot placement and cadence,
-Blender 4.3.2 specifically, and Bishop/Rook/Queen/King *gameplay* (no stats/abilities in the simulation yet).
+Blender 4.3.2 specifically. The new clips (victory, hit reactions, heavier anticipation, the King's 40-frame counter stance, per-class locomotion/idle styles) were checked by `animation/dev_timing_check.py` (all 24 attack clips peak hand speed inside the active window) and as still frames only, never in motion.
+
+Scratch builds: `python build_all.py --out DIR` writes everything under DIR and never touches `godot/assets`.
 
 ## Known art limitations
 

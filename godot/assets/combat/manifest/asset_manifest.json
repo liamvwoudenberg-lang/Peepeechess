@@ -118,8 +118,8 @@
         ]
       },
       "bytes_collision": 15804,
-      "bytes_lod0": 765296,
-      "bytes_lod1": 651028,
+      "bytes_lod0": 865908,
+      "bytes_lod1": 751744,
       "class": "bishop",
       "clips": {
         "ability": 20,
@@ -127,6 +127,8 @@
         "defeat": 60,
         "dodge": 24,
         "heavy": 59,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
         "idle": 120,
         "light_1": 29,
         "light_2": 28,
@@ -136,6 +138,7 @@
         "stagger": 30,
         "strafe_left": 40,
         "strafe_right": 40,
+        "victory": 110,
         "walk": 40
       },
       "collision_verts": 77,
@@ -166,9 +169,9 @@
           2.194200038909912
         ]
       },
-      "bytes_collision": 16744,
-      "bytes_lod0": 956672,
-      "bytes_lod1": 762628,
+      "bytes_collision": 16808,
+      "bytes_lod0": 1062508,
+      "bytes_lod1": 868672,
       "class": "king",
       "clips": {
         "ability": 40,
@@ -176,6 +179,8 @@
         "defeat": 60,
         "dodge": 26,
         "heavy": 63,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
         "idle": 120,
         "light_1": 33,
         "light_2": 31,
@@ -185,6 +190,7 @@
         "stagger": 30,
         "strafe_left": 40,
         "strafe_right": 40,
+        "victory": 120,
         "walk": 40
       },
       "collision_verts": 79,
@@ -216,8 +222,8 @@
         ]
       },
       "bytes_collision": 16312,
-      "bytes_lod0": 817488,
-      "bytes_lod1": 682588,
+      "bytes_lod0": 918024,
+      "bytes_lod1": 783128,
       "class": "knight",
       "clips": {
         "ability": 72,
@@ -225,6 +231,8 @@
         "defeat": 60,
         "dodge": 26,
         "heavy": 63,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
         "idle": 120,
         "light_1": 32,
         "light_2": 30,
@@ -234,6 +242,7 @@
         "stagger": 30,
         "strafe_left": 40,
         "strafe_right": 40,
+        "victory": 108,
         "walk": 40
       },
       "collision_verts": 88,
@@ -265,9 +274,9 @@
           1.7756600379943848
         ]
       },
-      "bytes_collision": 15084,
-      "bytes_lod0": 703352,
-      "bytes_lod1": 624832,
+      "bytes_collision": 15116,
+      "bytes_lod0": 801856,
+      "bytes_lod1": 723336,
       "class": "pawn",
       "clips": {
         "ability": 12,
@@ -275,6 +284,8 @@
         "defeat": 60,
         "dodge": 22,
         "heavy": 53,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
         "idle": 120,
         "light_1": 24,
         "light_2": 23,
@@ -284,6 +295,7 @@
         "stagger": 30,
         "strafe_left": 40,
         "strafe_right": 40,
+        "victory": 96,
         "walk": 40
       },
       "collision_verts": 77,
@@ -315,8 +327,8 @@
         ]
       },
       "bytes_collision": 13740,
-      "bytes_lod0": 881160,
-      "bytes_lod1": 734772,
+      "bytes_lod0": 983064,
+      "bytes_lod1": 836576,
       "class": "queen",
       "clips": {
         "ability": 14,
@@ -324,6 +336,8 @@
         "defeat": 60,
         "dodge": 20,
         "heavy": 58,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
         "idle": 120,
         "light_1": 29,
         "light_2": 28,
@@ -333,6 +347,7 @@
         "stagger": 30,
         "strafe_left": 40,
         "strafe_right": 40,
+        "victory": 100,
         "walk": 40
       },
       "collision_verts": 55,
@@ -364,9 +379,9 @@
           2.1938998699188232
         ]
       },
-      "bytes_collision": 15624,
-      "bytes_lod0": 867768,
-      "bytes_lod1": 711864,
+      "bytes_collision": 15720,
+      "bytes_lod0": 972352,
+      "bytes_lod1": 816444,
       "class": "rook",
       "clips": {
         "ability": 18,
@@ -374,6 +389,8 @@
         "defeat": 60,
         "dodge": 30,
         "heavy": 74,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
         "idle": 120,
         "light_1": 42,
         "light_2": 40,
@@ -383,6 +400,7 @@
         "stagger": 30,
         "strafe_left": 40,
         "strafe_right": 40,
+        "victory": 120,
         "walk": 40
       },
       "collision_verts": 84,
