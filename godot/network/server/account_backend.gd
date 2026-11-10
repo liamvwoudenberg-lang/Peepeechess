@@ -11,6 +11,7 @@ var healthy = true
 var jobs: Dictionary = {}
 var _active_requests = 0
 var _retry_at = 0
+var _heartbeat_at = 0
 var _delay = 1000
 
 func configure(url: String, identity: String, secret: String, outbox_directory: String, allow_loopback_http: bool = false) -> Error:
@@ -115,9 +116,16 @@ func _write(id: String, value: Dictionary) -> bool:
 	return error == OK and DirAccess.rename_absolute(temporary, filename) == OK
 
 func _process(_delta: float) -> void:
-	if not configured or _active_requests > 0 or Time.get_ticks_msec() < _retry_at:
+	if not configured or _active_requests > 0:
 		return
-	_retry_at = Time.get_ticks_msec() + _delay
+	var now = Time.get_ticks_msec()
+	if now >= _heartbeat_at and not jobs.is_empty():
+		_heartbeat_at = now + 20000
+		request("/internal/heartbeat", {"matchIds": jobs.keys()})
+		return
+	if now < _retry_at:
+		return
+	_retry_at = now + _delay
 	for id in jobs.keys():
 		if not jobs[id].active:
 			_deliver(id)
