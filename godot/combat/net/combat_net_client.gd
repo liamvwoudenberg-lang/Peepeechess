@@ -80,7 +80,9 @@ var _ack_samples: Array[float] = []
 var _last_ack: int = 0
 
 
-func _init(p_request: Dictionary, p_local_id: String, p_send: Callable) -> void:
+## `external_builder`: a transport that already owns the seat's CombatInputBuilder (so there is ONE sequence/counter
+## stream, e.g. Codex's OnlineChessClient.input_builder) passes it here instead of letting the client create its own.
+func _init(p_request: Dictionary, p_local_id: String, p_send: Callable, external_builder: CombatInputBuilder = null) -> void:
 	request = p_request
 	local_id = p_local_id
 	send = p_send
@@ -92,7 +94,7 @@ func _init(p_request: Dictionary, p_local_id: String, p_send: Callable) -> void:
 	params = Predictor.params_for(role, me["stats"])
 	radius = float(params["radius"])
 	opp_radius = float(FighterProfile.for_role(other["role"]).get("radius", 0.4))
-	builder = CombatInputBuilder.new(request["matchId"], request["battleId"], local_id)
+	builder = external_builder if external_builder != null else CombatInputBuilder.new(request["matchId"], request["battleId"], local_id)
 	_yaw = 0.0 if me["color"] == "w" else PI
 
 
