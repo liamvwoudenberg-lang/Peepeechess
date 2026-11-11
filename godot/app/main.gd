@@ -382,12 +382,12 @@ func _build_battle_overlay() -> void:
 	battle_card.theme_type_variation = "RaisedPanel"
 	center.add_child(battle_card)
 	var column = VBoxContainer.new()
-	column.custom_minimum_size.x = 380
+	column.custom_minimum_size.x = 280
 	column.add_theme_constant_override("separation", 14)
 	battle_card.add_child(column)
 	battle_detail = _label(column, "", 16)
 	battle_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	battle_detail.custom_minimum_size.x = 340
+	battle_detail.custom_minimum_size.x = 260
 	battle_detail.theme_type_variation = "Muted"
 	fight_button = Kit.primary(column, "Start battle", _start_battle_pressed, "sword")
 	battle_cancel = _button(column, "Cancel capture", _cancel_battle_transition)

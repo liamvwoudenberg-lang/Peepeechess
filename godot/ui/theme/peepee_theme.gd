@@ -364,7 +364,7 @@ static func _build_containers(theme: Theme, bold: Font) -> void:
 	theme.set_color("font_selected_color", "ItemList", T.GOLD_HI)
 
 static func _build_windows(theme: Theme, bold: Font) -> void:
-	var dialog := with_shadow(flat(T.SURFACE, T.BORDER_STRONG, 1, T.R_LG, 24, 20), 24, 8, 0.65)
+	var dialog := with_shadow(flat(T.SURFACE, T.BORDER_STRONG, 1, T.R_LG, 14, 14), 24, 8, 0.65)
 	var border := with_shadow(flat(T.SURFACE, T.GOLD_LO, 2, T.R_LG, 10, 10), 24, 8, 0.65)
 	border.expand_margin_top = 44.0
 	border.content_margin_top = 0
@@ -373,9 +373,9 @@ static func _build_windows(theme: Theme, bold: Font) -> void:
 	border.content_margin_bottom = 0
 	for type_name in ["AcceptDialog", "ConfirmationDialog"]:
 		theme.set_stylebox("panel", type_name, dialog)
-		theme.set_constant("buttons_separation", type_name, 12)
+		theme.set_constant("buttons_separation", type_name, 8)
 		theme.set_constant("buttons_min_height", type_name, 46)
-		theme.set_constant("buttons_min_width", type_name, 110)
+		theme.set_constant("buttons_min_width", type_name, 80)
 	theme.set_stylebox("embedded_border", "Window", border)
 	theme.set_stylebox("embedded_unfocused_border", "Window", border)
 	theme.set_color("title_color", "Window", T.GOLD_HI)

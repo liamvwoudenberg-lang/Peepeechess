@@ -97,6 +97,8 @@ static func build(app: Control, parent: Container, quit_visible: bool) -> Dictio
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_font_size_override("font_size", T.FS_LEAD)
 		buttons[entry[0]] = button
+	if Input.get_connected_joypads().size() > 0 and buttons.has("classic"):
+		buttons["classic"].call_deferred("grab_focus")   # a pad is plugged in: start with a visible focus ring
 	var bottom_pad := Control.new()
 	bottom_pad.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(bottom_pad)

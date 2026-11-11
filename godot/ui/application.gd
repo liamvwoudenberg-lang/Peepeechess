@@ -42,6 +42,7 @@ var _opening = false
 var _refresh_generation = 0
 var _menu_buttons: Dictionary = {}
 var _topbar: Control
+var _topbar_holder: Control
 var _page_width: MarginContainer
 var _topbar_badge: Button
 var _backdrop: Control
@@ -109,9 +110,13 @@ func _build_frame() -> void:
 	var column = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
+	var top_width = MaxWidth.new()  # keeps the navigation aligned with the centred page column on wide screens
+	top_width.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(top_width)
 	_topbar = VBoxContainer.new()
 	_topbar.add_theme_constant_override("separation", 10)
-	column.add_child(_topbar)
+	top_width.add_child(_topbar)
+	_topbar_holder = top_width
 	var brand_row = HBoxContainer.new()
 	brand_row.add_theme_constant_override("separation", 12)
 	_topbar.add_child(brand_row)
@@ -142,7 +147,10 @@ func _build_frame() -> void:
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 18)
 	page_width.add_child(content)
-	notice = _label(column, "Your board. Your perspective. One shared game.", 14, MUTED)
+	var footer = MaxWidth.new()
+	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(footer)
+	notice = _label(footer, "Your board. Your perspective. One shared game.", 14, MUTED)
 	_update_badge()
 
 ## Circle on a controller: leave a sub-page for Play (PadUi calls this only when no dialog is open).
@@ -161,7 +169,7 @@ func navigate(target: String) -> void:
 	for key in _menu_buttons:
 		_menu_buttons[key].theme_type_variation = "NavButtonActive" if key == page else "NavButton"
 	account_badge = _topbar_badge
-	_topbar.visible = page != "home"
+	_topbar_holder.visible = page != "home"
 	notice.visible = page != "home"
 	_backdrop.mode = "home" if page == "home" else "page"
 	_page_width.max_width = 4000.0 if page == "home" else 1120.0
@@ -381,7 +389,7 @@ func _draw_profile(profile: Dictionary) -> void:
 		bar.tooltip_text = "Wins out of games played"
 		column.add_child(bar)
 		_label(column, "%d wins   %d losses   %d draws   ·   %d games" % [stats.get("wins", 0), stats.get("losses", 0), stats.get("draws", 0), games], 15, MUTED)
-	Kit.button(card, "Match history", func(): navigate("history"), "", "clock")
+	Kit.button(card, "Match history", func(): navigate("history"), "", "clock").size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
 func _refresh_account() -> void:
 	var generation = _refresh_generation
@@ -447,7 +455,7 @@ func _load_history(generation: int, offset: int = 0) -> void:
 		var opponent: String = record.blackName if is_white else record.whiteName
 		var delta = int(record.ratingChange.white if is_white else record.ratingChange.black)
 		_label(card, "vs " + opponent + " · " + str(record.reason).replace("_", " ") + "\n" + str(record.plies) + " moves · " + ("+" if delta > 0 else "") + str(delta) + " rating · " + Time.get_datetime_string_from_unix_time(int(record.completedAt / 1000)).replace("T", " ") + " UTC", 15, MUTED)
-		Kit.button(card, "Copy final FEN", func(): DisplayServer.clipboard_set(str(record.finalFen)); _message("Final position copied."), "GhostButton", "list")
+		Kit.button(card, "Copy final FEN", func(): DisplayServer.clipboard_set(str(record.finalFen)); _message("Final position copied."), "GhostButton", "list").size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var next = response.data.get("nextOffset")
 	if next != null:
 		_history_more_button = _button(content, "Load older matches", func(): _load_history(generation, int(next)))

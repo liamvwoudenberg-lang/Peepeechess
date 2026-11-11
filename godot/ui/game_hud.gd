@@ -119,7 +119,7 @@ static func _player_card(m: Control, parent: Container, side: String) -> void:
 	row.add_child(info)
 	var name_label := Kit.label(info, "White" if side == "w" else "Black", "H3", false)
 	var captured := HBoxContainer.new()
-	captured.add_theme_constant_override("separation", -4)
+	captured.add_theme_constant_override("separation", -6)
 	captured.custom_minimum_size.y = 16
 	info.add_child(captured)
 	var balance := Kit.label(captured, "", "Caption", false)
@@ -313,7 +313,8 @@ static func _fighter_column(parent: Container, title: String, fighter: Dictionar
 	column.add_child(icon)
 	var caption := Kit.label(column, title, "Caption", false)
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var role_name := Kit.label(column, ("White " if white else "Black ") + str(PIECE_NAMES.get(str(fighter.get("role", "p")), {"p": "Pawn", "k": "King"}.get(str(fighter.get("role", "p")), "Piece"))), "H3", false)
+	var role_name := Kit.label(column, ("White " if white else "Black ") + str(PIECE_NAMES.get(str(fighter.get("role", "p")), {"p": "Pawn", "k": "King"}.get(str(fighter.get("role", "p")), "Piece"))), "Accent", false)
+	role_name.add_theme_font_size_override("font_size", T.FS_BODY)
 	role_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var hp := Kit.label(column, "%s HP" % str(fighter.get("stats", {}).get("maxHp", "?")), "Accent", false)
 	hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -330,7 +331,7 @@ static func show_versus(m: Control, request: Dictionary) -> void:
 		m.hud["versus_caption"] = caption
 		row = HBoxContainer.new()
 		row.name = "Versus"
-		row.add_theme_constant_override("separation", T.S4)
+		row.add_theme_constant_override("separation", T.S2)
 		column.add_child(row)
 		column.move_child(row, 1)
 		m.hud["versus"] = row
