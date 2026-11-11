@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -65,5 +65,40 @@ func _run() -> void:
     assert.equal(result.status, 0, output);
     assert.doesNotMatch(output, /SCRIPT ERROR|Parse Error|ERROR:/);
     assert.match(output, /NATIVE_EXPORT_CONTROLS_OK/);
+  } finally { rmSync(temporary, { recursive: true, force: true }); }
+});
+
+test("export script rejects zero-exit Godot errors and aligns inherited Android SDK paths", () => {
+  const temporary = mkdtempSync(join(tmpdir(), "peepeechess-export-diagnostics-"));
+  try {
+    mkdirSync(join(temporary, "scripts"));
+    const script = join(temporary, "scripts", "export-native.sh");
+    writeFileSync(script, readFileSync("scripts/export-native.sh", "utf8"));
+    const templates = join(temporary, "toolchains", "godot", "templates", "4.6.3.stable");
+    mkdirSync(templates, { recursive: true });
+    const fakeGodot = join(temporary, "godot-probe");
+    writeFileSync(fakeGodot, `#!/bin/sh
+if [ "$1" = "--version" ]; then
+  printf '%s\\n' '4.6.3.stable.official.test'
+else
+  printf '%s\\n' "SDK_ROOT=$ANDROID_SDK_ROOT" 'SCRIPT ERROR: injected zero-exit import failure'
+fi
+exit 0
+`, { mode: 0o755 });
+    const sdk = join(temporary, "selected-sdk");
+    const result = spawnSync("bash", [script, "windows"], {
+      encoding: "utf8", timeout: 15000,
+      env: {
+        ...process.env, GODOT_BIN: fakeGodot,
+        PEEPEECHESS_TOOLCHAIN_DIR: join(temporary, "toolchains"),
+        ANDROID_HOME: sdk, ANDROID_SDK_ROOT: "/inherited/different/sdk",
+      },
+    });
+    const output = (result.stdout || "") + (result.stderr || "");
+    assert.equal(result.error, undefined, String(result.error));
+    assert.equal(result.status, 1, output);
+    assert.ok(output.includes(`SDK_ROOT=${sdk}`), output);
+    assert.match(output, /Godot export\/import reported errors/);
+    assert.doesNotMatch(output, /rg:.*not found/);
   } finally { rmSync(temporary, { recursive: true, force: true }); }
 });
