@@ -171,7 +171,7 @@ func _build_ui() -> void:
 	mode_select.item_selected.connect(_switch_mode)
 	toolbar.add_child(mode_select)
 	_button(toolbar, "Main menu", _main_menu, "Return to the application menu.")
-	_button(toolbar, "Online", func(): get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"), "Connect to a dedicated ENet server.")
+	_button(toolbar, "Online", _online_menu, "Find an opponent or invite a friend.")
 	_button(toolbar, "New game", _show_new, "Choose a time control and start a local two-player match.")
 	view_button = _button(toolbar, "3D board", func(): set_view(not _view_3d), "Switch views without restarting the match.")
 	flip_button = _button(toolbar, "Flip board", func(): set_flipped(not _flipped), "Change only your local perspective.")
@@ -664,14 +664,23 @@ func _animate_board_return() -> void:
 		_return_tween.tween_property(board_2d, "modulate:a", 1.0, 0.35)
 
 func _main_menu() -> void:
-	if game.engine.history.is_empty() or not game.engine.result.is_empty():
+	_navigate_menu(false)
+
+func _online_menu() -> void:
+	_navigate_menu(true)
+
+func _navigate_menu(open_online: bool) -> void:
+	var leave = func():
+		AppSettings.launch = {"menu": "online", "mode": "battle" if game is BattleChessMatch else "classic"} if open_online else {}
 		get_tree().change_scene_to_file("res://ui/application.tscn")
+	if game.engine.history.is_empty() or not game.engine.result.is_empty():
+		leave.call()
 		return
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Leave local match?"
 	dialog.dialog_text = "This local match is not saved. Return to the main menu?"
 	dialog.ok_button_text = "Main menu"
-	dialog.confirmed.connect(func(): get_tree().change_scene_to_file("res://ui/application.tscn"))
+	dialog.confirmed.connect(leave)
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
 	dialog.popup_centered()

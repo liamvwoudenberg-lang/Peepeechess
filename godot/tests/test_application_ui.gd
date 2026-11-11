@@ -38,6 +38,7 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	expect(shell.page == "play", "main menu opens on Play")
+	expect(root.get_node_or_null("PlatformInput") != null, "application installs persistent controller adapter")
 	expect(shell.content.get_child_count() >= 4, "mode cards and game setup rendered")
 	await screenshot("application-play")
 	for target in ["account", "settings", "profile", "history", "leaderboard", "play"]:
@@ -77,6 +78,11 @@ func run() -> void:
 	Settings.animations = false
 	Settings.quality = "low"
 	expect(Settings.save_preferences() == OK, "presentation preferences saved")
+	expect(Engine.max_fps == 30, "low graphics preference only limits presentation frame rate")
+	Settings.set_combat_input(true)
+	expect(not root.get_node("PlatformInput").cursor_enabled, "gamepad pointer yields to combat")
+	Settings.set_combat_input(false)
+	expect(root.get_node("PlatformInput").cursor_enabled, "gamepad pointer resumes on board")
 	var config = ConfigFile.new()
 	expect(config.load("user://preferences.cfg") == OK and config.get_value("presentation", "view3d") == true, "presentation preference persists")
 	expect(not config.has_section_key("network", "token") and not config.has_section("account"), "account credentials never saved in preferences")

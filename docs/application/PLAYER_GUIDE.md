@@ -95,7 +95,8 @@ platform's text input.
 checks mode navigation, signed-out gating, queue/invite presentation, supported
 clock choices, HTTPS/loopback policy, credential exclusion from saved
 preferences, authoritative result labels, and launch into the existing Classic
-and Battle scenes with shared 2D / 3D state. The initial run passed 37 checks.
+and Battle scenes with shared 2D / 3D state. The current run passed 41 checks,
+including controller-pointer lifecycle and graphics preference application.
 The existing Classic view suite passed 345 checks after these navigation changes.
 
 The shell was also rendered and visually inspected at 1280×800 using Godot 4.6.3

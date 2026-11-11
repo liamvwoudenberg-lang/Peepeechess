@@ -37,6 +37,10 @@ var _menu_buttons: Dictionary = {}
 func _ready() -> void:
 	Settings.load_preferences()
 	Settings.ensure_platform(get_tree())
+	if Settings.launch.get("menu", "") == "online":
+		var context = Settings.take_launch()
+		online = true
+		selected_mode = "battle" if context.get("mode", "classic") == "battle" else "classic"
 	api = Api.new()
 	add_child(api)
 	_build_theme()
@@ -332,7 +336,7 @@ func _settings_page() -> void:
 	for value in ["low", "balanced", "high"]:
 		var quality: String = value
 		_button(quality_row, value.capitalize() + (" ✓" if Settings.quality == value else ""), func(): Settings.quality = quality; Settings.save_preferences(); navigate("settings"), Settings.quality == value)
-	_label(card, "Low: 30 FPS, no antialiasing. Balanced: 60 FPS, 2× antialiasing. High: uncapped, 4× antialiasing. Server simulation remains authoritative at 60 ticks per second.", 14, MUTED)
+	_label(card, "Low: 30 FPS, no antialiasing. Balanced: 60 FPS, 2× antialiasing. High: uncapped, 4× antialiasing. Graphics quality affects this device only.", 14, MUTED)
 	_label(card, "Master volume", 18, GOLD)
 	var volume = HSlider.new()
 	volume.min_value = 0

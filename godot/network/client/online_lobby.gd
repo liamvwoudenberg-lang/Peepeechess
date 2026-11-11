@@ -169,7 +169,7 @@ func _build_ui() -> void:
 	actions.add_child(touch_toggle)
 	_button(actions, "Capture mouse", _capture_mouse)
 	info = _label(column, "Connect securely to a dedicated server. Invite a second player, then both choose Ready.")
-	notices = _label(column, "DTLS verifies server certificates. Esc releases the combat mouse. Models for other roles do not imply implemented combat.")
+	notices = _label(column, "Choose your own board view. Esc releases the combat mouse.")
 	var split = HBoxContainer.new()
 	split.size_flags_vertical = SIZE_EXPAND_FILL
 	column.add_child(split)
