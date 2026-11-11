@@ -55,6 +55,7 @@ func _initialize() -> void:
 	load("res://combat/audio/combat_audio.gd").clear_library()
 	# The audio server releases stopped playbacks on its own mix thread; give it a moment before the engine shuts down.
 	await create_timer(0.5).timeout
+	OS.delay_msec(400)  # real time: --fixed-fps makes the timer above virtual, the audio thread still needs wall-clock time
 	var report := harness.report()
 	await process_frame
 	quit(report)

@@ -63,10 +63,33 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_frame += 1
-	if _args.has("frames") and _frame >= int(_args["frames"]):
+	if _args.has("frames") and _frame >= int(_args["frames"]) and not _quitting:
+		_quitting = true
 		if _args.has("shot"):
 			get_viewport().get_texture().get_image().save_png(String(_args["shot"]))
-		get_tree().quit()
+		_quit_clean()
+
+
+var _quitting := false
+
+
+## Automation exit: tear the fight down and release the sound cache first so the engine reports no leaked
+## resources at shutdown (Codex's native-combat gate fails on any ERROR: line).
+func _quit_clean() -> void:
+	if is_instance_valid(arena):
+		arena.stop_battle()
+		arena.queue_free()
+	if menu != null and is_instance_valid(menu):
+		menu.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	load("res://combat/audio/combat_audio.gd").clear_library()
+	if is_instance_valid(arena) and arena.get("audio") != null:
+		arena.audio.release_voices()
+	# The audio server frees stopped playbacks on its own thread, in real time (a virtual --fixed-fps timer would
+	# not give it any), so block briefly before shutting the engine down.
+	OS.delay_msec(400)
+	get_tree().quit()
 
 
 func show_menu() -> void:
