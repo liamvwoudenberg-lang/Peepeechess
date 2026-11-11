@@ -60,6 +60,7 @@ const TIME_CONTROLS = [["Untimed", 0, 0], ["Bullet · 1 + 0", 60000, 0], ["Blitz
 
 func _ready() -> void:
 	AppSettings.load_preferences()
+	AppSettings.ensure_platform(get_tree())
 	_build_theme()
 	_build_ui()
 	_build_dialogs()
@@ -170,7 +171,7 @@ func _build_ui() -> void:
 	mode_select.item_selected.connect(_switch_mode)
 	toolbar.add_child(mode_select)
 	_button(toolbar, "Main menu", _main_menu, "Return to the application menu.")
-	_button(toolbar, "Online", func(): get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"), "Connect to a dedicated ENet server.")
+	_button(toolbar, "Online", _online_menu, "Find an opponent or invite a friend.")
 	_button(toolbar, "New game", _show_new, "Choose a time control and start a local two-player match.")
 	view_button = _button(toolbar, "3D board", func(): set_view(not _view_3d), "Switch views without restarting the match.")
 	flip_button = _button(toolbar, "Flip board", func(): set_flipped(not _flipped), "Change only your local perspective.")
@@ -179,7 +180,7 @@ func _build_ui() -> void:
 	settings.text = "Animate"
 	settings.button_pressed = AppSettings.animations
 	settings.tooltip_text = "Turn off movement animations."
-	settings.toggled.connect(func(on): board_2d.animation_enabled = on; board_3d.animation_enabled = on)
+	settings.toggled.connect(func(on): board_2d.animation_enabled = on; board_3d.animation_enabled = on; AppSettings.animations = on; AppSettings.save_preferences())
 	toolbar.add_child(settings)
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
@@ -582,6 +583,8 @@ func _switch_mode(index: int) -> void:
 	board_host.add_child(board_3d)
 	board_3d.setup(game, interaction)
 	mode_label.text = "BATTLE · C0" if index == 1 else "CLASSIC"
+	board_2d.animation_enabled = AppSettings.animations
+	board_3d.animation_enabled = AppSettings.animations
 	mode_select.select(index)
 	copy_notation_button.text = "Copy battle log" if index == 1 else "Copy PGN"
 	if index == 1:
@@ -622,6 +625,7 @@ func _capture_preview(request: Dictionary) -> void:
 	fight_button.disabled = not readiness.ok
 
 func _battle_phase(value: String) -> void:
+	AppSettings.set_combat_input(value in ["countdown", "combat", "aftermath"])
 	interaction.enabled = value == "board"
 	board_2d.set_process_input(value == "board")
 	board_3d.set_process_input(value == "board")
@@ -660,14 +664,23 @@ func _animate_board_return() -> void:
 		_return_tween.tween_property(board_2d, "modulate:a", 1.0, 0.35)
 
 func _main_menu() -> void:
-	if game.engine.history.is_empty() or not game.engine.result.is_empty():
+	_navigate_menu(false)
+
+func _online_menu() -> void:
+	_navigate_menu(true)
+
+func _navigate_menu(open_online: bool) -> void:
+	var leave = func():
+		AppSettings.launch = {"menu": "online", "mode": "battle" if game is BattleChessMatch else "classic"} if open_online else {}
 		get_tree().change_scene_to_file("res://ui/application.tscn")
+	if game.engine.history.is_empty() or not game.engine.result.is_empty():
+		leave.call()
 		return
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Leave local match?"
 	dialog.dialog_text = "This local match is not saved. Return to the main menu?"
 	dialog.ok_button_text = "Main menu"
-	dialog.confirmed.connect(func(): get_tree().change_scene_to_file("res://ui/application.tscn"))
+	dialog.confirmed.connect(leave)
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
 	dialog.popup_centered()

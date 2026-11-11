@@ -5,6 +5,7 @@ extends Node
 
 const CURSOR_SPEED := 720.0
 const DEADZONE := 0.22
+const VIRTUAL_POINTER_DEVICE := 1000
 var cursor_enabled := true
 var cursor_position := Vector2(600, 400)
 var _cursor_visible := false
@@ -91,6 +92,7 @@ func _process(delta: float) -> void:
 	_marker.show()
 	_marker.position = cursor_position
 	var motion := InputEventMouseMotion.new()
+	motion.device = VIRTUAL_POINTER_DEVICE
 	motion.position = cursor_position
 	motion.global_position = cursor_position
 	motion.relative = cursor_position - previous
@@ -98,7 +100,8 @@ func _process(delta: float) -> void:
 	Input.parse_input_event(motion)
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and event.relative.length() > 0 and event.device != 0:
+	if event is InputEventMouseMotion and event.relative.length() > 0 and event.device != VIRTUAL_POINTER_DEVICE:
+		_cursor_visible = false
 		_marker.hide()
 	if not cursor_enabled or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		return
@@ -109,6 +112,7 @@ func _input(event: InputEvent) -> void:
 func _emit_click(pressed: bool) -> void:
 	_pressed = pressed
 	var button := InputEventMouseButton.new()
+	button.device = VIRTUAL_POINTER_DEVICE
 	button.button_index = MOUSE_BUTTON_LEFT
 	button.pressed = pressed
 	button.position = cursor_position

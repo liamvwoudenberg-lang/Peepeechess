@@ -12,6 +12,7 @@ All `/v1` routes except registration/login/health require `Authorization: Bearer
 | POST `/v1/auth/logout` | `{}` | `ok:true` |
 | GET `/v1/me` | none | `profile` |
 | GET `/v1/profile?playerId=...` | optional playerId, defaults self | `profile` |
+| GET `/v1/history/summary?limit=20&offset=0` | limit1..100, offset0..1000000; self only | `matches:MatchSummary[],nextOffset:number|null` |
 | GET `/v1/history?limit=20` | 1..100, self only | `matches:MatchRecord[]` |
 | GET `/v1/leaderboard?mode=classic&limit=20` | mode classic/battle, limit1..100 | `players:Profile[]` |
 | POST `/v1/queue` | `{mode,ranked,initialMs,incrementMs}` | `status:Status` |
@@ -48,3 +49,5 @@ The separate additive `AccountHello` message is defined by
 Send `{type:"AccountHello",payload:{schemaVersion:1,protocol:"peepeechess-enet-v1",ticket:"<64 lowercase hex>"}}` reliably on channel0. It replaces initial anonymous Hello only for backend allocations. The dedicated server redeems the ticket over its authenticated internal HTTP connection, provisions the exact allocated seats/time controls once, and returns the existing Welcome and MatchFrame. No player ID comes from this client message. Existing Hello with a nonnull resumeToken resumes the resulting process-local ENet session without replaying the single-use ticket. Backend-enabled dedicated servers reject anonymous sessions, CreateMatch and JoinMatch; allocation and competitive mode are controlled by the account backend. An unconfigured standalone server retains the existing unranked development protocol. Older servers reject AccountHello rather than downgrading to anonymous identity.
 
 Result delivery is a durable server outbox: terminal match data is written locally before retrying the authenticated idempotent internal result POST. On restart, queued reports retry, and provisioned unfinished matches are reported aborted/unrated; active combat state is not reconstructed. Account sessions belong to the HTTPS backend, while ENet resume tokens are memory-only and bound to one dedicated process. Neither token is a player ID. Never accept client-reported match results or competitive mode changes.
+
+History summary pages omit the move array and provide `plies` instead. All other MatchRecord fields are retained. Order is completedAt descending then matchId ascending; offset pages refresh from0 when new results arrive. The UI uses this bounded route, leaving the original full-record history route compatible for existing tools.

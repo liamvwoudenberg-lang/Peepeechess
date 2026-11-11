@@ -1,6 +1,7 @@
 extends Control
 const AppSettings = preload("res://ui/application_settings.gd")
 const AppResults = preload("res://ui/results.gd")
+const AppTheme = preload("res://ui/application_theme.gd")
 var _result_key = ""
 var _provisioned = false
 var _connection_row: Control
@@ -45,6 +46,7 @@ var _promotion: Dictionary = {}
 
 func _ready() -> void:
 	AppSettings.load_preferences()
+	AppSettings.ensure_platform(get_tree())
 	client = Client.new()
 	add_child(client)
 	game = Remote.new()
@@ -87,7 +89,7 @@ func _ready() -> void:
 func _button(parent: Node, text: String, action: Callable) -> Button:
 	var button = Button.new()
 	button.text = text
-	button.custom_minimum_size.y = 42
+	button.custom_minimum_size.y = 48
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button
@@ -100,10 +102,9 @@ func _label(parent: Node, text: String) -> Label:
 	return label
 
 func _build_ui() -> void:
-	theme = Theme.new()
-	theme.default_font_size = 16
+	theme = AppTheme.create()
 	var background = ColorRect.new()
-	background.color = Color("101f27")
+	background.color = Color("142924")
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(background)
@@ -168,7 +169,7 @@ func _build_ui() -> void:
 	actions.add_child(touch_toggle)
 	_button(actions, "Capture mouse", _capture_mouse)
 	info = _label(column, "Connect securely to a dedicated server. Invite a second player, then both choose Ready.")
-	notices = _label(column, "DTLS verifies server certificates. Esc releases the combat mouse. Models for other roles do not imply implemented combat.")
+	notices = _label(column, "Choose your own board view. Esc releases the combat mouse.")
 	var split = HBoxContainer.new()
 	split.size_flags_vertical = SIZE_EXPAND_FILL
 	column.add_child(split)
@@ -243,6 +244,7 @@ func _frame(value: Dictionary) -> void:
 		var h: Dictionary = value.state.chess.history[i]
 		history.add_text("%d. %s%s%s\n" % [i + 1, h.from, h.to, " [defended]" if h.outcome == "defender" else ""])
 	var in_combat = phase in ["combat", "aftermath"]
+	AppSettings.set_combat_input(in_combat)
 	if in_combat and _displayed_phase == "board":
 		get_viewport().gui_release_focus()
 	board_2d.set_process_input(not in_combat)
