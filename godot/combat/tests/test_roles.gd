@@ -561,6 +561,11 @@ static func _endings(h, tree: SceneTree) -> void:
 		rig.dispose()
 
 
+# The 24-sided wall's inner faces are tangent to the 7.1 m circle, so a fighter can legitimately stand in a corner
+# up to 7.1 / cos(pi/24) from the centre minus their radius (the old circle bound 7.1 assumed they never reached one).
+const WALL_VERTEX_RADIUS := 7.1 / 0.99144486  # cos(PI / 24)
+
+
 # ---- AI soak over every pairing -------------------------------------------------------------
 static func _soak(h, tree: SceneTree) -> void:
 	h.begin("roles: AI-vs-AI soak over all 25 pairings (valid results, no rejected input, bounds, no overlap)")
@@ -577,7 +582,7 @@ static func _soak(h, tree: SceneTree) -> void:
 			var label := "%s(w) vs %s(b) attacker %s" % [white, black, attacker]
 			var ok: bool = report["started"] and not report["result"].is_empty() and report["result_valid"] and report["rejected"] == 0 \
 					and report["invalid_snapshots"] == 0 and report["out_of_bounds"] == 0 and float(report["min_gap"]) >= 0.74 \
-					and float(report["max_radius"]) <= 7.1 - 0.37 and int(report["total_events"]) > 3
+					and float(report["max_radius"]) <= WALL_VERTEX_RADIUS - 0.37 and int(report["total_events"]) > 3
 			if not ok:
 				var detail := {}
 				for key in ["started", "rejected", "invalid_snapshots", "out_of_bounds", "min_gap", "max_radius", "total_events", "result_valid"]:

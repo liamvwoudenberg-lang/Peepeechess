@@ -1,0 +1,4651 @@
+{
+ "pairs": {
+  "bp": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 7
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 5333,
+    "timeouts": 0,
+    "wins": 5
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 9975,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 19235,
+     "timeouts": 0,
+     "wins": 6
+    }
+   }
+  },
+  "bq": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 7
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3616,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 13499,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 16830,
+     "timeouts": 0,
+     "wins": 0
+    }
+   }
+  },
+  "kb": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 7
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4108,
+    "timeouts": 0,
+    "wins": 8
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 20322,
+     "timeouts": 0,
+     "wins": 6
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 28774,
+     "timeouts": 2,
+     "wins": 6
+    }
+   }
+  },
+  "nb": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4381,
+    "timeouts": 0,
+    "wins": 8
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 14245,
+     "timeouts": 0,
+     "wins": 7
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 18687,
+     "timeouts": 1,
+     "wins": 7
+    }
+   }
+  },
+  "pp": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4470,
+    "timeouts": 0,
+    "wins": 5
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 19418,
+     "timeouts": 0,
+     "wins": 5
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 21820,
+     "timeouts": 0,
+     "wins": 6
+    }
+   }
+  },
+  "pq": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 7
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3464,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 2752,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 16728,
+     "timeouts": 0,
+     "wins": 0
+    }
+   }
+  },
+  "qp": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3007,
+    "timeouts": 0,
+    "wins": 8
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 3226,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 18505,
+     "timeouts": 1,
+     "wins": 7
+    }
+   }
+  },
+  "qq": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4601,
+    "timeouts": 0,
+    "wins": 4
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 13954,
+     "timeouts": 0,
+     "wins": 5
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 19430,
+     "timeouts": 0,
+     "wins": 4
+    }
+   }
+  },
+  "rb": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 6
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 8888,
+    "timeouts": 0,
+    "wins": 6
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 10905,
+     "timeouts": 0,
+     "wins": 3
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 27871,
+     "timeouts": 2,
+     "wins": 5
+    }
+   }
+  },
+  "bk": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 7
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 1
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4410,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 25029,
+     "timeouts": 0,
+     "wins": 1
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 23260,
+     "timeouts": 0,
+     "wins": 2
+    }
+   }
+  },
+  "bn": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 1
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3861,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 14514,
+     "timeouts": 0,
+     "wins": 1
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 16445,
+     "timeouts": 0,
+     "wins": 1
+    }
+   }
+  },
+  "kr": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 13054,
+    "timeouts": 0,
+    "wins": 5
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 20621,
+     "timeouts": 1,
+     "wins": 6
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 37421,
+     "timeouts": 2,
+     "wins": 6
+    }
+   }
+  },
+  "nr": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 7
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 7513,
+    "timeouts": 0,
+    "wins": 3
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 7646,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 28014,
+     "timeouts": 3,
+     "wins": 6
+    }
+   }
+  },
+  "pk": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 6
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3186,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 4628,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 23747,
+     "timeouts": 1,
+     "wins": 1
+    }
+   }
+  },
+  "pn": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 1
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3617,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 3546,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 18373,
+     "timeouts": 1,
+     "wins": 0
+    }
+   }
+  },
+  "qk": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 3,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 5001,
+    "timeouts": 0,
+    "wins": 4
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 5199,
+     "timeouts": 0,
+     "wins": 6
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 24519,
+     "timeouts": 1,
+     "wins": 6
+    }
+   }
+  },
+  "qn": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4055,
+    "timeouts": 0,
+    "wins": 6
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 15786,
+     "timeouts": 0,
+     "wins": 7
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 20604,
+     "timeouts": 0,
+     "wins": 7
+    }
+   }
+  },
+  "rr": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 13365,
+    "timeouts": 0,
+    "wins": 4
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 44640,
+     "timeouts": 8,
+     "wins": 5
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 44640,
+     "timeouts": 8,
+     "wins": 5
+    }
+   }
+  },
+  "bb": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4784,
+    "timeouts": 0,
+    "wins": 4
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 25153,
+     "timeouts": 3,
+     "wins": 5
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 22736,
+     "timeouts": 0,
+     "wins": 7
+    }
+   }
+  },
+  "kp": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 2977,
+    "timeouts": 0,
+    "wins": 8
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 6253,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 23172,
+     "timeouts": 1,
+     "wins": 8
+    }
+   }
+  },
+  "kq": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 5496,
+    "timeouts": 0,
+    "wins": 4
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 4946,
+     "timeouts": 0,
+     "wins": 4
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 19747,
+     "timeouts": 0,
+     "wins": 5
+    }
+   }
+  },
+  "np": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3213,
+    "timeouts": 0,
+    "wins": 8
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 3641,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 15414,
+     "timeouts": 1,
+     "wins": 8
+    }
+   }
+  },
+  "nq": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 1
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4282,
+    "timeouts": 0,
+    "wins": 2
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 20825,
+     "timeouts": 0,
+     "wins": 3
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 22237,
+     "timeouts": 0,
+     "wins": 3
+    }
+   }
+  },
+  "pb": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 4096,
+    "timeouts": 0,
+    "wins": 0
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 7180,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 14762,
+     "timeouts": 0,
+     "wins": 1
+    }
+   }
+  },
+  "qb": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 3976,
+    "timeouts": 0,
+    "wins": 8
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 17037,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 17767,
+     "timeouts": 1,
+     "wins": 7
+    }
+   }
+  },
+  "rp": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 6
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 7900,
+    "timeouts": 0,
+    "wins": 5
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 29756,
+     "timeouts": 2,
+     "wins": 7
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 38994,
+     "timeouts": 3,
+     "wins": 6
+    }
+   }
+  },
+  "rq": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "patient",
+    "timeouts": 0,
+    "wins": 7
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 0
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 8246,
+    "timeouts": 0,
+    "wins": 1
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 7383,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 28203,
+     "timeouts": 2,
+     "wins": 2
+    }
+   }
+  },
+  "br": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 3,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 7465,
+    "timeouts": 0,
+    "wins": 2
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 12651,
+     "timeouts": 0,
+     "wins": 5
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 33168,
+     "timeouts": 3,
+     "wins": 6
+    }
+   }
+  },
+  "kk": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 6
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 9073,
+    "timeouts": 0,
+    "wins": 3
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 25263,
+     "timeouts": 2,
+     "wins": 7
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 32438,
+     "timeouts": 4,
+     "wins": 5
+    }
+   }
+  },
+  "kn": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 6179,
+    "timeouts": 0,
+    "wins": 3
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 22226,
+     "timeouts": 1,
+     "wins": 1
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 24201,
+     "timeouts": 1,
+     "wins": 2
+    }
+   }
+  },
+  "nk": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 6554,
+    "timeouts": 0,
+    "wins": 2
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 27045,
+     "timeouts": 2,
+     "wins": 4
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 24652,
+     "timeouts": 2,
+     "wins": 3
+    }
+   }
+  },
+  "nn": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 5366,
+    "timeouts": 0,
+    "wins": 2
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 17909,
+     "timeouts": 1,
+     "wins": 6
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 21294,
+     "timeouts": 2,
+     "wins": 5
+    }
+   }
+  },
+  "pr": {
+   "best": {
+    "played": 8,
+    "skill": 0.9,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 2,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 0
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 2
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 7601,
+    "timeouts": 0,
+    "wins": 2
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 30518,
+     "timeouts": 1,
+     "wins": 2
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 38443,
+     "timeouts": 3,
+     "wins": 2
+    }
+   }
+  },
+  "qr": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 2,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 1,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 7260,
+    "timeouts": 0,
+    "wins": 6
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 6473,
+     "timeouts": 0,
+     "wins": 8
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 28051,
+     "timeouts": 2,
+     "wins": 7
+    }
+   }
+  },
+  "rk": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 1
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 2
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 6
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 4
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 10348,
+    "timeouts": 0,
+    "wins": 4
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 11395,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 41665,
+     "timeouts": 6,
+     "wins": 2
+    }
+   }
+  },
+  "rn": {
+   "best": {
+    "played": 8,
+    "skill": 0.6,
+    "style": "duelist",
+    "timeouts": 0,
+    "wins": 8
+   },
+   "configs": [
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 5
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 4
+    },
+    {
+     "played": 8,
+     "skill": 0.6,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 3
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "duelist",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "patient",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "aggressive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "defensive",
+     "timeouts": 0,
+     "wins": 8
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "evasive",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "ability",
+     "timeouts": 0,
+     "wins": 7
+    },
+    {
+     "played": 8,
+     "skill": 0.9,
+     "style": "balanced",
+     "timeouts": 0,
+     "wins": 8
+    }
+   ],
+   "mirror": {
+    "played": 8,
+    "ticks": 9493,
+    "timeouts": 0,
+    "wins": 3
+   },
+   "skilled": {
+    "duelist": {
+     "played": 8,
+     "ticks": 8461,
+     "timeouts": 0,
+     "wins": 0
+    },
+    "patient": {
+     "played": 8,
+     "ticks": 21693,
+     "timeouts": 2,
+     "wins": 0
+    }
+   }
+  }
+ },
+ "n": 8,
+ "seed": 1000,
+ "tuning": "balance-v1:c8d3224861885f1d"
+}

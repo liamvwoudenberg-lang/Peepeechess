@@ -25,6 +25,8 @@ signal battle_finished(result: Dictionary)
 signal battle_started(request: Dictionary)
 
 const Codec := preload("res://contracts/codec.gd")
+const CombatVfx := preload("res://combat/presentation/vfx/combat_vfx.gd")
+const AUDIO_SCRIPT := "res://combat/audio/combat_audio.gd"
 
 @export var mode: Mode = Mode.AUTHORITY
 ## false = no meshes, cameras, HUD or input: a dedicated-server style headless arena.
@@ -36,6 +38,10 @@ var sim: CombatSimulation
 var hud: CombatHud
 var cameras: Array[ThirdPersonCamera] = []
 var seats: Dictionary = {}
+## Presentation-only feedback layers (null without presentation): CombatVfx (sparks, trails, hitstop, camera feedback)
+## and, when the audio module exists, CombatAudio.
+var vfx: Node3D = null
+var audio: Node = null
 
 var _codec = null
 var _visuals: StoneArenaVisuals = null
@@ -200,9 +206,19 @@ func _process(_delta: float) -> void:
 func _on_event(event: Dictionary) -> void:
 	if hud != null:
 		hud.on_event(event)
-	var kind: String = event["type"]
+	if vfx != null and is_instance_valid(vfx):
+		vfx.on_event(event)  # also drives hitstop, hit reactions and camera feedback
+	else:
+		_fallback_shake(event)
+	# Offline, CombatAudio listens to the simulation itself; online (PRESENTATION) events arrive only through here.
+	# CombatAudio de-duplicates by eventId, so forwarding is always safe.
+	if audio != null and is_instance_valid(audio) and mode == Mode.PRESENTATION and audio.has_method("on_event"):
+		audio.on_event(event)
+
+
+func _fallback_shake(event: Dictionary) -> void:
 	var shake := 0.0
-	match kind:
+	match String(event["type"]):
 		"hit":
 			shake = 0.08 + minf(float(event["damage"]) / 120.0, 0.25)
 		"guardbreak":
@@ -222,6 +238,10 @@ func _on_finished(result: Dictionary) -> void:
 		var reasons := {"knockout": "Knockout", "timeout_hp": "Time - more health remaining", "timeout_tie": "Time - tie goes to the defender", "double_knockout": "Double knockout - defender holds"}
 		var who := "%s (%s)" % [FighterRoster.display_name(winner.role), "White" if winner.color == "w" else "Black"] if winner != null else "?"
 		hud.show_result("%s wins\n%s\n(attacker HP %d, defender HP %d)" % [who, reasons.get(result["reason"], result["reason"]), int(result["attackerHp"]), int(result["defenderHp"])])
+	if vfx != null and is_instance_valid(vfx):
+		vfx.on_result(result)  # winner victory pose / loser defeat pose / finish camera
+	if audio != null and is_instance_valid(audio) and mode == Mode.PRESENTATION and audio.has_method("on_battle_finished"):
+		audio.on_battle_finished(result)
 	battle_finished.emit(result)
 	_release_mouse()
 
@@ -285,6 +305,7 @@ func _build_presentation(request: Dictionary) -> void:
 			add_child(cam)
 		cam.bind(f, sim.opponent_of(f))
 		cameras.append(cam)
+	_build_feedback_layers(viewers)
 
 	_ais.clear()
 	_inputs.clear()
@@ -315,6 +336,33 @@ func _build_presentation(request: Dictionary) -> void:
 
 signal rematch_requested
 signal menu_requested
+
+
+## VFX (always) and audio (when the module is present) for this battle. Both are presentation only.
+func _build_feedback_layers(viewers: Array) -> void:
+	CombatVfx.configure_from_args()
+	vfx = CombatVfx.new()
+	vfx.name = "CombatVfx"
+	add_child(vfx)
+	vfx.setup(sim, CharacterModel.prefer_lod1)
+	for i in sim.fighters.size():
+		vfx.register_model(sim.fighters[i].player_id, _fighter_visuals[i])
+	vfx.cameras = cameras.duplicate()
+	if audio == null and (ResourceLoader.exists(AUDIO_SCRIPT) or FileAccess.file_exists(AUDIO_SCRIPT)):
+		var script = load(AUDIO_SCRIPT)
+		if script != null:
+			audio = script.new()
+	if audio != null:
+		if audio.get_parent() == null:
+			add_child(audio)
+		if audio.has_method("setup"):
+			audio.setup(self, sim)
+		# Victory/defeat sting from the viewer's perspective: the first human, else the online seat.
+		var viewer_id := _net_local_id if _net_local_id != "" else (String(viewers[0]) if not viewers.is_empty() and seats.get(viewers[0], {}).get("type", "") == "human" else "")
+		if "local_player_id" in audio:
+			audio.local_player_id = viewer_id
+		if hud != null and audio.has_method("attach_ui"):
+			audio.attach_ui(hud)
 
 
 func _submit_ignore_result(packet: Dictionary) -> void:
@@ -373,6 +421,12 @@ func _clear_presentation() -> void:
 	if hud != null and is_instance_valid(hud):
 		_discard(hud)
 	hud = null
+	if vfx != null and is_instance_valid(vfx):
+		_discard(vfx)
+	vfx = null
+	# The audio node is reused between battles (its voice pools are expensive to rebuild); it is silenced here.
+	if audio != null and is_instance_valid(audio) and audio.has_method("setup"):
+		audio.setup(self, null)
 	if _split_layer != null and is_instance_valid(_split_layer):
 		_discard(_split_layer)
 	_split_layer = null

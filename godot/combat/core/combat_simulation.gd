@@ -51,12 +51,26 @@ var _tick_count: int = 0
 
 # ---- lifecycle -----------------------------------------------------------------------------
 ## Starts a battle. Returns {"ok": true} or {"ok": false, "code": ProtocolError code, "message": ...}.
-func start(req: Dictionary) -> Dictionary:
+##
+## `options` (all optional, default = strict v1 behaviour):
+##   "allow_experimental_roles": true  - lets a King (role "k", ability "royal-counter") fight. The v1 BattleRequest
+##       schema forbids "k" as a Combatant role, so the schema check runs on a COPY whose king combatants carry
+##       the placeholder role "q"; everything else (every other field, the seat rules, stats.role == role) is
+##       validated unchanged on the real request. Nothing but the king role is relaxed. Intended for the offline
+##       arena, tests and tools; a v1 server must not pass it (it never receives king requests under v1).
+func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 	if phase == Phase.COUNTDOWN or phase == Phase.ACTIVE:
 		return _error("WRONG_PHASE", "a battle is already running")
 	if _codec == null:
 		_codec = Codec.new()
-	if not _codec.valid("BattleRequest", req):
+	var experimental := bool(options.get("allow_experimental_roles", false))
+	var checked := req
+	if experimental and typeof(req.get("attacker")) == TYPE_DICTIONARY and typeof(req.get("defender")) == TYPE_DICTIONARY:
+		checked = req.duplicate(true)
+		for seat in ["attacker", "defender"]:
+			if typeof(checked[seat]) == TYPE_DICTIONARY and checked[seat].get("role", "") == "k":
+				checked[seat]["role"] = "q"
+	if not _codec.valid("BattleRequest", checked):
 		return _error("INVALID_PAYLOAD", "BattleRequest failed schema validation")
 	var attacker_data: Dictionary = req["attacker"]
 	var defender_data: Dictionary = req["defender"]
@@ -77,6 +91,7 @@ func start(req: Dictionary) -> Dictionary:
 	for data in [attacker_data, defender_data]:
 		var is_white: bool = data["color"] == "w"
 		var fighter := FighterController.new()
+		fighter.allow_experimental = experimental
 		add_child(fighter)
 		var problem := fighter.setup(data,
 				Vector3(0.0, 0.0, -CombatConstants.SPAWN_DISTANCE if is_white else CombatConstants.SPAWN_DISTANCE),
@@ -286,6 +301,8 @@ func _resolves_now(d: FighterController, a: FighterController) -> bool:
 		return true
 	if d.sm.parry_window_open() and d.faces_toward(a.global_position, float(d.profile["parry_arc_deg"])):
 		return true
+	if d.sm.counter_window_open() and d.faces_toward(a.global_position, float(d.ability.definition["counter_arc_deg"])):
+		return true
 	return d.sm.guard_up() and d.faces_toward(a.global_position, float(d.profile["block_arc_deg"]))
 
 
@@ -315,7 +332,16 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		_emit("dodge", a, d, 0)
 		return
 
-	# 2. Perfect parry: the press landed inside the window and the attacker is in front.
+	# 2. Royal Counter (King): a frontal hit inside the counter window is negated, the attacker is staggered and
+	# the King ripostes (an ordinary attack through this same path). Reported as a "parry" event (contract enum).
+	if d.sm.counter_window_open() and d.faces_toward(a.global_position, float(d.ability.definition["counter_arc_deg"])):
+		a.sm.enter_staggered(int(d.ability.definition["counter_stagger_ticks"]), "parried")
+		a.add_knockback(-away_from_attacker, 0.6)
+		d.sm.on_counter_success(a)
+		_emit("parry", a, d, 0)
+		return
+
+	# 3. Perfect parry: the press landed inside the window and the attacker is in front.
 	if d.sm.parry_window_open() and d.faces_toward(a.global_position, float(d.profile["parry_arc_deg"])):
 		a.sm.enter_staggered(int(d.profile["parry_stagger_ticks"]), "parried")
 		a.add_knockback(-away_from_attacker, 0.6)
@@ -324,7 +350,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		_emit("parry", a, d, 0)
 		return
 
-	# 3. Block: absorbs a frontal hit for stamina; not enough stamina breaks the guard.
+	# 4. Block: absorbs a frontal hit for stamina; not enough stamina breaks the guard.
 	if d.sm.guard_up() and d.faces_toward(a.global_position, float(d.profile["block_arc_deg"])):
 		var guard_cost := float(raw) * atk.guard_cost_mult * float(d.profile["block_cost_mult"])
 		if d.stamina.can_afford(guard_cost):
@@ -339,7 +365,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 			_defeat_if_dead(d)
 		return
 
-	# 4. Clean hit.
+	# 5. Clean hit.
 	var dealt := d.health.apply_damage(_after_armor(d, raw))
 	d.add_knockback(away_from_attacker, atk.knockback_m)
 	_emit("hit", a, d, dealt)
@@ -432,7 +458,8 @@ func _finish(outcome: String, reason: String) -> void:
 
 # ---- snapshot ------------------------------------------------------------------------------
 ## CombatSnapshot (contract v1). Presentation data only - never a checkpoint of hidden state.
-func snapshot() -> Dictionary:
+## `include_events` false skips the event copy (bots and tools that only need fighter state each tick).
+func snapshot(include_events: bool = true) -> Dictionary:
 	if request.is_empty():
 		return {}
 	return {
@@ -443,7 +470,7 @@ func snapshot() -> Dictionary:
 		"countdownTicksRemaining": countdown_remaining,
 		"durationTicksRemaining": duration_remaining,
 		"fighters": [fighters[0].snapshot(), fighters[1].snapshot()],
-		"events": recent_events.duplicate(true),
+		"events": recent_events.duplicate(true) if include_events else [],
 		"result": result.duplicate(true) if phase == Phase.FINISHED else null,
 	}
 

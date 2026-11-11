@@ -158,6 +158,7 @@ func _process(delta: float) -> void:
 		_timer_label.text = str(remaining)
 		_center_label.text = "FIGHT" if sim.duration_remaining > CombatConstants.DURATION_TICKS - 50 else ""
 	for p in _panels:
+		p.step(delta)
 		p.queue_redraw()
 
 
@@ -165,6 +166,32 @@ func _process(delta: float) -> void:
 class _BarPanel extends Control:
 	var hud: CombatHud
 	var side: int = 0
+	## Health "ghost" (the chunk just lost, drains after a short delay) and a white flash when health drops.
+	var ghost: float = 1.0
+	var _ghost_delay: float = 0.0
+	var _flash: float = 0.0
+	var _last_hp: int = -1
+	var _time: float = 0.0
+
+	func step(delta: float) -> void:
+		_time += delta
+		var sim: CombatSimulation = hud.sim
+		if sim == null or sim.fighters.size() < 2 or sim.fighters[side] == null:
+			return
+		var f: FighterController = sim.fighters[side]
+		var hp: int = f.health.current
+		var ratio: float = f.health.ratio()
+		if _last_hp < 0 or hp > _last_hp:
+			ghost = ratio  # first frame / rematch / healing: no ghost
+		elif hp < _last_hp:
+			_ghost_delay = 0.45
+			_flash = 1.0
+		_last_hp = hp
+		_flash = maxf(0.0, _flash - delta * 5.0)
+		if _ghost_delay > 0.0:
+			_ghost_delay -= delta
+		elif ghost > ratio:
+			ghost = maxf(ratio, ghost - delta * 0.55)
 
 	func _draw() -> void:
 		var sim: CombatSimulation = hud.sim
@@ -177,9 +204,14 @@ class _BarPanel extends Control:
 		var title := "%s  (%s)" % [FighterRoster.display_name(f.role), "White" if f.color == "w" else "Black"]
 		var tag: String = hud._names.get(f.player_id, "")
 		draw_string(font, Vector2(x, 24), title + ("   " + tag if tag != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, w, 20, Color(1, 1, 1))
-		_bar(Vector2(x, 34), Vector2(w, 20), f.health.ratio(), Color(0.8, 0.14, 0.14), "%d / %d" % [f.health.current, f.health.maximum], font)
-		var stam_color := Color(0.95, 0.75, 0.2) if not f.stamina.exhausted else Color(0.55, 0.35, 0.1)
+		_hp_bar(Vector2(x, 34), Vector2(w, 20), f, font)
+		var pulse := 0.5 + 0.5 * sin(_time * 10.0)
+		var stam_color := Color(0.95, 0.75, 0.2) if not f.stamina.exhausted else Color(0.55, 0.3 + 0.1 * pulse, 0.1)
 		_bar(Vector2(x, 60), Vector2(w * 0.8, 12), f.stamina.ratio(), stam_color, "", font)
+		if f.stamina.exhausted:
+			draw_string(font, Vector2(x + 6, 70), "EXHAUSTED", HORIZONTAL_ALIGNMENT_LEFT, w * 0.8, 11, Color(1, 0.8, 0.6, 0.6 + 0.4 * pulse))
+		if f.sm.parry_window_open():
+			draw_string(font, Vector2(x + w - 70, 24), "PARRY", HORIZONTAL_ALIGNMENT_RIGHT, 70, 18, Color(1.0, 0.85, 0.3))
 		var cd := f.ability.cooldown_remaining
 		var total := maxi(1, f.ability.cooldown_total)
 		var ready := cd == 0
@@ -191,6 +223,15 @@ class _BarPanel extends Control:
 		draw_string(font, Vector2(x, 106), "%s: %s" % [ability_name, label], HORIZONTAL_ALIGNMENT_LEFT, w, 14, Color(0.9, 0.9, 0.9))
 		if f.sm.last_denied != "" and f.local_tick - f.sm.last_denied_tick < 45:
 			draw_string(font, Vector2(x + w * 0.82, 72), "no %s" % f.sm.last_denied, HORIZONTAL_ALIGNMENT_LEFT, 120, 14, Color(1, 0.5, 0.4))
+
+	func _hp_bar(pos: Vector2, dim: Vector2, f: FighterController, font: Font) -> void:
+		var ratio := clampf(f.health.ratio(), 0.0, 1.0)
+		draw_rect(Rect2(pos, dim), Color(0, 0, 0, 0.6))
+		if ghost > ratio:
+			draw_rect(Rect2(pos + Vector2(dim.x * ratio, 0), Vector2(dim.x * (clampf(ghost, 0.0, 1.0) - ratio), dim.y)), Color(0.95, 0.85, 0.7, 0.85))
+		draw_rect(Rect2(pos, Vector2(dim.x * ratio, dim.y)), Color(0.8, 0.14, 0.14).lerp(Color(1, 1, 1), _flash * 0.7))
+		draw_rect(Rect2(pos, dim), Color(1, 1, 1, 0.5), false, 1.5)
+		draw_string(font, pos + Vector2(8, dim.y - 5), "%d / %d" % [f.health.current, f.health.maximum], HORIZONTAL_ALIGNMENT_LEFT, dim.x, 14, Color(1, 1, 1))
 
 	func _bar(pos: Vector2, dim: Vector2, ratio: float, color: Color, text: String, font: Font) -> void:
 		draw_rect(Rect2(pos, dim), Color(0, 0, 0, 0.6))

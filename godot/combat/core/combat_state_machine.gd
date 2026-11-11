@@ -81,6 +81,18 @@ func parry_window_open() -> bool:
 	return state == S.PARRYING and not parry_succeeded and state_ticks < parry_window
 
 
+## Royal Counter stance (King): committed, armoured, slow. True for the whole stance (wind-up + counter window),
+## false during the whiff recovery and once a counter has been triggered (the riposte is an ordinary attack).
+func counter_stance() -> bool:
+	return state == S.ABILITY_CASTING and attack == null and cast_kind == "counter" \
+			and state_ticks < int(f.ability.definition["counter_end"])
+
+
+## The frontal-hit-negating part of the stance: ticks [counter_start, counter_end) of the cast.
+func counter_window_open() -> bool:
+	return counter_stance() and state_ticks >= int(f.ability.definition["counter_start"])
+
+
 func guard_up() -> bool:
 	return state == S.BLOCKING and state_ticks >= CombatConstants.BLOCK_RAISE_TICKS
 
@@ -92,6 +104,8 @@ func attack_active() -> bool:
 
 func has_armor() -> bool:
 	if state == S.ABILITY_CASTING and attack == null:
+		if cast_kind == "counter":
+			return counter_stance()  # armoured through wind-up and window; the whiff recovery is wide open
 		return true  # Last Stand shout cannot be interrupted by ordinary hits
 	return attack != null and attack.has_armor_at(state_ticks, attack_total)
 
@@ -215,6 +229,8 @@ func _finish_attack() -> void:
 
 
 func _tick_cast() -> void:
+	if cast_kind == "counter" and state_ticks == int(f.ability.definition["counter_end"]):
+		f.queue_event("whiff")  # the window closed with nothing to counter: the King is now recovering
 	if state_ticks >= cast_total:
 		_enter(S.IDLE)
 		_tick_free()
@@ -393,6 +409,24 @@ func on_parry_success() -> void:
 	parry_succeeded = true
 	parry_total = mini(parry_total, state_ticks + 10)
 	riposte_ticks = int(f.profile["riposte_ticks"])
+
+
+## Royal Counter triggered by `attacker`: the King snaps to face them and ripostes with the ability attack
+## (an ordinary AttackDefinition resolved through the normal hit path, boosted by the profile's riposte_mult).
+func on_counter_success(attacker: FighterController) -> void:
+	var def := AttackLibrary.ability_attack(f.role, f.ability.ability_id)
+	if def == null:
+		return
+	var to := CombatConstants.flat(attacker.global_position - f.global_position)
+	if to.length_squared() > 0.000001:
+		f.yaw = CombatConstants.yaw_of(to)
+	attack = def
+	attack_total = def.total_ticks(f.stats, f.ability.attack_speed_mult())
+	combo_index = -1
+	cast_kind = "attack"
+	riposte_ticks = attack_total + 2
+	_enter(S.ABILITY_CASTING)
+	f.hitbox.begin_swing()
 
 
 # --------------------------------------------------------------------------------------------

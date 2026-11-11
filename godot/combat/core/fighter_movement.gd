@@ -12,6 +12,9 @@ extends RefCounted
 
 const S := CombatConstants.State
 
+## Defaults == the Pawn/Knight movement profile (balance_v1.json "accel", "turn_free", ...). Every fighter now reads its
+## own profile keys; these constants stay as the documented baseline and for the client predictor, which should read
+## the profile too (FighterProfile.for_role(role)) to predict Bishop/Rook/Queen/King exactly.
 const TURN_FREE := 0.30           # rad per tick (~1000 deg/s)
 const TURN_LOCKED := 0.45
 const TURN_ATTACK_STARTUP := 0.07
@@ -52,16 +55,20 @@ func tick(f: FighterController, intent: FighterIntent, opponent: FighterControll
 		S.BLOCKING:
 			target = wish * base_speed * float(f.profile["block_move_mult"])
 		S.PARRYING:
-			target = wish * base_speed * PARRY_STEER
+			target = wish * base_speed * float(f.profile["parry_steer"])
 		S.ATTACKING, S.ABILITY_CASTING:
-			if sm.attack != null:
+			if sm.attack == null:
+				if sm.counter_stance():
+					# Royal Counter: the King plants himself - slow shuffle only while the stance holds.
+					target = wish * base_speed * float(f.ability.definition["stance_move_mult"])
+			else:
 				var forward := sm.attack.forward_speed(sm.state_ticks, sm.attack_total)
 				if forward > 0.0:
 					target = CombatConstants.heading(f.yaw) * forward
 					forced = true
 				else:
 					var in_startup := sm.attack_phase() == AttackDefinition.Phase.STARTUP
-					target = wish * base_speed * (ATTACK_STEER_STARTUP if in_startup else ATTACK_STEER_OTHER)
+					target = wish * base_speed * float(f.profile["attack_steer_startup" if in_startup else "attack_steer_other"])
 		S.DODGING:
 			target = sm.dodge_dir * _dodge_speed(f)
 			forced = true
@@ -71,7 +78,7 @@ func tick(f: FighterController, intent: FighterIntent, opponent: FighterControll
 	if forced:
 		planar = target
 	else:
-		var rate := ACCEL if target.length_squared() > 0.0001 else DECEL
+		var rate := float(f.profile["accel" if target.length_squared() > 0.0001 else "decel"])
 		planar = planar.move_toward(target, rate * CombatConstants.DT)
 
 	var motion := (planar + f.knock_velocity) * CombatConstants.DT
@@ -97,20 +104,23 @@ func tick(f: FighterController, intent: FighterIntent, opponent: FighterControll
 
 func _update_facing(f: FighterController, intent: FighterIntent, opponent: FighterController) -> void:
 	var sm := f.sm
-	var rate := TURN_FREE
+	var rate := float(f.profile["turn_free"])
 	var locked := intent.lock_target and opponent != null and opponent.health.is_alive()
 	match sm.state:
 		S.DODGING, S.STAGGERED, S.DEFEATED:
 			return
 		S.ATTACKING, S.ABILITY_CASTING:
 			if sm.attack == null:
-				return
-			if sm.attack_phase() != AttackDefinition.Phase.STARTUP:
+				if not sm.counter_stance():
+					return
+				rate *= float(f.ability.definition["stance_turn_mult"])  # slow aim adjustment during the stance
+			elif sm.attack_phase() != AttackDefinition.Phase.STARTUP:
 				return  # the swing is committed once it leaves startup
-			rate = TURN_ATTACK_STARTUP_LOCKED if locked else TURN_ATTACK_STARTUP
+			else:
+				rate = float(f.profile["turn_attack_startup_locked" if locked else "turn_attack_startup"])
 		_:
 			if locked:
-				rate = TURN_LOCKED
+				rate = float(f.profile["turn_locked"])
 
 	var desired := intent.yaw
 	if locked:

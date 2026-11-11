@@ -16,12 +16,16 @@ const SUITES: Dictionary = {
 	"endings": "res://combat/tests/test_endings.gd",
 	"adapter": "res://combat/tests/test_adapter.gd",
 	"roles": "res://combat/tests/test_roles.gd",
+	"balance": "res://combat/tests/test_balance.gd",
+	"king": "res://combat/tests/test_king.gd",
+	"matchups": "res://combat/tests/test_matchups.gd",
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",
 	"audio": "res://combat/tests/test_audio.gd",
 	"touch": "res://combat/tests/test_touch.gd",
 	"assets": "res://combat/tests/test_assets.gd",
+	"polish": "res://combat/tests/test_polish.gd",
 	"soak": "res://combat/tests/test_soak.gd",
 }
 
