@@ -27,6 +27,8 @@ var _cooldown: int = 0
 var _block_left: int = 0
 ## walker: steer back toward the middle when farther than this from the arena centre (pillars sit at 4.8).
 var leash: float = 5.0
+## fighter: multiplies the pause between attacks (>1 makes fights last longer; used by long-fight network tests).
+var cooldown_scale: float = 1.0
 
 
 func _init(p_mode: String = "idle", seed_value: int = 1) -> void:
@@ -86,7 +88,7 @@ func _fight(client, tick: int, me: Dictionary, opp: Dictionary, to_opp: Vector3)
 		move = side * (1.0 if (tick / 40) % 2 == 0 else -1.0) * 0.5
 		if _cooldown <= 0 and String(me["state"]) in ["Idle", "Moving"]:
 			client.press("light" if rng.randf() < 0.85 else "heavy")
-			_cooldown = rng.randi_range(26, 60)
+			_cooldown = int(float(rng.randi_range(26, 60)) * cooldown_scale)
 		elif not opp.is_empty() and String(opp["state"]) == "Attacking" and rng.randf() < 0.05:
 			_block_left = rng.randi_range(20, 40)
 	_cooldown -= 1

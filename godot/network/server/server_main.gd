@@ -37,7 +37,7 @@ func run() -> void:
 		return
 	if options.has("run-seconds"):
 		deadline = Time.get_ticks_msec() + int(options["run-seconds"]) * 1000
-	print("SERVER_READY protocol=peepeechess-enet-v1 port=", port_text, " roles=", Server.Room.supported_roles())
+	print("SERVER_READY protocol=peepeechess-enet-v1 port=", port_text, " roles=", Server.Room.supported_roles(), " tuning=", Server.Room.Balance.stamp())
 func _process(_delta: float) -> bool:
 	if deadline > 0 and Time.get_ticks_msec() >= deadline:
 		quit(0)

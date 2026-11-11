@@ -22,9 +22,13 @@ var client: OnlineChessClient
 var battle_id = ""
 var input_scheme = "kb1"
 var touch_enabled = false
-var _host: SubViewport
+var _host: Node
+## For a world presentation (BattleWorld/pit): mounted after `start_battle` (the arena is already a child of the host), unmounted
+## just before the arena is freed. `host` may be any Node (a SubViewport in the lobby, an ArenaMount Node3D in the pit world).
+signal arena_mounted(arena: CombatArena)
+signal arena_unmounted
 
-func setup(network_client: OnlineChessClient, host: SubViewport) -> void:
+func setup(network_client: OnlineChessClient, host: Node) -> void:
 	client = network_client
 	_host = host
 	client.combat_received.connect(apply_snapshot)
@@ -62,6 +66,7 @@ func sync(frame: Dictionary) -> void:
 		source.mouse_look = input_scheme == "kb1"
 		# Input lives in the application's viewport; the arena viewport only draws.
 		add_child(source)
+		arena_mounted.emit(arena)
 	if source != null:
 		source.net_client = arena.net_client
 		source.enabled = client.authenticated and frame.state.phase == "combat" and not touch_enabled
@@ -94,6 +99,7 @@ func stop() -> void:
 		source.queue_free()
 		source = null
 	if arena != null:
+		arena_unmounted.emit()
 		arena.stop_battle()
 		_host.remove_child(arena)
 		arena.queue_free()

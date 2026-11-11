@@ -59,6 +59,8 @@ func start(request: Dictionary) -> Dictionary:
 		seats[fighter.player_id] = {
 			"last_input_tick": sim.server_tick, "disconnected_since": -1, "max_claim": -1,
 			"rtt_samples": [], "rtt_override_ms": -1.0, "grace": 0,
+			"fresh_this_tick": false, "gap": 0, "max_gap": 0, "starved_ticks": 0, "ticks": 0, "grace_sum": 0, "rtt_ms_max": 0.0,
+			"rtt_ms_sum": 0.0, "rtt_ms_n": 0, "accepted": 0, "stale": 0,
 		}
 	if not sim.finished.is_connected(_on_finished):
 		sim.finished.connect(_on_finished)
@@ -70,6 +72,7 @@ func start(request: Dictionary) -> Dictionary:
 func set_seat_rtt_ms(player_id: String, rtt_ms: float) -> void:
 	if seats.has(player_id):
 		seats[player_id]["rtt_override_ms"] = rtt_ms
+		seats[player_id]["rtt_ms_max"] = maxf(float(seats[player_id]["rtt_ms_max"]), rtt_ms)
 
 
 func set_seat_connected(player_id: String, connected: bool) -> void:
@@ -128,6 +131,7 @@ func receive_input(player_id: String, packet: Dictionary) -> Dictionary:
 		match code:
 			"STALE_INPUT":
 				counters["stale"] += 1
+				seat["stale"] += 1
 			"INVALID_PAYLOAD":
 				counters["invalid"] += 1
 			"FORBIDDEN":
@@ -137,9 +141,11 @@ func receive_input(player_id: String, packet: Dictionary) -> Dictionary:
 		input_rejected.emit(player_id, code)
 		return reply
 	counters["accepted"] += 1
+	seat["accepted"] += 1
 	var arrival := applied_tick()
 	seat["last_input_tick"] = arrival
 	seat["last_client_tick"] = int(packet["clientTick"])
+	seat["fresh_this_tick"] = true
 	_sample_rtt(seat, arrival, int(packet["clientTick"]))
 	record.append({"t": arrival, "k": "in", "p": player_id, "packet": packet.duplicate(true)})
 	return reply
@@ -199,12 +205,53 @@ func step() -> void:
 			sim.set_hit_grace(player_id, g)
 			record.append({"t": applied_tick(), "k": "grace", "p": player_id, "g": g})
 	sim.step_tick()
+	_account_inputs()
 	if not sim.is_running():
 		snapshot_ready.emit(sim.snapshot())  # terminal snapshot carries the result
 		return
 	if (sim.server_tick - _start_tick) % SNAPSHOT_EVERY_TICKS == 0:
 		snapshot_ready.emit(sim.snapshot())
 	_check_abandonment()
+
+
+## Per-seat delivery bookkeeping for operators/tests: a tick on which no NEW CombatInput had been accepted for a seat is a
+## "starved" tick (the simulation then reuses the seat's last intent: lost, late or reordered packets cost responsiveness,
+## never correctness). Pure counters; nothing here feeds back into the simulation.
+func _account_inputs() -> void:
+	if sim.phase == CombatSimulation.Phase.COUNTDOWN:
+		return
+	for player_id in seats:
+		var seat: Dictionary = seats[player_id]
+		seat["ticks"] += 1
+		seat["grace_sum"] += int(seat["grace"])
+		if float(seat["rtt_override_ms"]) >= 0.0:
+			seat["rtt_ms_sum"] += float(seat["rtt_override_ms"])
+			seat["rtt_ms_n"] += 1
+		if bool(seat["fresh_this_tick"]):
+			seat["gap"] = 0
+		else:
+			seat["gap"] += 1
+			seat["starved_ticks"] += 1
+			seat["max_gap"] = maxi(int(seat["max_gap"]), int(seat["gap"]))
+		seat["fresh_this_tick"] = false
+
+
+## Snapshot of the delivery counters (see _account_inputs) plus the host's admission counters. JSON-safe.
+func diagnostics() -> Dictionary:
+	var out_seats := {}
+	for player_id in seats:
+		var seat: Dictionary = seats[player_id]
+		var n := maxi(1, int(seat["ticks"]))
+		out_seats[player_id] = {
+			"accepted": int(seat["accepted"]), "stale": int(seat["stale"]),
+			"live_ticks": int(seat["ticks"]), "starved_ticks": int(seat["starved_ticks"]), "max_gap_ticks": int(seat["max_gap"]),
+			"starved_ratio": snappedf(float(seat["starved_ticks"]) / float(n), 0.0001),
+			"mean_grace_ticks": snappedf(float(seat["grace_sum"]) / float(n), 0.001),
+			"rtt_ms_mean": snappedf(float(seat["rtt_ms_sum"]) / float(maxi(1, int(seat["rtt_ms_n"]))), 0.1),
+			"rtt_ms_max": snappedf(float(seat["rtt_ms_max"]), 0.1),
+		}
+	return {"counters": counters.duplicate(), "seats": out_seats, "aborted": aborted, "abort_reason": abort_reason,
+			"server_tick": sim.server_tick, "start_tick": _start_tick}
 
 
 func _check_abandonment() -> void:

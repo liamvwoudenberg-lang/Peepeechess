@@ -30,6 +30,9 @@ static func run(h, tree: SceneTree) -> void:
 	print("    role  latency   loss  n    mean     p95      max     hard_snaps")
 	await _networked(h, tree)
 	await _networked_buff(h, tree)
+	print("  networked prediction error in a MELEE (two scripted fighters strafing, attacking and pushing each other), 1500 live ticks:")
+	print("    pair  latency   n    mean     p95      max     hard_snaps  catch-ups(max m)")
+	await _melee(h, tree)
 
 
 # ---- scripted inputs --------------------------------------------------------------------------------
@@ -282,3 +285,28 @@ static func _networked_buff(h, tree: SceneTree) -> void:
 		h.check(mean < 0.012, "mean correction while buffed %.4f m < 0.012 m" % mean)
 		h.check(c.max_correction < 0.3 and c.stats["hard_snaps"] == 0, "no snap, worst correction %.4f m" % c.max_correction)
 		net.dispose()
+
+
+## Two scripted fighters in contact: the opponent's body position (stale by the snapshot age) matters for separation, and attacks
+## interrupt prediction, so this is the realistic error. Not exact, but small and never snapping.
+static func _melee(h, tree: SceneTree) -> void:
+	for pair in [["p", "n"], ["q", "r"]]:
+		for l in Latency.LATENCIES:
+			h.begin("networked prediction in melee: %s vs %s at %s" % [pair[0], pair[1], l["name"]])
+			var net = await Latency._new(tree, Latency._cfg(l, {"seed": 7}), pair, "roles-melee", 11)
+			for f in net.sim.fighters:
+				f.health.maximum = 5000
+				f.health.current = 5000
+			net.bots[0] = Bot.new("fighter", 21)
+			net.bots[1] = Bot.new("fighter", 22)
+			net.run(LIVE + 1500)
+			var c = net.clients[0]
+			var mean: float = Latency._mean(c.corrections)
+			var catch_max := 0.0
+			for v in c.catchups:
+				catch_max = maxf(catch_max, v)
+			print("    %s-%s  %-7s  %3d  %.4f   %.4f   %.4f   %d           %d (%.3f)" % [pair[0], pair[1], l["name"], c.corrections.size(), mean, Latency._p95(c.corrections), c.max_correction, c.stats["hard_snaps"], c.catchups.size(), catch_max])
+			h.check(c.corrections.size() > 30, "enough corrections measured (%d)" % c.corrections.size())
+			h.check(mean < 0.06, "mean melee correction %.4f m < 0.06 m" % mean)
+			h.check(c.max_correction < 0.8 and c.stats["hard_snaps"] == 0, "no snap, worst melee correction %.4f m < 0.8 m" % c.max_correction)
+			net.dispose()
