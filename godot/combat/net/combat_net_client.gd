@@ -53,10 +53,14 @@ var active: bool = true
 # statistics (read by tests)
 var stats := {"applied": 0, "dropped_old": 0, "rejected": 0, "events": 0, "events_deduped": 0, "sent": 0,
 		"actions_predicted": 0, "actions_confirmed": 0, "actions_rejected": 0, "actions_expired": 0,
-		"hard_snaps": 0}
+		"hard_snaps": 0, "resume_catchups": 0}
 var last_correction: float = 0.0
 var max_correction: float = 0.0
 var corrections: Array[float] = []
+## Distance covered when prediction RESUMES after a stretch of showing server state (attack, dodge, stagger ...): the
+## fighter catches up to where its own inputs have since taken it. That is not a misprediction, so it is kept out of
+## `corrections` (which measures only continuous predict-vs-authority disagreement) and reported separately.
+var catchups: Array[float] = []
 
 var _codec = Codec.new()
 var _move := Vector2.ZERO
@@ -69,6 +73,7 @@ var _offset_window: Array[float] = []
 var _seen_events: Dictionary = {}
 var _unacked: Array[Dictionary] = []
 var _pred: Dictionary = {}
+var _pred_trusted := false     # true while `_pred` came from consecutive predicted reconciliations
 var _render_offset := Vector3.ZERO
 var _display_pos := Vector3.ZERO
 var _display_init := false
@@ -276,16 +281,15 @@ func _reconcile() -> void:
 	var server_pos := Vector3(p["x"], 0.0, p["z"])
 	if not _prediction_active():
 		# Not predicting (action in progress, countdown, defeated ...): show server state.
+		_pred_trusted = false
 		if not _pred.is_empty():
 			_render_offset = (_pred["pos"] + _render_offset) - server_pos
 			if _render_offset.length() > HARD_SNAP_ABOVE:
 				_render_offset = Vector3.ZERO
-		_pred = Predictor.initial(server_pos, float(me["yawRadians"]), float(me["stamina"]))
-		_pred["vel"] = Vector3(me["velocity"]["x"], 0.0, me["velocity"]["z"])
+		_pred = _rebase_state(me, server_pos)
 		_update_display()
 		return
-	var rebased := Predictor.initial(server_pos, float(me["yawRadians"]), float(me["stamina"]))
-	rebased["vel"] = Vector3(me["velocity"]["x"], 0.0, me["velocity"]["z"])
+	var rebased := _rebase_state(me, server_pos)
 	var opp := _opponent_state()
 	var countdown_over := int(latest["countdownTicksRemaining"]) == 0
 	for entry in _unacked:
@@ -294,15 +298,37 @@ func _reconcile() -> void:
 	if not _pred.is_empty():
 		var error: Vector3 = _pred["pos"] - rebased["pos"]
 		last_correction = error.length()
-		max_correction = maxf(max_correction, last_correction)
-		corrections.append(last_correction)
+		if _pred_trusted:
+			max_correction = maxf(max_correction, last_correction)
+			corrections.append(last_correction)
+		else:
+			stats["resume_catchups"] += 1
+			catchups.append(last_correction)
 		if last_correction > HARD_SNAP_ABOVE:
 			_render_offset = Vector3.ZERO
 			stats["hard_snaps"] += 1
 		else:
 			_render_offset += error
 	_pred = rebased
+	_pred_trusted = true
 	_update_display()
+
+
+## Predictor state restarted from an authoritative fighter snapshot. The v1 snapshot carries no "exhausted" or buff
+## flag, so both are inferred: exhaustion lasts from stamina 0 until 15% of the maximum (StaminaComponent), and the
+## remaining movement-buff time follows from the ability cooldown (see MovementPredictor).
+func _rebase_state(me: Dictionary, server_pos: Vector3) -> Dictionary:
+	var stamina := float(me["stamina"])
+	var state := Predictor.initial(server_pos, float(me["yawRadians"]), stamina, Predictor.buff_remaining(params, int(me["cooldownTicks"])))
+	state["vel"] = Vector3(me["velocity"]["x"], 0.0, me["velocity"]["z"])
+	var was_exhausted: bool = bool(_pred.get("exhausted", false)) and stamina < _max_stamina() * StaminaComponent.RECOVER_FRACTION
+	state["exhausted"] = was_exhausted or stamina <= 0.0
+	return state
+
+
+func _max_stamina() -> float:
+	var me: Dictionary = request["attacker"] if request["attacker"]["playerId"] == local_id else request["defender"]
+	return float(me["stats"]["maxStamina"])
 
 
 func _update_display() -> void:
