@@ -10,9 +10,9 @@ const baseOptions = { serverId: "local-1", serverSecret: secret, endpoint };
 const control = { mode: "classic", ranked: true, initialMs: 600000, incrementMs: 0 };
 const admin = { authorization: "Bearer " + secret, "x-server-id": "local-1" };
 const fen = "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3";
-async function harness(filename = ":memory:", now = Date.now) {
+async function harness(filename = ":memory:", now = Date.now, reset = true) {
   const backend = await createNativeBackend({ ...baseOptions, filename, databaseUrl: process.env.NATIVE_TEST_DATABASE_URL, now });
-  if (process.env.NATIVE_TEST_DATABASE_URL) await backend.storage.transaction(async tx => { for (const table of ["native_tickets", "native_invites", "native_queue", "native_matches", "native_sessions", "native_stats", "native_accounts"]) await tx.run(`DELETE FROM ${table}`); });
+  if (process.env.NATIVE_TEST_DATABASE_URL && reset) await backend.storage.transaction(async tx => { for (const table of ["native_tickets", "native_invites", "native_queue", "native_matches", "native_sessions", "native_stats", "native_accounts"]) await tx.run(`DELETE FROM ${table}`); });
   await new Promise<void>(resolve => backend.server.listen(0, "127.0.0.1", resolve));
   const address = backend.server.address() as any, url = `http://127.0.0.1:${address.port}`;
   async function request(method: string, path: string, body?: unknown, token?: string, headers = {}) {
@@ -27,6 +27,7 @@ test("native accounts: server IDs, salted hashes, sessions, logout and strict ad
   const h = await harness(); try {
     const a = await h.register("alice"); assert.match(a.profile.playerId, /^[0-9a-f-]{36}$/); assert.equal(a.profile.classic.rating, 1200); assert.equal(a.profile.battle.games, 0);
     assert.equal((await h.request("GET", "/v1/me")).status, 401);
+    assert.equal((await h.request("GET", "/v1/me", undefined, undefined, { authorization: a.token })).status, 401);
     assert.equal((await h.request("POST", "/v1/auth/register", { username: "alice", displayName: "Hacker", password: "correct-horse-battery" })).status, 409);
     assert.equal((await h.request("POST", "/v1/auth/login", { username: "alice", password: "wrong-password" })).status, 401);
     const login = await h.request("POST", "/v1/auth/login", { username: "ALICE", password: "correct-horse-battery" }); assert.equal(login.data.profile.playerId, a.profile.playerId);
@@ -99,10 +100,10 @@ test("native queue ranked window expands; allocation timeout stays unrated", asy
   } finally { await h.close(); }
 });
 
-test("native persistence survives service reopen and session bearer remains valid", { skip: !!process.env.NATIVE_TEST_DATABASE_URL }, async () => {
+test("native persistence survives service reopen and session bearer remains valid", async () => {
   const dir = await mkdtemp(join(tmpdir(), "peepeechess-backend-")), filename = join(dir, "accounts.sqlite"); let h = await harness(filename);
   try {
-    const a = await h.register("alice"); await h.close(); h = await harness(filename);
+    const a = await h.register("alice"); await h.close(); h = await harness(filename, Date.now, false);
     const p = await h.request("GET", "/v1/me", undefined, a.token); assert.equal(p.status, 200); assert.equal(p.data.profile.playerId, a.profile.playerId);
     const login = await h.request("POST", "/v1/auth/login", { username: "alice", password: "correct-horse-battery" }); assert.equal(login.data.profile.playerId, a.profile.playerId);
   } finally { await h.close(); await rm(dir, { recursive: true }); }
@@ -151,4 +152,21 @@ test("native concurrent queue admissions never allocate an account twice", async
     const rooms = new Map(statuses.map(s => [s.data.status.allocation.matchId, s.data.status.allocation])); assert.equal(rooms.size, 2);
     const seats = [...rooms.values()].flatMap(a => [a.whitePlayerId, a.blackPlayerId]); assert.equal(new Set(seats).size, 4);
   } finally { await h.close(); }
+});
+
+test("PostgreSQL transactions serialize matchmaking and result writes across API replicas", { skip: !process.env.NATIVE_TEST_DATABASE_URL }, async () => {
+  const first = await harness(), second = await harness(":memory:", Date.now, false);
+  try {
+    const a = await first.register("alice"), b = await first.register("bravo");
+    await Promise.all([first.request("POST", "/v1/queue", control, a.token), second.request("POST", "/v1/queue", control, b.token)]);
+    const allocation = (await first.request("GET", "/v1/status", undefined, a.token)).data.status.allocation;
+    assert.ok(allocation); assert.equal((await second.request("GET", "/v1/status", undefined, b.token)).data.status.allocation.matchId, allocation.matchId);
+    const ticket = (await first.request("POST", "/v1/tickets", { matchId: allocation.matchId }, a.token)).data.ticket;
+    const redeems = await Promise.all([first.request("POST", "/internal/tickets/redeem", { ticket }, undefined, admin), second.request("POST", "/internal/tickets/redeem", { ticket }, undefined, admin)]);
+    assert.deepEqual(redeems.map(r => r.status).sort(), [200, 401]);
+    const report = { matchId: allocation.matchId, result: "draw", reason: "agreement", finalFen: fen, history: [] };
+    const results = await Promise.all([first.request("POST", "/internal/results", report, undefined, admin), second.request("POST", "/internal/results", report, undefined, admin)]);
+    assert.deepEqual(results.map(r => r.data.duplicate).sort(), [false, true]);
+    assert.equal((await second.request("GET", "/v1/me", undefined, a.token)).data.profile.classic.games, 1);
+  } finally { await first.close(); await second.close(); }
 });

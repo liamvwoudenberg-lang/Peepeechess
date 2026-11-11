@@ -39,14 +39,15 @@ export async function createNativeBackend(options: BackendOptions) {
   const wrap = (fn: (req: express.Request, res: express.Response) => Promise<unknown>) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
     Promise.resolve(fn(req, res)).then(value => { if (!res.headersSent) res.json({ schemaVersion: 1, ...value as object }); }).catch(next);
   };
-  const account = (req: express.Request) => service.authenticate(req.headers.authorization?.replace(/^Bearer /, ""));
+  const account = (req: express.Request) => service.authenticate(/^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization || "")?.[1]);
   const limitNumber = (value: unknown) => {
     if (value === undefined) return 20;
     if (typeof value !== "string" || !/^\d{1,3}$/.test(value) || +value < 1 || +value > 100) throw new ApiError(400, "INVALID_PAYLOAD", "Limit must be 1–100.");
     return +value;
   };
   const serverAuth = (req: express.Request) => {
-    const secret = req.headers.authorization?.replace(/^Bearer /, "") || "";
+    const authorization = req.headers.authorization || "";
+    const secret = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
     if (req.headers["x-server-id"] !== options.serverId || Buffer.byteLength(secret) !== Buffer.byteLength(options.serverSecret) || !timingSafeEqual(Buffer.from(secret), Buffer.from(options.serverSecret))) throw new ApiError(401, "UNAUTHENTICATED", "Dedicated server authentication required.");
     return options.serverId;
   };
