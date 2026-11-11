@@ -5,7 +5,8 @@ Pinned native runtime: **Godot 4.6.3 stable**, standard GDScript build, matching
 check. Compatibility renderer starts with OpenGL on Windows and OpenGL ES on
 Android to keep the initial project modest. No addons or .NET runtime required.
 
-Observed 2026-11-07 in this Linux environment:
+Foundation snapshot observed 2026-11-07 in this Linux environment (historical;
+see the native application export update below):
 
 | Tool | Observed result |
 | --- | --- |
@@ -17,9 +18,10 @@ Observed 2026-11-07 in this Linux environment:
 | Export templates | No templates found in the inspected Godot installation/user template locations; no export was attempted |
 | Existing Android project | Capacitor, Gradle 8.11.1 wrapper, AGP 8.7.2, minSdk 23 and compile/targetSdk 35; source configuration inspected, APK not built |
 
-Godot is available; Android native/export prerequisites are incomplete. Do not
-claim a Windows executable or Godot APK is validated. Blender availability does
-not imply generated assets/rigs already exist. Node 24 is needed for the legacy
+At the foundation stage Android export prerequisites were incomplete. The native
+application task has since installed them and produced actual Windows, APK and
+test-signed AAB artifacts; see [current export instructions](../application/EXPORTS.md).
+A successful export does not imply a physical device test. Node 24 is needed for the legacy
 SQLite tests. Use installed tools as the current user.
 
 ## Local checks
@@ -78,3 +80,21 @@ requirements in the export PR. Do not commit local SDK paths or keystores.
 This task deliberately adds no unverified export preset or release pipeline.
 CI validates the current web build and native foundation; Windows/Android export,
 signing, store distribution and device runs are subsequent release gates.
+
+## Native application update — 2026-11-11
+
+Accounts and matchmaking use Node24, PostgreSQL17 (production) or SQLite
+(local tests), plus the existing Godot dedicated server. Run `npm run test:backend`
+and `npm run test:application` in addition to the checks above. PostgreSQL
+transactions also run in CI against a disposable PostgreSQL17 service.
+
+Official4.6.3 templates, Android SDK36/build-tools36.1.0 and a full Temurin
+JDK21 are now installed in ignored task-local directories. APK signing uses a
+disposable debug key; the actual AAB is test-signed, not a store release.
+See EXPORTS.md for checksums, installation and production-signing requirements.
+
+The combat owner tests inject logical control positions into a physical-coordinate
+API. `godot/tests/run_combat_tests.gd` gives those fixtures an unscaled window
+without modifying their assertions. `test_scaled_touch.gd` separately verifies
+physical touch coordinates under the application's real canvas scaling. Both
+run from the existing `npm test` combat harness. Fixed60FPS is still test-only.

@@ -388,7 +388,7 @@ func _connect_allocation(launch: Dictionary) -> void:
 	# A provisioned account already owns a seat. Ready still requires a deliberate tap.
 	_button(info.get_parent(), "Ready to play", func(): client.command("ready"))
 	notices.text = "Connecting to your " + ("ranked" if allocation.ranked else "unranked") + " " + str(allocation.mode).capitalize() + " match…"
-	client.call("connect_account_server", str(endpoint.host), int(endpoint.port), str(launch.ticket), ca_file, bool(endpoint.get("insecureLocal", false)))
+	client.call("connect_account_server", str(endpoint.host), int(endpoint.port), str(launch.ticket), ca_file, bool(endpoint.get("insecureLocal", false)), str(endpoint.get("serverName", endpoint.host)))
 	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
 
 func _show_online_result(value: Dictionary) -> void:

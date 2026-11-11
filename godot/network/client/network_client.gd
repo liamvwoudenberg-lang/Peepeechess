@@ -28,6 +28,7 @@ var pending: Dictionary = {}
 var address = "localhost"
 var port = 2456
 var ca_path = ""
+var certificate_hostname = ""
 var insecure_local = false
 var auto_reconnect = true
 var _wanted = false
@@ -50,25 +51,26 @@ func _ready() -> void:
 	transport.transport_error.connect(func(_message): _lost())
 	transport.packet_received.connect(_packet)
 
-func connect_server(hostname: String, server_port: int = 2456, certificate_authority: String = "", allow_loopback_plaintext: bool = false) -> Error:
+func connect_server(hostname: String, server_port: int = 2456, certificate_authority: String = "", allow_loopback_plaintext: bool = false, expected_certificate_hostname: String = "") -> Error:
 	address = hostname
 	port = server_port
 	ca_path = certificate_authority
+	certificate_hostname = expected_certificate_hostname
 	insecure_local = allow_loopback_plaintext
 	_wanted = true
 	_retry_until = Time.get_ticks_msec() + 15000
 	return _connect()
 
-func connect_account_server(hostname: String, server_port: int, ticket: String, certificate_authority: String = "", allow_loopback_plaintext: bool = false) -> void:
+func connect_account_server(hostname: String, server_port: int, ticket: String, certificate_authority: String = "", allow_loopback_plaintext: bool = false, expected_certificate_hostname: String = "") -> void:
 	disconnect_server(true)
 	_account_ticket = ticket
-	connect_server(hostname, server_port, certificate_authority, allow_loopback_plaintext)
+	connect_server(hostname, server_port, certificate_authority, allow_loopback_plaintext, expected_certificate_hostname)
 
 func _connect() -> Error:
 	authenticated = false
 	_started = Time.get_ticks_msec()
 	_last_receive = _started
-	var result = transport.connect_to(address, port, ca_path, insecure_local)
+	var result = transport.connect_to(address, port, ca_path, insecure_local, certificate_hostname)
 	if result != OK:
 		_wanted = false
 		protocol_error.emit(_error("INTERNAL", "Unable to create a secure ENet connection: " + error_string(result)))
