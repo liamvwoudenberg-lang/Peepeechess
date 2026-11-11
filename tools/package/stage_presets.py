@@ -4,7 +4,8 @@
 Windows : the repository's own godot/export_presets.cfg "Windows Desktop" preset (the project's canonical
           release configuration) when present; otherwise the fallback preset in tools/package/export_presets.cfg.
           Only packaging-related fields are adjusted: product name for TARGET=arena and the include_filter, which
-          must contain *.json and *.wav so runtime-read data files are packed (a missing entry is added, never removed).
+          must contain *.json and *.wav so runtime-read data files are packed (a missing entry is added, never removed),
+          and the console wrapper, which is enabled for release exports too (Start-with-console.bat needs it).
 Linux   : tools/package/export_presets.cfg (the repository has no Linux preset).
 
 usage: stage_presets.py REPO_CFG TOOLS_CFG OUT_CFG TITLE [auto|repo|tools] [extra include glob ...]
@@ -78,6 +79,9 @@ def main():
             sys.exit("godot/export_presets.cfg has no 'Windows Desktop' preset")
     if win is None:
         win, used = find_preset(tools, "Windows Desktop"), "tools"
+    # export_console_wrapper=1 means "debug exports only"; the package ships Peepeechess.console.exe for bug reports.
+    if win:
+        set_key(win[1], "debug/export_console_wrapper", "2")
     lin = find_preset(tools, "Linux")
     if win is None or lin is None:
         sys.exit("missing Windows Desktop or Linux preset")
