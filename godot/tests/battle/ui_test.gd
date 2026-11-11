@@ -17,6 +17,8 @@ func run() -> void:
 	root.add_child(app)
 	await process_frame
 	await process_frame
+	# Legacy overlay path regression test; the pit-world path is covered by suite "world".
+	app.set_world_mode(false)
 	expect(not app.game is BattleChessMatch, "Classic remains the default")
 	for use_3d in [false, true]:
 		app._switch_mode(1)

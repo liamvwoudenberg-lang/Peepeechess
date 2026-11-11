@@ -9,6 +9,7 @@ const BattleMatch = preload("res://chess/battle_match.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const Flow = preload("res://app/battle_flow.gd")
 const Board3D = preload("res://boards/board_3d.gd")
+const Bridge = preload("res://world/battle_bridge.gd")
 var mode_select: OptionButton
 var mode_label: Label
 var copy_notation_button: Button
@@ -24,6 +25,12 @@ var fight_button: Button
 var battle_cancel: Button
 var battle_return: Button
 var battle_resign: Button
+var battle_skip: Button
+var battle_bg: ColorRect
+## pit world: both chess views are the same 3D board (top-down camera = "2D"); battles are presented
+## inside it (trapdoor, chamber, ladder). false = the original Board2D + full-screen combat overlay.
+var use_world = true
+var bridge: WorldBattleBridge
 var _return_tween: Tween
 var game = Match.new()
 var interaction = Interaction.new(game)
@@ -412,13 +419,23 @@ func _claim_draw() -> void:
 	else:
 		game.claim_draw(_claims[0], intended)
 
+func set_world_mode(value: bool) -> void:
+	use_world = value
+	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if value else Control.MOUSE_FILTER_STOP
+	battle_bg.visible = not value
+	if is_instance_valid(battle_flow) and is_instance_valid(battle_adapter):
+		_configure_battle_flow(battle_adapter)
+	set_view(_view_3d)
+
 func set_view(use_3d: bool) -> void:
 	_view_3d = use_3d
 	AppSettings.preferred_3d = use_3d
 	AppSettings.save_preferences()
-	board_2d.visible = not use_3d
-	board_3d.visible = use_3d
-	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if use_3d else SubViewport.UPDATE_DISABLED
+	# World mode: the 3D board is always the board; "2D" is its straight-down camera.
+	board_2d.visible = not use_3d and not use_world
+	board_3d.visible = use_3d or use_world
+	board_3d.set_top_down(use_world and not use_3d)
+	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if board_3d.visible else SubViewport.UPDATE_DISABLED
 	view_button.text = "2D board" if use_3d else "3D board"
 	_message("3D · Right-drag to orbit, scroll to zoom. Touch: swipe / pinch." if use_3d else "2D · Click or drag to move. Touch: tap or drag.")
 
@@ -437,7 +454,7 @@ func _time_text(ms: int) -> String:
 
 func _process(_delta: float) -> void:
 	game.poll_clock()
-	if is_instance_valid(battle_flow) and battle_flow.phase == "countdown":
+	if not use_world and is_instance_valid(battle_flow) and battle_flow.phase == "countdown":
 		var snapshot = game.combat_snapshot()
 		if not snapshot.is_empty():
 			battle_title.text = "Battle begins in %d" % ceili(snapshot.countdownTicksRemaining / 60.0)
@@ -492,6 +509,8 @@ func _message(text: String) -> void:
 		message_label.text = text
 
 func _exit_tree() -> void:
+	if is_instance_valid(bridge):
+		bridge.dispose()
 	if is_instance_valid(battle_flow):
 		battle_flow.dispose()
 	interaction.dispose()
@@ -504,6 +523,7 @@ func _build_battle_overlay() -> void:
 	bg.color = Color("101f27")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	battle_overlay.add_child(bg)
+	battle_bg = bg
 	combat_container = SubViewportContainer.new()
 	combat_container.stretch = true
 	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -529,7 +549,7 @@ func _build_battle_overlay() -> void:
 	battle_detail = _label(column, "", 16)
 	battle_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	battle_detail.custom_minimum_size.x = 280
-	fight_button = _button(column, "Start battle", func(): battle_flow.confirm_capture())
+	fight_button = _button(column, "Start battle", _start_battle_pressed)
 	battle_cancel = _button(column, "Cancel capture", _cancel_battle_transition)
 	battle_return = _button(column, "Return to board", func(): battle_flow.return_to_board())
 	var header = MarginContainer.new()
@@ -546,6 +566,10 @@ func _build_battle_overlay() -> void:
 	footer.offset_top = -64
 	battle_overlay.add_child(footer)
 	battle_resign = _button(footer, "Acting player resigns", _confirm_resign)
+	battle_skip = _button(footer, "Skip animation", func(): if is_instance_valid(bridge): bridge.skip_to_board(), "Commit the result now and return to the board.")
+	battle_skip.hide()
+	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if use_world else Control.MOUSE_FILTER_STOP
+	battle_bg.visible = not use_world
 	battle_overlay.hide()
 
 func _switch_mode(index: int) -> void:
@@ -553,6 +577,10 @@ func _switch_mode(index: int) -> void:
 		_return_tween.kill()
 	if (index == 1) == (game is BattleChessMatch):
 		return
+	if is_instance_valid(bridge):
+		bridge.dispose()
+		bridge.queue_free()
+		bridge = null
 	if is_instance_valid(battle_flow):
 		battle_flow.dispose()
 		battle_flow.queue_free()
@@ -595,16 +623,27 @@ func _switch_mode(index: int) -> void:
 		_message("Battle C0: kings do not duel. Combat is unavailable in this build." if not battle_adapter.available() else "Battle C0 · captures trigger combat; chess is untimed.")
 
 func _configure_battle_flow(adapter: Node) -> void:
+	if is_instance_valid(bridge):
+		bridge.dispose()
+		bridge.queue_free()
+		bridge = null
 	if is_instance_valid(battle_flow):
 		battle_flow.dispose()
 		battle_flow.queue_free()
-	if is_instance_valid(battle_adapter):
+	if is_instance_valid(battle_adapter) and battle_adapter != adapter:
 		battle_adapter.queue_free()
 	battle_adapter = adapter
-	add_child(adapter)
+	if adapter.get_parent() == null:
+		add_child(adapter)
 	battle_flow = Flow.new()
 	add_child(battle_flow)
-	battle_flow.setup(game, adapter, combat_host)
+	# World mode: the arena is mounted inside the persistent 3D world, below the board.
+	battle_flow.setup(game, adapter, board_3d.world.chamber.arena_mount if use_world else combat_host)
+	if use_world:
+		bridge = Bridge.new()
+		add_child(bridge)
+		bridge.setup(battle_flow, adapter, board_3d.world)
+		bridge.presenting_changed.connect(_world_presenting_changed)
 	battle_flow.phase_changed.connect(_battle_phase)
 	battle_flow.preview_requested.connect(_capture_preview)
 	battle_flow.result_ready.connect(_battle_result)
@@ -621,7 +660,41 @@ func _capture_preview(request: Dictionary) -> void:
 		battle_detail.text += "\n\n" + readiness.error
 	fight_button.disabled = not readiness.ok
 
+func _start_battle_pressed() -> void:
+	if use_world and is_instance_valid(bridge):
+		var response = bridge.start_battle()
+		if not response.get("ok", false):
+			_message(str(response.get("error", "The battle could not start.")))
+		return
+	battle_flow.confirm_capture()
+
+func _world_presenting_changed(presenting: bool) -> void:
+	if is_instance_valid(battle_flow):
+		interaction.enabled = battle_flow.phase == "board" and not presenting
+
+func _battle_phase_world(value: String) -> void:
+	var presenting = is_instance_valid(bridge) and bridge.is_presenting()
+	interaction.enabled = value == "board" and not presenting
+	board_2d.set_process_input(false)
+	board_3d.set_process_input(value == "board")
+	battle_overlay.visible = value not in ["board", "returning"]
+	combat_container.visible = false
+	combat_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	battle_card.visible = value == "preview"
+	fight_button.visible = value == "preview"
+	battle_cancel.visible = value == "preview"
+	battle_cancel.text = "Cancel capture"
+	battle_return.visible = false
+	battle_resign.visible = value in ["countdown", "combat", "loading"]
+	battle_skip.visible = value == "aftermath"
+	battle_title.text = {"preview": "Capture preview", "loading": "The board opens…", "countdown": "Get ready", "combat": "Battle Chess · capture duel", "aftermath": "Battle result"}.get(value, "Battle Chess")
+	battle_title.visible = value == "preview"  # the combat HUD carries its own title/countdown
+
 func _battle_phase(value: String) -> void:
+	if use_world:
+		_battle_phase_world(value)
+		return
+	battle_title.visible = true
 	interaction.enabled = value == "board"
 	board_2d.set_process_input(value == "board")
 	board_3d.set_process_input(value == "board")
@@ -645,9 +718,13 @@ func _cancel_battle_transition() -> void:
 		battle_flow.interrupt("Loading canceled.")
 
 func _battle_result(value: Dictionary) -> void:
+	if use_world:
+		_message("%s wins the duel · %s." % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " ")])
 	battle_detail.text = "%s wins\n%s\n\nAttacker HP: %s\nDefender HP: %s" % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " "), value.attackerHp, value.defenderHp]
 
 func _animate_board_return() -> void:
+	if use_world:
+		return  # PitSequence already returned the camera and the winner
 	if _return_tween:
 		_return_tween.kill()
 	_return_tween = create_tween().set_parallel(true)

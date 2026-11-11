@@ -31,6 +31,11 @@ const Codec := preload("res://contracts/codec.gd")
 @export var presentation_enabled: bool = true
 ## Use the Blender-generated models when their GLBs exist; otherwise the procedural placeholder.
 @export var use_models: bool = true
+# --- BEGIN pit-world edit ---------------------------------------------------------------------
+## true = the arena is mounted inside the shared BattleWorld (godot/world/): no own WorldEnvironment,
+## lights restricted to the chamber render layers. Set before start_battle(). Default false = unchanged.
+@export var embedded: bool = false
+# --- END pit-world edit -----------------------------------------------------------------------
 
 var sim: CombatSimulation
 var hud: CombatHud
@@ -231,6 +236,7 @@ func _build_presentation(request: Dictionary) -> void:
 	if _visuals == null:
 		_visuals = StoneArenaVisuals.new()
 		_visuals.name = "ArenaVisuals"
+		_visuals.embedded = embedded  # pit-world edit
 		add_child(_visuals)
 		_visuals.build(CharacterModel.prefer_lod1)
 	for f in sim.fighters:
