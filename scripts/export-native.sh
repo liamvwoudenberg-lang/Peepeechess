@@ -12,7 +12,7 @@ export XDG_DATA_HOME="$RUNTIME/data"
 export XDG_CONFIG_HOME="$RUNTIME/config"
 export XDG_CACHE_HOME="$RUNTIME/cache"
 mkdir -p "$OUT" "$XDG_DATA_HOME/godot/export_templates" "$XDG_CONFIG_HOME/godot" "$XDG_CACHE_HOME"
-if [[ "$($GODOT --version)" != 4.6.3.stable.* ]]; then
+if [[ "$("$GODOT" --version)" != 4.6.3.stable.* ]]; then
   echo "Godot4.6.3 standard build is required." >&2; exit 2
 fi
 TEMPLATES="$TOOLS/godot/templates/4.6.3.stable"
@@ -47,6 +47,10 @@ debug_key() {
   export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
 }
 prepare_gradle() {
+  if [[ ! -x "$JAVA_SDK/bin/javac" ]]; then
+    echo "Android App Bundle compilation needs a full JDK17/21 (javac missing from JAVA_HOME=$JAVA_SDK). A JRE can sign an APK but cannot compile Java." >&2
+    return 2
+  fi
   mkdir -p "$ROOT/godot/android/build"
   if [[ ! -f "$ROOT/godot/android/build/build.gradle" ]]; then
     unzip -q "$TEMPLATES/android_source.zip" -d "$ROOT/godot/android/build"
