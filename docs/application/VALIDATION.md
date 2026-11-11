@@ -50,5 +50,21 @@ rendering, store publication, or public Internet deployment.
 
 ## Recorded run
 
-Pending execution on the integrated application branch. No passing result is
-implied until the command above completes successfully.
+On 2026-11-11, `node scripts/test-application.mjs` completed with exit code 0 on
+Linux using Node 24.22.1 and Godot 4.6.3 (`7d41c59c4`). The tested integration tree
+was `58fa240`, incorporating native application/backend work through `fb9d3bf`
+and Claude's combat/audio/mobile handoff `f8128cc`.
+
+All scenarios above passed: ranked Classic (4 plies), private Classic (4 plies),
+ranked Battle (12 plies, 4 real knockouts), terminal-result outbox recovery after
+account and dedicated server outages, active-match restart abort, and database
+reopen. Both independent clients agreed on final chess states and exact history;
+account ratings and mode-specific W/L/D matched the persisted records. The
+harness also confirmed all three completed records plus the abort survived the
+backend restart. Its Godot import and gameplay process logs contained no script,
+parse, or engine error diagnostics.
+
+The same harness had also completed successfully on the preceding application
+integration tree before the latest Claude handoff. This recorded run covers the
+SQLite account service; PostgreSQL-specific coverage is reported separately in
+[BACKEND.md](BACKEND.md).
