@@ -7,7 +7,8 @@ extends Node3D
 
 const W := preload("res://world/world_constants.gd")
 const Models := preload("res://boards/piece_meshes.gd")
-const LADDER_ASSET := "res://assets/world/ladder.glb"
+const LADDER_TOP := "res://assets/world/pit/ladder_top.glb"
+const LADDER_SEGMENT := "res://assets/world/pit/ladder_segment_2m.glb"
 const CAMERA_COLLISION_LAYER := 4  # CombatConstants.LAYER_CAMERA
 
 signal arena_mounted(arena: Node)
@@ -188,13 +189,10 @@ func apply_quality(value: String) -> void:
 func _build_ladder() -> void:
 	ladder = Node3D.new()
 	ladder.name = "Ladder"
+	# Origin = the board tile mid-plane above the hole, offset to the shaft's back wall.
 	ladder.position = Vector3(0, W.BOARD_DEPTH, W.LADDER_Z)
 	add_child(ladder)
-	if ResourceLoader.exists(LADDER_ASSET):
-		var packed = load(LADDER_ASSET)
-		if packed is PackedScene:
-			ladder.add_child(packed.instantiate())
-			uses_ladder_asset = true
+	uses_ladder_asset = _build_ladder_asset()
 	if not uses_ladder_asset:
 		var wood := Models.material(Color("6a4d30"))
 		var iron := Models.material(Color("3b3c40"), 0.6)
@@ -204,8 +202,27 @@ func _build_ladder() -> void:
 		var y := 0.25
 		while y < length - 0.1:
 			Models.box(ladder, Vector3(W.LADDER_HALF_WIDTH * 2, 0.035, 0.035), Vector3(0, -y, 0), iron)
-			y += 0.3
+			y += 0.25
 	ladder.visible = false
+
+
+## Generated ladder set (godot/assets/world/pit/): the top section (y -1..+0.75 around the rim) plus
+## 2 m segments stacked downwards until the foot is within a few cm of the arena floor.
+func _build_ladder_asset() -> bool:
+	if not (ResourceLoader.exists(LADDER_TOP) and ResourceLoader.exists(LADDER_SEGMENT)):
+		return false
+	var top = load(LADDER_TOP)
+	var segment = load(LADDER_SEGMENT)
+	if not (top is PackedScene and segment is PackedScene):
+		return false
+	ladder.add_child(top.instantiate())
+	var bottom := -1.0
+	while bottom > -(W.BOARD_DEPTH + 0.04) + 0.05:
+		var part: Node3D = segment.instantiate()
+		part.position = Vector3(0, bottom - 2.0, 0)
+		ladder.add_child(part)
+		bottom -= 2.0
+	return true
 
 
 ## 0 = stowed in the shaft, 1 = hanging to the floor. Unrolls downwards from the rim.
@@ -223,12 +240,22 @@ func ladder_deploy() -> float:
 
 ## World position of the climber's feet at height y on the ladder.
 func climb_position(y: float) -> Vector3:
-	return Vector3(0.0, y, W.LADDER_Z - 0.34)
+	return Vector3(0.0, y, W.LADDER_Z - 0.42)
 
 
 func _on_mount_child(node: Node) -> void:
 	if node.get("embedded") != null:
 		node.set("embedded", true)
-	if gate_simulation and node.has_method("set_physics_process"):
-		node.set_physics_process(false)
+	if gate_simulation:
+		# Node._ready() re-enables processing for scripts that define _physics_process, so the pause is
+		# applied when the battle starts (add_child and start_battle happen in the same call stack, before
+		# the next physics tick) and right away for arenas that are already running.
+		if node.has_signal("battle_started"):
+			node.connect("battle_started", func(_request: Dictionary): _gate(node))
+		_gate(node)
 	arena_mounted.emit(node)
+
+
+func _gate(node: Node) -> void:
+	if is_instance_valid(node) and node.has_method("set_physics_process"):
+		node.set_physics_process(false)

@@ -391,7 +391,7 @@ func _climb_stage(stage: int, visual: Node3D) -> void:
 		return
 	if stage == 1:
 		if visual.has_method("has_clip") and visual.call("has_clip", "climb"):
-			visual.call("play_clip", "climb", 1.0)
+			visual.call("play_clip", "climb", W.CLIMB_SPEED / W.LADDER_CLIP_SPEED)
 		else:
 			visual.call("play_clip", "walk", 0.5)  # fallback: walk clip, slowed, while the model rises
 	elif stage == 2:

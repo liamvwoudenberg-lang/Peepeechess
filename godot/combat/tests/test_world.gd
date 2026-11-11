@@ -22,6 +22,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _interruptions(h, tree)
 	await _repeat_leaks(h, tree)
 	await _top_down_view(h, tree)
+	await _single_camera(h, tree)
 	await _end_to_end(h, tree)
 
 
@@ -491,6 +492,53 @@ static func _top_down_view(h, tree: SceneTree) -> void:
 	await tree.process_frame
 
 
+# ---- one human seat: the rig follows the arena's single third-person camera -------------------------------------
+static func _single_camera(h, tree: SceneTree) -> void:
+	var fx := await _fixture(tree)
+	var world: BattleWorld = fx["world"]
+	var pit := world.pit
+	pit.require_arena = true
+	h.begin("world pit: single third-person camera (human vs AI seat) is followed by the rig")
+	var request := _capture_request(fx)
+	var arena: CombatArena = (load("res://combat/arena.tscn") as PackedScene).instantiate()
+	arena.configure_seats({request.attacker.playerId: {"type": "human", "scheme": "kb1"}, request.defender.playerId: {"type": "ai", "skill": 0.6}})
+	h.check(pit.begin(request), "begin")
+	arena.battle_finished.connect(func(result: Dictionary): pit.present_result(result))  # what the bridge does
+	world.chamber.arena_mount.add_child(arena)
+	h.check(arena.embedded, "embedded flag set on mount")
+	h.check(arena.start_battle(request)["ok"], "arena starts")
+	h.check(not arena.is_physics_processing(), "the started arena's simulation is paused until DROP")
+	pit.attach_arena(arena)
+	h.check(not arena.hud.visible, "HUD hidden before COMBAT")
+	var started_tick := arena.sim.server_tick
+	var frames := 0
+	var forced := false
+	var follow_error := 1e9
+	while frames < 3000 and not (forced and pit.is_idle()):
+		frames += 1
+		world.advance(DT)
+		await tree.process_frame
+		if pit.phase == PitSequence.Phase.TRAPDOOR_OPEN:
+			h.eq(arena.sim.server_tick, started_tick, "no simulation tick before the trapdoor is open")
+		if pit.phase == PitSequence.Phase.COMBAT and not forced:
+			forced = true
+			h.check(arena.hud.visible, "HUD visible in COMBAT")
+			h.check(arena.cameras.size() == 1 and world.rig.follow == arena.cameras[0].camera, "rig follows the single third-person camera")
+			follow_error = world.rig.camera.global_position.distance_to(arena.cameras[0].camera.global_position)
+			h.check(follow_error < 0.35, "rig camera sits on the followed camera (%.3f m)" % follow_error)
+			h.check(not arena.cameras[0].camera.current, "the arena camera is not the active one")
+			if pit.winner_index() < 0:
+				arena.sim.defender().health.apply_damage(100000)
+		if pit.phase == PitSequence.Phase.RETURN and is_instance_valid(arena) and arena.get_parent() != null and pit._return_ready_sent:
+			arena.stop_battle()
+			arena.get_parent().remove_child(arena)
+			arena.queue_free()
+	h.check(forced and pit.is_idle(), "sequence completed (%d frames, phase %s, forced %s, t %.2f)" % [frames, PHASES[pit.phase], str(forced), pit._time])
+	h.eq(Input.mouse_mode, Input.MOUSE_MODE_VISIBLE, "mouse released after the arena stopped")
+	fx["game"].cancel_pending()
+	await _free(fx, tree)
+
+
 # ---- end to end through the real flow, adapter and CombatArena ---------------------------------------------------
 static func _expected_fen(winner: String) -> String:
 	var ref := BattleRules.new()
@@ -544,6 +592,19 @@ static func _fight(h, tree: SceneTree, ctx: Dictionary, kill: String, label: Str
 			h.check(arena.global_position == Vector3.ZERO and arena.global_transform.basis.is_equal_approx(Basis.IDENTITY), label + ": arena at the world origin, unrotated, unscaled")
 			h.check(arena.hud != null and arena.hud.visible, label + ": combat HUD visible during COMBAT")
 			h.eq(world.rig.state, CameraRig.State.COMBAT_THIRD_PERSON, label + ": third-person camera")
+			h.eq(world.find_children("*", "WorldEnvironment", true, false).size(), 1, label + ": a single WorldEnvironment (the embedded arena adds none)")
+			var leaking := 0
+			for light in arena.find_children("*", "Light3D", true, false):
+				if light.light_cull_mask & W.LAYER_BOARD != 0:
+					leaking += 1
+			h.eq(leaking, 0, label + ": arena lights cannot light the chess board")
+			h.check(arena.embedded, label + ": arena was mounted with embedded=true")
+			var cameras_current := 0
+			for cam in world.get_viewport().find_children("*", "Camera3D", true, false):
+				if cam.current and cam.get_viewport() == world.get_viewport():
+					cameras_current += 1
+			h.eq(cameras_current, 1, label + ": exactly one current Camera3D in the shared world")
+			h.check(world.rig.camera.current, label + ": the rig camera is the active one")
 			var loser = arena.sim.defender() if kill == "defender" else arena.sim.attacker()
 			loser.health.apply_damage(100000)
 		if pit.is_idle() and app.battle_flow.phase == "board" and (forced or interrupt_in >= 0):

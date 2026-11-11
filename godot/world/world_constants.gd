@@ -19,8 +19,10 @@ const PLINTH_SIZE := Vector3(8.65, 0.38, 8.65)
 const PLINTH_CENTER := Vector3(0, -0.26, 0)
 const FRAME_SIZE := Vector3(8.8, 0.06, 8.8)
 const FRAME_CENTER := Vector3(0, -0.07, 0)
-const LADDER_Z := 0.38
-const LADDER_HALF_WIDTH := 0.2
+## Ladder plane offset from the shaft centre and rail half width (matches godot/assets/world/pit/ladder_*.glb).
+const LADDER_Z := 0.42
+const LADDER_HALF_WIDTH := 0.28
+const LADDER_CLIP_SPEED := 0.4167   # m/s the `climb` clip covers at speed 1.0
 ## Sim spawn points (CombatConstants.SPAWN_DISTANCE): white z=-2.6, black z=+2.6.
 const SPAWN_Z := 2.6
 
@@ -52,7 +54,7 @@ const RESOLVE_DEFEAT_TIME := 1.3     # loser plays its defeat, then dissolves
 const RESOLVE_DISSOLVE_TIME := 0.5
 const LADDER_DEPLOY_TIME := 0.6
 const CLIMB_WALK_SPEED := 2.2
-const CLIMB_SPEED := 2.0             # metres per second up the ladder
+const CLIMB_SPEED := 1.6             # metres per second up the ladder
 const CLIMB_EXIT_TIME := 0.5         # step from the ladder onto the tile
 const RETURN_MORPH_TIME := 0.45
 const TRAPDOOR_CLOSE_TIME := 0.7
