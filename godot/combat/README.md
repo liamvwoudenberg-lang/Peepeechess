@@ -14,18 +14,10 @@ godot --headless --path godot --editor --import              # once, so global c
 godot --headless --path godot --script res://combat/tests/test_runner.gd
 ```
 
-Controls (also shown in the menu and HUD). Project input maps are not touched; keys are read raw.
-
-| Action | P1 (keyboard + mouse) | P2 (keyboard) | Gamepad |
-| --- | --- | --- | --- |
-| Move (camera relative) | WASD | Arrows | Left stick |
-| Light / Heavy | LMB or F / RMB or G | J / K | X / Y |
-| Block (hold) / Parry | Q / E | U / I | LB / RB |
-| Dodge (direction held) | Space | L | A |
-| Ability | R | O | B |
-| Sprint | Shift | Ctrl | LT |
-| Lock-on / camera | Tab or MMB / mouse, Z X | P / `,` `.` | L3 / right stick |
-| Rematch / menu | Enter or F5 / Esc | | |
+Controls: see [CONTROLS.md](CONTROLS.md) (keyboard P1 / P2, DualShock 4 and Xbox pads, touch, menus, rebinding). Summary:
+WASD + mouse (P1), arrows + JKL (P2), or one or two gamepads (left stick move, Square light, Triangle / R2 heavy, L1 block,
+R1 parry, Cross dodge, Circle special, L2 sprint, L3 lock-on, right stick camera, Options pause). Bindings are rebindable
+(Settings -> Controls & controllers) and the hints in the menu and HUD are generated from them. Project input maps are not touched.
 
 ## Layout
 
@@ -105,7 +97,7 @@ signals `combat_snapshot`, `battle_finished`, `battle_started` (matches ARCHITEC
 
 ## Tests
 
-`godot/combat/tests/` (runner `test_runner.gd`): components, contracts/admission, input, movement, attacks, defense,
+`godot/combat/tests/` (runner `test_runner.gd`): components, contracts/admission, input, pads (controls: bindings, two-pad fight, hot-plug, board cursor, menu focus), movement, attacks, defense,
 abilities, endings, adapter, assets, roles, AI soak (incl. determinism), net, net_latency, net_arena. Every check goes through the real `CombatInput` channel.
 `tests/combat/combat.test.ts` runs import + suite + a headless arena run and fails on any `SCRIPT ERROR`/`Parse Error`/`ERROR:`.
 

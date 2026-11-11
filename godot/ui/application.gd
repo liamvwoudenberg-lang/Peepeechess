@@ -41,6 +41,7 @@ func _ready() -> void:
 	_build_theme()
 	_build_frame()
 	navigate("play")
+	PadUi.install(self, {"prefer": "content", "back": Callable(self, "_pad_back")})  # controller / keyboard focus (claude/pads-input)
 	if not Settings.token.is_empty():
 		_refresh_account()
 	if not Settings.result.is_empty():
@@ -167,6 +168,11 @@ func _build_frame() -> void:
 	notice = _label(column, "Your board. Your perspective. One shared game.", 14, MUTED)
 	_update_badge()
 
+## Circle on a controller: leave a sub-page for Play (PadUi calls this only when no dialog is open).
+func _pad_back() -> void:
+	if page != "play":
+		navigate("play")
+
 func navigate(target: String) -> void:
 	page = target if target in ["play", "profile", "history", "leaderboard", "settings", "account"] else "play"
 	_refresh_generation += 1
@@ -229,6 +235,9 @@ func _play_page() -> void:
 	if not online:
 		_button(setup, "Start local " + selected_mode.capitalize() + " Chess  →", start_local, true)
 		_label(setup, "Pass-and-play chess. Battle duels use two local control schemes; no account required.", 14, MUTED)
+		if selected_mode == "battle":  # claude/pads-input: who fights with what (change it in Settings -> Controls)
+			var seats = InputAssignment.shared()
+			_label(setup, "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
@@ -341,6 +350,8 @@ func _settings_page() -> void:
 	volume.custom_minimum_size = Vector2(250, 48)
 	volume.value_changed.connect(func(value): Settings.volume = value; Settings.save_preferences())
 	card.add_child(volume)
+	_label(card, "Controls", 18, GOLD)
+	_button(card, "Controls & controllers…", func(): ControlsScreen.open(self))  # claude/pads-input: bindings, P1/P2 devices, pad tuning
 	_label(card, "Account service URL", 18, GOLD)
 	api_edit = _field(card, "https://accounts.example.com")
 	api_edit.max_length = 200

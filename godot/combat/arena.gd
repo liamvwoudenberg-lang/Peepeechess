@@ -397,14 +397,9 @@ func _controls_hint(humans: Array[String]) -> String:
 		return "AI vs AI demonstration"
 	var lines: Array[String] = []
 	for i in humans.size():
-		var scheme: String = String(seats[humans[i]].get("scheme", "kb1"))
-		match scheme:
-			"kb1":
-				lines.append("P%d  WASD move · Shift sprint · LMB/F light · RMB/G heavy · Q hold block · E parry · Space dodge · R ability · Tab lock-on · mouse/Z,X camera" % (i + 1))
-			"kb2":
-				lines.append("P%d  Arrows move · Ctrl sprint · J light · K heavy · U hold block · I parry · L dodge · O ability · P lock-on · ,/. camera" % (i + 1))
-			_:
-				lines.append("P%d  Pad: stick move · X light · Y heavy · LB block · RB parry · A dodge · B ability · LT sprint · L3 lock" % (i + 1))
+		# Generated from the live bindings (combat/input/control_bindings.gd), so rebinding and the connected
+		# pad's own button names (Cross/Circle vs A/B) show up here.
+		lines.append("P%d  %s" % [i + 1, ControlBindings.shared().hint_text(String(seats[humans[i]].get("scheme", "kb1")))])
 	return "\n".join(lines)
 
 

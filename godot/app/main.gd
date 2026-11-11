@@ -80,6 +80,7 @@ func _ready() -> void:
 	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
 	board_2d.animation_enabled = AppSettings.animations
 	board_3d.animation_enabled = AppSettings.animations
+	PadUi.install(self, {"board": true, "scopes": ["battle_overlay"]})  # pad board cursor + menu focus (claude/pads-input)
 
 func _panel(color: Color, radius: int = 12) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
