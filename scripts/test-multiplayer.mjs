@@ -168,15 +168,21 @@ try {
   assert.equal(wrong.status, 0);
   const rejected = spawnSync(godot, ['--headless', '--path', 'godot', '--script', 'res://tests/network/tls_probe.gd', '--', `--port=${serverPort}`, `--ca=${wrongCert}`], { env: envFor('untrusted-client'), encoding: 'utf8', timeout: 10000 });
   assert.equal(rejected.status, 0, rejected.stdout + rejected.stderr);
-  assert.match(rejected.stdout, /PASS: incorrect CA never authenticated/);
+  assert.match(rejected.stdout, /PASS: untrusted server never authenticated/);
   assert.doesNotMatch(rejected.stdout + rejected.stderr, /SCRIPT ERROR|Parse Error|FAIL:/);
   const errorLines = (rejected.stdout + rejected.stderr).split('\n').filter(line => line.startsWith('ERROR:'));
   assert.ok(errorLines.every(line => line.startsWith('ERROR: TLS handshake error:')), rejected.stdout + rejected.stderr);
+  const wrongName = spawnSync(godot, ['--headless', '--path', 'godot', '--script', 'res://tests/network/tls_probe.gd', '--', `--port=${serverPort}`, `--ca=${cert}`, '--hostname=wrong.example'], { env: envFor('wrong-hostname-client'), encoding: 'utf8', timeout: 10000 });
+  assert.equal(wrongName.status, 0, wrongName.stdout + wrongName.stderr);
+  assert.match(wrongName.stdout, /PASS: untrusted server never authenticated/);
+  assert.doesNotMatch(wrongName.stdout + wrongName.stderr, /SCRIPT ERROR|Parse Error|FAIL:/);
+  assert.ok((wrongName.stdout + wrongName.stderr).split('\n').filter(line => line.startsWith('ERROR:')).every(line => line.startsWith('ERROR: TLS handshake error:')), wrongName.stdout + wrongName.stderr);
+  run('hostname-client', ['--script', 'res://tests/network/tls_probe.gd', '--', `--port=${serverPort}`, `--ca=${cert}`, '--hostname=localhost', '--expect-valid=true']);
   run('trusted-client', ['--script', 'res://tests/network/tls_probe.gd', '--', `--port=${serverPort}`, `--ca=${cert}`, '--expect-valid=true']);
   await pause(100);
   assert.doesNotMatch(server.log(), /SCRIPT ERROR|Parse Error|FAIL:/);
   assert.ok(server.log().split('\n').filter(line => line.startsWith('ERROR:')).every(line => line.startsWith('ERROR: TLS handshake error:')), server.log());
-  console.log('PASS ENet/DTLS trust: incorrect CA refused (expected TLS-handshake diagnostic)');
+  console.log('PASS ENet/DTLS trust: incorrect CA and hostname refused; IP dial with explicit DNS identity authenticated (expected negative TLS-handshake diagnostics)');
   console.log('PASS: authoritative ENet/DTLS multiplayer; physical Windows/Android crossplay NOT tested');
 } catch (error) {
   console.error(`Multiplayer failed. Diagnostic logs retained at ${directory}`);
