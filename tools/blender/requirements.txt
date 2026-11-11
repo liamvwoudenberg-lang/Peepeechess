@@ -1,0 +1,3 @@
+# Toolchain used to produce and verify the committed assets (Python 3.11 only: the bpy wheel is cp311).
+bpy==4.3.0
+numpy==1.26.4

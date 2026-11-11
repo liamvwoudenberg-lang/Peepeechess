@@ -4,6 +4,10 @@ Status: accepted foundation decision at `c0dfe92`. The native Classic slice
 now implements local rules, clocks and both board views; see
 [Classic implementation](../classic/CLASSIC.md). References below to the initial
 status scene describe the foundation baseline, not the current Classic client.
+Native dedicated multiplayer now uses the user-requested ENet/DTLS transport;
+see [decision 002](../network/ADR_ENET.md) and [startup/validation](../network/README.md).
+The HTTPS/WSS native proposal below records the foundation decision and is
+superseded for native clients; existing web transports remain intact.
 
 The existing web application is the working reference. The new Godot application
 lives in `godot/` and initially contains a runnable status scene and contract
@@ -48,8 +52,8 @@ flowchart LR
   Snapshot --> Android
 ```
 
-The new adapter is planned, not implemented. Existing protocols remain live
-code paths and do not yet exchange the new v1 payloads. Native/web crossplay
+The native adapter exchanges v1 payloads over ENet/DTLS. Existing web protocols remain live
+code paths and do not exchange that native protocol. Native/web crossplay
 requires explicit translation and server deployment, not just common JSON.
 
 ## Transport and hosting decision

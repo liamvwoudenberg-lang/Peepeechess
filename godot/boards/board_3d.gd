@@ -212,6 +212,9 @@ func square_at(point: Vector2) -> int:
 	return hit.collider.get_meta("square", -1) if not hit.is_empty() else -1
 
 func _gui_input(event: InputEvent) -> void:
+	# Touch has its own gesture path; avoid replaying its emulated mouse events.
+	if (event is InputEventMouseButton or event is InputEventMouseMotion) and event.device == -1:
+		return
 	if event is InputEventMouseButton:
 		if event.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			_orbiting = event.pressed

@@ -128,6 +128,8 @@ func _draw() -> void:
 		draw_string(_font, Vector2(rect.position.x - 17, rect.position.y + pitch * (rank + 0.5) + 5), str(rank + 1 if flipped else 8 - rank), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("a9bfc0"))
 
 func _pointer_press(point: Vector2) -> void:
+	if not interaction.enabled or not game.board_input_allowed():
+		return
 	grab_focus()
 	_pressed = true
 	_dragging = false
@@ -159,6 +161,9 @@ func _pointer_release(point: Vector2) -> void:
 	queue_redraw()
 
 func _gui_input(event: InputEvent) -> void:
+	# Touch has its own gesture path; avoid replaying its emulated mouse events.
+	if (event is InputEventMouseButton or event is InputEventMouseMotion) and event.device == -1:
+		return
 	if event is InputEventKey and event.pressed:
 		var cell = Interaction.cell(focused_square, flipped)
 		match event.keycode:

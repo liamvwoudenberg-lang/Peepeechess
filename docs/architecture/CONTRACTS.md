@@ -11,6 +11,9 @@ JSON Schema 2020-12. Concrete valid and invalid payloads:
 `godot/contracts/codec.gd`. `npm run test:contracts` checks the same corpus in
 both engines, then verifies Godot re-encoding in Node. These interfaces are
 committed integration targets, not a claim that legacy transports already use them.
+The native transport now consumes them through the additive
+[ENet/DTLS session protocol](../network/PROTOCOL.md); legacy web transports keep
+their existing protocols.
 
 ## Serialization and version policy
 
@@ -138,6 +141,9 @@ example consistency and existing engine outcomes, not a live adapter:
    clients deduplicate by battleId/eventId and discard older snapshots. The
    server retains/repeats recent events within the 256-event bound; events are
    cosmetic notifications, not a second source of damage or state changes.
+   actorPlayerId identifies the initiating attacker/ability user and
+   targetPlayerId the other fighter. For a parry/block event the actor is the
+   incoming attack's initiator, and the target is the defending fighter.
 7. Result winnerPlayerId equals the declared outcome's participant. Check battle
    ID, expectedRevision, frozen FEN, phase and trusted source; atomically resolve
    once. A duplicate result never removes another piece or increments ply twice.

@@ -1,4 +1,18 @@
-# Sovereign’s Gambit
+# Peepeechess
+
+## Native Godot application
+
+Open `godot/project.godot` with pinned Godot **4.6.3**. The native application starts with Classic/Battle selection, local play, account sign-in, ranked/unranked quick match and private invite codes. Each player independently chooses 2D or 3D. Settings, profiles, mode-specific statistics, match history, leaderboards and result screens wrap the existing authoritative gameplay. The legacy web game below remains available.
+
+- [Player guide](docs/application/PLAYER_GUIDE.md)
+- [Account backend and PostgreSQL setup](docs/application/BACKEND.md)
+- [Native Windows/Android builds and installation](docs/application/EXPORTS.md)
+- [Trust boundaries and integration](docs/application/ARCHITECTURE.md)
+- [Reproducible validation](docs/application/VALIDATION.md)
+
+Native online play needs **both** the persistent account API and the dedicated Godot ENet/DTLS server. The web/Vercel backend does not host UDP or share native accounts automatically. No production service deployment or physical Windows–Android crossplay verification is implied by these source changes.
+
+## Legacy web game — Sovereign’s Gambit
 
 Classic chess inside a fantasy castle. The game opens in a 3D castle, with a lightweight drawn 2D board available any time. Choose a legion before starting; both views share its livery, faces, weapons and familiar chess silhouettes. White’s faction determines the home castle for both players.
 
@@ -126,4 +140,14 @@ or interactive 3D. Both views share one match, with legal moves, clocks,
 promotion, notation, FEN, draw claims and local undo. See
 [controls and architecture](docs/classic/CLASSIC.md) and
 [Classic validation](docs/classic/VALIDATION.md). Run `npm run test:classic`.
-Native online transport and combat integration are separate follow-up work.
+Native dedicated multiplayer now uses ENet/DTLS; see [server startup and local crossplay tests](docs/network/README.md). Physical Windows/Android crossplay is not yet verified.
+
+## Native Battle C0 integration
+
+The mode selector exposes the C0 Battle board, capture previews and Claude's real
+combat arena. All five C0 fighter roles are supported. Captures run from either
+board view through input-driven combat and back to shared chess state. See
+[integration and controls](docs/battle/INTEGRATION.md) and
+[native server/testing instructions](docs/network/README.md). Run
+`npm run test:battle` and `npm run test:multiplayer`. King-gauntlet combat remains
+a separate v2 ruleset.
