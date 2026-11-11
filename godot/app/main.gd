@@ -9,6 +9,8 @@ const BattleMatch = preload("res://chess/battle_match.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const Flow = preload("res://app/battle_flow.gd")
 const Board3D = preload("res://boards/board_3d.gd")
+const MainOpp = preload("res://app/main_opponent.gd")  # computer opponent glue (chess/ai); hooks marked "computer opponent" below
+var opponent: MainOpponent
 var mode_select: OptionButton
 var mode_label: Label
 var copy_notation_button: Button
@@ -78,6 +80,7 @@ func _ready() -> void:
 	if not launch.is_empty():
 		game.new_game(int(launch.get("initialMs", 600000)), int(launch.get("incrementMs", 0)))
 		game.start_clock()
+		opponent.apply_launch(launch)  # computer opponent
 	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
 	board_2d.animation_enabled = AppSettings.animations
 	board_3d.animation_enabled = AppSettings.animations
@@ -241,7 +244,7 @@ func _build_ui() -> void:
 	info.add_child(actions)
 	start_button = _button(actions, "Start clock", func(): game.start_clock())
 	pause_button = _button(actions, "Pause", func(): game.set_paused(not game.paused))
-	undo_button = _button(actions, "Undo", func(): game.undo(), "Local practice only. Restores the previous move and clock checkpoint.")
+	undo_button = _button(actions, "Undo", func(): opponent.undo(), "Local practice only. Restores the previous move and clock checkpoint.")
 	_button(actions, "Resign", _confirm_resign)
 	claim_button = _button(info, "Draw options", _show_draw)
 	_label(info, "MOVE HISTORY", 12, Color("8fb5ad"))
@@ -323,6 +326,7 @@ func _build_dialogs() -> void:
 	_button(draw_box, "Agree a draw", _offer_draw)
 	draw_dialog.confirmed.connect(_claim_draw)
 	add_child(draw_dialog)
+	opponent = MainOpp.install(self)  # computer opponent: adds the opponent picker to the New game dialog
 
 func _request_move(from: String, to: String, needs_promotion: bool) -> void:
 	if needs_promotion:
@@ -343,6 +347,7 @@ func _show_new() -> void:
 	new_dialog.title = "New Battle Chess game" if game is BattleChessMatch else "New Classic game"
 	new_dialog.dialog_text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
 	time_select.disabled = game is BattleChessMatch
+	opponent.prepare_new_dialog()  # computer opponent
 	new_dialog.popup_centered(Vector2i(mini(440, int(size.x) - 24), 180))
 
 func _start_game() -> void:
@@ -350,6 +355,7 @@ func _start_game() -> void:
 	game.new_game(control[1], control[2])
 	game.start_clock()
 	_message("New Battle C0 game · chess is untimed." if game is BattleChessMatch else "New game · " + control[0])
+	opponent.start_selected()  # computer opponent
 
 func _show_position() -> void:
 	fen_edit.text = game.engine.fen()
@@ -373,9 +379,9 @@ func _confirm_resign() -> void:
 		return
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Resign game?"
-	dialog.dialog_text = ("White" if game.engine.turn == "w" else "Black") + " resigns. The opponent wins."
+	dialog.dialog_text = opponent.resign_text(("White" if game.engine.turn == "w" else "Black") + " resigns. The opponent wins.")  # computer opponent
 	dialog.ok_button_text = "Resign"
-	dialog.confirmed.connect(func(): game.resign(); dialog.queue_free())
+	dialog.confirmed.connect(func(): opponent.resign(); dialog.queue_free())
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
 	dialog.popup_centered()
@@ -391,6 +397,8 @@ func _show_draw() -> void:
 
 func _offer_draw() -> void:
 	draw_dialog.hide()
+	if opponent.handle_draw_offer():  # computer opponent answers draw offers itself
+		return
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Accept draw?"
 	dialog.dialog_text = "Pass to the opponent.\nAccept to agree a draw."
@@ -488,6 +496,8 @@ func _refresh() -> void:
 				number += 1
 			color_to_play = ClassicChess.opposite(color_to_play)
 		history_text.scroll_to_line(maxi(0, history_text.get_line_count() - 1))
+	if opponent != null:
+		opponent.decorate()  # computer opponent: caption + "thinking" status
 
 func _message(text: String) -> void:
 	if message_label != null:
@@ -593,6 +603,7 @@ func _switch_mode(index: int) -> void:
 	game.new_game(0 if index == 1 else 600000)
 	set_view(_view_3d)
 	set_flipped(_flipped)
+	opponent.rebind()  # computer opponent follows the new match object
 	battle_overlay.hide()
 	_refresh()
 	if index == 1:

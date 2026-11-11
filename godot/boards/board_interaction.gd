@@ -5,6 +5,8 @@ signal move_requested(from: String, to: String, promotion_needed: bool)
 const Rules = preload("res://chess/chess_engine.gd")
 var game: ClassicMatch
 var enabled = true
+## When not empty only this side's pieces can be selected (the human's colour vs the computer opponent).
+var allowed_side = ""
 var selected = -1
 var destinations: Array = []
 
@@ -25,7 +27,7 @@ func select(at: int) -> void:
 	if not enabled or at < 0 or at >= 64 or not game.board_input_allowed():
 		clear()
 		return
-	if Rules.side(game.engine.board[at]) != game.engine.turn:
+	if Rules.side(game.engine.board[at]) != game.engine.turn or (allowed_side != "" and Rules.side(game.engine.board[at]) != allowed_side):
 		clear()
 		return
 	selected = at
