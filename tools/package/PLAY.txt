@@ -1,14 +1,14 @@
-PEEPEECHESS - COMBAT TEST BUILD   (commit @SHA@)
+@TITLE@ - ALPHA BUILD   (commit @SHA@)
 =================================================
 A standalone build of the third-person combat arena. No chess board, no online play, no account: just fights.
 Same simulation code the online server will use, running locally.
 
 START
-  Windows : double-click Peepeechess-Combat.exe
+  Windows : double-click @NAME@.exe
             (Start-with-console.bat opens it with a console window that prints errors - use it if something breaks)
             Keep the .exe, the .console.exe and the .pck in the SAME folder.
             Windows SmartScreen may warn about an unsigned app: "More info" -> "Run anyway".
-  Linux   : ./Peepeechess-Combat.x86_64
+  Linux   : ./@NAME@.x86_64
 
 MENU
   Mode           1 Player vs AI  |  2 Players (split screen)  |  AI vs AI demo

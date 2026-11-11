@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build playable PC packages (Windows x86_64 + Linux x86_64) of the standalone combat test arena.
+# Build playable PC packages (Windows x86_64 + Linux x86_64): the full application (default) or the combat arena (TARGET=arena).
 #
 #   GODOT=/path/to/Godot_v4.6.3-stable_linux.x86_64 \
 #   TEMPLATES_TPZ=/path/to/Godot_v4.6.3-stable_export_templates.tpz \   # only needed once
@@ -35,20 +35,35 @@ fi
 STAGE="$OUT/stage"; rm -rf "$STAGE"; mkdir -p "$STAGE"
 cp -r "$ROOT/godot" "$STAGE/godot"
 rm -rf "$STAGE/godot/.godot"
-sed -i 's#^run/main_scene=.*#run/main_scene="res://combat/scenes/test_arena.tscn"#; s#^config/name=.*#config/name="Peepeechess Combat"#' "$STAGE/godot/project.godot"
+# TARGET=app (default): the full application (menus, Classic/Battle Chess, combat) with the project's own main scene.
+# TARGET=arena: the standalone combat test arena as the main scene.
+TARGET="${TARGET:-app}"
+if [ "$TARGET" = "arena" ]; then
+  sed -i 's#^run/main_scene=.*#run/main_scene="res://combat/scenes/test_arena.tscn"#' "$STAGE/godot/project.godot"
+  NAME="Peepeechess-Combat"; TITLE="Peepeechess Combat"
+else
+  NAME="Peepeechess"; TITLE="Peepeechess"
+fi
+sed -i "s#^config/name=.*#config/name=\"$TITLE\"#" "$STAGE/godot/project.godot"
 cp "$ROOT/tools/package/export_presets.cfg" "$STAGE/godot/export_presets.cfg"
+sed -i "s#^application/product_name=.*#application/product_name=\"$TITLE\"#" "$STAGE/godot/export_presets.cfg"
 # desktop texture compression must be enabled in the project for S3TC/BPTC export
-grep -q "import_s3tc_bptc" "$STAGE/godot/project.godot" || printf '\n[rendering]\ntextures/vram_compression/import_s3tc_bptc=true\n' >> "$STAGE/godot/project.godot"
+if ! grep -q "import_s3tc_bptc" "$STAGE/godot/project.godot"; then
+  if grep -q '^\[rendering\]' "$STAGE/godot/project.godot"; then
+    sed -i '/^\[rendering\]/a textures/vram_compression/import_s3tc_bptc=true' "$STAGE/godot/project.godot"
+  else
+    printf '\n[rendering]\ntextures/vram_compression/import_s3tc_bptc=true\n' >> "$STAGE/godot/project.godot"
+  fi
+fi
 
 "$GODOT" --headless --path "$STAGE/godot" --editor --import >"$OUT/import.log" 2>&1 || true
 
-NAME="Peepeechess-Combat"
 WIN="$OUT/$NAME-$SHA-win64"; LIN="$OUT/$NAME-$SHA-linux64"
 rm -rf "$WIN" "$LIN"; mkdir -p "$WIN" "$LIN"
 "$GODOT" --headless --path "$STAGE/godot" --export-release "Windows Desktop" "$WIN/$NAME.exe" >"$OUT/export_win.log" 2>&1
 "$GODOT" --headless --path "$STAGE/godot" --export-release "Linux" "$LIN/$NAME.x86_64" >"$OUT/export_linux.log" 2>&1
-sed "s/@SHA@/$SHA/g" "$ROOT/tools/package/PLAY.txt" > "$WIN/PLAY.txt"; cp "$WIN/PLAY.txt" "$LIN/PLAY.txt"
-cp "$ROOT/tools/package/Start-with-console.bat" "$WIN/"
+sed "s/@SHA@/$SHA/g; s/@NAME@/$NAME/g; s/@TITLE@/$TITLE/g" "$ROOT/tools/package/PLAY.txt" > "$WIN/PLAY.txt"; cp "$WIN/PLAY.txt" "$LIN/PLAY.txt"
+sed "s/@NAME@/$NAME/g" "$ROOT/tools/package/Start-with-console.bat" > "$WIN/Start-with-console.bat"
 chmod +x "$LIN/$NAME.x86_64"
 ( cd "$OUT" && python3 -I -c "
 import shutil,sys
