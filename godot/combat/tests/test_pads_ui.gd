@@ -609,6 +609,10 @@ static func _main_scene(h, tree: SceneTree) -> void:
 	# The overlay maps squares to screen rectangles through the real 2D board.
 	var r: Rect2 = ui._square_rect(12)
 	var expected: Vector2 = app.board_2d.square_center(12)
+	if app.get("use_world") == true and app.board_3d.visible:
+		# The "2D" view is the top-down camera on the one 3D board (pit world): project the square through that camera.
+		var world_at: Vector3 = load("res://boards/board_interaction.gd").world_position(12)
+		expected = app.board_3d.position + app.board_3d.camera.unproject_position(world_at) * app.board_3d.size / Vector2(app.board_3d.viewport_3d.size)
 	h.check(r.size.x > 20 and r.get_center().distance_to(expected) < 1.0, "the 2D square rectangle is centred on the square (%s vs %s)" % [str(r.get_center()), str(expected)])
 	await press(0, JOY_BUTTON_A, tree)
 	h.eq(app.interaction.selected, 12, "Cross selects e2 on the real board")
