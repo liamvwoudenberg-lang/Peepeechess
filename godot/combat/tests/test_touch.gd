@@ -370,6 +370,10 @@ static func _ability_display(h, tree: SceneTree) -> void:
 static func _arena_integration(h, tree: SceneTree) -> void:
 	h.begin("integration: a touch-driven fight through a real CombatArena (stick, tap, block, camera), real input pipeline")
 	var old_size: Vector2i = tree.root.size
+	var old_scale_mode: int = tree.root.content_scale_mode
+	# The app project stretches the UI (canvas_items): injected positions would then be rescaled before they reach
+	# the control. This test drives the control in plain window pixels, so switch the content scale off for its duration.
+	tree.root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	tree.root.size = Vector2i(1920, 1080)  # a headless root window is tiny; give the control a realistic landscape viewport
 	var arena: CombatArena = (load(ARENA) as PackedScene).instantiate()
 	tree.root.add_child(arena)
@@ -379,6 +383,7 @@ static func _arena_integration(h, tree: SceneTree) -> void:
 	if not h.eq(sources.size(), 1, "one LocalInputSource exists"):
 		arena.queue_free()
 		tree.root.size = old_size
+	tree.root.content_scale_mode = old_scale_mode as Window.ContentScaleMode
 		return
 	var source = sources[0]
 	var touch = source.touch
@@ -466,6 +471,7 @@ static func _arena_integration(h, tree: SceneTree) -> void:
 	arena.stop_battle()
 	arena.queue_free()
 	tree.root.size = old_size
+	tree.root.content_scale_mode = old_scale_mode as Window.ContentScaleMode
 
 
 ## Parsed input is buffered and dispatched on the next frame(s); wait for it before asserting.
