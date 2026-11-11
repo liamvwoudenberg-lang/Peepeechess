@@ -13,8 +13,12 @@ var _serial = 0
 var _authority: Object
 var _profiles: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://chess/battle_stats.json"))
 
+## Subclasses (battle-royal-v1) swap the rules engine here; the default is the preserved C0 / battle-checkmate-v1 rules.
+func _new_engine():
+	return BattleRules.new()
+
 func _init() -> void:
-	engine = BattleRules.new()
+	engine = _new_engine()
 	initial_ms = 0
 	remaining = {"w": 0, "b": 0}
 	timed = false
@@ -22,7 +26,7 @@ func _init() -> void:
 	_reset_registry()
 
 func new_game(_base_ms: int = 0, _increment: int = 0, fen: String = BattleRules.START_FEN) -> Dictionary:
-	var fresh = BattleRules.new()
+	var fresh = _new_engine()
 	var loaded = fresh.load_fen(fen)
 	if not loaded.ok:
 		return loaded
@@ -59,6 +63,25 @@ func pending_request() -> Dictionary:
 func combat_snapshot() -> Dictionary:
 	return _combat.duplicate(true)
 
+## Options the combat host must pass to CombatSimulation.start for the PENDING battle. Empty for every ordinary capture
+## (strict v1 behaviour); the royal ruleset supplies the King's carried HP/stamina/cooldown.
+func combat_options() -> Dictionary:
+	return {}
+
+## Drops a pending transaction without a result because the match ends some other way (forfeit, abort).
+func abandon_pending() -> void:
+	cancel_pending()
+
+# Starting resources of a fighter in the pending battle: full by default; the royal ruleset overrides these for the king.
+func _start_hp(participant: Dictionary):
+	return participant.stats.maxHp
+
+func _start_stamina(participant: Dictionary):
+	return participant.stats.maxStamina
+
+func _start_cooldown(_participant: Dictionary) -> int:
+	return 0
+
 func advance_msec(elapsed: int) -> void:
 	# During a duel the trusted fixed-tick simulation owns the match tick.
 	if _pending.is_empty():
@@ -89,7 +112,7 @@ func _initial_snapshot(request: Dictionary) -> Dictionary:
 	var fighters: Array = []
 	for participant in [request.attacker, request.defender]:
 		var white = participant.color == "w"
-		fighters.append({"playerId": participant.playerId, "pieceId": participant.pieceId, "position": {"x": 0, "y": 0, "z": -2.6 if white else 2.6}, "velocity": {"x": 0, "y": 0, "z": 0}, "yawRadians": 0 if white else PI, "hp": participant.stats.maxHp, "stamina": participant.stats.maxStamina, "state": "Idle", "stateTicks": 0, "cooldownTicks": 0, "lastInputSequence": 0})
+		fighters.append({"playerId": participant.playerId, "pieceId": participant.pieceId, "position": {"x": 0, "y": 0, "z": -2.6 if white else 2.6}, "velocity": {"x": 0, "y": 0, "z": 0}, "yawRadians": 0 if white else PI, "hp": _start_hp(participant), "stamina": _start_stamina(participant), "state": "Idle", "stateTicks": 0, "cooldownTicks": _start_cooldown(participant), "lastInputSequence": 0})
 	return {"schemaVersion": 1, "matchId": match_id, "battleId": request.battleId, "serverTick": request.startTick, "countdownTicksRemaining": 180, "durationTicksRemaining": 5400, "fighters": fighters, "events": [], "result": null}
 
 func submit_request(request: Dictionary, authenticated_player_id: String, now: int = -1) -> Dictionary:
@@ -185,7 +208,7 @@ func accept_snapshot(value: Dictionary, source: Object) -> bool:
 		for previous in _combat.fighters:
 			if previous.playerId == f.playerId and f.lastInputSequence < previous.lastInputSequence:
 				return false
-		if value.countdownTicksRemaining > 0 and (f.hp != participant.stats.maxHp or f.stamina != participant.stats.maxStamina):
+		if value.countdownTicksRemaining > 0 and (f.hp != _start_hp(participant) or f.stamina != _start_stamina(participant)):
 			return false
 		seen.append(f.playerId)
 	for event in value.events:
