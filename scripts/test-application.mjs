@@ -229,8 +229,14 @@ try {
   const profiles = await Promise.all(accounts.map(account => success('/v1/me', { token: account.token })));
   for (const [index, response] of profiles.entries()) {
     const profile = response.profile;
-    assert.equal(profile.classic.games, 2);
-    assert.equal(profile.battle.games, 1);
+    for (const mode of ['classic', 'battle']) {
+      const played = records.filter(record => record.mode === mode);
+      const wins = played.filter(record => record.blackPlayerId === profile.playerId).length;
+      assert.equal(profile[mode].games, played.length);
+      assert.equal(profile[mode].wins, wins);
+      assert.equal(profile[mode].losses, played.length - wins);
+      assert.equal(profile[mode].draws, 0);
+    }
     const classicRanked = records[0];
     const classicWinner = classicRanked.blackPlayerId === profile.playerId;
     assert.equal(profile.classic.rating, classicWinner ? 1216 : 1184, 'private result never changes competitive rating');
