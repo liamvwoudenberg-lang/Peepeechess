@@ -22,6 +22,7 @@ const SUITES: Dictionary = {
 	"audio": "res://combat/tests/test_audio.gd",
 	"touch": "res://combat/tests/test_touch.gd",
 	"assets": "res://combat/tests/test_assets.gd",
+	"world_assets": "res://combat/tests/test_world_assets.gd",
 	"soak": "res://combat/tests/test_soak.gd",
 	"world": "res://combat/tests/test_world.gd",
 }

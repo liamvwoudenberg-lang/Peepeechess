@@ -38,9 +38,25 @@ MARKERS = {
 MARKERS["bishop"] = MARKERS["queen"] = MARKERS["pawn"]
 MARKERS["rook"] = MARKERS["king"] = MARKERS["knight"]
 
-LOOPING = {"idle", "walk", "run", "strafe_left", "strafe_right", "block"}
+# World clips (pit / ladder sequence; presentation only, no simulation counterpart):
+#   climb        loop, hands/feet alternate on a vertical ladder; body stays in place (root motion stripped), the
+#                game moves the character UP along +Y at CLIMB_SPEED_MPS while it plays at speed 1.0
+#   ladder_idle  loop, holding the ladder (the pose the climb passes through when one limb group has just reached)
+#   drop_fall    loop, falling with limbs splayed
+#   land         one-shot, crouch-impact then recover to the ready pose
+# Ladder geometry the climb is authored against (shared with world/pit.py, which builds the ladder):
+RUNG_SPACING = 0.25          # m between rungs
+LADDER_PLANE_FWD = 0.42      # m in FRONT of the character's origin (character faces the ladder) where the rung centres are
+CLIMB_TICKS = 72             # one cycle == 1.2 s == two rungs of travel (each limb advances two rungs per cycle)
+LADDER_IDLE_TICKS = 120
+DROP_FALL_TICKS = 40
+LAND_TICKS = 36
+CLIMB_SPEED_MPS = 2 * RUNG_SPACING / (CLIMB_TICKS / 60.0)   # 0.4167 m/s upward travel to avoid foot sliding
+
+LOOPING = {"idle", "walk", "run", "strafe_left", "strafe_right", "block", "climb", "ladder_idle", "drop_fall"}
 NOMINAL_SPEED_MPS = {"walk": 2.2, "run": 5.0, "strafe_left": 2.0, "strafe_right": 2.0}
-LOOP_FRAMES = {"idle": 120, "walk": 40, "run": 30, "strafe_left": 40, "strafe_right": 40, "block": 40}
+LOOP_FRAMES = {"idle": 120, "walk": 40, "run": 30, "strafe_left": 40, "strafe_right": 40, "block": 40,
+               "climb": CLIMB_TICKS, "ladder_idle": LADDER_IDLE_TICKS, "drop_fall": DROP_FALL_TICKS}
 
 
 def clip_frames(cls: str) -> dict:
@@ -54,10 +70,11 @@ def clip_frames(cls: str) -> dict:
         "parry": parry_w + parry_r, "dodge": DODGE[cls], "stagger": STAGGER_TICKS,
         "ability": ABILITY[cls], "defeat": DEFEAT_TICKS,
         "victory": VICTORY_TICKS[cls], "hit_react_light": HIT_REACT_LIGHT_TICKS, "hit_react_heavy": HIT_REACT_HEAVY_TICKS,
+        "land": LAND_TICKS,
     })
     return frames
 
 
 CLIP_NAMES = ["idle", "walk", "run", "strafe_left", "strafe_right", "light_1", "light_2", "light_3",
               "heavy", "block", "parry", "dodge", "stagger", "ability", "defeat",
-              "victory", "hit_react_light", "hit_react_heavy"]
+              "victory", "hit_react_light", "hit_react_heavy", "climb", "ladder_idle", "drop_fall", "land"]

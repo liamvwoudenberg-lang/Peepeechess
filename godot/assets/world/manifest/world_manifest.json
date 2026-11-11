@@ -1,0 +1,1367 @@
+{
+  "board": {
+    "board_frame": {
+      "bounds_max": [
+        5.115,
+        0.575,
+        5.115
+      ],
+      "bounds_min": [
+        -5.115,
+        -0.6,
+        -5.115
+      ],
+      "bytes": 75928,
+      "file": "board_frame.glb",
+      "materials": [
+        "Frame_Gold",
+        "Frame_Grout",
+        "Frame_Stone"
+      ],
+      "nodes": [
+        "BoardBase_Mesh",
+        "BoardFrame",
+        "BoardFrame_Mesh",
+        "CornerPost_NE_Mesh",
+        "CornerPost_NW_Mesh",
+        "CornerPost_SE_Mesh",
+        "CornerPost_SW_Mesh"
+      ],
+      "tris": 780,
+      "tris_unique_meshes": 780
+    },
+    "board_plaques": {
+      "bounds_max": [
+        4.56,
+        0.142,
+        4.56
+      ],
+      "bounds_min": [
+        -4.56,
+        0.1,
+        -4.56
+      ],
+      "bytes": 92420,
+      "file": "board_plaques.glb",
+      "materials": [
+        "Plaque_Gold",
+        "Plaque_Stone"
+      ],
+      "nodes": [
+        "BoardPlaques",
+        "plaque_file_a_n",
+        "plaque_file_a_n_glyph",
+        "plaque_file_a_n_slab",
+        "plaque_file_a_s",
+        "plaque_file_a_s_glyph",
+        "plaque_file_a_s_slab",
+        "plaque_file_b_n",
+        "plaque_file_b_n_glyph",
+        "plaque_file_b_n_slab",
+        "plaque_file_b_s",
+        "plaque_file_b_s_glyph",
+        "plaque_file_b_s_slab",
+        "plaque_file_c_n",
+        "plaque_file_c_n_glyph",
+        "plaque_file_c_n_slab",
+        "plaque_file_c_s",
+        "plaque_file_c_s_glyph",
+        "plaque_file_c_s_slab",
+        "plaque_file_d_n",
+        "plaque_file_d_n_glyph",
+        "plaque_file_d_n_slab",
+        "plaque_file_d_s",
+        "plaque_file_d_s_glyph",
+        "plaque_file_d_s_slab",
+        "plaque_file_e_n",
+        "plaque_file_e_n_glyph",
+        "plaque_file_e_n_slab",
+        "plaque_file_e_s",
+        "plaque_file_e_s_glyph",
+        "plaque_file_e_s_slab",
+        "plaque_file_f_n",
+        "plaque_file_f_n_glyph",
+        "plaque_file_f_n_slab",
+        "plaque_file_f_s",
+        "plaque_file_f_s_glyph",
+        "plaque_file_f_s_slab",
+        "plaque_file_g_n",
+        "plaque_file_g_n_glyph",
+        "plaque_file_g_n_slab",
+        "plaque_file_g_s",
+        "plaque_file_g_s_glyph",
+        "plaque_file_g_s_slab",
+        "plaque_file_h_n",
+        "plaque_file_h_n_glyph",
+        "plaque_file_h_n_slab",
+        "plaque_file_h_s",
+        "plaque_file_h_s_glyph",
+        "plaque_file_h_s_slab",
+        "plaque_rank_1_e",
+        "plaque_rank_1_e_glyph",
+        "plaque_rank_1_e_slab",
+        "plaque_rank_1_w",
+        "plaque_rank_1_w_glyph",
+        "plaque_rank_1_w_slab",
+        "plaque_rank_2_e",
+        "plaque_rank_2_e_glyph",
+        "plaque_rank_2_e_slab",
+        "plaque_rank_2_w",
+        "plaque_rank_2_w_glyph",
+        "plaque_rank_2_w_slab",
+        "plaque_rank_3_e",
+        "plaque_rank_3_e_glyph",
+        "plaque_rank_3_e_slab",
+        "plaque_rank_3_w",
+        "plaque_rank_3_w_glyph",
+        "plaque_rank_3_w_slab",
+        "plaque_rank_4_e",
+        "plaque_rank_4_e_glyph",
+        "plaque_rank_4_e_slab",
+        "plaque_rank_4_w",
+        "plaque_rank_4_w_glyph",
+        "plaque_rank_4_w_slab",
+        "plaque_rank_5_e",
+        "plaque_rank_5_e_glyph",
+        "plaque_rank_5_e_slab",
+        "plaque_rank_5_w",
+        "plaque_rank_5_w_glyph",
+        "plaque_rank_5_w_slab",
+        "plaque_rank_6_e",
+        "plaque_rank_6_e_glyph",
+        "plaque_rank_6_e_slab",
+        "plaque_rank_6_w",
+        "plaque_rank_6_w_glyph",
+        "plaque_rank_6_w_slab",
+        "plaque_rank_7_e",
+        "plaque_rank_7_e_glyph",
+        "plaque_rank_7_e_slab",
+        "plaque_rank_7_w",
+        "plaque_rank_7_w_glyph",
+        "plaque_rank_7_w_slab",
+        "plaque_rank_8_e",
+        "plaque_rank_8_e_glyph",
+        "plaque_rank_8_e_slab",
+        "plaque_rank_8_w",
+        "plaque_rank_8_w_glyph",
+        "plaque_rank_8_w_slab"
+      ],
+      "tris": 4032,
+      "tris_unique_meshes": 1356
+    },
+    "tile_dark": {
+      "bounds_max": [
+        0.4975,
+        0.04,
+        0.4975
+      ],
+      "bounds_min": [
+        -0.4975,
+        -0.04,
+        -0.4975
+      ],
+      "bytes": 65416,
+      "file": "tile_dark.glb",
+      "materials": [
+        "Tile_Dark"
+      ],
+      "nodes": [
+        "Tile_Dark",
+        "Tile_Dark_Mesh"
+      ],
+      "tris": 44,
+      "tris_unique_meshes": 44
+    },
+    "tile_light": {
+      "bounds_max": [
+        0.4975,
+        0.04,
+        0.4975
+      ],
+      "bounds_min": [
+        -0.4975,
+        -0.04,
+        -0.4975
+      ],
+      "bytes": 114840,
+      "file": "tile_light.glb",
+      "materials": [
+        "Tile_Light"
+      ],
+      "nodes": [
+        "Tile_Light",
+        "Tile_Light_Mesh"
+      ],
+      "tris": 44,
+      "tris_unique_meshes": 44
+    }
+  },
+  "generator": {
+    "blender": "4.3.0",
+    "note": "texture seeds are fixed in the generators (Tile_Light 41, Tile_Dark 42, Piece_Light_Marble 31, Piece_Dark_Basalt 32, ...)",
+    "script": "tools/blender/build_all.py"
+  },
+  "ladder": {
+    "climb_clip_frames": 72,
+    "climb_speed_mps": 0.41667,
+    "climber_origin_z_m": -0.42,
+    "foot_x_m": 0.15,
+    "hand_x_m": 0.17,
+    "rail_x_m": 0.28,
+    "rung_centre_rule": "y = (j + 0.5) * rung_spacing in the ladder frame; the climber origin is at y = n * rung_spacing at clip phase 0 and 0.5",
+    "rung_radius_m": 0.022,
+    "rung_spacing_m": 0.25,
+    "segment_length_m": 2.0,
+    "top_section_y": [
+      -1.0,
+      0.75
+    ]
+  },
+  "piece_design": {
+    "base_radius_m": {
+      "bishop": 0.34,
+      "king": 0.36,
+      "knight": 0.34,
+      "pawn": 0.31,
+      "queen": 0.36,
+      "rook": 0.35
+    },
+    "height_m": {
+      "bishop": 1.04,
+      "king": 1.31,
+      "knight": 1.0,
+      "pawn": 0.7,
+      "queen": 1.19,
+      "rook": 0.85
+    }
+  },
+  "pieces": {
+    "bishop_dark": {
+      "bounds_max": [
+        0.34,
+        1.04,
+        0.34
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 67764,
+      "file": "bishop_dark.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Bishop_Dark",
+        "Piece_Bishop_Dark_Mesh"
+      ],
+      "tris": 1224,
+      "tris_unique_meshes": 1224
+    },
+    "bishop_dark_lod1": {
+      "bounds_max": [
+        0.34,
+        1.04,
+        0.34
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 42788,
+      "file": "bishop_dark_lod1.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Bishop_Dark",
+        "Piece_Bishop_Dark_Mesh"
+      ],
+      "tris": 576,
+      "tris_unique_meshes": 576
+    },
+    "bishop_light": {
+      "bounds_max": [
+        0.34,
+        1.04,
+        0.34
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 92536,
+      "file": "bishop_light.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Bishop_Light",
+        "Piece_Bishop_Light_Mesh"
+      ],
+      "tris": 1224,
+      "tris_unique_meshes": 1224
+    },
+    "bishop_light_lod1": {
+      "bounds_max": [
+        0.34,
+        1.04,
+        0.34
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 67556,
+      "file": "bishop_light_lod1.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Bishop_Light",
+        "Piece_Bishop_Light_Mesh"
+      ],
+      "tris": 576,
+      "tris_unique_meshes": 576
+    },
+    "king_dark": {
+      "bounds_max": [
+        0.36,
+        1.33,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 75992,
+      "file": "king_dark.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_King_Dark",
+        "Piece_King_Dark_Mesh"
+      ],
+      "tris": 1420,
+      "tris_unique_meshes": 1420
+    },
+    "king_dark_lod1": {
+      "bounds_max": [
+        0.36,
+        1.33,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 49224,
+      "file": "king_dark_lod1.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_King_Dark",
+        "Piece_King_Dark_Mesh"
+      ],
+      "tris": 672,
+      "tris_unique_meshes": 672
+    },
+    "king_light": {
+      "bounds_max": [
+        0.36,
+        1.33,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 100764,
+      "file": "king_light.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_King_Light",
+        "Piece_King_Light_Mesh"
+      ],
+      "tris": 1420,
+      "tris_unique_meshes": 1420
+    },
+    "king_light_lod1": {
+      "bounds_max": [
+        0.36,
+        1.33,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 74000,
+      "file": "king_light_lod1.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_King_Light",
+        "Piece_King_Light_Mesh"
+      ],
+      "tris": 672,
+      "tris_unique_meshes": 672
+    },
+    "knight_dark": {
+      "bounds_max": [
+        0.34,
+        1.0,
+        0.41
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 65904,
+      "file": "knight_dark.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Knight_Dark",
+        "Piece_Knight_Dark_Mesh"
+      ],
+      "tris": 1004,
+      "tris_unique_meshes": 1004
+    },
+    "knight_dark_lod1": {
+      "bounds_max": [
+        0.34,
+        0.98065,
+        0.4
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 36528,
+      "file": "knight_dark_lod1.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Knight_Dark",
+        "Piece_Knight_Dark_Mesh"
+      ],
+      "tris": 416,
+      "tris_unique_meshes": 416
+    },
+    "knight_light": {
+      "bounds_max": [
+        0.34,
+        1.0,
+        0.41
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 90676,
+      "file": "knight_light.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Knight_Light",
+        "Piece_Knight_Light_Mesh"
+      ],
+      "tris": 1004,
+      "tris_unique_meshes": 1004
+    },
+    "knight_light_lod1": {
+      "bounds_max": [
+        0.34,
+        0.98065,
+        0.4
+      ],
+      "bounds_min": [
+        -0.34,
+        0.0,
+        -0.34
+      ],
+      "bytes": 61300,
+      "file": "knight_light_lod1.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Knight_Light",
+        "Piece_Knight_Light_Mesh"
+      ],
+      "tris": 416,
+      "tris_unique_meshes": 416
+    },
+    "pawn_dark": {
+      "bounds_max": [
+        0.31,
+        0.702,
+        0.31
+      ],
+      "bounds_min": [
+        -0.31,
+        0.0,
+        -0.31
+      ],
+      "bytes": 70604,
+      "file": "pawn_dark.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Pawn_Dark",
+        "Piece_Pawn_Dark_Mesh"
+      ],
+      "tris": 1344,
+      "tris_unique_meshes": 1344
+    },
+    "pawn_dark_lod1": {
+      "bounds_max": [
+        0.31,
+        0.702,
+        0.31
+      ],
+      "bounds_min": [
+        -0.31,
+        0.0,
+        -0.31
+      ],
+      "bytes": 43024,
+      "file": "pawn_dark_lod1.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Pawn_Dark",
+        "Piece_Pawn_Dark_Mesh"
+      ],
+      "tris": 624,
+      "tris_unique_meshes": 624
+    },
+    "pawn_light": {
+      "bounds_max": [
+        0.31,
+        0.702,
+        0.31
+      ],
+      "bounds_min": [
+        -0.31,
+        0.0,
+        -0.31
+      ],
+      "bytes": 95376,
+      "file": "pawn_light.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Pawn_Light",
+        "Piece_Pawn_Light_Mesh"
+      ],
+      "tris": 1344,
+      "tris_unique_meshes": 1344
+    },
+    "pawn_light_lod1": {
+      "bounds_max": [
+        0.31,
+        0.702,
+        0.31
+      ],
+      "bounds_min": [
+        -0.31,
+        0.0,
+        -0.31
+      ],
+      "bytes": 67792,
+      "file": "pawn_light_lod1.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Pawn_Light",
+        "Piece_Pawn_Light_Mesh"
+      ],
+      "tris": 624,
+      "tris_unique_meshes": 624
+    },
+    "queen_dark": {
+      "bounds_max": [
+        0.36,
+        1.21,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 88204,
+      "file": "queen_dark.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Queen_Dark",
+        "Piece_Queen_Dark_Mesh"
+      ],
+      "tris": 1620,
+      "tris_unique_meshes": 1620
+    },
+    "queen_dark_lod1": {
+      "bounds_max": [
+        0.36,
+        1.16,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 48060,
+      "file": "queen_dark_lod1.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Queen_Dark",
+        "Piece_Queen_Dark_Mesh"
+      ],
+      "tris": 648,
+      "tris_unique_meshes": 648
+    },
+    "queen_light": {
+      "bounds_max": [
+        0.36,
+        1.21,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 112980,
+      "file": "queen_light.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Queen_Light",
+        "Piece_Queen_Light_Mesh"
+      ],
+      "tris": 1620,
+      "tris_unique_meshes": 1620
+    },
+    "queen_light_lod1": {
+      "bounds_max": [
+        0.36,
+        1.16,
+        0.36
+      ],
+      "bounds_min": [
+        -0.36,
+        0.0,
+        -0.36
+      ],
+      "bytes": 72836,
+      "file": "queen_light_lod1.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Queen_Light",
+        "Piece_Queen_Light_Mesh"
+      ],
+      "tris": 648,
+      "tris_unique_meshes": 648
+    },
+    "rook_dark": {
+      "bounds_max": [
+        0.35,
+        0.85,
+        0.35
+      ],
+      "bounds_min": [
+        -0.35,
+        0.0,
+        -0.35
+      ],
+      "bytes": 60764,
+      "file": "rook_dark.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Rook_Dark",
+        "Piece_Rook_Dark_Mesh"
+      ],
+      "tris": 804,
+      "tris_unique_meshes": 804
+    },
+    "rook_dark_lod1": {
+      "bounds_max": [
+        0.35,
+        0.85,
+        0.35
+      ],
+      "bounds_min": [
+        -0.35,
+        0.0,
+        -0.35
+      ],
+      "bytes": 42116,
+      "file": "rook_dark_lod1.glb",
+      "materials": [
+        "Piece_Dark_Basalt",
+        "Piece_Dark_Bone",
+        "Piece_Dark_Crimson",
+        "Piece_Dark_Recess"
+      ],
+      "nodes": [
+        "Piece_Rook_Dark",
+        "Piece_Rook_Dark_Mesh"
+      ],
+      "tris": 444,
+      "tris_unique_meshes": 444
+    },
+    "rook_light": {
+      "bounds_max": [
+        0.35,
+        0.85,
+        0.35
+      ],
+      "bounds_min": [
+        -0.35,
+        0.0,
+        -0.35
+      ],
+      "bytes": 85536,
+      "file": "rook_light.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Rook_Light",
+        "Piece_Rook_Light_Mesh"
+      ],
+      "tris": 804,
+      "tris_unique_meshes": 804
+    },
+    "rook_light_lod1": {
+      "bounds_max": [
+        0.35,
+        0.85,
+        0.35
+      ],
+      "bounds_min": [
+        -0.35,
+        0.0,
+        -0.35
+      ],
+      "bytes": 66884,
+      "file": "rook_light_lod1.glb",
+      "materials": [
+        "Piece_Light_Gold",
+        "Piece_Light_Marble",
+        "Piece_Light_Recess",
+        "Piece_Light_Sapphire"
+      ],
+      "nodes": [
+        "Piece_Rook_Light",
+        "Piece_Rook_Light_Mesh"
+      ],
+      "tris": 444,
+      "tris_unique_meshes": 444
+    }
+  },
+  "pit": {
+    "chamber_ceiling": {
+      "bounds_max": [
+        8.0,
+        0.15,
+        8.0
+      ],
+      "bounds_min": [
+        -8.0,
+        -0.945,
+        -8.0
+      ],
+      "bytes": 54016,
+      "file": "chamber_ceiling.glb",
+      "materials": [
+        "Pit_DarkStone",
+        "Pit_Stone"
+      ],
+      "nodes": [
+        "ChamberCeiling",
+        "chamber_ceiling_mesh"
+      ],
+      "tris": 320,
+      "tris_unique_meshes": 320
+    },
+    "ladder_full_10m": {
+      "bounds_max": [
+        0.319,
+        0.75,
+        0.36
+      ],
+      "bounds_min": [
+        -0.319,
+        -9.0,
+        -0.04
+      ],
+      "bytes": 209404,
+      "file": "ladder_full_10m.glb",
+      "length_m": 9.75,
+      "materials": [
+        "Ladder_Wood",
+        "Pit_Iron"
+      ],
+      "nodes": [
+        "LadderFull10m",
+        "foot_L_000",
+        "foot_L_001",
+        "foot_L_002",
+        "foot_L_003",
+        "foot_L_004",
+        "foot_L_005",
+        "foot_L_006",
+        "foot_L_007",
+        "foot_L_008",
+        "foot_L_009",
+        "foot_L_010",
+        "foot_L_011",
+        "foot_L_012",
+        "foot_L_013",
+        "foot_L_014",
+        "foot_L_015",
+        "foot_L_016",
+        "foot_L_017",
+        "foot_L_018",
+        "foot_L_019",
+        "foot_L_020",
+        "foot_L_021",
+        "foot_L_022",
+        "foot_L_023",
+        "foot_L_024",
+        "foot_L_025",
+        "foot_L_026",
+        "foot_L_027",
+        "foot_L_028",
+        "foot_L_029",
+        "foot_L_030",
+        "foot_L_031",
+        "foot_L_032",
+        "foot_L_033",
+        "foot_L_034",
+        "foot_L_035",
+        "foot_L_036",
+        "foot_L_037",
+        "foot_L_038",
+        "foot_R_000",
+        "foot_R_001",
+        "foot_R_002",
+        "foot_R_003",
+        "foot_R_004",
+        "foot_R_005",
+        "foot_R_006",
+        "foot_R_007",
+        "foot_R_008",
+        "foot_R_009",
+        "foot_R_010",
+        "foot_R_011",
+        "foot_R_012",
+        "foot_R_013",
+        "foot_R_014",
+        "foot_R_015",
+        "foot_R_016",
+        "foot_R_017",
+        "foot_R_018",
+        "foot_R_019",
+        "foot_R_020",
+        "foot_R_021",
+        "foot_R_022",
+        "foot_R_023",
+        "foot_R_024",
+        "foot_R_025",
+        "foot_R_026",
+        "foot_R_027",
+        "foot_R_028",
+        "foot_R_029",
+        "foot_R_030",
+        "foot_R_031",
+        "foot_R_032",
+        "foot_R_033",
+        "foot_R_034",
+        "foot_R_035",
+        "foot_R_036",
+        "foot_R_037",
+        "foot_R_038",
+        "hand_L_000",
+        "hand_L_001",
+        "hand_L_002",
+        "hand_L_003",
+        "hand_L_004",
+        "hand_L_005",
+        "hand_L_006",
+        "hand_L_007",
+        "hand_L_008",
+        "hand_L_009",
+        "hand_L_010",
+        "hand_L_011",
+        "hand_L_012",
+        "hand_L_013",
+        "hand_L_014",
+        "hand_L_015",
+        "hand_L_016",
+        "hand_L_017",
+        "hand_L_018",
+        "hand_L_019",
+        "hand_L_020",
+        "hand_L_021",
+        "hand_L_022",
+        "hand_L_023",
+        "hand_L_024",
+        "hand_L_025",
+        "hand_L_026",
+        "hand_L_027",
+        "hand_L_028",
+        "hand_L_029",
+        "hand_L_030",
+        "hand_L_031",
+        "hand_L_032",
+        "hand_L_033",
+        "hand_L_034",
+        "hand_L_035",
+        "hand_L_036",
+        "hand_L_037",
+        "hand_L_038",
+        "hand_R_000",
+        "hand_R_001",
+        "hand_R_002",
+        "hand_R_003",
+        "hand_R_004",
+        "hand_R_005",
+        "hand_R_006",
+        "hand_R_007",
+        "hand_R_008",
+        "hand_R_009",
+        "hand_R_010",
+        "hand_R_011",
+        "hand_R_012",
+        "hand_R_013",
+        "hand_R_014",
+        "hand_R_015",
+        "hand_R_016",
+        "hand_R_017",
+        "hand_R_018",
+        "hand_R_019",
+        "hand_R_020",
+        "hand_R_021",
+        "hand_R_022",
+        "hand_R_023",
+        "hand_R_024",
+        "hand_R_025",
+        "hand_R_026",
+        "hand_R_027",
+        "hand_R_028",
+        "hand_R_029",
+        "hand_R_030",
+        "hand_R_031",
+        "hand_R_032",
+        "hand_R_033",
+        "hand_R_034",
+        "hand_R_035",
+        "hand_R_036",
+        "hand_R_037",
+        "hand_R_038",
+        "ladder_full_mesh",
+        "rung_000",
+        "rung_001",
+        "rung_002",
+        "rung_003",
+        "rung_004",
+        "rung_005",
+        "rung_006",
+        "rung_007",
+        "rung_008",
+        "rung_009",
+        "rung_010",
+        "rung_011",
+        "rung_012",
+        "rung_013",
+        "rung_014",
+        "rung_015",
+        "rung_016",
+        "rung_017",
+        "rung_018",
+        "rung_019",
+        "rung_020",
+        "rung_021",
+        "rung_022",
+        "rung_023",
+        "rung_024",
+        "rung_025",
+        "rung_026",
+        "rung_027",
+        "rung_028",
+        "rung_029",
+        "rung_030",
+        "rung_031",
+        "rung_032",
+        "rung_033",
+        "rung_034",
+        "rung_035",
+        "rung_036",
+        "rung_037",
+        "rung_038"
+      ],
+      "rungs": 39,
+      "tris": 2416,
+      "tris_unique_meshes": 2416
+    },
+    "ladder_segment_2m": {
+      "bounds_max": [
+        0.319,
+        2.0,
+        0.04
+      ],
+      "bounds_min": [
+        -0.319,
+        0.0,
+        -0.04
+      ],
+      "bytes": 75624,
+      "file": "ladder_segment_2m.glb",
+      "materials": [
+        "Ladder_Wood",
+        "Pit_Iron"
+      ],
+      "nodes": [
+        "LadderSegment2m",
+        "foot_L_00",
+        "foot_L_01",
+        "foot_L_02",
+        "foot_L_03",
+        "foot_L_04",
+        "foot_L_05",
+        "foot_L_06",
+        "foot_L_07",
+        "foot_R_00",
+        "foot_R_01",
+        "foot_R_02",
+        "foot_R_03",
+        "foot_R_04",
+        "foot_R_05",
+        "foot_R_06",
+        "foot_R_07",
+        "hand_L_00",
+        "hand_L_01",
+        "hand_L_02",
+        "hand_L_03",
+        "hand_L_04",
+        "hand_L_05",
+        "hand_L_06",
+        "hand_L_07",
+        "hand_R_00",
+        "hand_R_01",
+        "hand_R_02",
+        "hand_R_03",
+        "hand_R_04",
+        "hand_R_05",
+        "hand_R_06",
+        "hand_R_07",
+        "ladder_segment_mesh",
+        "rung_00",
+        "rung_01",
+        "rung_02",
+        "rung_03",
+        "rung_04",
+        "rung_05",
+        "rung_06",
+        "rung_07"
+      ],
+      "tris": 552,
+      "tris_unique_meshes": 552
+    },
+    "ladder_top": {
+      "bounds_max": [
+        0.319,
+        0.75,
+        0.36
+      ],
+      "bounds_min": [
+        -0.319,
+        -1.0,
+        -0.04
+      ],
+      "bytes": 76104,
+      "file": "ladder_top.glb",
+      "materials": [
+        "Ladder_Wood",
+        "Pit_Iron"
+      ],
+      "nodes": [
+        "LadderTop",
+        "foot_L_00",
+        "foot_L_01",
+        "foot_L_02",
+        "foot_L_03",
+        "foot_L_04",
+        "foot_L_05",
+        "foot_L_06",
+        "foot_R_00",
+        "foot_R_01",
+        "foot_R_02",
+        "foot_R_03",
+        "foot_R_04",
+        "foot_R_05",
+        "foot_R_06",
+        "hand_L_00",
+        "hand_L_01",
+        "hand_L_02",
+        "hand_L_03",
+        "hand_L_04",
+        "hand_L_05",
+        "hand_L_06",
+        "hand_R_00",
+        "hand_R_01",
+        "hand_R_02",
+        "hand_R_03",
+        "hand_R_04",
+        "hand_R_05",
+        "hand_R_06",
+        "ladder_top_mesh",
+        "rung_00",
+        "rung_01",
+        "rung_02",
+        "rung_03",
+        "rung_04",
+        "rung_05",
+        "rung_06"
+      ],
+      "tris": 560,
+      "tris_unique_meshes": 560
+    },
+    "light_cone": {
+      "bounds_max": [
+        1.4,
+        0.0,
+        1.4
+      ],
+      "bounds_min": [
+        -1.4,
+        -1.0,
+        -1.4
+      ],
+      "bytes": 1784,
+      "file": "light_cone.glb",
+      "materials": [
+        "LightCone_Additive"
+      ],
+      "nodes": [
+        "LightCone",
+        "light_cone_mesh"
+      ],
+      "tris": 8,
+      "tris_unique_meshes": 8
+    },
+    "shaft_rim": {
+      "bounds_max": [
+        0.74,
+        -0.04,
+        0.74
+      ],
+      "bounds_min": [
+        -0.74,
+        -0.54,
+        -0.74
+      ],
+      "bytes": 29776,
+      "file": "shaft_rim.glb",
+      "materials": [
+        "Pit_Stone"
+      ],
+      "nodes": [
+        "ShaftRim",
+        "shaft_rim_mesh"
+      ],
+      "tris": 88,
+      "tris_unique_meshes": 88
+    },
+    "shaft_wall_segment": {
+      "bounds_max": [
+        0.7,
+        1.0,
+        0.7
+      ],
+      "bounds_min": [
+        -0.7,
+        0.0,
+        -0.7
+      ],
+      "bytes": 32256,
+      "file": "shaft_wall_segment.glb",
+      "materials": [
+        "Pit_Stone"
+      ],
+      "nodes": [
+        "ShaftWallSegment",
+        "shaft_wall_segment_mesh"
+      ],
+      "tris": 120,
+      "tris_unique_meshes": 120
+    },
+    "trapdoor_dark": {
+      "bounds_max": [
+        0.4975,
+        0.04,
+        0.4975
+      ],
+      "bounds_min": [
+        -0.4975,
+        -0.053,
+        -0.4975
+      ],
+      "bytes": 135240,
+      "file": "trapdoor_dark.glb",
+      "materials": [
+        "Pit_Iron",
+        "Pit_Wood",
+        "Tile_Dark"
+      ],
+      "nodes": [
+        "Trapdoor_Dark",
+        "hinge_left",
+        "hinge_right",
+        "leaf_left",
+        "leaf_right"
+      ],
+      "tris": 584,
+      "tris_unique_meshes": 584
+    },
+    "trapdoor_light": {
+      "bounds_max": [
+        0.4975,
+        0.04,
+        0.4975
+      ],
+      "bounds_min": [
+        -0.4975,
+        -0.053,
+        -0.4975
+      ],
+      "bytes": 184676,
+      "file": "trapdoor_light.glb",
+      "materials": [
+        "Pit_Iron",
+        "Pit_Wood",
+        "Tile_Light"
+      ],
+      "nodes": [
+        "Trapdoor_Light",
+        "hinge_left",
+        "hinge_right",
+        "leaf_left",
+        "leaf_right"
+      ],
+      "tris": 584,
+      "tris_unique_meshes": 584
+    }
+  },
+  "trapdoor": {
+    "hinge_x_m": 0.4975,
+    "open_rotation_deg": {
+      "hinge_left_z": -90.0,
+      "hinge_right_z": 90.0
+    },
+    "thickness_m": 0.08
+  }
+}
