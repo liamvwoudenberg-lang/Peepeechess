@@ -36,6 +36,8 @@ jobs:
       - run: npm run test:classic
       - run: npm run test:battle
       - run: npm run test:multiplayer
+      - run: npm run test:backend
+      - run: npm run test:application
       - name: Import and run Godot
         shell: bash
         run: |

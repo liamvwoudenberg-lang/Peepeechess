@@ -116,6 +116,22 @@ Tests cover password/session admission, unknown fields, client attempts to post
 results, independent mode/time buckets, private invites, queue concurrency,
 single-use ticket redemption, concurrent result retries, conflicting outcomes,
 ranked Elo and unranked stats, profile/history/leaderboard, expiration, heartbeat
-leases, malformed/oversized requests, auth rate limits and SQLite service reopen.
+leases, malformed/oversized requests, auth rate limits, persistent service reopen and PostgreSQL replica races.
 `npm run test:application` adds the real Godot server and two independent native
 client processes; see its integration validation report for measured results.
+
+### Recorded backend validation — 2026-11-11
+
+Node24.22.1, PostgreSQL17.11 (`postgres:17-alpine`, Linux x86_64), and the
+repository's `npm run lint` were executed in the development environment.
+
+- SQLite:8passing tests;1PostgreSQL-only test skipped deliberately.
+- PostgreSQL:9passing tests,0skipped. This includes reopening the entire API
+  service against the same database, and two independent API instances sharing
+  PostgreSQL while queue admissions, single-use ticket redemption and duplicate
+  result commits race. Exactly one allocation/result and one rating update win.
+- Both runs exercise real HTTP sockets and real SQL storage, including lease
+  expiry, unrated abort history and conflicting late-result rejection.
+
+These checks verify the account/control-plane implementation. They do not
+constitute physical Windows/Android testing or a production deployment.

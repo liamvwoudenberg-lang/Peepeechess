@@ -3,18 +3,18 @@ extends Node
 ##   godot --path godot res://combat/scenes/test_arena.tscn
 ##
 ## Menu: 1 Player vs AI, 2 Players (split screen, one keyboard or two pads), or an AI-vs-AI
-## demo; each side can be a Pawn or a Knight. After a fight: Rematch (Enter / F5) or Menu (Esc).
+## demo; each side can be any of Pawn, Knight, Bishop, Rook or Queen. After a fight: Rematch (Enter / F5) or Menu (Esc).
 ## Everything runs through CombatArena in AUTHORITY mode, i.e. the same CombatSimulation and
 ## CombatInput path a server would use - only the host differs.
 ##
-## Automation flags (after `--`): --auto=pve|pvp|demo  --p1=p|n  --p2=p|n  --seed=N
-##   --frames=N (quit after N frames)  --shot=PATH (save a PNG at the end)
+## Automation flags (after `--`): --auto=pve|pvp|demo  --p1=p|n|b|r|q  --p2=p|n|b|r|q  --seed=N
+##   --frames=N (quit after N frames)  --shot=PATH (save a PNG at the end)  --touch (virtual touch controls for P1)  --pad (P1 on the first gamepad)
 
 const ARENA_SCENE := "res://combat/arena.tscn"
 
 var arena: CombatArena
 var menu: Node
-var config: Dictionary = {"mode": "pve", "white": "p", "black": "n"}
+var config: Dictionary = {"mode": "pve", "white": "p", "black": "n", "controls": "kbm"}
 var _round: int = 0
 var _args: Dictionary = {}
 var _frame: int = 0
@@ -25,10 +25,17 @@ func _ready() -> void:
 		if arg.begins_with("--") and "=" in arg:
 			var parts := arg.substr(2).split("=", true, 1)
 			_args[parts[0]] = parts[1]
+		elif arg.begins_with("--"):
+			_args[arg.substr(2)] = "1"
 	if _args.has("p1"):
 		config["white"] = _args["p1"]
 	if _args.has("p2"):
 		config["black"] = _args["p2"]
+	# Touch controls for P1: automatic on a touchscreen device, or forced with --touch / --touch=1.
+	if _args.has("touch") or DisplayServer.is_touchscreen_available():
+		config["controls"] = "touch"
+	elif _args.has("pad") or not Input.get_connected_joypads().is_empty():
+		config["controls"] = "pad"  # a gamepad is plugged in: default P1 to it (the menu can switch back)
 	arena = (load(ARENA_SCENE) as PackedScene).instantiate()
 	add_child(arena)
 	arena.rematch_requested.connect(rematch)
@@ -42,7 +49,10 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_ESCAPE:
+		if event.keycode == KEY_F11:
+			var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		elif event.keycode == KEY_ESCAPE:
 			show_menu()
 		elif (event.keycode == KEY_F5 or event.keycode == KEY_ENTER) and arena.sim.phase == CombatSimulation.Phase.FINISHED:
 			rematch()
@@ -93,8 +103,12 @@ func _build_menu() -> Node:
 	panel.add_child(note)
 
 	panel.add_child(_chooser("Mode", ["pve", "pvp", "demo"], ["1 Player vs AI", "2 Players (split screen)", "AI vs AI demo"], "mode"))
-	panel.add_child(_chooser("White fighter", ["p", "n"], ["Pawn — spear, Last Stand", "Knight — longsword, Lunging Strike"], "white"))
-	panel.add_child(_chooser("Black fighter", ["p", "n"], ["Pawn — spear, Last Stand", "Knight — longsword, Lunging Strike"], "black"))
+	panel.add_child(_chooser("P1 controls", ["kbm", "pad", "touch"], ["Keyboard + mouse", "Gamepad (first connected)", "Touch (landscape)"], "controls"))
+	var role_labels: Array = []
+	for role in FighterRoster.ROLES:
+		role_labels.append("%s — %s" % [FighterRoster.display_name(role), FighterRoster.ability_name(role)])
+	panel.add_child(_chooser("White fighter", FighterRoster.ROLES, role_labels, "white"))
+	panel.add_child(_chooser("Black fighter", FighterRoster.ROLES, role_labels, "black"))
 	var start := Button.new()
 	start.text = "FIGHT"
 	start.custom_minimum_size = Vector2(0, 48)
@@ -132,12 +146,13 @@ func start_fight() -> void:
 	var seats := {}
 	match String(config["mode"]):
 		"pve":
-			seats = {"player-white": {"type": "human", "scheme": "kb1"}, "player-black": {"type": "ai", "skill": 0.6}}
+			seats = {"player-white": {"type": "human", "scheme": _p1_scheme()}, "player-black": {"type": "ai", "skill": 0.6}}
 		"pvp":
-			seats = {"player-white": {"type": "human", "scheme": "kb1"}, "player-black": {"type": "human", "scheme": "kb2"}}
-			if Input.get_connected_joypads().size() >= 2:
-				seats["player-white"]["scheme"] = "pad%d" % Input.get_connected_joypads()[0]
-				seats["player-black"]["scheme"] = "pad%d" % Input.get_connected_joypads()[1]
+			seats = {"player-white": {"type": "human", "scheme": _p1_scheme()}, "player-black": {"type": "human", "scheme": "kb2"}}
+			var pads := Input.get_connected_joypads()
+			if pads.size() >= 2:  # two controllers: one each
+				seats["player-white"]["scheme"] = "pad%d" % pads[0]
+				seats["player-black"]["scheme"] = "pad%d" % pads[1]
 		_:
 			seats = {"player-white": {"type": "ai", "skill": 0.75}, "player-black": {"type": "ai", "skill": 0.6}}
 	arena.configure_seats(seats)
@@ -147,6 +162,19 @@ func start_fight() -> void:
 	var reply: Dictionary = arena.start_battle(request)
 	if not reply["ok"]:
 		push_error("could not start the fight: %s" % str(reply))
+		return
+	# The on-screen PAUSE button returns to the menu (touch has no Esc key).
+	for source in arena.find_children("*", "LocalInputSource", false, false):
+		source.pause_requested.connect(show_menu)
+
+
+func _p1_scheme() -> String:
+	if config["controls"] == "touch":
+		return "touch"
+	var pads := Input.get_connected_joypads()
+	if config["controls"] == "pad" and not pads.is_empty():
+		return "pad%d" % pads[0]
+	return "kb1"  # keyboard + mouse (also the fallback when "Gamepad" is chosen but none is connected)
 
 
 func rematch() -> void:

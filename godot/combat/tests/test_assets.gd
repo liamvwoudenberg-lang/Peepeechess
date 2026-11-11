@@ -14,6 +14,10 @@ const ROLES := {"pawn": "p", "knight": "n", "bishop": "b", "rook": "r", "queen":
 const REACH := {"pawn": 1.95, "knight": 1.65, "bishop": 1.75, "rook": 2.0, "queen": 1.65, "king": 1.8}
 const CAPSULE_RADIUS := {"pawn": 0.38, "knight": 0.45, "bishop": 0.4, "rook": 0.5, "queen": 0.4, "king": 0.45}
 const SCALE := {"pawn": 0.94, "knight": 1.04, "bishop": 1.0, "rook": 1.12, "queen": 1.0, "king": 1.06}
+## Polish clips (not in CharacterModel.REQUIRED_CLIPS, which the presentation layer owns); lengths are documented in
+## tools/blender/peepee_assets/animation/spec.py.
+const POLISH_CLIPS := {"victory": {"pawn": 96, "knight": 108, "bishop": 110, "rook": 120, "queen": 100, "king": 120},
+		"hit_react_light": 14, "hit_react_heavy": 24}
 const MANIFEST := "res://assets/combat/manifest/asset_manifest.json"
 const CORE_BONES := ["Root", "Hips", "Spine", "Chest", "UpperChest", "Neck", "Head", "LeftShoulder", "LeftUpperArm",
 		"LeftLowerArm", "LeftHand", "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand", "LeftUpperLeg",

@@ -20,7 +20,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="")
     ap.add_argument("--no-lods", action="store_true")
+    ap.add_argument("--out", default="", help="asset root to write into instead of godot/assets/combat (scratch builds)")
     args = ap.parse_args(runtime.script_args())
+    if args.out:
+        # Redirect EVERYTHING (GLBs, textures, manifest) so a scratch build never touches the live assets.
+        from pathlib import Path as _P
+        from peepee_assets import textures
+        runtime.ASSET_ROOT = _P(args.out).resolve()
+        textures.TEXTURE_DIR = runtime.ASSET_ROOT / "textures"
     wanted = [w for w in args.only.split(",") if w] or spec.CLASSES + ["arena"]
     manifest_path = runtime.ASSET_ROOT / "manifest" / "asset_manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"characters": {}}
