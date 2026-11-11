@@ -1,50 +1,46 @@
 @TITLE@ - ALPHA BUILD   (commit @SHA@)
 =================================================
-A standalone build of the third-person combat arena. No chess board, no online play, no account: just fights.
-Same simulation code the online server will use, running locally.
+The full Peepeechess application: main menu, Classic Chess, Battle Chess (a capture starts a real-time third-person
+fight), settings and the online screens. Online play needs a running Peepeechess server/backend; offline play
+(local Classic and local Battle Chess, vs a friend on the same PC) works without anything.
 
 START
   Windows : double-click @NAME@.exe
-            (Start-with-console.bat opens it with a console window that prints errors - use it if something breaks)
-            Keep the .exe, the .console.exe and the .pck in the SAME folder.
+            (Start-with-console.bat opens it with a console window that prints errors - attach that output when
+            reporting a bug). Keep the .exe, the .console.exe and the .pck in the SAME folder.
             Windows SmartScreen may warn about an unsigned app: "More info" -> "Run anyway".
   Linux   : ./@NAME@.x86_64
 
-MENU
-  Mode           1 Player vs AI  |  2 Players (split screen)  |  AI vs AI demo
-  P1 controls    Keyboard + mouse  |  Gamepad (first connected; chosen automatically if a pad is plugged in)
-  White / Black  Pawn, Knight, Bishop, Rook, Queen  (each has its own special ability)
-  Menu navigation works with mouse, keyboard (arrows + Enter) or gamepad (D-pad + A).
-  F11 = fullscreen.  Esc = back to menu.  After a fight: Enter / F5 = rematch.
+CHESS
+  Click a piece, then a highlighted square (or drag). Right-drag / wheel orbit and zoom in the 3D view.
+  Battle Chess: when a capture is attempted the two pieces fight; the winner keeps the square.
 
-CONTROLS
-  Action                    P1 keyboard + mouse    P2 keyboard (2-player)   Gamepad
-  Move                      W A S D                Arrow keys               Left stick
-  Light attack (x3 combo)   LMB or F               J                        X
-  Heavy attack              RMB or G               K                        Y
-  Block (hold)              Q                      U                        LB
-  Parry (tap just before    E                      I                        RB
+COMBAT CONTROLS (local Battle Chess; White = P1, Black = P2)
+  Action                    P1 keyboard + mouse    P2 keyboard      Gamepad (Xbox / PS4 labels)
+  Move                      W A S D                Arrow keys       Left stick
+  Light attack (x3 combo)   LMB or F               J                X / Square
+  Heavy attack              RMB or G               K                Y / Triangle
+  Block (hold)              Q                      U                LB / L1
+  Parry (tap just before    E                      I                RB / R1
     a hit lands)
-  Dodge (hold a direction)  Space                  L                        A
-  Special ability           R                      O                        B
-  Sprint                    Shift                  Ctrl                     LT
-  Lock-on                   Tab / middle mouse     P                        L3 (stick click)
-  Camera                    Mouse (captured)       , and .                  Right stick
-
-2 PLAYERS
-  One keyboard: P1 uses WASD + F/G..., P2 uses the arrows + J/K...
-  One gamepad: the pad is P1, the keyboard arrows are P2.   Two gamepads: one each.
+  Dodge (hold a direction)  Space                  L                A / Cross
+  Special ability           R                      O                B / Circle
+  Sprint                    Shift                  Ctrl             LT / L2
+  Lock-on                   Tab / middle mouse     P                L3 (stick click)
+  Camera                    Mouse (captured)       , and .          Right stick
+  F11 = fullscreen.
 
 WHAT THIS BUILD IS - AND IS NOT
-  * The fights, damage, stamina, blocking, parry, dodge i-frames and the five special abilities are the real
-    authoritative rules (4,000+ automated checks pass). Balance numbers are first-pass tuning, not playtested.
-  * Nobody has played this with a real keyboard/gamepad yet: input feel, camera comfort and difficulty are exactly
-    what we want you to judge. The AI is a basic opponent.
-  * Visuals are generated placeholder-quality art; the fighting-game polish pass (trails, hit effects, hitstop,
-    victory poses) is in progress and NOT in this build.
-  * Audio is procedurally generated placeholder sound.
+  * Real: Codex's chess rules and application, the authoritative combat rules for Pawn, Knight, Bishop, Rook and
+    Queen (the King and the tuned balance data are in the code, not yet selectable in the app), combat polish
+    (trails, hit/parry/dodge effects, hitstop), procedural sound, 6,800+ automated checks on the code.
+  * NOT in this build yet: the trapdoor/pit transition (a capture currently shows the older arena overlay), two PS4
+    controllers in the application's Battle Chess (only keyboard seats there; gamepads work in the standalone
+    arena), the controls-rebinding screen, a computer opponent for Classic Chess.
+  * Never run on a real Windows machine or a real gamepad by the developers; the Windows build is produced with the
+    official export templates and only the Linux build has been executed (headless / software rendering).
+  * Balance and feel are unvalidated by human play. Visuals are generated placeholder-quality art.
 
 PLEASE REPORT
-  - Which two fighters, which controls (keyboard / which pad), what happened, and what felt wrong
-    (unresponsive input, unreadable attacks, unfair AI, camera problems, stutter - with your PC and GPU).
-  - If it crashes or looks broken, run Start-with-console.bat and send the text in the console window.
+  - What you did (mode, fighters, controls), what happened, what felt wrong (input lag, unreadable attacks,
+    camera, menus, crashes) and your PC / GPU. If it crashes, run Start-with-console.bat and send the console text.
