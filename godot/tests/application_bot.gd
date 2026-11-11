@@ -73,9 +73,11 @@ func _api_smoke() -> void:
 	if not _require_api(response.ok and Settings.account.get("playerId") == identity, "API independent login changed identity"):
 		return
 	reports.apiChecks.append("login")
-	for path in ["/v1/me", "/v1/status", "/v1/history?limit=20", "/v1/leaderboard?mode=classic&limit=20"]:
+	for path in ["/v1/me", "/v1/status", "/v1/history?limit=20", "/v1/history/summary?limit=20&offset=0", "/v1/leaderboard?mode=classic&limit=20"]:
 		response = await api.call_api(HTTPClient.METHOD_GET, path)
 		if not _require_api(response.ok, "API authenticated read failed: " + path):
+			return
+		if path.begins_with("/v1/history/summary") and not _require_api(response.data.matches is Array and response.data.matches.is_empty() and response.data.nextOffset == null, "API compact history response invalid"):
 			return
 		reports.apiChecks.append(path)
 	response = await api.call_api(HTTPClient.METHOD_POST, "/v1/queue", {"mode":"classic", "ranked":false, "initialMs":60000, "incrementMs":0})

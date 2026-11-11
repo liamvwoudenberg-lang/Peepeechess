@@ -8,8 +8,15 @@ client processes for each match. It uses the production account HTTP API,
 production ENet client, shared chess authority, and Claude's combat simulation.
 It does not call server chess methods, set fighter health, or fabricate winners.
 
+`APPLICATION_API_ONLY=1 node scripts/test-application.mjs` runs the project
+import, Godot protocol/navigation tests, and real account API adapter smoke
+without starting dedicated game scenarios. The default command runs everything.
+
 The reproducible scenarios are:
 
+- Run the production Godot `AccountApi` against the real HTTP service: register,
+  log in, authenticated profile/status/history/compact-history/leaderboard reads,
+  queue and invite cancellation, and logout followed by 401 session clearing.
 - Register two persistent accounts, log in independently to the same account,
   reject a wrong password, and reject unauthenticated profile access.
 - Reject account credentials on the internal result endpoint and reject a
@@ -42,29 +49,35 @@ completed matches. Reports include public allocation IDs, client-observed states
 persisted records, never account bearer tokens, passwords, ticket secrets or
 the dedicated server secret. On failure, the script prints an isolated temporary
 directory containing process logs and reports for diagnosis; that directory may
-contain ephemeral development tickets and should be treated as private.
+contain ephemeral development tickets and test account passwords and should be
+treated as private.
 
 These are automated Linux headless integration scenarios. They do not verify
 physical Windows or Android devices, controller feel, touch ergonomics, GPU
 rendering, store publication, or public Internet deployment.
 
-## Recorded run
+## Recorded runs
 
 On 2026-11-11, `node scripts/test-application.mjs` completed with exit code 0 on
-Linux using Node 24.22.1 and Godot 4.6.3 (`7d41c59c4`). The tested integration tree
-was `58fa240`, incorporating native application/backend work through `fb9d3bf`
-and Claude's combat/audio/mobile handoff `f8128cc`.
+Linux using Node 24.22.1 and Godot 4.6.3 (`7d41c59c4`). The complete account and
+gameflow run used integration tree `aea2821`, including Claude's combat/audio/
+mobile handoff `f8128cc`, the updated application UI, and the real Godot account
+adapter smoke.
 
-All scenarios above passed: ranked Classic (4 plies), private Classic (4 plies),
-ranked Battle (12 plies, 4 real knockouts), terminal-result outbox recovery after
-account and dedicated server outages, active-match restart abort, and database
-reopen. Both independent clients agreed on final chess states and exact history;
-account ratings and mode-specific W/L/D matched the persisted records. The
-harness also confirmed all three completed records plus the abort survived the
-backend restart. Its Godot import and gameplay process logs contained no script,
-parse, or engine error diagnostics.
+Ranked Classic (4 plies), private Classic (4 plies), ranked Battle (12 plies,
+4 real knockouts), terminal-result outbox recovery after account and dedicated
+server outages, active-match restart abort, and database reopen all passed.
+Both independent clients agreed on final chess states and exact history;
+account ratings and mode-specific W/L/D matched the persisted records. All
+three completed records plus the abort survived backend restart. The Godot
+import and gameplay logs contained no script, parse, or engine error diagnostics.
 
-The same harness had also completed successfully on the preceding application
-integration tree before the latest Claude handoff. This recorded run covers the
-SQLite account service; PostgreSQL-specific coverage is reported separately in
-[BACKEND.md](BACKEND.md).
+After compact history pagination was integrated through `34d3657`,
+`APPLICATION_API_ONLY=1 node scripts/test-application.mjs` completed with exit
+code 0 on integration tree `6ebdee0`. The Godot protocol and application UI tests
+passed, followed by all ten actual HTTP account adapter checks, including
+`/v1/history/summary?limit=20&offset=0` and its pagination response shape.
+These protocol/UI/component checks are now also included in the full harness.
+
+These runs cover the SQLite account service. PostgreSQL-specific coverage is
+reported separately in [BACKEND.md](BACKEND.md).
