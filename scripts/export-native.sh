@@ -110,6 +110,13 @@ case "$TARGET" in
     fi
     run_checked android-aab "$GODOT" --headless --path "$ROOT/godot" --export-release 'Android Release AAB' "$BUNDLE"
     "$JAVA_SDK/bin/jarsigner" -verify "$BUNDLE"
+    BUNDLETOOL=${BUNDLETOOL_JAR:-"$TOOLS/bundletool-all-1.18.3.jar"}
+    if [[ ! -f "$BUNDLETOOL" ]]; then
+      echo "Run install-native-toolchain.sh or set BUNDLETOOL_JAR to official bundletool1.18.3 for bundle validation." >&2
+      exit 2
+    fi
+    "$JAVA_SDK/bin/java" -jar "$BUNDLETOOL" validate --bundle="$BUNDLE" > "$OUT/bundletool-validation.txt"
+    "$JAVA_SDK/bin/java" -jar "$BUNDLETOOL" dump manifest --bundle="$BUNDLE" > "$OUT/android-bundle-manifest.xml"
     ;;
   windows) ;;
   *) echo 'Usage: scripts/export-native.sh [all|windows|android-apk|android-aab|android-aab-test]' >&2; exit 2 ;;

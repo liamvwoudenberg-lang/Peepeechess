@@ -65,6 +65,15 @@ LICENSE_STATUS=${PIPESTATUS[1]}
 set -o pipefail
 if [[ "$LICENSE_STATUS" != 0 ]]; then exit "$LICENSE_STATUS"; fi
 "$MANAGER" --sdk_root="$SDK" "platform-tools" "platforms;android-36" "build-tools;36.1.0"
+BUNDLETOOL="$TOOLS/bundletool-all-1.18.3.jar"
+if [[ ! -f "$BUNDLETOOL" ]]; then
+  curl -fL --retry 2 https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o "$BUNDLETOOL"
+fi
+python3 - "$BUNDLETOOL" <<'PY'
+import hashlib, pathlib, sys
+if hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest() != 'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29':
+    raise SystemExit('Official bundletool1.18.3 checksum mismatch')
+PY
 echo "Templates: $TEMPLATES"
 echo "Android SDK: $SDK"
 echo "Set PEEPEECHESS_TOOLCHAIN_DIR=$TOOLS and ANDROID_HOME=$SDK for export-native.sh."
