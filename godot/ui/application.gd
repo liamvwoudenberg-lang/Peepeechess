@@ -3,13 +3,21 @@ extends Control
 const Settings = preload("res://ui/application_settings.gd")
 const Api = preload("res://ui/account_api.gd")
 const Results = preload("res://ui/results.gd")
-const INK = Color("142924")
-const PAPER = Color("f4eddc")
-const MUTED = Color("b6c4b5")
-const GOLD = Color("e5c586")
+const Kit = preload("res://ui/theme/ui_kit.gd")
+const Tokens = preload("res://ui/theme/ui_tokens.gd")
+const Motion = preload("res://ui/theme/ui_motion.gd")
+const Backdrop = preload("res://ui/theme/backdrop.gd")
+const Title = preload("res://ui/theme/title_screen.gd")
+const Icons = preload("res://ui/theme/ui_icons.gd")
+const SettingsPage = preload("res://ui/settings_page.gd")
+const MaxWidth = preload("res://ui/theme/max_width_box.gd")
+const INK = Tokens.BG
+const PAPER = Tokens.TEXT
+const MUTED = Tokens.TEXT_MUTED
+const GOLD = Tokens.GOLD
 const TIMES = [["3 + 2 · Blitz", 180000, 2000], ["5 + 0 · Blitz", 300000, 0], ["10 + 0 · Rapid", 600000, 0], ["15 + 10 · Rapid", 900000, 10000], ["30 + 0 · Classical", 1800000, 0]]
 var api: Node
-var page = "play"
+var page = "home"
 var selected_mode = "classic"
 var online = false
 var ranked = false
@@ -33,6 +41,12 @@ var _busy = false
 var _opening = false
 var _refresh_generation = 0
 var _menu_buttons: Dictionary = {}
+var _topbar: Control
+var _page_width: MarginContainer
+var _topbar_badge: Button
+var _backdrop: Control
+var _last_toast = ""
+var _toast_clock = 0.0
 var _history_loading = false
 var _history_more_button: Button
 
@@ -47,7 +61,7 @@ func _ready() -> void:
 	add_child(api)
 	_build_theme()
 	_build_frame()
-	navigate("play")
+	navigate("play" if online else "home")
 	PadUi.install(self, {"prefer": "content", "back": Callable(self, "_pad_back")})  # controller / keyboard focus (claude/pads-input)
 	if not Settings.token.is_empty():
 		_refresh_account()
@@ -56,143 +70,108 @@ func _ready() -> void:
 		Settings.result.clear()
 		Results.show_dialog(self, recent, func(): pass, func(): navigate("history"))
 
-func _box(color: Color, radius: int = 16, padding: int = 20) -> StyleBoxFlat:
-	var box = StyleBoxFlat.new()
-	box.bg_color = color
-	box.set_corner_radius_all(radius)
-	box.set_border_width_all(1)
-	box.border_color = Color("3f5647")
-	box.content_margin_left = padding
-	box.content_margin_right = padding
-	box.content_margin_top = padding
-	box.content_margin_bottom = padding
-	return box
-
 func _build_theme() -> void:
-	theme = Theme.new()
-	theme.default_font_size = 17
-	for type_name in ["Label", "Button", "OptionButton", "CheckButton", "LineEdit"]:
-		theme.set_color("font_color", type_name, PAPER)
-		theme.set_color("font_hover_color", type_name, GOLD)
-		theme.set_color("font_disabled_color", type_name, Color("748679"))
-	for type_name in ["Button", "OptionButton"]:
-		theme.set_stylebox("normal", type_name, _box(Color("233e32"), 10, 12))
-		theme.set_stylebox("hover", type_name, _box(Color("345440"), 10, 12))
-		theme.set_stylebox("pressed", type_name, _box(Color("456246"), 10, 12))
-		theme.set_stylebox("disabled", type_name, _box(Color("1d3027"), 10, 12))
-		var focus = _box(Color.TRANSPARENT, 10, 12)
-		focus.border_color = GOLD
-		focus.set_border_width_all(3)
-		theme.set_stylebox("focus", type_name, focus)
-	theme.set_stylebox("normal", "LineEdit", _box(Color("10271f"), 8, 12))
-	theme.set_stylebox("panel", "PopupMenu", _box(Color("233e32")))
-	theme.set_stylebox("panel", "AcceptDialog", _box(Color("233e32")))
-	theme.set_color("font_placeholder_color", "LineEdit", Color("99ab9d"))
+	Kit.install(self)  # shared design-system theme (godot/ui/theme), press animation and UI sounds
 
 func _label(parent: Node, text: String, size_px: int = 17, color: Color = PAPER) -> Label:
-	var label = Label.new()
-	label.text = text
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", size_px)
-	label.add_theme_color_override("font_color", color)
-	parent.add_child(label)
+	var variant = "Muted" if color == MUTED else ("Accent" if color == GOLD else ("H3" if size_px >= 20 and color == PAPER else ""))
+	var label = Kit.label(parent, text, variant)
+	if size_px != 17:
+		label.add_theme_font_size_override("font_size", size_px)
+	if color not in [PAPER, MUTED, GOLD]:
+		label.add_theme_color_override("font_color", color)
 	return label
 
 func _button(parent: Node, text: String, action: Callable, primary: bool = false) -> Button:
-	var button = Button.new()
-	button.text = text
-	button.custom_minimum_size.y = 48
-	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.pressed.connect(action)
-	if primary:
-		button.add_theme_stylebox_override("normal", _box(GOLD, 10, 12))
-		button.add_theme_stylebox_override("hover", _box(Color("f5d9a2"), 10, 12))
-		button.add_theme_color_override("font_color", INK)
-		button.add_theme_color_override("font_hover_color", INK)
-	parent.add_child(button)
-	return button
+	return Kit.button(parent, text, action, "PrimaryButton" if primary else "")
 
 func _field(parent: Node, placeholder: String, secret: bool = false) -> LineEdit:
 	var field = LineEdit.new()
 	field.placeholder_text = placeholder
 	field.secret = secret
-	field.custom_minimum_size.y = 48
+	field.custom_minimum_size.y = Kit.target_height()
 	field.max_length = 128 if secret else 64
 	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(field)
 	return field
 
 func _card(parent: Node) -> VBoxContainer:
-	var panel = PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _box(Color("1d372c")))
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	parent.add_child(panel)
-	var column = VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
-	panel.add_child(column)
-	return column
+	return Kit.card(parent)
 
 func _flow(parent: Node) -> HFlowContainer:
-	var flow = HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 10)
-	flow.add_theme_constant_override("v_separation", 10)
-	parent.add_child(flow)
-	return flow
+	return Kit.flow(parent)
 
 func _build_frame() -> void:
-	var background = ColorRect.new()
-	background.color = INK
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for edge in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + edge, 24)
-	add_child(margin)
+	_backdrop = Backdrop.new()
+	_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_backdrop)
+	var margin = Kit.safe_frame(self)
 	var column = VBoxContainer.new()
-	column.add_theme_constant_override("separation", 16)
+	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
+	_topbar = VBoxContainer.new()
+	_topbar.add_theme_constant_override("separation", 10)
+	column.add_child(_topbar)
 	var brand_row = HBoxContainer.new()
-	brand_row.add_theme_constant_override("separation", 16)
-	column.add_child(brand_row)
-	var brand = _label(brand_row, "♜  PEEPEECHESS", 28, GOLD)
-	brand.autowrap_mode = TextServer.AUTOWRAP_OFF
-	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	account_badge = _button(brand_row, "Sign in", func(): navigate("account"))
-	var nav = _flow(column)
-	for item in [["play", "Play"], ["profile", "Profile"], ["history", "Match history"], ["leaderboard", "Leaderboard"], ["settings", "Settings"]]:
+	brand_row.add_theme_constant_override("separation", 12)
+	_topbar.add_child(brand_row)
+	var brand = Kit.button(brand_row, "PEEPEECHESS", func(): navigate("home"), "GhostButton", "emblem")
+	brand.add_theme_font_size_override("font_size", 22)
+	brand.add_theme_color_override("font_color", Tokens.GOLD_HI)
+	brand.tooltip_text = "Main menu"
+	var brand_spacer = Control.new()
+	brand_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_row.add_child(brand_spacer)
+	account_badge = Kit.button(brand_row, "Sign in", func(): navigate("account"), "", "user")
+	_topbar_badge = account_badge
+	var nav = _flow(_topbar)
+	for item in [["play", "Play", "crown"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
 		var target: String = item[0]
-		_menu_buttons[target] = _button(nav, item[1], func(): navigate(target))
+		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
 	page_scroll = ScrollContainer.new()
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(page_scroll)
+	var page_width = MaxWidth.new()
+	page_width.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_width.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_scroll.add_child(page_width)
+	_page_width = page_width
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 18)
-	page_scroll.add_child(content)
+	page_width.add_child(content)
 	notice = _label(column, "Your board. Your perspective. One shared game.", 14, MUTED)
 	_update_badge()
 
 ## Circle on a controller: leave a sub-page for Play (PadUi calls this only when no dialog is open).
 func _pad_back() -> void:
-	if page != "play":
+	if page != "play" and page != "home":
 		navigate("play")
+	elif page == "play":
+		navigate("home")
 
 func navigate(target: String) -> void:
-	page = target if target in ["play", "profile", "history", "leaderboard", "settings", "account"] else "play"
+	page = target if target in ["home", "play", "profile", "history", "leaderboard", "settings", "account"] else "play"
 	_refresh_generation += 1
 	for child in content.get_children():
 		content.remove_child(child)
 		child.queue_free()
 	for key in _menu_buttons:
-		_menu_buttons[key].disabled = key == page
+		_menu_buttons[key].theme_type_variation = "NavButtonActive" if key == page else "NavButton"
+	account_badge = _topbar_badge
+	_topbar.visible = page != "home"
+	notice.visible = page != "home"
+	_backdrop.mode = "home" if page == "home" else "page"
+	_page_width.max_width = 4000.0 if page == "home" else 1120.0
+	_page_width.call("_fit")
 	page_scroll.scroll_vertical = 0
 	queue_label = null
 	_history_loading = false
 	_history_more_button = null
 	match page:
+		"home": Title.build(self, content, not OS.has_feature("mobile") and not OS.has_feature("web"))
 		"play": _play_page()
 		"account": _account_page()
 		"settings": _settings_page()
@@ -200,18 +179,25 @@ func navigate(target: String) -> void:
 		"history": _history_page()
 		"leaderboard": _leaderboard_page()
 	_update_badge()
+	Motion.fade_in(content, Motion.DURATION, 1.0)
 
 func _heading(title: String, detail: String) -> void:
-	title_label = _label(content, title, 36)
-	subtitle_label = _label(content, detail, 17, MUTED)
+	var labels = Kit.heading(content, title, detail)
+	title_label = labels[0]
+	subtitle_label = labels[1]
 
 func _update_badge() -> void:
-	if account_badge != null:
+	if is_instance_valid(account_badge):
 		account_badge.text = str(Settings.account.get("displayName", "Account")) if not Settings.token.is_empty() else "Sign in"
 
 func _message(text: String, error: bool = false) -> void:
 	notice.text = text
-	notice.add_theme_color_override("font_color", Color("f1b7a0") if error else MUTED)
+	notice.add_theme_color_override("font_color", Tokens.DANGER if error else MUTED)
+	var now = Time.get_ticks_msec() / 1000.0
+	if text != _last_toast or now - _toast_clock > Kit.toast_seconds:  # repeated polling errors do not spam toasts
+		_last_toast = text
+		_toast_clock = now
+		Kit.toast(self, text, "danger" if error else "info")
 
 func _play_page() -> void:
 	_heading("Make your next move.", "Classic precision or a capture worth fighting for. Choose your game, then make it yours.")
@@ -220,7 +206,8 @@ func _play_page() -> void:
 		var selected: String = data[0]
 		var card = _card(modes)
 		card.get_parent().custom_minimum_size.x = 300
-		_label(card, data[1] + "  " + data[2], 25, GOLD if selected_mode == selected else PAPER)
+		card.get_parent().theme_type_variation = "SelectedPanel" if selected_mode == selected else "CardPanel"
+		Kit.icon_label_row(card, "rook" if selected == "classic" else "sword", data[2], "H2" if selected_mode == selected else "H3")
 		_label(card, data[3], 15, MUTED).custom_minimum_size = Vector2(260, 48)
 		_button(card, "Selected" if selected_mode == selected else "Choose " + data[2], func(): selected_mode = selected; navigate("play"), selected_mode == selected)
 	var setup = _card(content)
@@ -285,16 +272,22 @@ func _account_page() -> void:
 	_heading("One account. Every board.", "Use the same sign-in on Windows and Android. Your online profile, match history and ratings stay together.")
 	var card = _card(content)
 	if not Settings.token.is_empty():
-		_label(card, "Signed in as " + str(Settings.account.get("displayName", "Player")), 24, GOLD)
+		Kit.icon_label_row(card, "user", "Signed in as " + str(Settings.account.get("displayName", "Player")), "H2")
 		_label(card, "Sessions stay in memory for this run. Your password and account token are never saved in preferences.", 15, MUTED)
-		_button(card, "View profile", func(): navigate("profile"), true)
-		_button(card, "Sign out", _sign_out)
+		var buttons = _flow(card)
+		_button(buttons, "View profile", func(): navigate("profile"), true)
+		Kit.danger(buttons, "Sign out", func(): Kit.confirm(self, "Sign out?", "You will need your password to sign in again on this device.", "Sign out", _sign_out, true))
 		return
-	username_edit = _field(card, "Username · 3–24 letters, numbers or underscore")
+	Kit.section_header(card, "Sign in or create an account", "user")
+	_label(card, "Username", 14, MUTED)
+	username_edit = _field(card, "3–24 letters, numbers or underscore")
 	username_edit.max_length = 24
-	display_name_edit = _field(card, "Display name · for a new account")
+	_label(card, "Display name (new accounts)", 14, MUTED)
+	display_name_edit = _field(card, "How other players see you")
 	display_name_edit.max_length = 32
-	password_edit = _field(card, "Password · at least 10 characters", true)
+	_label(card, "Password", 14, MUTED)
+	password_edit = _field(card, "At least 10 characters", true)
+	password_edit.text_submitted.connect(func(_text): _authenticate(false))
 	var actions = _flow(card)
 	_button(actions, "Sign in", func(): _authenticate(false), true)
 	_button(actions, "Create account", func(): _authenticate(true))
@@ -328,46 +321,7 @@ func _sign_out() -> void:
 	navigate("account")
 
 func _settings_page() -> void:
-	_heading("Make yourself at home.", "Presentation settings belong to this device. They never change the match rules or your opponent's camera.")
-	var card = _card(content)
-	var row = _flow(card)
-	_button(row, "Default board: " + ("3D" if Settings.preferred_3d else "2D"), func(): Settings.preferred_3d = not Settings.preferred_3d; Settings.save_preferences(); navigate("settings"))
-	var animate = CheckButton.new()
-	animate.text = "Piece animations"
-	animate.custom_minimum_size.y = 48
-	animate.button_pressed = Settings.animations
-	animate.toggled.connect(func(on): Settings.animations = on; Settings.save_preferences())
-	row.add_child(animate)
-	var touch = CheckButton.new()
-	touch.text = "Touch combat controls"
-	touch.custom_minimum_size.y = 48
-	touch.button_pressed = Settings.touch_controls
-	touch.toggled.connect(func(on): Settings.touch_controls = on; Settings.save_preferences())
-	row.add_child(touch)
-	_label(card, "Graphics quality", 18, GOLD)
-	var quality_row = _flow(card)
-	for value in ["low", "balanced", "high"]:
-		var quality: String = value
-		_button(quality_row, value.capitalize() + (" ✓" if Settings.quality == value else ""), func(): Settings.quality = quality; Settings.save_preferences(); navigate("settings"), Settings.quality == value)
-	_label(card, "Low: 30 FPS, no antialiasing. Balanced: 60 FPS, 2× antialiasing. High: uncapped, 4× antialiasing. Graphics quality affects this device only.", 14, MUTED)
-	_label(card, "Master volume", 18, GOLD)
-	var volume = HSlider.new()
-	volume.min_value = 0
-	volume.max_value = 1
-	volume.step = 0.05
-	volume.value = Settings.volume
-	volume.custom_minimum_size = Vector2(250, 48)
-	volume.value_changed.connect(func(value): Settings.volume = value; Settings.save_preferences())
-	card.add_child(volume)
-	_label(card, "Controls", 18, GOLD)
-	_button(card, "Controls & controllers…", func(): ControlsScreen.open(self))  # claude/pads-input: bindings, P1/P2 devices, pad tuning
-	_label(card, "Account service URL", 18, GOLD)
-	api_edit = _field(card, "https://accounts.example.com")
-	api_edit.max_length = 200
-	api_edit.text = Settings.api_url
-	_button(card, "Save service address", _save_api_url)
-	_label(card, "Keyboard / mouse: click or drag a piece. Touch: tap or drag. 3D: orbit with right-drag or swipe; zoom with scroll or pinch. Controller: use the focused controls and board cursor. Esc releases the combat mouse.", 15, MUTED)
-	_button(card, "Advanced direct-server lobby", func(): Settings.launch = {}; get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"))
+	SettingsPage.build(self)  # godot/ui/settings_page.gd
 
 func _save_api_url() -> void:
 	var value = api_edit.text.strip_edges().trim_suffix("/")
@@ -385,9 +339,7 @@ func _save_api_url() -> void:
 func _signed_in_or_prompt() -> bool:
 	if not Settings.token.is_empty():
 		return true
-	var card = _card(content)
-	_label(card, "Sign in to see your online profile and records.", 19, MUTED)
-	_button(card, "Sign in / create account", func(): navigate("account"), true)
+	Kit.empty_state(content, "lock", "Sign in to continue", "Your online profile, match history and rankings live on your account.", "Sign in / create account", func(): navigate("account"))
 	return false
 
 func _profile_page() -> void:
@@ -400,17 +352,36 @@ func _profile_page() -> void:
 func _draw_profile(profile: Dictionary) -> void:
 	var card = _card(content)
 	card.name = "ProfileCard"
-	_label(card, str(profile.get("displayName", "Player")), 30, GOLD)
-	_label(card, "@" + str(profile.get("username", "")) + "\nPlayer ID · " + str(profile.get("playerId", "")), 14, MUTED)
-	var row = _flow(card)
+	var head = HBoxContainer.new()
+	head.add_theme_constant_override("separation", 14)
+	card.add_child(head)
+	head.add_child(Icons.new("user", 44, Tokens.GOLD))
+	var names = VBoxContainer.new()
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(names)
+	var name_label = Kit.label(names, str(profile.get("displayName", "Player")), "H2")
+	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_label(names, "@" + str(profile.get("username", "")) + "  ·  Player ID " + str(profile.get("playerId", "")), 14, MUTED)
+	var row = Kit.responsive(card, 700.0)
 	for mode in ["classic", "battle"]:
 		var stats: Dictionary = profile.get(mode, {})
-		var column = _card(row)
-		column.get_parent().custom_minimum_size.x = 260
-		_label(column, mode.capitalize() + " Chess", 20, PAPER)
-		_label(column, str(stats.get("rating", 1200)) + "  rating", 32, GOLD)
-		_label(column, "%d wins   %d losses   %d draws\n%d games played" % [stats.get("wins", 0), stats.get("losses", 0), stats.get("draws", 0), stats.get("games", 0)], 16, MUTED)
-	_button(card, "Match history", func(): navigate("history"))
+		var column = Kit.card(row, "RaisedPanel", 8)
+		column.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		Kit.icon_label_row(column, "rook" if mode == "classic" else "sword", mode.capitalize() + " Chess", "H3")
+		var rating = _label(column, str(stats.get("rating", 1200)), 42, GOLD)
+		rating.add_theme_font_size_override("font_size", 42)
+		_label(column, "RATING", 12, MUTED)
+		var games = int(stats.get("games", 0))
+		var bar = ProgressBar.new()
+		bar.show_percentage = false
+		bar.custom_minimum_size.y = 10
+		bar.max_value = maxf(1.0, games)
+		bar.value = int(stats.get("wins", 0))
+		bar.tooltip_text = "Wins out of games played"
+		column.add_child(bar)
+		_label(column, "%d wins   %d losses   %d draws   ·   %d games" % [stats.get("wins", 0), stats.get("losses", 0), stats.get("draws", 0), games], 15, MUTED)
+	Kit.button(card, "Match history", func(): navigate("history"), "", "clock")
 
 func _refresh_account() -> void:
 	var generation = _refresh_generation
@@ -441,7 +412,7 @@ func _load_history(generation: int, offset: int = 0) -> void:
 	var previous_button = _history_more_button
 	if is_instance_valid(previous_button):
 		previous_button.disabled = true
-	var loading = _label(content, "Loading match history…", 17, MUTED)
+	var loading = Kit.loading_state(content, "Loading match history…")
 	var response = await api.call_api(HTTPClient.METHOD_GET, "/v1/history/summary?limit=20&offset=" + str(offset))
 	if generation != _refresh_generation:
 		return
@@ -451,23 +422,32 @@ func _load_history(generation: int, offset: int = 0) -> void:
 		if is_instance_valid(previous_button):
 			previous_button.disabled = false
 		_message(response.message, true)
+		if offset == 0:
+			Kit.error_state(content, "Match history could not be loaded. " + str(response.message), "Try again", func(): navigate("history"))
 		return
 	if is_instance_valid(previous_button):
 		previous_button.queue_free()
 	_history_more_button = null
 	var matches: Array = response.data.get("matches", [])
 	if matches.is_empty() and offset == 0:
-		_label(content, "Your first online match is waiting. Find an opponent from Play.", 20, MUTED)
+		Kit.empty_state(content, "list", "No online matches yet", "Your first online match is waiting. Find an opponent from Play.", "Find a match", func(): online = true; navigate("play"))
 	for record in matches:
 		var card = _card(content)
 		var is_white = record.whitePlayerId == Settings.account.get("playerId")
 		var own_side = "white" if is_white else "black"
 		var result = "Draw" if record.result == "draw" else ("Aborted" if record.result == "aborted" else ("Victory" if record.result == own_side else "Defeat"))
-		_label(card, result + " · " + str(record.mode).capitalize() + " Chess · " + ("Ranked" if record.ranked else "Unranked"), 21, GOLD)
+		var tint = Tokens.SUCCESS if result == "Victory" else (Tokens.DANGER if result == "Defeat" else Tokens.TEXT_MUTED)
+		var head = HBoxContainer.new()
+		head.add_theme_constant_override("separation", 10)
+		card.add_child(head)
+		head.add_child(Icons.new("trophy" if result == "Victory" else ("flag" if result == "Defeat" else "shield"), 26, tint))
+		var title = _label(head, result + " · " + str(record.mode).capitalize() + " Chess", 21, GOLD)
+		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		Kit.chip(head, "Ranked" if record.ranked else "Unranked", Tokens.GOLD if record.ranked else Tokens.TEXT_MUTED)
 		var opponent: String = record.blackName if is_white else record.whiteName
 		var delta = int(record.ratingChange.white if is_white else record.ratingChange.black)
 		_label(card, "vs " + opponent + " · " + str(record.reason).replace("_", " ") + "\n" + str(record.plies) + " moves · " + ("+" if delta > 0 else "") + str(delta) + " rating · " + Time.get_datetime_string_from_unix_time(int(record.completedAt / 1000)).replace("T", " ") + " UTC", 15, MUTED)
-		_button(card, "Copy final FEN", func(): DisplayServer.clipboard_set(str(record.finalFen)); _message("Final position copied."))
+		Kit.button(card, "Copy final FEN", func(): DisplayServer.clipboard_set(str(record.finalFen)); _message("Final position copied."), "GhostButton", "list")
 	var next = response.data.get("nextOffset")
 	if next != null:
 		_history_more_button = _button(content, "Load older matches", func(): _load_history(generation, int(next)))
@@ -476,31 +456,44 @@ func _leaderboard_page() -> void:
 	_heading("Earn your place.", "Separate Classic and Battle Chess ladders. Ratings can only be updated by authoritative match results.")
 	if not _signed_in_or_prompt():
 		return
-	var row = _flow(content)
-	_button(row, "Classic", func(): selected_mode = "classic"; navigate("leaderboard"), selected_mode == "classic")
-	_button(row, "Battle", func(): selected_mode = "battle"; navigate("leaderboard"), selected_mode == "battle")
+	Kit.segmented(content, [["classic", "Classic"], ["battle", "Battle"]], selected_mode, func(value): selected_mode = value; navigate("leaderboard")).size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_load_leaderboard(_refresh_generation, selected_mode)
 
 func _load_leaderboard(generation: int, mode: String) -> void:
-	var loading = _label(content, "Loading leaderboard…", 17, MUTED)
+	var loading = Kit.loading_state(content, "Loading leaderboard…")
 	var response = await api.call_api(HTTPClient.METHOD_GET, "/v1/leaderboard?mode=" + mode + "&limit=20")
 	if generation != _refresh_generation:
 		return
 	loading.queue_free()
 	if not response.ok:
 		_message(response.message, true)
+		Kit.error_state(content, "The leaderboard could not be loaded. " + str(response.message), "Try again", func(): navigate("leaderboard"))
 		return
 	var players: Array = response.data.get("players", [])
 	for i in players.size():
 		var profile: Dictionary = players[i]
 		var stats: Dictionary = profile[mode]
-		var card = _card(content)
-		_label(card, "%02d     %s     ·     %s" % [i + 1, profile.displayName, stats.rating], 23, GOLD if profile.playerId == Settings.account.get("playerId") else PAPER)
-		_label(card, "%d wins · %d losses · %d draws" % [stats.wins, stats.losses, stats.draws], 14, MUTED)
+		var own = profile.playerId == Settings.account.get("playerId")
+		var card = Kit.card(content, "SelectedPanel" if own else "CardPanel", 6)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 16)
+		card.add_child(row)
+		var rank = _label(row, "%02d" % (i + 1), 28, GOLD if i < 3 else MUTED)
+		rank.autowrap_mode = TextServer.AUTOWRAP_OFF
+		rank.custom_minimum_size.x = 48
+		var names = VBoxContainer.new()
+		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(names)
+		var name_label = _label(names, str(profile.displayName), 21, GOLD if own else PAPER)
+		name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_label(names, "%d wins · %d losses · %d draws" % [stats.wins, stats.losses, stats.draws], 14, MUTED)
+		var rating = _label(row, str(stats.rating), 26, GOLD)
+		rating.autowrap_mode = TextServer.AUTOWRAP_OFF
 		var player_id: String = profile.playerId
-		_button(card, "View player profile", func(): _view_player_profile(player_id))
+		Kit.button(row, "Profile", func(): _view_player_profile(player_id), "GhostButton", "user")
 	if players.is_empty():
-		_label(content, "The ladder is ready for its first players.", 20, MUTED)
+		Kit.empty_state(content, "trophy", "The ladder is ready for its first players", "Play a ranked online match to appear here.")
 
 func _view_player_profile(player_id: String) -> void:
 	var response = await api.call_api(HTTPClient.METHOD_GET, "/v1/profile?playerId=" + player_id.uri_encode())
