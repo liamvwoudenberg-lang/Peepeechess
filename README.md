@@ -1,4 +1,18 @@
-# Sovereign’s Gambit
+# Peepeechess
+
+## Native Godot application
+
+Open `godot/project.godot` with pinned Godot **4.6.3**. The native application starts with Classic/Battle selection, local play, account sign-in, ranked/unranked quick match and private invite codes. Each player independently chooses 2D or 3D. Settings, profiles, mode-specific statistics, match history, leaderboards and result screens wrap the existing authoritative gameplay. The legacy web game below remains available.
+
+- [Player guide](docs/application/PLAYER_GUIDE.md)
+- [Account backend and PostgreSQL setup](docs/application/BACKEND.md)
+- [Native Windows/Android builds and installation](docs/application/EXPORTS.md)
+- [Trust boundaries and integration](docs/application/ARCHITECTURE.md)
+- [Reproducible validation](docs/application/VALIDATION.md)
+
+Native online play needs **both** the persistent account API and the dedicated Godot ENet/DTLS server. The web/Vercel backend does not host UDP or share native accounts automatically. No production service deployment or physical Windows–Android crossplay verification is implied by these source changes.
+
+## Legacy web game — Sovereign’s Gambit
 
 Classic chess inside a fantasy castle. The game opens in a 3D castle, with a lightweight drawn 2D board available any time. Choose a legion before starting; both views share its livery, faces, weapons and familiar chess silhouettes. White’s faction determines the home castle for both players.
 
