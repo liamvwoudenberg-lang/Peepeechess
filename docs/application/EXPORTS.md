@@ -124,7 +124,8 @@ results for the integrated application belong in the final task validation log.
 
 ## Actual build verification, 2026-11-11
 
-The integrated native application source at `34d3657` was exported on Linux
+The integrated native application source at `743aaa9` (including the DTLS certificate-hostname
+fix in `3e6df31`) was exported on Linux
 with Godot 4.6.3, SDK 36/build-tools 36.1.0, Gradle 8.11.1 and a verified user-owned
 Temurin JDK 21.0.13. Both app modes, the application shell, both board views,
 combat arena and networking contracts are present in the packaged resources.
@@ -133,9 +134,9 @@ to Git. GitHub Actions can reproduce downloadable test artifacts.
 
 | Artifact | Bytes | SHA256 |
 | --- | ---: | --- |
-| Windows x64 executable | 110099144 | `5860a2c661f56ab3ea03e3596bf8c47b2c9d0969aff8f92109dfe2118bb86b1b` |
-| Android debug APK | 61365312 | `250821b6963e4826afda4e247ede54e3d24627f7e2b54af9784c9bad2c162bab` |
-| Android test-signed AAB | 31411081 | `3854162caccc245de80a8cbc63a1acae4a6486b7bd7bc15c1e7297b30c948de5` |
+| Windows x64 executable | 110099352 | `6d4913a0a2f0a4bdf7d948c8078e5bb13adf0165cffa5a4bc5b371c521ce969d` |
+| Android debug APK | 61365312 | `901af222926e0bd6d662a9d0369eb4232c11a58f2917e7cc310bc211a1cfddaf` |
+| Android test-signed AAB | 31411256 | `7623abb92690036590b63307a074c1c8802516484bc6726a35869f71a29fa676` |
 
 The Windows PE header identifies x86_64 and its embedded Godot pack is present.
 `apksigner verify` passed v2/v3 for the APK; the actual manifest contains the
@@ -154,7 +155,9 @@ delegates to the new Android CLI; no manual SDK fallback was needed. The new
 disk/compiler guards avoid starting an AAB build with the observed missing
 prerequisites.
 
-The two export/controller automated tests and shell syntax checks passed.
+The three export/controller automated tests and shell syntax checks passed.
+The diagnostics test proves that a zero-exit Godot script error fails the export
+and that an inherited conflicting Android SDK root is aligned correctly.
 No artifact was run on a physical Windows or Android device. Production
 signing, store acceptance, real controller behavior and Windows-to-Android
 crossplay remain device/release QA gates.
