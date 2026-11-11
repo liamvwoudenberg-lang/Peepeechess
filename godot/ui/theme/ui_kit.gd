@@ -361,12 +361,25 @@ static func toast(host: Node, text: String, kind: String = "info") -> PanelConta
 	return panel
 
 # ---------------------------------------------------------------- dialogs
+## A dialog's first layout pass measures wrapping labels at (almost) zero width and can leave the window far taller
+## than its content; one frame later the real minimum is known, so shrink to it and re-centre.
+static func refit(dialog: Window, min_size: Vector2i = Vector2i.ZERO) -> void:
+	if not is_instance_valid(dialog) or not dialog.is_inside_tree():
+		return
+	await dialog.get_tree().process_frame
+	if not is_instance_valid(dialog) or not dialog.visible:
+		return
+	var wanted := Vector2i(dialog.get_contents_minimum_size())
+	dialog.size = Vector2i(maxi(min_size.x, wanted.x), maxi(min_size.y, wanted.y))
+	dialog.move_to_center()
+
 static func _prepare_dialog(host: Node, dialog: AcceptDialog, width: int, height: int) -> void:
 	host.add_child(dialog)
 	dialog.theme = null   # inherit the host's theme
 	var available := Vector2i(host.get_viewport().get_visible_rect().size) if host.get_viewport() != null else Vector2i(1280, 720)
 	dialog.popup_centered_clamped(Vector2i(mini(width, available.x - 32), mini(height, available.y - 32)), 0.92)
 	Motion.dialog_pop(dialog)
+	refit(dialog)
 
 ## Confirmation dialog (cancelable). `danger` styles the confirm button red. Frees itself when closed.
 static func confirm(host: Node, title: String, text: String, ok_text: String, on_ok: Callable, danger_style: bool = false, on_cancel: Callable = Callable(), cancel_text: String = "Cancel") -> ConfirmationDialog:
@@ -398,6 +411,7 @@ static func modal(host: Node, title: String, build: Callable, close_text: String
 	dialog.get_ok_button().custom_minimum_size.y = target_height()
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", T.S3)
+	body.custom_minimum_size.x = clampf(width - 64.0, 200.0, 560.0)  # wrapping labels need a width to measure against
 	dialog.add_child(body)
 	if build.is_valid():
 		build.call(body)

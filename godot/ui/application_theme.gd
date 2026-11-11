@@ -12,7 +12,13 @@ static func box(color: Color, radius: int = 10) -> StyleBoxFlat:
 	style.content_margin_bottom = 10
 	return style
 
+const PeepeeTheme = preload("res://ui/theme/peepee_theme.gd")
+
+## The shared design-system theme (godot/ui/theme). The legacy builder below is kept only for reference/compat.
 static func create() -> Theme:
+	return PeepeeTheme.build()
+
+static func create_legacy() -> Theme:
 	var theme = Theme.new()
 	theme.default_font_size = 17
 	for type_name in ["Label", "Button", "OptionButton", "CheckButton", "LineEdit", "RichTextLabel", "TextEdit", "SpinBox"]:

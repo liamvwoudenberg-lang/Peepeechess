@@ -180,11 +180,13 @@ static func _build_buttons(theme: Theme, bold: Font) -> void:
 	theme.set_type_variation("GhostButton", "Button")
 	_set_button_states(theme, "GhostButton", _button_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0)), _button_style(Color(1, 1, 1, 0.07), Color(0, 0, 0, 0)), _button_style(Color(1, 1, 1, 0.12), Color(0, 0, 0, 0)), _button_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
 	_button_colors(theme, "GhostButton", T.TEXT_MUTED, T.GOLD_HI, T.GOLD_HI, T.TEXT_DIM)
-	theme.set_type_variation("IconButton", "GhostButton")
+	theme.set_type_variation("IconButton", "Button")
+	_set_button_states(theme, "IconButton", _button_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0)), _button_style(Color(1, 1, 1, 0.07), Color(0, 0, 0, 0)), _button_style(Color(1, 1, 1, 0.12), Color(0, 0, 0, 0)), _button_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
+	_button_colors(theme, "IconButton", T.TEXT_MUTED, T.GOLD_HI, T.GOLD_HI, T.TEXT_DIM)
 	theme.set_type_variation("NavButton", "Button")
 	_set_button_states(theme, "NavButton", _button_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, T.R_MD, 16, 9), _button_style(Color(1, 1, 1, 0.07), Color(0, 0, 0, 0), 0, T.R_MD, 16, 9), _button_style(Color(1, 1, 1, 0.1), Color(0, 0, 0, 0), 0, T.R_MD, 16, 9), _button_style(T.SURFACE_GOLD, T.GOLD, 1, T.R_MD, 16, 9))
 	_button_colors(theme, "NavButton", T.TEXT_MUTED, T.GOLD_HI, T.GOLD_HI, T.GOLD_HI)
-	theme.set_type_variation("NavButtonActive", "NavButton")
+	theme.set_type_variation("NavButtonActive", "Button")
 	var active := _button_style(T.SURFACE_GOLD, T.GOLD, 1, T.R_MD, 16, 9)
 	_set_button_states(theme, "NavButtonActive", active, active, active, active)
 	_button_colors(theme, "NavButtonActive", T.GOLD_HI, T.GOLD_HI, T.GOLD_HI, T.GOLD_HI)
@@ -240,6 +242,10 @@ static func _build_panels(theme: Theme) -> void:
 		"SelectedPanel": with_shadow(flat(T.SURFACE_GOLD, T.GOLD, 2, T.R_LG, 20, 18), 12, 4, 0.45),
 		"HudPanel": flat(T.SURFACE, T.BORDER, 1, T.R_LG, 16, 14),
 		"InsetPanel": flat(T.BG_DEEP, T.BORDER, 1, T.R_MD, 12, 10),
+		"PlayerCard": flat(T.SURFACE_2, T.BORDER, 1, T.R_MD, 12, 8),
+		"PlayerCardActive": flat(T.SURFACE_GOLD, T.GOLD, 2, T.R_MD, 11, 7),
+		"CheckPanel": flat(Color("3a1b18"), T.DANGER, 2, T.R_MD, 14, 10),
+		"ResultPanel": flat(T.SURFACE_GOLD, T.GOLD_HI, 2, T.R_MD, 14, 10),
 		"BannerPanel": flat(T.SURFACE_GOLD, T.GOLD, 1, T.R_MD, 16, 10),
 		"DangerPanel": flat(Color("2f1816"), T.DANGER_BG_HI, 1, T.R_MD, 16, 10),
 		"ToastPanel": with_shadow(flat(T.SURFACE_3, T.GOLD_LO, 1, T.R_MD, 18, 12), 14, 6, 0.6),

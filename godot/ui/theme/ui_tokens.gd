@@ -33,7 +33,7 @@ const INFO := Color("86b6da")
 const WARNING := Color("f0b24c")
 # colour-blind-safe highlight pair (blue / orange, distinguishable under deuteranopia and protanopia)
 const CB_MOVE := Color("56b4e9")
-const CB_CAPTURE := Color("e69f00")
+const CB_CAPTURE := Color("d55e00")
 
 # --- spacing grid (4 px base) ---
 const S1 := 4

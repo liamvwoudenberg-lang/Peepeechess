@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test src/game/chessCoachEngine.test.ts src/tests/variantsAndAnalytics.test.ts tests/*.test.ts && node scripts/test-native-combat.mjs",
+    "test": "node --import tsx --test src/game/chessCoachEngine.test.ts src/tests/variantsAndAnalytics.test.ts tests/*.test.ts && node scripts/test-native-combat.mjs && node scripts/test-ui.mjs",
     "android:sync": "npm run build && cap sync android",
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "art:draw": "node --import tsx scripts/draw-legions.ts",
@@ -21,7 +21,8 @@
     "server:native": "bash scripts/start-native-server.sh",
     "backend:native": "bash scripts/start-application-backend.sh",
     "test:backend": "node --import tsx --test tests/native-backend*.test.ts",
-    "test:application": "node scripts/test-application.mjs"
+    "test:application": "node scripts/test-application.mjs",
+    "test:ui": "node scripts/test-ui.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.10",
