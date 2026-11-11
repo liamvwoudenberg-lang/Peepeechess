@@ -186,6 +186,16 @@ try {
   const ready = async () => waitFor(async () => { try { return (await api('/health')).body.ok === true; } catch { return false; } }, 'backend health', 20000);
   let backend = startBackend('backend');
   await ready();
+  const apiCredentials = join(directory, 'account-adapter-credentials.json');
+  writeFileSync(apiCredentials, JSON.stringify({ username: 'ui_smoke', password: `Test-only-${randomBytes(16).toString('hex')}`, displayName: 'Account Adapter' }), { mode: 0o600 });
+  const apiReport = join(directory, 'account-adapter.json');
+  const adapter = await start('account-adapter', godot, ['--headless', '--path', 'godot', '--script', 'res://tests/application_bot.gd', '--', '--smoke_api=true', `--api_url=${base}`, `--credentials_file=${apiCredentials}`, `--report=${apiReport}`]).done;
+  assert.equal(adapter.code, 0, adapter.log);
+  assert.doesNotMatch(adapter.log, diagnostics);
+  const adapterReport = JSON.parse(readFileSync(apiReport, 'utf8'));
+  assert.equal(adapterReport.ok, true);
+  assert.equal(adapterReport.apiChecks.length, 9);
+  console.log('PASS Godot AccountApi: register/login, authenticated profile/status/history/leaderboard, quick/private cancellation, logout/401 session clearing');
   const startDedicated = name => start(name, godot, ['--headless', '--path', 'godot', '--script', 'res://network/server/server_main.gd', '--', '--bind=127.0.0.1', `--port=${gamePort}`, '--insecure-local', `--backend-url=${base}`, '--backend-insecure-local', '--server-id=local-1', `--outbox-dir=${join(directory, 'outbox')}`, '--run-seconds=360'], { PEEPEECHESS_BACKEND_SECRET: secret }, 360000);
   let server = startDedicated('dedicated');
   const serverReady = async () => {

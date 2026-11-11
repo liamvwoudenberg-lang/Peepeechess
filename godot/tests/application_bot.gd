@@ -1,11 +1,16 @@
 extends "res://tests/network/bot_client.gd"
 ## Account-authenticated independent client. Reuses the real chess/combat input
 ## strategy from transport tests, never server internals or fabricated damage.
+const AccountApi = preload("res://ui/account_api.gd")
+const Settings = preload("res://ui/application_settings.gd")
 var _move_after = 0
 func run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		var parts = arg.trim_prefix("--").split("=", true, 1)
 		options[parts[0]] = parts[1] if parts.size() > 1 else "true"
+	if options.get("smoke_api", "false") == "true":
+		_api_smoke()
+		return
 	seat = options.get("seat", "w")
 	scenario = options.get("scenario", "classic")
 	_deadline = Time.get_ticks_msec() + 150000
@@ -47,3 +52,57 @@ func _process(delta: float) -> bool:
 		_move_after = 0
 		_frame(client.frame)
 	return super._process(delta)
+
+func _api_smoke() -> void:
+	_deadline = Time.get_ticks_msec() + 60000
+	Settings.api_url = options.api_url
+	Settings.sign_out()
+	var credentials = JSON.parse_string(FileAccess.get_file_as_string(options.credentials_file))
+	if not _require_api(credentials is Dictionary, "API smoke credentials missing"):
+		return
+	var api = AccountApi.new()
+	root.add_child(api)
+	reports["apiChecks"] = []
+	var response = await api.authenticate(credentials.username, credentials.password, credentials.displayName, true)
+	if not _require_api(response.ok and not Settings.token.is_empty() and Settings.account.get("username") == credentials.username, "API registration failed"):
+		return
+	var identity = Settings.account.playerId
+	reports.apiChecks.append("register")
+	Settings.sign_out()
+	response = await api.authenticate(credentials.username, credentials.password)
+	if not _require_api(response.ok and Settings.account.get("playerId") == identity, "API independent login changed identity"):
+		return
+	reports.apiChecks.append("login")
+	for path in ["/v1/me", "/v1/status", "/v1/history?limit=20", "/v1/leaderboard?mode=classic&limit=20"]:
+		response = await api.call_api(HTTPClient.METHOD_GET, path)
+		if not _require_api(response.ok, "API authenticated read failed: " + path):
+			return
+		reports.apiChecks.append(path)
+	response = await api.call_api(HTTPClient.METHOD_POST, "/v1/queue", {"mode":"classic", "ranked":false, "initialMs":60000, "incrementMs":0})
+	if not _require_api(response.ok and response.data.status.queue != null and response.data.status.allocation == null, "API queue enter failed"):
+		return
+	response = await api.call_api(HTTPClient.METHOD_DELETE, "/v1/queue")
+	if not _require_api(response.ok and response.data.status.queue == null, "API queue cancel failed"):
+		return
+	reports.apiChecks.append("queue/cancel")
+	response = await api.call_api(HTTPClient.METHOD_POST, "/v1/private", {"mode":"classic", "initialMs":60000, "incrementMs":0})
+	if not _require_api(response.ok and response.data.status.invite != null, "API private invite failed"):
+		return
+	response = await api.call_api(HTTPClient.METHOD_DELETE, "/v1/queue")
+	if not _require_api(response.ok and response.data.status.invite == null, "API private invite cancel failed"):
+		return
+	reports.apiChecks.append("private/cancel")
+	response = await api.call_api(HTTPClient.METHOD_POST, "/v1/auth/logout")
+	if not _require_api(response.ok, "API logout failed"):
+		return
+	response = await api.call_api(HTTPClient.METHOD_GET, "/v1/me")
+	if not _require_api(not response.ok and Settings.token.is_empty() and Settings.account.is_empty(), "API unauthorized response did not clear account session"):
+		return
+	reports.apiChecks.append("logout/401-signout")
+	api.queue_free()
+	finish(true)
+
+func _require_api(condition: bool, message: String) -> bool:
+	if not condition:
+		finish(false, message)
+	return condition
