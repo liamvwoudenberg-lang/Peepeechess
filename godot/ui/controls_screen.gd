@@ -87,6 +87,7 @@ func _ready() -> void:
 	_build_keyboard("kb2", "Player 2 keyboard")
 	_build_pad()
 	_build_pad_tuning()
+	_build_overlay_option()  # control-overlay hook
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 10)
 	column.add_child(footer)
@@ -188,7 +189,7 @@ func _build_keyboard(scheme: String, heading: String) -> void:
 
 
 func _build_pad() -> void:
-	_section("Gamepad (every controller uses the same layout; sticks: left = move, right = camera; Options = pause)")
+	_section("Gamepad (every controller uses the same layout; sticks: left = move, right = camera; Options = pause; Share / Back = controls overlay)")
 	for action in ControlBindings.PAD_ACTIONS:
 		_add_row("pad/" + action, String(ControlBindings.ACTION_LABELS[action]), func(): _begin_capture("pad", "pad", action))
 	var reset := Button.new()
@@ -239,6 +240,27 @@ func _build_pad_tuning() -> void:
 				_save())
 		_sliders[key] = {"check": check}
 		_body.add_child(check)
+
+
+# --- BEGIN control-overlay hook (combat/presentation/control_overlay.gd; prefs in control_overlay_prefs.gd) -----------
+## "Show controls overlay in battles": the same remembered choice that F1 / Share / the on-screen chip change in a fight.
+var overlay_check: CheckButton
+
+
+func _build_overlay_option() -> void:
+	_section("Battle HUD")
+	overlay_check = CheckButton.new()
+	overlay_check.text = "Show controls overlay in battles"
+	overlay_check.custom_minimum_size.y = 40
+	overlay_check.button_pressed = ControlOverlayPrefs.shared().enabled
+	overlay_check.toggled.connect(func(on: bool): ControlOverlayPrefs.shared().set_enabled(on))
+	_body.add_child(overlay_check)
+	var note := Label.new()
+	note.text = "In a fight F1 (keyboard) or Share / Back (gamepad) toggles it too; those two cannot be rebound."
+	note.modulate = Color(1, 1, 1, 0.7)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_body.add_child(note)
+# --- END control-overlay hook -------------------------------------------------------------------------------------
 
 
 func _add_row(id: String, label_text: String, on_press: Callable) -> void:
