@@ -13,7 +13,7 @@ fi
 mkdir -p "$TOOLS/downloads" "$TOOLS/godot/templates/4.6.3.stable"
 ARCHIVE="$TOOLS/downloads/Godot_v4.6.3-stable_export_templates.tpz"
 TEMPLATES="$TOOLS/godot/templates/4.6.3.stable"
-if [[ ! -f "$TEMPLATES/android_source.zip" || ! -f "$TEMPLATES/android_debug.apk" || ! -f "$TEMPLATES/windows_release_x86_64.exe" ]]; then
+if [[ ! -f "$TEMPLATES/android_source.zip" || ! -f "$TEMPLATES/android_debug.apk" || ! -f "$TEMPLATES/windows_release_x86_64.exe" || ! -f "$TEMPLATES/windows_release_x86_64_console.exe" || ! -f "$TEMPLATES/linux_release.x86_64" ]]; then
   curl -fL --retry 2 "https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz" -o "$ARCHIVE"
   python3 - "$ARCHIVE" "$TEMPLATES" <<'PY'
 import hashlib, pathlib, shutil, sys, zipfile
@@ -25,7 +25,9 @@ with archive.open('rb') as f:
     for block in iter(lambda: f.read(1024 * 1024), b''): h.update(block)
 if h.hexdigest() != expected: raise SystemExit('Godot templates checksum mismatch')
 names = {'version.txt', 'android_debug.apk', 'android_source.zip',
-         'windows_release_x86_64.exe', 'windows_release_x86_64_console.exe'}
+         'windows_release_x86_64.exe', 'windows_release_x86_64_console.exe',
+         # Linux release template: tools/package/build_pc.sh exports the Linux playable package with it.
+         'linux_release.x86_64'}
 with zipfile.ZipFile(archive) as z:
     for name in names:
         with z.open('templates/' + name) as src, (destination / name).open('wb') as dst:

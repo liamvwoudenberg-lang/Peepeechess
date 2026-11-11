@@ -7,7 +7,8 @@ fight), settings and the online screens. Online play needs a running Peepeechess
 START
   Windows : double-click @NAME@.exe
             (Start-with-console.bat opens it with a console window that prints errors - attach that output when
-            reporting a bug). Keep the .exe, the .console.exe and the .pck in the SAME folder.
+            reporting a bug). The game data is embedded in the .exe; keep Peepeechess.exe and Peepeechess.console.exe
+            in the SAME folder.
             Windows SmartScreen may warn about an unsigned app: "More info" -> "Run anyway".
   Linux   : ./@NAME@.x86_64
 

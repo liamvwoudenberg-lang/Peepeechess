@@ -6,10 +6,16 @@ on:
     branches: [main, develop]
 permissions:
   contents: read
+# A newer push to the same PR supersedes the running validation (branches keep every run).
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   foundation:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Combat suites (~2.5 min on 4 cores, longer on shared runners), Classic/Battle differential, DTLS/multiplayer and the
+    # real account+dedicated-server scenarios (test:application) run in sequence; 15 min was too tight for them.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,7 +23,14 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Cache pinned Godot
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/godot-bin
+          key: godot-editor-linux-4.6.3-${{ hashFiles('.godot-version') }}
       - name: Install pinned Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -28,16 +41,25 @@ jobs:
           echo "d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3  $RUNNER_TEMP/$archive" | sha256sum --check
           unzip -q "$RUNNER_TEMP/$archive" -d "$RUNNER_TEMP/godot-bin"
           mv "$RUNNER_TEMP/godot-bin/Godot_v${version}-stable_linux.x86_64" "$RUNNER_TEMP/godot-bin/godot"
-          echo "$RUNNER_TEMP/godot-bin" >> "$GITHUB_PATH"
+      - name: Add pinned Godot to PATH
+        shell: bash
+        run: echo "$RUNNER_TEMP/godot-bin" >> "$GITHUB_PATH"
       - run: npm run lint
-      - run: npm test
+      # Web/Node tests plus the Godot combat harness (components ... pads, assets, polish, world_assets, soak) and arena.
+      - name: npm test
+        timeout-minutes: 20
+        run: npm test
       - run: npm run build
       - run: npm run test:contracts
       - run: npm run test:classic
       - run: npm run test:battle
-      - run: npm run test:multiplayer
+      - name: npm run test:multiplayer
+        timeout-minutes: 15
+        run: npm run test:multiplayer
       - run: npm run test:backend
-      - run: npm run test:application
+      - name: npm run test:application
+        timeout-minutes: 15
+        run: npm run test:application
       - name: Import and run Godot
         shell: bash
         run: |
