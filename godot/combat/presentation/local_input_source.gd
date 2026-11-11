@@ -4,19 +4,20 @@ extends Node
 ## tick, and hands them to `submit` (the local authority or, later, a network adapter).
 ## It sends INTENT only: world-space move vector, facing, held flags and cumulative press
 ## counters. Project input maps are not touched (project.godot is Codex-owned): bindings are read
-## from raw keys/buttons here.
+## from raw keys/buttons here, through `bindings` (ControlBindings; defaults = the old constants).
 ##
-## Schemes: "kb1" WASD + mouse, "kb2" arrow keys, "pad0"/"pad1" gamepads, "touch" virtual controls
+## Schemes: "kb1" WASD + mouse, "kb2" arrow keys, "pad<device id>" gamepads (each pad is its own device: events
+## and polling carry the device id, so two pads never cross-talk), "touch" virtual controls
 ## (presentation/touch_controls.gd, landscape multi-touch). Left stick / keys move
 ## relative to the camera; the camera converts to the world-space vector the contract expects.
 ## Mouse events synthesised from touch (device == DEVICE_ID_EMULATION) are always ignored here.
+##
+## Gamepad (SDL layout, DualShock 4 names): left stick move (radial dead zone), right stick camera, L2 sprint
+## (hysteresis), L1 hold block, R1 parry, Cross dodge, Circle special, Square light, Triangle heavy, R2 heavy
+## alias, L3 lock-on, Options pause (`pause_requested`). A pad that disconnects goes neutral (`pad_lost`).
 
-const SCHEMES := {
-	"kb1": {"up": KEY_W, "down": KEY_S, "left": KEY_A, "right": KEY_D, "sprint": KEY_SHIFT, "light": KEY_F, "heavy": KEY_G,
-		"dodge": KEY_SPACE, "block": KEY_Q, "parry": KEY_E, "ability": KEY_R, "lock": KEY_TAB, "orbit_l": KEY_Z, "orbit_r": KEY_X},
-	"kb2": {"up": KEY_UP, "down": KEY_DOWN, "left": KEY_LEFT, "right": KEY_RIGHT, "sprint": KEY_CTRL, "light": KEY_J, "heavy": KEY_K,
-		"dodge": KEY_L, "block": KEY_U, "parry": KEY_I, "ability": KEY_O, "lock": KEY_P, "orbit_l": KEY_COMMA, "orbit_r": KEY_PERIOD},
-}
+## Defaults only; the live bindings come from `bindings` (ControlBindings, user://controls.json).
+const SCHEMES := ControlBindings.DEFAULT_KEYS
 const TouchControls := preload("res://combat/presentation/touch_controls.gd")
 const MOUSE_SENSITIVITY := 0.0032
 ## Camera orbit for touch drags: radians per screen-height of finger travel.
@@ -24,7 +25,11 @@ const TOUCH_LOOK_RADIANS_PER_SCREEN := 4.5
 const TOUCH_LAYER := 20  # above the HUD (10), below menus (50)
 
 signal pause_requested
-const STICK_DEADZONE := 0.18
+## Fired when this seat's pad vanishes (true) or comes back (false). The arena guard (PadHold) pauses on it.
+signal pad_lost_changed(lost: bool)
+const STICK_DEADZONE := PadMath.DEFAULT_INNER  # kept for old callers; the live value is bindings.pad_setting("deadzone")
+const LOOK_YAW_PER_TICK := 0.05
+const LOOK_PITCH_PER_TICK := 0.03
 
 var scheme: String = "kb1"
 var builder: CombatInputBuilder
@@ -32,6 +37,12 @@ var camera: ThirdPersonCamera
 var fighter: FighterController
 var submit: Callable
 var mouse_look: bool = false
+## Key/button map and pad tuning. Tests may give a private instance; the default is the process-wide one.
+var bindings: ControlBindings = ControlBindings.shared()
+## Source of "is this pad connected" (hot-plug). Default: the shared InputAssignment.
+var assignment: InputAssignment = InputAssignment.shared()
+## True while this seat's pad is disconnected: input is neutral and ignored (see PadHold).
+var pad_lost: bool = false
 ## Online mode: intent and presses go to the CombatNetClient (which owns sequencing) instead of `builder`/`submit`.
 var net_client = null
 var enabled: bool = true:
@@ -45,6 +56,8 @@ var _touch_layer: CanvasLayer = null
 
 var _attack_pressed_this_tick: bool = false
 var _last_facing: float = 0.0
+var _held_state: Dictionary = {}   # held action -> PadMath.Schmitt (axis-bound sprint/block)
+var _edge_state: Dictionary = {}   # press action -> PadMath.Schmitt (axis-bound, e.g. R2 heavy alias)
 
 
 func _ready() -> void:
@@ -111,7 +124,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # the virtual controls consume raw touch themselves
 	if not enabled or (builder == null and net_client == null):
 		return
-	var keys: Dictionary = SCHEMES.get(scheme, {})
+	var keys: Dictionary = bindings.keys_for(scheme)
 	if event is InputEventKey and event.pressed and not event.echo and not keys.is_empty():
 		var code: int = event.physical_keycode
 		if code == keys["light"]:
@@ -140,20 +153,70 @@ func _unhandled_input(event: InputEvent) -> void:
 				camera.zoom(0.4)
 	elif event is InputEventMouseMotion and mouse_look and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		camera.add_look(event.relative.x * MOUSE_SENSITIVITY, event.relative.y * MOUSE_SENSITIVITY)
-	elif event is InputEventJoypadButton and event.pressed and scheme.begins_with("pad") and event.device == _pad_device():
-		match event.button_index:
-			JOY_BUTTON_X:
-				_press("light")
-			JOY_BUTTON_Y:
-				_press("heavy")
-			JOY_BUTTON_A:
-				_do_press("dodge")
-			JOY_BUTTON_RIGHT_SHOULDER:
-				_do_press("parry")
-			JOY_BUTTON_B:
-				_do_press("ability")
-			JOY_BUTTON_LEFT_STICK:
+	elif event is InputEventJoypadButton and scheme.begins_with("pad") and event.device == _pad_device():
+		if pad_lost:
+			return
+		if event.pressed:
+			_pad_button_pressed(int(event.button_index))
+	elif event is InputEventJoypadMotion and scheme.begins_with("pad") and event.device == _pad_device():
+		if not pad_lost:
+			_pad_axis_moved(int(event.axis), float(event.axis_value))
+
+
+## One press edge from a pad button, routed through the binding map (several actions may share a button).
+func _pad_button_pressed(button: int) -> void:
+	if button == JOY_BUTTON_START:
+		pause_requested.emit()
+		return
+	for action in ControlBindings.PAD_ACTIONS:
+		var bound: Dictionary = bindings.pad_input(action)
+		if bound.get("type", "") == "button" and int(bound["index"]) == button:
+			_fire_pad_action(action)
+
+
+## Axis-bound press actions (the R2 heavy alias, or whatever the player bound to a trigger) fire on the Schmitt edge.
+func _pad_axis_moved(axis: int, value: float) -> void:
+	for action in ControlBindings.PAD_ACTIONS:
+		if action in ControlBindings.HELD_ACTIONS:
+			continue
+		var bound: Dictionary = bindings.pad_input(action)
+		if bound.get("type", "") == "axis" and int(bound["index"]) == axis:
+			if _schmitt(_edge_state, action).update(PadMath.trigger_value(value)):
+				_fire_pad_action(action)
+
+
+func _fire_pad_action(action: String) -> void:
+	match action:
+		"light":
+			_press("light")
+		"heavy", "heavy2":
+			_press("heavy")
+		"dodge", "parry", "ability":
+			_do_press(action)
+		"lock":
+			if camera != null:
 				camera.toggle_lock()
+
+
+func _schmitt(store: Dictionary, action: String) -> PadMath.Schmitt:
+	if not store.has(action):
+		store[action] = PadMath.Schmitt.new(float(bindings.pad_setting("trigger_press")), float(bindings.pad_setting("trigger_release")))
+	var state: PadMath.Schmitt = store[action]
+	state.set_thresholds(float(bindings.pad_setting("trigger_press")), float(bindings.pad_setting("trigger_release")))
+	return state
+
+
+## Is the held action (sprint / block) active on this pad right now?
+func _pad_held(device: int, action: String) -> bool:
+	var bound: Dictionary = bindings.pad_input(action)
+	if bound.is_empty():
+		return false
+	var index := int(bound["index"])
+	if bound["type"] == "button":
+		return Input.is_joy_button_pressed(device, index as JoyButton)
+	var value := PadMath.trigger_value(Input.get_joy_axis(device, index as JoyAxis))
+	_schmitt(_held_state, action).update(value)
+	return _schmitt(_held_state, action).held
 
 
 func _press(action: String) -> void:
@@ -172,13 +235,25 @@ func _pad_device() -> int:
 	return int(scheme.substr(3))
 
 
+func _update_pad_presence() -> void:
+	if not scheme.begins_with("pad"):
+		return
+	var lost := not assignment.is_pad_connected(_pad_device())
+	if lost != pad_lost:
+		pad_lost = lost
+		_held_state.clear()
+		_edge_state.clear()
+		pad_lost_changed.emit(lost)
+
+
 func _physics_process(_delta: float) -> void:
+	_update_pad_presence()
 	if not enabled or fighter == null or (net_client == null and (builder == null or not submit.is_valid())):
 		return
 	var move := Vector2.ZERO  # x = right, y = forward (screen/camera relative)
 	var sprint := false
 	var block := false
-	var keys: Dictionary = SCHEMES.get(scheme, {})
+	var keys: Dictionary = bindings.keys_for(scheme)
 	if not keys.is_empty():
 		move.x = float(Input.is_physical_key_pressed(keys["right"])) - float(Input.is_physical_key_pressed(keys["left"]))
 		move.y = float(Input.is_physical_key_pressed(keys["up"])) - float(Input.is_physical_key_pressed(keys["down"]))
@@ -193,16 +268,19 @@ func _physics_process(_delta: float) -> void:
 			sprint = touch.sprint
 			block = touch.block_held
 			touch.lock_active = camera.locked
-	else:
+	elif not pad_lost:
 		var dev := _pad_device()
-		move = Vector2(Input.get_joy_axis(dev, JOY_AXIS_LEFT_X), -Input.get_joy_axis(dev, JOY_AXIS_LEFT_Y))
-		if move.length() < STICK_DEADZONE:
-			move = Vector2.ZERO
-		sprint = Input.get_joy_axis(dev, JOY_AXIS_TRIGGER_LEFT) > 0.5
-		block = Input.is_joy_button_pressed(dev, JOY_BUTTON_LEFT_SHOULDER)
-		var look := Vector2(Input.get_joy_axis(dev, JOY_AXIS_RIGHT_X), Input.get_joy_axis(dev, JOY_AXIS_RIGHT_Y))
-		if look.length() > STICK_DEADZONE:
-			camera.add_look(look.x * 0.05, look.y * 0.03)
+		var inner := float(bindings.pad_setting("deadzone"))
+		var outer := float(bindings.pad_setting("outer_deadzone"))
+		var response := float(bindings.pad_setting("response"))
+		move = PadMath.radial(Vector2(Input.get_joy_axis(dev, JOY_AXIS_LEFT_X), -Input.get_joy_axis(dev, JOY_AXIS_LEFT_Y)), inner, outer, response)
+		sprint = _pad_held(dev, "sprint")
+		block = _pad_held(dev, "block")
+		var look := PadMath.radial(Vector2(Input.get_joy_axis(dev, JOY_AXIS_RIGHT_X), Input.get_joy_axis(dev, JOY_AXIS_RIGHT_Y)), inner, outer, response)
+		if look != Vector2.ZERO:
+			var sens := float(bindings.pad_setting("look_sensitivity"))
+			camera.add_look(look.x * LOOK_YAW_PER_TICK * sens * (-1.0 if bindings.pad_setting("invert_look_x") else 1.0),
+					look.y * LOOK_PITCH_PER_TICK * sens * (-1.0 if bindings.pad_setting("invert_look_y") else 1.0))
 	if move.length() > 1.0:
 		move = move.normalized()
 

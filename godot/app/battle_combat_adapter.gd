@@ -80,16 +80,23 @@ func start(request: Dictionary) -> Dictionary:
 	if not supported.ok:
 		return supported
 	if arena.has_method("configure_seats"):
+		# Controls (claude/pads-input): White = Player 1's device, Black = Player 2's. Two pads -> one each; with fewer
+		# pads the keyboard sets fill in (kb1 / kb2), exactly as before when no pad is connected. See combat/input/.
 		var seats = {}
+		var assignment: InputAssignment = InputAssignment.shared()
+		assignment.lock_for_match()  # a pad that disconnects mid-fight keeps its seat (PadHold pauses the fight)
 		for participant in [request.attacker, request.defender]:
-			seats[participant.playerId] = {"type": "human", "scheme": "kb1" if participant.color == "w" else "kb2"}
+			seats[participant.playerId] = {"type": "human", "scheme": assignment.scheme_for_color(participant.color)}
 		arena.call("configure_seats", seats)
 	for property in arena.get_property_list():
 		if property.name == "presentation_enabled":
 			arena.set("presentation_enabled", presentation_enabled)
 	_request = request.duplicate(true)
 	var response = arena.call("start_battle", request.duplicate(true))
-	return _response(response)
+	var outcome = _response(response)
+	if outcome.ok and arena.has_method("configure_seats"):
+		PadHold.attach(arena)  # pauses the fight if a seat's controller disconnects; resumes on reconnect
+	return outcome
 
 func _response(value: Variant) -> Dictionary:
 	if value == null:
@@ -120,6 +127,7 @@ func _result(value: Variant, generation: int) -> void:
 		result_received.emit(value.duplicate(true))
 
 func stop() -> void:
+	InputAssignment.shared().unlock()
 	_generation += 1
 	_loading = false
 	_request.clear()
