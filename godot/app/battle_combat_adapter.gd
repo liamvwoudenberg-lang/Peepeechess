@@ -19,22 +19,31 @@ var _codec = Codec.new()
 func available() -> bool:
 	return ResourceLoader.exists(scene_path, "PackedScene")
 
-func check_request(request: Dictionary) -> Dictionary:
+## `options` is empty for every ordinary capture. battle-royal-v1 passes {"allow_experimental_roles": true, ...} for a
+## king duel: only the king role is then relaxed, exactly like CombatSimulation.start does; everything else is validated.
+func check_request(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 	if not available():
 		return {"ok": false, "error": "Combat is unavailable in this build. Return to the board or play Classic."}
-	if not _codec.valid("BattleRequest", request):
+	var experimental = bool(options.get("allow_experimental_roles", false))
+	var checked: Dictionary = request
+	if experimental and request.get("attacker") is Dictionary and request.get("defender") is Dictionary:
+		checked = request.duplicate(true)
+		for seat in ["attacker", "defender"]:
+			if checked[seat].get("role", "") == "k":
+				checked[seat]["role"] = "q"
+	if not _codec.valid("BattleRequest", checked):
 		return {"ok": false, "code": "INVALID_PAYLOAD", "error": "Invalid battle request."}
 	# Capabilities come from the combat owner, never from a substitute fighter.
 	if scene_path == DEFAULT_SCENE:
 		var profile = load("res://combat/core/fighter_profile.gd")
 		for participant in [request.attacker, request.defender]:
-			if not profile.supports_role(participant.role):
+			if not (profile.supports_role(participant.role) or (experimental and profile.is_experimental_role(participant.role))):
 				return {"ok": false, "code": "INVALID_PAYLOAD", "error": "Combat for %s is not implemented by the combat module yet. Cancel to return to the board." % {"p": "Pawn", "n": "Knight", "b": "Bishop", "r": "Rook", "q": "Queen", "k": "King"}[participant.role]}
 	return {"ok": true}
 
-func begin_load(request: Dictionary, host: Node) -> Dictionary:
+func begin_load(request: Dictionary, host: Node, options: Dictionary = {}) -> Dictionary:
 	stop()
-	var supported = check_request(request)
+	var supported = check_request(request, options)
 	if not supported.ok:
 		return supported
 	_host = host
@@ -73,10 +82,10 @@ func _process(_delta: float) -> void:
 		_host.add_child(arena)
 		arena_ready.emit()
 
-func start(request: Dictionary) -> Dictionary:
+func start(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 	if not is_instance_valid(arena):
 		return {"ok": false, "error": "The combat scene is not ready."}
-	var supported = check_request(request)
+	var supported = check_request(request, options)
 	if not supported.ok:
 		return supported
 	if arena.has_method("configure_seats"):
@@ -92,7 +101,7 @@ func start(request: Dictionary) -> Dictionary:
 		if property.name == "presentation_enabled":
 			arena.set("presentation_enabled", presentation_enabled)
 	_request = request.duplicate(true)
-	var response = arena.call("start_battle", request.duplicate(true))
+	var response = arena.call("start_battle", request.duplicate(true)) if options.is_empty() else arena.call("start_battle", request.duplicate(true), options.duplicate(true))
 	var outcome = _response(response)
 	if outcome.ok and arena.has_method("configure_seats"):
 		PadHold.attach(arena)  # pauses the fight if a seat's controller disconnects; resumes on reconnect
@@ -107,6 +116,13 @@ func _response(value: Variant) -> Dictionary:
 	if not response.ok:
 		response["error"] = response.get("error", response.get("message", "The combat module rejected the request."))
 	return response
+
+## End/current resources of one seat as the trusted local simulation reports them ({} without a running arena). Only the
+## royal ruleset reads this: the King's HP/stamina/cooldown carry over from the authority, never from a client packet.
+func fighter_state(player_id: String) -> Dictionary:
+	if not is_instance_valid(arena) or arena.get("sim") == null or not arena.sim.has_method("fighter_state"):
+		return {}
+	return arena.sim.fighter_state(player_id)
 
 ## The hosting layer supplies the authenticated seat; inputs contain intent only.
 func submit_input(packet: Dictionary, authenticated_player_id: String) -> Dictionary:

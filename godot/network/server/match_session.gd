@@ -6,6 +6,7 @@ signal combat_snapshot(snapshot: Dictionary)
 signal battle_receipt(result: Dictionary)
 const Classic = preload("res://chess/classic_match.gd")
 const Battle = preload("res://chess/battle_match.gd")
+const Royal = preload("res://chess/battle_royal_match.gd")
 const Rules = preload("res://chess/chess_engine.gd")
 const Sim = preload("res://combat/core/combat_simulation.gd")
 const CombatHost = preload("res://combat/net/combat_net_server.gd")
@@ -35,10 +36,13 @@ static func supported_roles() -> Array:
 			roles.append(role)
 	return roles
 
-func configure(id: String, mode: String, creator: String, base_ms: int, increment_ms: int, now: int) -> void:
+## `ruleset` "battle-royal-v1" (mode "battle" only) runs the king's last-stand sequence authoritatively here: the server
+## owns the King's HP/stamina/cooldown carry-over. It is opt-in and in-process: the v1 wire schemas cannot carry the
+## sequence yet (docs/architecture/BATTLE_ROYAL_V1.md), so the dedicated server never passes it.
+func configure(id: String, mode: String, creator: String, base_ms: int, increment_ms: int, now: int, ruleset: String = "battle-checkmate-v1") -> void:
 	created_ms = now
 	_now = now
-	game = Battle.new() if mode == "battle" else Classic.new()
+	game = (Royal.new() if ruleset == Royal.RULESET_ID else Battle.new()) if mode == "battle" else Classic.new()
 	game.new_game(base_ms, increment_ms)
 	game.match_id = id
 	game.players = {"w": creator, "b": "open-" + id}
@@ -147,9 +151,13 @@ func move(payload: Dictionary, player_id: String, now: int) -> Dictionary:
 	game.poll_clock(now)
 	game.server_tick = tick
 	var response = game.submit_request(payload, player_id, now)
-	if response.ok and game is BattleChessMatch and not game.pending_request().is_empty() and sim == null:
-		_start_combat()
+	_ensure_combat()
 	return response
+
+## Starts the authoritative simulation for a freshly prepared battle (also the next duel of a royal sequence).
+func _ensure_combat() -> void:
+	if status == "active" and game is BattleChessMatch and game.phase == "combat" and not game.pending_request().is_empty() and sim == null:
+		_start_combat()
 
 func _start_combat() -> void:
 	sim = Sim.new()
@@ -159,7 +167,8 @@ func _start_combat() -> void:
 	combat_host.snapshot_ready.connect(_combat_snapshot)
 	combat_host.seat_abandoned.connect(func(player): finish("0-1" if color_of(player) == "w" else "1-0", "Combat input timeout", _now))
 	combat_host.battle_aborted_draw.connect(func(): finish("1/2-1/2", "Both combat seats abandoned", _now))
-	var reply = combat_host.start(game.pending_request())
+	var options: Dictionary = game.combat_options()
+	var reply = combat_host.start(game.pending_request()) if options.is_empty() else combat_host.start(game.pending_request(), options)
 	if not reply.ok:
 		finish("1/2-1/2", "Service aborted: combat initialization failed", _now)
 		return
@@ -192,6 +201,7 @@ func step(now: int) -> void:
 	check_disconnections(now)
 	if status == "complete":
 		return
+	_ensure_combat() # a duel prepared without a move (a loaded mate position) gets its simulation here
 	tick += 1
 	if tick >= 2147477000 or game.engine.history.size() >= 4096:
 		finish("1/2-1/2", "Service aborted: protocol counter limit", now)
@@ -214,6 +224,7 @@ func step(now: int) -> void:
 			if not game.commit_battle().ok:
 				finish("1/2-1/2", "Service aborted: combat settlement failed", now)
 			_stop_combat()
+			_ensure_combat()
 	else:
 		game.poll_clock(now)
 	game.server_tick = tick
@@ -239,7 +250,7 @@ func finish(result: String, reason: String, now: int) -> void:
 		if not game.engine.result.is_empty():
 			_stop_combat()
 			return
-		game.cancel_pending()
+		game.abandon_pending()
 	_stop_combat()
 	game.engine.result = result
 	game.engine.reason = reason

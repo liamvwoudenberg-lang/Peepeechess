@@ -6,6 +6,13 @@ signal preview_requested(request: Dictionary)
 signal result_ready(result: Dictionary)
 signal returning_to_board
 signal failed(message: String)
+## battle-royal-v1 only (the game's own signals, re-emitted for the presentation layer; never fire in C0 / legacy Battle).
+signal sequence_started(info: Dictionary)
+signal duel_started(index: int, total: int, king_hp: int)
+signal duel_finished(index: int, total: int, summary: Dictionary)
+signal sequence_finished(summary: Dictionary)
+## A king's-last-stand duel is mandatory: it shows the banner this long, then starts by itself (no cancel).
+const ROYAL_BANNER_SECONDS = 1.5
 var game: BattleChessMatch
 var adapter: Node
 var host: Node
@@ -22,6 +29,9 @@ func setup(match_game: BattleChessMatch, combat_adapter: Node, combat_host: Node
 	game.bind_combat_authority(adapter)
 	game.battle_prepared.connect(_prepared)
 	game.changed.connect(_match_changed)
+	for name in ["sequence_started", "duel_started", "duel_finished", "sequence_finished"]:
+		if game.has_signal(name):
+			game.connect(name, Callable(self, "_on_" + name))
 	adapter.arena_ready.connect(_arena_ready)
 	adapter.snapshot_received.connect(_snapshot)
 	adapter.result_received.connect(_result)
@@ -34,8 +44,24 @@ func _set_phase(value: String) -> void:
 	_elapsed = 0.0
 	phase_changed.emit(phase)
 
+func _on_sequence_started(info: Dictionary) -> void:
+	sequence_started.emit(info)
+
+func _on_duel_started(index: int, total: int, king_hp: int) -> void:
+	duel_started.emit(index, total, king_hp)
+
+func _on_duel_finished(index: int, total: int, summary: Dictionary) -> void:
+	duel_finished.emit(index, total, summary)
+
+func _on_sequence_finished(summary: Dictionary) -> void:
+	sequence_finished.emit(summary)
+
+func _royal_duel() -> bool:
+	return game.has_method("royal_active") and game.call("royal_active")
+
 func _prepared(request: Dictionary) -> void:
 	_battle_id = request.battleId
+	_timer = ROYAL_BANNER_SECONDS
 	_set_phase("preview")
 	preview_requested.emit(request.duplicate(true))
 
@@ -43,13 +69,14 @@ func confirm_capture() -> Dictionary:
 	if phase != "preview" or not _pending_matches() or game.paused:
 		return {"ok": false, "error": "No capture preview is ready."}
 	_set_phase("loading")
-	var response = adapter.begin_load(game.pending_request(), host)
+	var options: Dictionary = game.combat_options()
+	var response = adapter.begin_load(game.pending_request(), host) if options.is_empty() else adapter.begin_load(game.pending_request(), host, options)
 	if not response.ok:
 		_failure(response.error)
 	return response
 
 func cancel_preview() -> void:
-	if phase == "preview":
+	if phase == "preview" and not _royal_duel():
 		interrupt("Capture canceled.")
 
 func _pending_matches() -> bool:
@@ -61,7 +88,8 @@ func _arena_ready() -> void:
 		adapter.stop()
 		return
 	_set_phase("countdown")
-	var response = adapter.start(game.pending_request())
+	var options: Dictionary = game.combat_options()
+	var response = adapter.start(game.pending_request()) if options.is_empty() else adapter.start(game.pending_request(), options)
 	if not response.ok:
 		_failure(response.error)
 
@@ -99,8 +127,9 @@ func return_to_board() -> Dictionary:
 		_failure(committed.error)
 		return committed
 	adapter.stop()
-	_timer = 0.4
-	returning_to_board.emit()
+	if phase == "returning": # not when the commit prepared the next duel of a royal sequence
+		_timer = 0.4
+		returning_to_board.emit()
 	return committed
 
 func advance(seconds: float) -> void:
@@ -111,6 +140,11 @@ func advance(seconds: float) -> void:
 		_failure("Combat loading timed out; the board has not changed.")
 	elif phase in ["countdown", "combat"] and _elapsed >= 105:
 		_failure("The combat authority stopped responding; no winner was invented.")
+	elif phase == "preview" and _royal_duel():
+		_timer -= maxf(0, seconds)
+		if _timer <= 0:
+			_timer = ROYAL_BANNER_SECONDS # retried after a refusal (for example while paused)
+			confirm_capture()
 	elif phase in ["aftermath", "returning"]:
 		_timer -= maxf(0, seconds)
 		if _timer <= 0:
@@ -140,7 +174,7 @@ func interrupt(_reason: String = "Transition interrupted.") -> void:
 	if game.phase == "aftermath":
 		game.commit_battle()
 	elif not game.pending_request().is_empty():
-		game.cancel_pending()
+		game.cancel_pending() # a royal duel is retried from its unchanged start state (bounded), see BattleRoyalMatch
 
 func dispose() -> void:
 	if _disposed:
@@ -152,6 +186,9 @@ func dispose() -> void:
 	if game.changed.is_connected(_match_changed):
 		game.changed.disconnect(_match_changed)
 	game.bind_combat_authority(null)
+	for name in ["sequence_started", "duel_started", "duel_finished", "sequence_finished"]:
+		if game.has_signal(name) and game.is_connected(name, Callable(self, "_on_" + name)):
+			game.disconnect(name, Callable(self, "_on_" + name))
 	for pair in [["arena_ready", _arena_ready], ["snapshot_received", _snapshot], ["result_received", _result], ["failed", _failure]]:
 		if adapter.is_connected(pair[0], pair[1]):
 			adapter.disconnect(pair[0], pair[1])
