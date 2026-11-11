@@ -21,6 +21,8 @@ var profile: Dictionary = {}
 ## Unmodified role tuning; `profile` is this plus any active buff (Fortress Guard) applied each tick.
 var base_profile: Dictionary = {}
 var _poise_scale: float = 1.0
+## Set by the simulation BEFORE setup() when the battle was started with allow_experimental_roles (King).
+var allow_experimental: bool = false
 
 var health := HealthComponent.new()
 var stamina := StaminaComponent.new()
@@ -54,13 +56,14 @@ func setup(combatant: Dictionary, spawn_position: Vector3, spawn_yaw: float) -> 
 	role = combatant["role"]
 	stats = combatant["stats"]
 	profile = FighterProfile.for_role(role)
-	if profile.is_empty() or not AttackLibrary.supports_role(role) or not FighterProfile.supports_role(role):
+	var allowed := allow_experimental and FighterProfile.is_experimental_role(role)
+	if profile.is_empty() or not allowed and (not AttackLibrary.supports_role(role) or not FighterProfile.supports_role(role)):
 		return "role '%s' is not implemented in the combat module" % role
 
 	health.setup(float(stats["maxHp"]))
 	stamina.setup(float(stats["maxStamina"]), float(profile["stamina_regen_per_tick"]),
 			int(profile["stamina_regen_delay"]))
-	if not ability.setup(String(stats["abilityId"]), int(stats["cooldownTicks"])):
+	if not ability.setup(String(stats["abilityId"]), int(stats["cooldownTicks"]), allow_experimental):
 		return "ability '%s' is not implemented" % String(stats["abilityId"])
 	if String(ability.definition["role"]) != role:
 		return "ability '%s' does not belong to role '%s'" % [ability.ability_id, role]

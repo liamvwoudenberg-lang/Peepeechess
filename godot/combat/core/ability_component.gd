@@ -5,36 +5,19 @@ extends RefCounted
 ## held here; attack abilities (Lunging Strike) are executed by the state machine through
 ## AttackLibrary and only gated/cooled down here.
 
-const DEFINITIONS := {
-	# Pawn: below 35% HP, 5 s of faster movement and attacks, stronger hits, quicker stamina.
-	"last-stand": {
-		"kind": "buff", "cast_ticks": 12, "stamina_cost": 0.0, "hp_threshold": 0.35, "buff_ticks": 300,
-		"move_mult": 1.3, "attack_speed_mult": 1.3, "damage_mult": 1.15, "regen_mult": 1.5, "role": "p",
-	},
-	# Knight: a committed forward charge executed as an AttackDefinition.
-	"lunging-strike": {
-		"kind": "attack", "stamina_cost": 28.0, "role": "n",
-	},
-	# Bishop: directional teleport. The body vanishes (invulnerable) for `iframe_ticks`, reappears
-	# `blink_tick` ticks after the cast started up to `blink_distance` metres away (stopped by walls,
-	# pillars and the opponent), then recovers for the rest of `cast_ticks`.
-	"blink": {
-		"kind": "blink", "cast_ticks": 20, "stamina_cost": 20.0, "blink_distance": 4.0, "blink_tick": 3,
-		"iframe_ticks": 10, "role": "b",
-	},
-	# Rook: 4 s of stronger guard (blocking costs no stamina and cannot be guard-broken), 3x poise,
-	# slower movement. Casting is armoured and costs a little stamina.
-	"fortress-guard": {
-		"kind": "buff", "cast_ticks": 18, "stamina_cost": 10.0, "buff_ticks": 240,
-		"move_mult": 0.7, "guard_cost_mult": 0.0, "guard_unbreakable": true, "poise_mult": 3.0, "role": "r",
-	},
-	# Queen: 6 s of quicker attacks, stronger hits, faster stamina regeneration and a chain of FIVE light
-	# links instead of three (links 4 and 5 are only reachable while the buff is active).
-	"royal-fury": {
-		"kind": "buff", "cast_ticks": 14, "stamina_cost": 15.0, "buff_ticks": 360,
-		"move_mult": 1.1, "attack_speed_mult": 1.35, "damage_mult": 1.1, "regen_mult": 1.5, "combo_length": 5, "role": "q",
-	},
-}
+const Balance := preload("res://combat/data/balance_data.gd")
+
+## id -> definition. The data is in balance_v1.json (see Balance); this getter keeps the old
+## `AbilityComponent.DEFINITIONS` access working and always reflects the active tuning (copy per read).
+## Kinds: "buff" (timed modifiers), "attack" (an AttackLibrary swing), "blink" (teleport), "counter"
+## (Royal Counter stance: armoured, a timed frontal hit is negated and riposted).
+static var DEFINITIONS: Dictionary:
+	get:
+		var out := {}
+		for id in Balance.ability_ids():
+			out[id] = Balance.ability(id)
+		return out
+
 
 var ability_id: String = ""
 var definition: Dictionary = {}
@@ -44,16 +27,18 @@ var buff_remaining: int = 0
 var activations: int = 0
 
 
-static func is_known(id: String) -> bool:
-	return DEFINITIONS.has(id)
+static func is_known(id: String, allow_experimental: bool = false) -> bool:
+	return Balance.has_ability(id) and (allow_experimental or not bool(Balance.ability(id).get("experimental", false)))
 
 
 ## Returns false if the ability id is not implemented (the authority must then refuse the battle).
-func setup(id: String, cooldown_ticks: int) -> bool:
-	if not DEFINITIONS.has(id):
+## Experimental abilities (the King's Royal Counter, not part of the v1 contract) are refused unless
+## `allow_experimental` is set - only the opt-in `CombatSimulation.start(request, options)` path sets it.
+func setup(id: String, cooldown_ticks: int, allow_experimental: bool = false) -> bool:
+	if not is_known(id, allow_experimental):
 		return false
 	ability_id = id
-	definition = DEFINITIONS[id]
+	definition = Balance.ability(id)
 	cooldown_total = cooldown_ticks
 	cooldown_remaining = 0
 	buff_remaining = 0
