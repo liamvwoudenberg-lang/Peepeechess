@@ -58,6 +58,13 @@ var _tick_count: int = 0
 ##       the placeholder role "q"; everything else (every other field, the seat rules, stats.role == role) is
 ##       validated unchanged on the real request. Nothing but the king role is relaxed. Intended for the offline
 ##       arena, tests and tools; a v1 server must not pass it (it never receives king requests under v1).
+##   "initial_hp" (int), "initial_stamina" (float), "initial_cooldown" (int ticks): the King seat starts with these
+##       values instead of full HP / full stamina / ready ability (battle-royal-v1 "last stand": the King's resources
+##       carry over from one duel to the next, docs/architecture/BATTLE_ROYAL_V1.md). They apply ONLY to the seat
+##       whose role is "k" (so they require a king in the request), are range-checked against that seat's stats
+##       (1..maxHp, 0..maxStamina, 0..cooldownTicks) and never touch the opponent. Zero stamina starts exhausted.
+##       Everything else (poise, buffs, positions, the opponent's HP/stamina) starts fresh as always. The result
+##       and snapshots stay plain v1 shapes; read the end values with fighter_state().
 func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 	if phase == Phase.COUNTDOWN or phase == Phase.ACTIVE:
 		return _error("WRONG_PHASE", "a battle is already running")
@@ -102,6 +109,11 @@ func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 		fighters[0 if is_white else 1] = fighter
 		_inputs[fighter.player_id] = CombatInputState.new()
 
+	var carried := _apply_initial_state(options)
+	if carried != "":
+		_reset()
+		return _error("INVALID_PAYLOAD", carried)
+
 	server_tick = int(req["startTick"])
 	countdown_remaining = CombatConstants.COUNTDOWN_TICKS
 	duration_remaining = CombatConstants.DURATION_TICKS
@@ -109,6 +121,49 @@ func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 		state.last_accept_tick = server_tick
 	phase = Phase.COUNTDOWN
 	return {"ok": true}
+
+
+## Applies the optional "initial_*" start options to the King seat. Returns "" or the reason the options are refused.
+func _apply_initial_state(options: Dictionary) -> String:
+	var wanted := ["initial_hp", "initial_stamina", "initial_cooldown"].filter(func(key): return options.has(key))
+	if wanted.is_empty():
+		return ""
+	var king: FighterController = null
+	for fighter in fighters:
+		if fighter != null and fighter.role == "k":
+			king = fighter
+	if king == null or not bool(options.get("allow_experimental_roles", false)):
+		return "initial_* start options need an experimental King seat"
+	if options.has("initial_hp"):
+		var hp = options["initial_hp"]
+		if not (hp is int) or hp < 1 or hp > king.health.maximum:
+			return "initial_hp must be an integer within 1..maxHp"
+	if options.has("initial_stamina"):
+		var stamina = options["initial_stamina"]
+		if not (stamina is int or stamina is float) or not is_finite(float(stamina)) or float(stamina) < 0.0 or float(stamina) > king.stamina.maximum:
+			return "initial_stamina must be within 0..maxStamina"
+	if options.has("initial_cooldown"):
+		var cooldown = options["initial_cooldown"]
+		if not (cooldown is int) or cooldown < 0 or cooldown > king.ability.cooldown_total:
+			return "initial_cooldown must be an integer within 0..cooldownTicks"
+	if options.has("initial_hp"):
+		king.health.current = int(options["initial_hp"])
+	if options.has("initial_stamina"):
+		king.stamina.current = float(options["initial_stamina"])
+		king.stamina.exhausted = king.stamina.current <= 0.0
+	if options.has("initial_cooldown"):
+		king.ability.cooldown_remaining = int(options["initial_cooldown"])
+	return ""
+
+
+## End-of-fight (or current) resources of one seat in the units the next duel's start options take:
+## {"hp": int, "stamina": float (snapped to 0.01, as snapshots report it), "cooldownTicks": int}. {} for an unknown seat.
+func fighter_state(player_id: String) -> Dictionary:
+	var fighter := fighter_by_id(player_id)
+	if fighter == null:
+		return {}
+	return {"hp": fighter.health.current, "stamina": snappedf(fighter.stamina.current, 0.01),
+			"cooldownTicks": fighter.ability.cooldown_remaining}
 
 
 ## Aborts without producing a result. A result is never fabricated.

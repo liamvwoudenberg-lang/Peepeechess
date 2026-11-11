@@ -117,3 +117,45 @@ free-movement prediction will drift slightly until it reads `accel/decel/turn_fr
 godot --headless --path godot --script res://combat/tests/test_runner.gd -- balance king matchups
 godot --headless --path godot --script res://combat/tools/balance_matrix.gd -- n=8 seed=1000 out=/tmp/m.json   # ~15 min on 4 shards
 ```
+
+## King's last stand (battle-royal-v1): sequence win rates
+
+**BOT-measured, not human-tested.** `tools/royal_matrix.gd` (runner `tests/royal_runner.gd`) plays whole sequences exactly as
+`BattleRoyalMatch` does: the King (attacker, colour alternating with the seed) fights the checking pieces in value/square order,
+its HP/stamina/cooldown carried from duel to duel (`CombatSimulation.start(req, {"allow_experimental_roles": true, "initial_hp",
+"initial_stamina", "initial_cooldown"})`), every checker fresh. Ties and double knockouts go to the checker. N = 24 seeded
+sequences per cell. "fresh" repeats the same sequences with a full-HP King in every duel (the cost of attrition = wins(fresh) - wins).
+
+**vs the default AI checkers (balanced 0.6)** - King wins of 24 (fresh-per-duel in brackets):
+
+| checkers | King balanced 0.6 | King duelist 0.9 | King patient 0.9 |
+| --- | --- | --- | --- |
+| P | 24 | 24 | 24 |
+| N | 15 | 23 | 24 |
+| B | 22 | 24 | 24 |
+| R | 18 | 24 | 24 |
+| Q | 5 | 24 | 24 |
+| P+B | 9 (22) | 24 | 24 |
+| N+B | 0 (14) | 23 (23) | 24 |
+| B+R | 1 (14) | 24 | 24 |
+| N+R | 0 (10) | 23 (23) | 24 |
+| N+Q | 0 (2) | 13 (24) | 22 (24) |
+| R+Q | 0 (5) | 16 (24) | 22 (24) |
+
+**vs skilled checkers (duelist 0.9)**, King duelist/patient: P 24/22, N 8/10, B 15/18, R 22/16, Q 6/11, P+B 17/17, N+B 3/5,
+B+R 13/13, N+R 5/4, N+Q 0/0 (timeouts up to 14 of 48 duels for patient Kings: a patient King vs a patient-ish checker stalls).
+
+Reading (honest): one checker is winnable for a skilled King and a coin flip to a loss for the default AI (Queen: 5/24); two
+checkers are decided by attrition: the King finishes duel 1 with 14-60 HP on average against N/Q/R, so duel 2 is nearly a coin-flip
+at best. Against skilled checkers a King without a rest is a clear underdog.
+
+**Recommendations (none applied; contract stats are Codex's `battle_stats.json`, tuning is `balance_v1.json`):**
+1. If the last stand should be a *real* last chance, give the King a **partial refresh between duels** (for example +25% of
+   maxHp, full stamina; a rule in `BattleRoyalMatch`, not a stat) or raise King HP 160 -> ~210; the matrix says double checks
+   by N/R/Q are otherwise ~unwinnable for non-expert Kings.
+2. Keep the cooldown carry (600 ticks) as is; stamina carry is the harsher resource: the King usually enters duel 2 with < 30%.
+3. Consider a single-checker timeout rule: 5400-tick fights between a patient King and a patient checker time out often.
+4. Re-run `royal_matrix.gd` after any King/Queen/Knight retune; human playtests are still required.
+
+Reproduce: `godot --headless --path godot --script res://combat/tools/royal_matrix.gd -- n=24 seed=7000 out=/tmp/royal.json
+checkers=balanced:0.6 king=balanced:0.6,duelist:0.9,patient:0.9` (about 8 min; the skilled-checker variant about 15 min).

@@ -98,11 +98,13 @@ func configure_network(local_player_id: String, send: Callable) -> void:
 
 
 # ---- public API ----------------------------------------------------------------------------
-func start_battle(request: Dictionary) -> Dictionary:
+## `options` is passed straight to CombatSimulation.start (battle-royal-v1: king role + the King's carried resources);
+## empty for every ordinary battle (strict v1 behaviour).
+func start_battle(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 	if _codec == null:
 		_codec = Codec.new()
 	stop_battle()
-	var reply: Dictionary = sim.start(request)
+	var reply: Dictionary = sim.start(request, options)
 	if not reply["ok"]:
 		return reply
 	_local_tick = 0

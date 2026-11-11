@@ -2,7 +2,9 @@
 
 The newer user-directed Battle king gauntlet is recorded in
 [BATTLE_ROYAL_GAUNTLET.md](BATTLE_ROYAL_GAUNTLET.md). It requires a future ruleset
-and contract version; it does not silently change these legacy v1 shapes.
+and contract version; it does not silently change these legacy v1 shapes. That
+version now exists as the additive `godot/contracts/royal/v1` schema
+(`battle-royal-v1`, see [BATTLE_ROYAL_V1.md](BATTLE_ROYAL_V1.md)); v1 stays unchanged.
 
 Normative shape: [`godot/contracts/v1/schema.json`](../../godot/contracts/v1/schema.json),
 JSON Schema 2020-12. Concrete valid and invalid payloads:

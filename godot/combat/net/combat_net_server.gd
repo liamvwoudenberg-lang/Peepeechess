@@ -45,8 +45,8 @@ func _init(p_sim: CombatSimulation) -> void:
 	sim = p_sim
 
 
-func start(request: Dictionary) -> Dictionary:
-	var reply: Dictionary = sim.start(request)
+func start(request: Dictionary, options: Dictionary = {}) -> Dictionary:
+	var reply: Dictionary = sim.start(request, options)
 	if not reply["ok"]:
 		return reply
 	aborted = false
