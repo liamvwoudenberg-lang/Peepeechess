@@ -13,7 +13,7 @@ from .textures import ensure_texture
 
 def get_material(name: str, color=(0.5, 0.5, 0.5), kind: str | None = None, tex_color=None,
                  metallic: float = 0.0, roughness: float = 0.8, emission=None,
-                 emission_strength: float = 1.0, uv_m: float = 0.5, seed: int = 1):
+                 emission_strength: float = 1.0, uv_m: float = 0.5, seed: int = 1, tex_size: int = 256):
     """Returns (creating if needed) the named material. `uv_m` = metres of surface per texture
     tile, used by modeling.MeshBuilder for the box-projected UVs."""
     existing = bpy.data.materials.get(name)
@@ -26,7 +26,7 @@ def get_material(name: str, color=(0.5, 0.5, 0.5), kind: str | None = None, tex_
     bsdf.inputs["Metallic"].default_value = metallic
     bsdf.inputs["Roughness"].default_value = roughness
     if kind:
-        path = ensure_texture(f"{name}", kind, tex_color or color, seed)
+        path = ensure_texture(f"{name}", kind, tex_color or color, seed, tex_size)
         tex = nodes.new("ShaderNodeTexImage")
         tex.image = bpy.data.images.load(str(path), check_existing=True)
         tex.image.colorspace_settings.name = "sRGB"

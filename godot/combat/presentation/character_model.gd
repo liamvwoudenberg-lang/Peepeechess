@@ -13,7 +13,7 @@ extends Node3D
 
 const S := CombatConstants.State
 const CLASS_NAMES := {"p": "pawn", "n": "knight", "b": "bishop", "r": "rook", "q": "queen", "k": "king"}
-const LOOPING := ["idle", "walk", "run", "strafe_left", "strafe_right", "block"]
+const LOOPING := ["idle", "walk", "run", "strafe_left", "strafe_right", "block", "climb", "ladder_idle", "drop_fall"]
 const NOMINAL_SPEED := {"walk": 2.2, "run": 5.0, "strafe_left": 2.0, "strafe_right": 2.0}
 const BLEND := 0.08
 const LOCOMOTION := ["idle", "walk", "run", "strafe_left", "strafe_right"]
