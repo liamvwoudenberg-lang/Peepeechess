@@ -108,6 +108,7 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	resized.connect(_update_camera)
 	sync_state()
 	_update_camera()
+	BoardThemeView.attach_3d(self)  # board theme / piece set / shadows (boards/board_theme_view.gd)
 
 func set_flipped(value: bool) -> void:
 	yaw = PI if value else 0.0
@@ -158,9 +159,9 @@ func sync_state() -> void:
 			pieces[id].position = old_position if replaced else Interaction.world_position(Rules.index(p.square))
 			pieces[id].rotation.y = PI if p.color == "b" else 0.0
 		var target = Interaction.world_position(Rules.index(p.square))
-		if animation_enabled and not fresh_match and not pieces[id].position.is_equal_approx(target):
+		if animation_enabled and BoardTheme.anim_scale() > 0.0 and not fresh_match and not pieces[id].position.is_equal_approx(target):
 			var tween = create_tween()
-			tween.tween_property(pieces[id], "position", target, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tween.tween_property(pieces[id], "position", target, BoardTheme.anim_seconds(0.24)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 			_moves.append(tween)
 		else:
 			pieces[id].position = target
@@ -196,7 +197,7 @@ func update_marks() -> void:
 	if interaction.selected >= 0:
 		_mark(interaction.selected, Color(1, 0.83, 0.4, 0.85), 0.47)
 	for m in interaction.destinations:
-		_mark(m.to, Color(0.3, 0.9, 0.75, 0.85), 0.17 if game.engine.board[m.to].is_empty() else 0.44)
+		BoardThemeView.destination_3d(self, m.to, not game.engine.board[m.to].is_empty() or m.flag == "ep")  # highlight style (board settings)
 	if game.engine.in_check():
 		var at = game.engine.board.find("K" if game.engine.turn == "w" else "k")
 		_mark(at, Color(1, 0.2, 0.2, 0.85), 0.48)
