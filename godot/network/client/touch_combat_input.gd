@@ -42,8 +42,8 @@ func _input(event: InputEvent) -> void:
 			for action in _regions:
 				if _regions[action].has_point(point):
 					_fingers[event.index] = action
-					if action in ["light", "heavy", "dodge", "parry", "ability"] and client.input_builder != null:
-						client.input_builder.press(action)
+					if action in ["light", "heavy", "dodge", "parry", "ability"] and view.net_client() != null:
+						view.net_client().press(action)
 					get_viewport().set_input_as_handled()
 					return
 			if Rect2(Vector2.ZERO, size).has_point(point):
@@ -53,7 +53,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _physics_process(_delta: float) -> void:
-	if not enabled or not visible or not client.authenticated or client.input_builder == null or view.arena == null or client.frame.state.phase != "combat":
+	# The arena's tick (process priority 100) runs after this one and sends the intent set here for the same tick.
+	if not enabled or not visible or not client.authenticated or view.net_client() == null or client.frame.state.phase != "combat":
 		return
 	var held = _fingers.values()
 	var move = Vector2(float("right" in held) - float("left" in held), float("up" in held) - float("down" in held)).normalized()
@@ -61,7 +62,8 @@ func _physics_process(_delta: float) -> void:
 	var heading = Vector3(sin(yaw), 0, cos(yaw))
 	var right = Vector3(-heading.z, 0, heading.x)
 	var world = right * move.x + heading * move.y
-	client.submit_combat_input(client.input_builder.build(world.x, world.z, view.arena.sim.fighter_by_id(client.player_id).yaw, true, "sprint" in held, "block" in held))
+	# Same intent path as keyboard/pad: the predicted local fighter, one CombatInput per tick built by the arena's client.
+	view.net_client().set_intent(world.x, world.z, view.arena.sim.fighter_by_id(client.player_id).yaw, true, "sprint" in held, "block" in held)
 
 func _process(_delta: float) -> void:
 	if enabled and visible:

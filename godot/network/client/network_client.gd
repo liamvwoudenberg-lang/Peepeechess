@@ -166,6 +166,8 @@ func _packet(id: int, bytes: PackedByteArray, channel: int, flags: int) -> void:
 	if parsed.type == "ProtocolError":
 		if payload.requestId != null:
 			pending.erase(payload.requestId)
+		if payload.code == "STALE_INPUT" and authenticated:
+			return # An unreliable CombatInput that arrived duplicated or out of order: harmless by design, not an error banner.
 		protocol_error.emit(payload.duplicate(true))
 		if not authenticated:
 			if payload.code == "FORBIDDEN" and not session_token.is_empty():

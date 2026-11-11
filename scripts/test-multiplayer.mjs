@@ -97,6 +97,7 @@ try {
   run('authority', ['--script', 'res://tests/network/network_test.gd']);
   run('roster', ['--script', 'res://tests/network/roster_test.gd']);
   run('online-ui', ['--script', 'res://tests/network/online_ui_test.gd']);
+  run('online-prediction', ['--script', 'res://tests/network/online_prediction_test.gd']);
   run('client-scene', ['res://network/client/online_lobby.tscn', '--quit-after', '3']);
   const cert = join(directory, 'localhost.crt');
   const key = join(directory, 'localhost.key');

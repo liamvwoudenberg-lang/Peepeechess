@@ -1,10 +1,12 @@
 # Combat networking model (`godot/combat/net/`)
 
-Status: **implemented and tested in-process only.** Codex has not published a transport, authenticated seats or a
-hosted match service (no `godot/network/` exists on any branch), so nothing here talks to a socket. This module is
-the combat side of that boundary: it is transport-agnostic and uses only the v1 wire types
-(`CombatInput` client->server, `CombatSnapshot` server->client, `BattleResult` inside the final snapshot). No new
-message types, no contract or docs changes, no Codex-owned file touched.
+Status: **implemented, wired into the real online path, tested in-process (lockstep harness) AND end-to-end over real ENet/DTLS sockets
+on loopback through a latency/loss proxy.** Codex's transport (`godot/network/`) hosts `CombatNetServer` (dedicated server, seat RTT from
+ENet, `inputResume`, abandonment) and the online client (`OnlineCombatView`) drives `CombatArena` through its network client
+(`CombatNetClient`: prediction, reconciliation, interpolation). It uses only the v1 wire types (`CombatInput` client->server,
+`CombatSnapshot` server->client, `BattleResult` inside the final snapshot): no new message types, no contract change.
+**Not tested: real devices, real mobile/Wi-Fi/WAN networks, NAT, bandwidth limits, Windows/Android crossplay.** See
+`docs/network/ONLINE_COMBAT.md` for the view interface and mixed-version notes, and "Real transport results" below.
 
 ## Architecture
 
@@ -52,7 +54,7 @@ so the whole stack runs headless in tests (`net/net_harness.gd`: 1 server + 2 cl
 
 | Concern | Behaviour |
 | --- | --- |
-| Local movement | Pure-math predictor mirroring `FighterMovement` for **Idle/Moving/Blocking only** (walk, strafe, sprint, block slow, accel/decel, turn rate, 24-sided wall, pillars, opponent separation). Starts with the fight (not one RTT later) using the known live tick + an ack-measured RTT. |
+| Local movement | Pure-math predictor mirroring `FighterMovement` for **Idle/Moving/Blocking only** (walk, strafe, sprint, block slow, per-role accel/decel/turn rates from `FighterProfile.for_role` incl. the experimental King, walking-speed buffs Last Stand / Royal Fury / Fortress Guard inferred from the snapshot's cooldown, 24-sided wall, pillars, opponent separation). Starts with the fight (not one RTT later) using the known live tick + an ack-measured RTT. The on-screen position is advanced by the sub-tick fraction (velocity extrapolation) for displays faster than 60 Hz. |
 | Reconciliation | Each snapshot: restart from the authoritative position and replay every un-acked input; the visual error is blended out over ~6 ticks (100 ms); > 1.5 m snaps. Inputs the server ignored during the countdown are not replayed. |
 | Local actions | When the server would accept a press (free state, enough stamina, ability off cooldown/condition met) `view()` shows a *predicted action* pose at once. It is confirmed by the next snapshot that shows an action state, cancelled if the press was acknowledged while still free, or expires after 8 ticks. It never changes HP or any result. |
 | Remote fighters | Rendered `8 ticks` (~2 snapshot intervals, survives one lost snapshot) behind the client's estimated server tick, interpolated; state/stateTicks from the older sample; <= 6 ticks of extrapolation when the buffer runs dry; clamped inside the arena; jumps > 5 m are not interpolated. |
@@ -136,6 +138,54 @@ Other scenarios (all asserted):
 * **Forgery**: damage/hp/result fields rejected on every packet; lying about RTT is bounded by the cap and overridden by
   transport RTT.
 
+## Real transport results (end-to-end, loopback, `scripts/test-online-combat.mjs`)
+
+What is real: the dedicated server process (ENet + DTLS, `DedicatedChessServer`, `CombatNetServer`, ENet-measured seat RTT), two separate
+client processes each running `OnlineChessClient` + `OnlineCombatView` + `CombatArena` in its network-client mode, real 60 Hz physics clocks
+in every process, real JSON/schema validation, real unreliable-fragment ENet packets. What is simulated: the network. Every client sits
+behind a userspace UDP proxy (`scripts/lib/latency-proxy.mjs`) that adds fixed delay + uniform jitter and independent random loss.
+It is loopback on a **shared, heavily loaded 4-core machine** (load average 9-13 during the runs): scheduling stalls inflate RTT and
+starvation, so these are pessimistic for timing and say nothing about real WANs, mobile radios, NAT, bandwidth caps or bursty loss.
+No device, Windows or Android client was involved.
+
+Matrix (`--profile=full`, 31 fights, all passed): role pairs p-p, n-p, b-p, r-p, q-p, p-n, n-q, b-n and black-attacker p-p, each at
+0 ms, 60 ms RTT + 2% loss (8 ms jitter) and 120 ms RTT + 2% loss (16 ms jitter), plus `reconnect` (seat w reconnects voluntarily
+mid-fight, seat b's link is blacked out for 4 s), `parry` (both seats press light on the same server-tick estimate and react with parries;
+60 and 120 ms) and `invalid` (replayed sequence, spoofed seat, other battle id, counter regression, out-of-range vector, injected
+`damage`, client-sent `BattleResult`, `CombatInput` on the reliable channel). Every fight completed with a `BattleResult`; both clients' result
+equalled the server's `COMBAT_BATTLE_DONE` result byte for byte, final chess state was identical, no battle was aborted, and for every
+event id seen by both clients the two copies were identical (both clients saw all the same events in all fights).
+
+| RTT config | fights | client mean correction (m) | worst p95 / worst max (m) | hard snaps | press -> on-screen (median) | press -> server-confirmed pose | server RTT feed (mean) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 ms | 9 | 0.021 | 0.30 / 0.30 | 0 | ~17 ms (one frame) | ~74 ms | 8-36 ms |
+| 60 ms + 2% | 9 | 0.031 | 0.73 / 0.84 | 0 | ~15 ms | ~137 ms | 66-96 ms |
+| 120 ms + 2% | 9 | 0.025 | 0.16 / 0.25 | 0 | ~16 ms | ~201 ms | 123-142 ms |
+
+(Mean of per-client means over the plain `fight` scenarios; "corrections" are continuous predicted-vs-authoritative disagreements measured at
+every snapshot, 10-148 per client per duel. Prediction resumption after an attack/dodge is reported separately as catch-ups: 4-13 per
+client, typically 0.1-0.6 m, one 0.8 m, all blended over ~100 ms.) Lockstep suites for comparison (no jitter): walker error mean < 0.001 m;
+melee mean 0.001-0.009 m (`net_roles`). The real-time numbers are 3-30x larger because two independent 60 Hz clocks drift in phase,
+2% loss drops intents the server then repeats, and the machine stalls processes; the prediction replays one input per server tick.
+
+Input latency: a press shows the predicted action pose on the proxy fighter within one frame (13-21 ms, the 60 Hz frame plus the physics
+tick it waits for); without prediction the same press is visible only when a server snapshot confirms it, which here took 61-84 ms at 0 ms
+RTT (snapshot cadence 66 ms + processing), 117-190 ms at 60 ms and 178-218 ms at 120 ms. Movement intents move the predicted fighter in the
+same tick (asserted in `online_prediction_test`).
+
+Dropped / late inputs (server side, per seat, live ticks only): a tick is "starved" when no new `CombatInput` was accepted for the seat
+(the simulation reuses the last intent). Measured 4-45% (mean ~19-27%) on this loaded machine, longest gap 1-32 ticks in healthy fights
+(0.5 s); stale (reordered/duplicated) inputs were 0 in all but the deliberate replay. Client-sent vs server-accepted inputs per seat: 0-6% fewer accepted at 0 ms (one outlier of 22%, not diagnosed; a stalled process on the shared
+machine is the suspect), 2.6-16% at 60 ms + 2% loss and 2.7-14% at 120 ms + 2% loss (2% per direction from the proxy plus the sends that
+cross the end of a duel). The reconnect scenario shows 122/203-tick
+gaps (the blackout) and still ended with no forfeit, no invalid/forbidden input after the resume and a matching result. The server's RTT
+feed tracks the configured RTT with ~10-20 ms of ENet/poll overhead (and more under load); the hit-commit grace therefore sat at its 6-tick
+cap for most of the 60/120 ms fights.
+
+Limits of this evidence: one machine, one OS, 31 duels (a handful per cell), Pawn..Queen only (the King is not hosted by the v1 server),
+no clock-drift soak, nothing above 120 ms + 2% loss end-to-end, bots not humans (scripted fighters; presses are sparse), thresholds in the
+script are loose on purpose (mean < 0.15 m, no snap, worst < 1.2 m unless the server had neutralised the seat).
+
 ## Tested limitations (what this does NOT prove)
 
 * **Only in-process simulation.** No real sockets, TLS, NAT, MTU/fragmentation, congestion, or OS scheduling jitter.
@@ -145,8 +195,13 @@ Other scenarios (all asserted):
   above 100 ms RTT (see table).
 * **Prediction covers free-state movement only.** During attacks, dodges, parries, stagger, abilities and knock-back the
   server position is shown (so a dodge's *motion* starts one RTT late; its *animation* starts at once via action
-  prediction). Buff speed multipliers (Last Stand, Fury, Fortress Guard) and Blink are not modelled and were not tested
-  for prediction error; expect larger corrections while buffed.
+  prediction). Walking-speed buffs are modelled (tested exact on open floor); Blink is not. When prediction resumes after such a
+  stretch the fighter catches up to where its inputs have taken it; this is reported as `catchups`, not as misprediction. The
+  snapshot carries no "exhausted" or buff flag, so both are inferred (stamina 0..15%, buff time from `cooldownTicks`); stamina
+  regeneration is not modelled in the replay window.
+* **Wall contact is approximate**: the server collides capsules with 24 overlapping box colliders (engine), the predictor with 24
+  half-planes. Errors appear only while grinding along the wall at sprint speed (<= 12 mm per tick, <= 9 cm over a 12-tick window in the
+  worst case measured, buffed sprint at a polygon vertex). Open floor error equals the 0.0001 m snapshot quantisation.
 * **Remote attack animation is inferred.** `FighterSnapshot` has no action id, so a remote client cannot know which combo
   link/heavy is playing (light vs heavy share the same early pose). Presentation must infer it; see proposals.
 * Remote players are drawn ~133 ms (interpolation) plus one-way latency in the past; very short telegraphs (light
@@ -159,12 +214,15 @@ Other scenarios (all asserted):
   until it resumes, then continues with no rejected packet and no replayed press. Same-session reconnects (client object kept)
   always worked.
 * Defender hit feedback is delayed by up to 6 ticks at high latency (inherent to the grace).
-* Tests use Pawn/Knight fighters; other roles share the same code paths but were not run through the network suites.
+* The 1:1 input assumption: the predictor replays one input per server tick. Real transports break it (tick-phase jitter between two
+  60 Hz clocks, loss, a stalled process): the server then reuses the last intent for a tick, which shows as extra correction in melee.
+  There is no server-side jitter buffer. A seat silent for >= 15 ticks is neutralised by the server while the client keeps predicting
+  (large correction / hard snap on return: intended).
 
-## Proposals for Codex (not implemented here)
+## Proposals for Codex (item 1 is done, the rest are not)
 
-1. Feed the transport's measured RTT into `CombatNetServer.set_seat_rtt_ms()` every few seconds (removes the lying-client
-   bonus entirely).
+1. ~~Feed the transport's measured RTT into `CombatNetServer.set_seat_rtt_ms()`~~ done: `DedicatedChessServer.step()` feeds ENet's
+   `PEER_ROUND_TRIP_TIME` every tick (it includes both ends' poll intervals and retransmits, so it reads 11-18 ms on loopback).
 2. Contract v2 candidates: `FighterSnapshot.actionId` (which attack/combo link is playing; remote animation currently
    infers it, see `presentation/remote_action_inference.gd`) and a `serverTimeMs`/tick-phase field.
 3. Treat `seat_abandoned(player_id)` / `battle_aborted_draw` as match-level forfeit/draw (they bypass `BattleResult`).
@@ -201,7 +259,7 @@ client.event_confirmed.connect(play_cue)          # once per event
 
 ### CombatArena (online presentation) is wired
 
-`CombatArena.configure_network(local_player_id, send)` + `start_battle(request)` in `PRESENTATION` mode creates a
+`CombatArena.configure_network(local_player_id, send, builder = null, own_input = true)` + `start_battle(request)` in `PRESENTATION` mode creates a
 `CombatNetClient`; `apply_snapshot()` feeds it; each 60 Hz physics tick the arena calls `net_step()` (one `CombatInput`
 sent through your `send` Callable) and copies `client.view()` onto the proxy fighters: local fighter predicted, remote
 fighter interpolated, HP/stamina/cooldown from snapshots only, events de-duplicated, the terminal `BattleResult` delivered
@@ -209,12 +267,16 @@ once via `battle_finished`. The input source forwards intent to the client (`Loc
 kind/combo link is inferred (`remote_action_inference.gd`) because snapshots carry no action id. Tested in `net_arena`
 (arena + real `CombatNetServer` over a 100 ms RTT simulated link, incl. full presentation with models/HUD/camera).
 Without `configure_network` PRESENTATION mode keeps its older ease-to-snapshot behaviour. The offline AUTHORITY mode that
-Codex's battle adapter mounts is unchanged.
+Codex's battle adapter mounts is unchanged. The real online path (`godot/network/client/online_combat_view.gd`) passes the
+transport's own `CombatInputBuilder` (one sequence/counter stream, restored from `inputResume` after a reconnect) and
+`own_input = false` (the view owns the devices: keyboard/pad `LocalInputSource` and the touch adapter both feed
+`arena.net_client.set_intent()/press()`); the arena runs at `process_priority` 100 so each tick sends the intent the devices set in
+that same tick, and it stops sending once the result is known.
 
 ## Mapping to Codex's ENet session protocol v1
 
-Read from `origin/codex/native-multiplayer` (`docs/network/PROTOCOL.md`, `godot/contracts/network/v1/schema.json`); that
-branch defines the transport contract but has no implementation yet, so none of this is exercised against a real transport.
+From `docs/network/PROTOCOL.md` and `godot/contracts/network/v1/schema.json`. Codex's dedicated server and client now implement
+this and the end-to-end tests below exercise it over real ENet/DTLS sockets (on loopback).
 
 | Codex message / rule | This layer |
 | --- | --- |
@@ -230,5 +292,8 @@ branch defines the transport contract but has no implementation yet, so none of 
 
 ```sh
 godot --headless --path godot --editor --import
-godot --headless --path godot --script res://combat/tests/test_runner.gd -- net net_latency net_arena   # ~50 s
+godot --headless --path godot --script res://combat/tests/test_runner.gd -- net net_latency net_arena net_roles   # ~2 min
+godot --headless --path godot --script res://tests/network/online_prediction_test.gd                          # real ENet loopback, ~15 s
+node scripts/test-online-combat.mjs                  # quick profile (6 duels); --profile=full for the 31-duel matrix; --only=<id>
+npm run test:multiplayer                             # original ENet/DTLS suite + quick online combat profile
 ```

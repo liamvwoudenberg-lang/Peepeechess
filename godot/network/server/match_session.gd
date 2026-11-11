@@ -11,6 +11,7 @@ const Rules = preload("res://chess/chess_engine.gd")
 const Sim = preload("res://combat/core/combat_simulation.gd")
 const CombatHost = preload("res://combat/net/combat_net_server.gd")
 const Profile = preload("res://combat/core/fighter_profile.gd")
+const Balance = preload("res://combat/data/balance_data.gd")
 var game: ClassicMatch
 var status = "waiting"
 var readiness = {"w": false, "b": false}
@@ -176,6 +177,8 @@ func _start_combat() -> void:
 		# Always override clientTick-based estimates with transport-owned RTT.
 		combat_host.set_seat_rtt_ms(game.players[color], 0)
 		combat_host.set_seat_connected(game.players[color], connected[color])
+	var request: Dictionary = game.pending_request()
+	_log("BATTLE_START", {"matchId": game.match_id, "battleId": request.battleId, "startTick": request.startTick, "attacker": request.attacker.role, "defender": request.defender.role, "attackerPlayerId": request.attacker.playerId, "defenderPlayerId": request.defender.playerId})
 
 func _combat_snapshot(snapshot: Dictionary) -> void:
 	if sim == null or not game.accept_snapshot(snapshot, sim):
@@ -214,6 +217,7 @@ func step(now: int) -> void:
 			if not game.accept_result(sim.result, sim).ok:
 				finish("1/2-1/2", "Service aborted: invalid combat result", now)
 				return
+			_log("BATTLE_DONE", {"matchId": game.match_id, "battleId": sim.request.battleId, "result": sim.result, "net": combat_host.diagnostics()})
 			receipts.append(sim.result.duplicate(true))
 			if receipts.size() > 32:
 				receipts.pop_front()
@@ -250,6 +254,8 @@ func finish(result: String, reason: String, now: int) -> void:
 		if not game.engine.result.is_empty():
 			_stop_combat()
 			return
+		if sim != null and combat_host != null and sim.is_running():
+			_log("BATTLE_ABORT", {"matchId": game.match_id, "battleId": sim.request.battleId, "reason": reason, "net": combat_host.diagnostics()})
 		game.abandon_pending()
 	_stop_combat()
 	game.engine.result = result
@@ -258,6 +264,13 @@ func finish(result: String, reason: String, now: int) -> void:
 	completed_ms = now
 	draw_offer = null
 	_changed()
+
+## One structured line per combat event on the server's stdout (operators and the online test harness read these). The
+## tuning stamp ("balance-v1:<hash>") names the exact combat balance this process simulates: a client built with another
+## tuning would mispredict, and v1 messages carry no field to negotiate it (see docs/network/ONLINE_COMBAT.md).
+func _log(tag: String, data: Dictionary) -> void:
+	data["tuning"] = Balance.stamp()
+	print("COMBAT_", tag, " ", JSON.stringify(data, "", true))
 
 func _stop_combat() -> void:
 	if sim != null:

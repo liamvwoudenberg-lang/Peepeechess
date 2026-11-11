@@ -71,6 +71,10 @@ const RemoteInference := preload("res://combat/presentation/remote_action_infere
 var net_client = null
 var _net_local_id: String = ""
 var _net_send: Callable = Callable()
+var _net_builder: CombatInputBuilder = null
+## false: the host application owns the input devices (e.g. OnlineCombatView / touch adapter run in the application's
+## viewport and feed `net_client` directly), so the arena creates no LocalInputSource of its own.
+var _net_own_input: bool = true
 var _local_tick: int = 0
 var _inference: Dictionary = {}
 
@@ -91,10 +95,18 @@ func configure_seats(config: Dictionary) -> void:
 ## CombatInput (one per 60 Hz tick) for the transport to deliver to the server. Call before start_battle().
 ## Snapshots from the server go to apply_snapshot(). Without this call PRESENTATION mode keeps its simple
 ## ease-to-snapshot behaviour (no prediction).
-func configure_network(local_player_id: String, send: Callable) -> void:
+##
+## `builder` (optional): the transport's own CombatInputBuilder for this seat, so there is exactly ONE sequence/counter
+## stream (the online client restores it from the server's InputResume after a reconnect). Ignored when it belongs to
+## another battle. `own_input` false: the caller feeds `net_client.set_intent()/press()` itself (see above).
+func configure_network(local_player_id: String, send: Callable, builder: CombatInputBuilder = null, own_input: bool = true) -> void:
 	_net_local_id = local_player_id
 	_net_send = send
+	_net_builder = builder
+	_net_own_input = own_input
 	seats = {local_player_id: {"type": "human", "scheme": "kb1"}}
+	# Run after every input source in the same physics step, so this tick's intent is the one that is sent.
+	process_priority = 100
 
 
 # ---- public API ----------------------------------------------------------------------------
@@ -111,7 +123,9 @@ func start_battle(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 	net_client = null
 	_inference.clear()
 	if mode == Mode.PRESENTATION and _net_local_id != "":
-		net_client = NetClient.new(request, _net_local_id, _net_send)
+		var builder: CombatInputBuilder = _net_builder if _net_builder != null and _net_builder.battle_id == String(request["battleId"]) \
+				and _net_builder.player_id == _net_local_id else null
+		net_client = NetClient.new(request, _net_local_id, _net_send, builder)
 		net_client.event_confirmed.connect(_on_event)
 		net_client.result_received.connect(_on_net_result)
 		for f in sim.fighters:
@@ -330,6 +344,8 @@ func _build_presentation(request: Dictionary) -> void:
 		var builder := CombatInputBuilder.new(request["matchId"], request["battleId"], f.player_id)
 		if mode != Mode.AUTHORITY and net_client == null:
 			continue
+		if seat.get("type", "ai") == "human" and net_client != null and not _net_own_input:
+			continue
 		if seat.get("type", "ai") == "human":
 			var source := LocalInputSource.new()
 			source.scheme = String(seat.get("scheme", "kb1"))
@@ -486,6 +502,8 @@ func net_step() -> void:
 
 
 func _on_net_result(result: Dictionary) -> void:
+	if net_client != null:
+		net_client.active = false  # the battle is decided: stop sending inputs for it
 	if sim.result.is_empty():
 		sim.result = result
 		_on_finished(result)
