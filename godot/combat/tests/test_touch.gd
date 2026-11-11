@@ -383,7 +383,7 @@ static func _arena_integration(h, tree: SceneTree) -> void:
 	if not h.eq(sources.size(), 1, "one LocalInputSource exists"):
 		arena.queue_free()
 		tree.root.size = old_size
-	tree.root.content_scale_mode = old_scale_mode as Window.ContentScaleMode
+		tree.root.content_scale_mode = old_scale_mode as Window.ContentScaleMode
 		return
 	var source = sources[0]
 	var touch = source.touch
