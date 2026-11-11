@@ -23,6 +23,7 @@ const SUITES: Dictionary = {
 	"touch": "res://combat/tests/test_touch.gd",
 	"assets": "res://combat/tests/test_assets.gd",
 	"soak": "res://combat/tests/test_soak.gd",
+	"world": "res://combat/tests/test_world.gd",
 }
 
 

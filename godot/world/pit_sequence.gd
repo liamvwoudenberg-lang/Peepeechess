@@ -338,8 +338,9 @@ func _begin_climb() -> void:
 		_climb = {"start": start, "yaw": visual.rotation.y, "t_walk": t_walk, "t_climb": top / W.CLIMB_SPEED, "top": top, "stage": -1}
 		if visual.has_method("play_clip"):
 			visual.call("play_clip", "walk", 1.0)
-	else:
-		_climb = {"start": Vector3.ZERO, "yaw": 0.0, "t_walk": W.LADDER_DEPLOY_TIME, "t_climb": 0.5, "top": W.BOARD_DEPTH, "stage": -1}
+	else:  # no arena (timing-only runs): same timeline, no model to move
+		var top_y := W.BOARD_DEPTH + W.TILE_THICKNESS * 0.5
+		_climb = {"start": world.chamber.climb_position(0.0), "yaw": 0.0, "t_walk": W.LADDER_DEPLOY_TIME, "t_climb": top_y / W.CLIMB_SPEED, "top": top_y, "stage": -1}
 	_enter(Phase.CLIMB)
 
 
