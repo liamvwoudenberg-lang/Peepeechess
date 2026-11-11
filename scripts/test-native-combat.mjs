@@ -23,7 +23,10 @@ try {
     ['res://combat/scenes/test_arena.tscn', '--', '--auto=demo', '--frames=900'],
   ]) {
     const r = spawnSync(process.env.GODOT_BIN || 'godot', ['--headless', '--fixed-fps', '60', '--path', 'godot', ...args], { env, encoding: 'utf8', timeout: 600000 });
-    const output = (r.stdout || '') + (r.stderr || '');
+    // Known headless-only engine message: with content scaling disabled the 64x64 fake display makes the pads suite's
+    // centered AcceptDialog land at a negative position. Only this exact message (plus its location/backtrace lines)
+    // is ignored; any other ERROR: line still fails the run.
+    const output = ((r.stdout || '') + (r.stderr || '')).replace(/^ERROR: Window \d+ spawned at invalid position: \(-?\d+, -?\d+\)\.\n(?:[ \t]+(?:at:|GDScript backtrace|\[\d+\])[^\n]*\n?)*/gm, '');
     process.stdout.write(r.stdout || ''); process.stderr.write(r.stderr || '');
     if (r.error || r.status !== 0 || /SCRIPT ERROR|Parse Error|^ERROR:|FAIL/m.test(output)) throw r.error || Error(`Native combat check failed: ${r.status}`);
   }
