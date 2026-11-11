@@ -153,6 +153,7 @@ func presentation(use_3d: bool) -> void:
 	var app = Main.instantiate()
 	root.add_child(app)
 	await process_frame
+	app.set_world_mode(false)  # legacy full-screen overlay path; the pit-world path is covered by suite "world"
 	app._switch_mode(1)
 	app.set_view(use_3d)
 	app.set_flipped(true)

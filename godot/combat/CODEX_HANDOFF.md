@@ -84,3 +84,22 @@ beyond 150 ms RTT or 15% loss was tested; no real sockets, NAT or clock drift.
 3. Decide on contract v2 additions (`actionId`, tick-phase/time field).
 4. Balance: role tuning is initial. The AI soak favours Knight/Queen over Pawn; not a balance claim.
 5. King combat remains the separately versioned v2 gauntlet; the combat module refuses it.
+
+## 7. Pit battle world (`godot/world/`, branch `feature/pit-world`)
+
+Design: chess on a real 3D board seen from above (the "2D" button is a straight-down narrow-FOV camera on the same 3D board; "3D" is the orbit camera). A capture
+opens the contested tile like a trapdoor, both pieces fall into the arena below (`CombatArena`, unchanged, mounted at the world origin under the board), the camera
+dolly-zooms down into the third-person combat camera, the winner climbs a ladder out and turns back into its piece, the trapdoor closes and the camera returns. One
+persistent world, no scene switch. Full description, timings and hooks: `godot/world/README.md`.
+
+Edits outside `godot/world/` (all small): `boards/board_3d.gd` (builds into `BattleWorld`, `set_top_down`, `sync_hold`, input guard), `app/main.gd` (`use_world` default true,
+`set_world_mode`, `_battle_phase_world`, bridge, Start/Skip), `app/battle_flow.gd` (`auto_return`), `combat/arena.gd` + `presentation/stone_arena_visuals.gd` (`embedded` flag: no own
+WorldEnvironment, light cull masks), `combat/tests/test_runner.gd` (suite `world`), and one line `app.set_world_mode(false)` in `tests/classic/views_test.gd`, `tests/battle/ui_test.gd`,
+`tests/battle/real_combat_test.gd` (they regression-test the legacy Board2D/overlay path, which stays as a fallback; no assertion changed). `battle_combat_adapter.gd` is untouched.
+
+Important for the combat owner: the simulation uses `global_position`, so the arena must stay at the origin (the board is lifted to y = 7 and shifted above it instead). The pit pauses the
+arena's physics tick (`set_physics_process(false)` after `battle_started`) until the pieces drop, and reads `arena.get_node("Visual_w"/"Visual_b")`, `arena.hud`, `arena.cameras[0].camera`,
+`arena.sim`; keep those names. The rig camera follows `ThirdPersonCamera.camera` and is made current after the arena starts.
+
+Not done: the online path (needs `OnlineCombatView` to accept a Node3D host and the lobby to use the world; the server's countdown is not pausable by the client) - exact list in the README. Local
+two-human battles still use the arena's split-screen layer. Verified only by headless tests and Xvfb software-GL screenshots.

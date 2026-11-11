@@ -14,6 +14,9 @@ var _battle_id = ""
 var _timer = 0.0
 var _elapsed = 0.0
 var _disposed = false
+## pit-world hook: false = the presentation layer (godot/world/battle_bridge.gd) calls
+## return_to_board() itself once its sequence is done, instead of the fixed 2 s aftermath timer.
+var auto_return = true
 
 func setup(match_game: BattleChessMatch, combat_adapter: Node, combat_host: Node) -> void:
 	game = match_game
@@ -115,7 +118,8 @@ func advance(seconds: float) -> void:
 		_timer -= maxf(0, seconds)
 		if _timer <= 0:
 			if phase == "aftermath":
-				return_to_board()
+				if auto_return:
+					return_to_board()
 			else:
 				_battle_id = ""
 				_set_phase("board")

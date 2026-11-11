@@ -18,6 +18,15 @@ const LIGHTS := "res://assets/combat/arena/stone_arena_lights.json"
 ## True when the Blender-generated arena (tools/blender/.../arena.py) was loaded.
 var uses_generated_arena: bool = false
 
+# --- BEGIN pit-world edit: `embedded` -------------------------------------------------------
+## Set by the pit world (godot/world/) BEFORE build(): the arena shares a World3D with the chess
+## board, so it must not create its own WorldEnvironment, and its lights must only light the
+## chamber (board objects live on render layer 2, the chamber on layer 1, the ceiling on layer 3).
+var embedded: bool = false
+const EMBEDDED_SUN_MASK := 1
+const EMBEDDED_LIGHT_MASK := 1 | 4
+# --- END pit-world edit ---------------------------------------------------------------------
+
 
 func build(mobile_lod: bool = false) -> void:
 	var generated := _build_generated(mobile_lod)
@@ -35,6 +44,11 @@ func build(mobile_lod: bool = false) -> void:
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 22.0
 	add_child(sun)
+	# pit-world edit: keep embedded lights off the chess board and off the ceiling slab.
+	if embedded:
+		sun.light_cull_mask = EMBEDDED_SUN_MASK
+		for torch in _torches:
+			torch.light_cull_mask = EMBEDDED_LIGHT_MASK
 
 
 ## Generated arena + its light/fog sidecar. Falls back to the procedural arena when absent.
@@ -57,9 +71,10 @@ func _build_generated(mobile_lod: bool) -> bool:
 	env.fog_enabled = true
 	env.fog_light_color = _color(cfg["fog"]["color"])
 	env.fog_density = float(cfg["fog"]["density"])
-	var holder := WorldEnvironment.new()
-	holder.environment = env
-	add_child(holder)
+	if not embedded:  # pit-world edit: the shared world owns the single WorldEnvironment
+		var holder := WorldEnvironment.new()
+		holder.environment = env
+		add_child(holder)
 	for entry in cfg["lights"]:
 		var light := OmniLight3D.new()
 		light.position = Vector3(entry["position"][0], entry["position"][1], entry["position"][2])
@@ -85,6 +100,8 @@ func _process(delta: float) -> void:
 
 
 func _environment() -> void:
+	if embedded:  # pit-world edit
+		return
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.025, 0.03, 0.05)

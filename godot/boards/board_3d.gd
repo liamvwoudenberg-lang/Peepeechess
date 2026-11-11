@@ -14,7 +14,22 @@ var marks: Node3D
 var yaw = 0.0
 var elevation = 0.88
 var distance = 13.5
-var animation_enabled = true
+var animation_enabled = true:
+	set(value):
+		animation_enabled = value
+		if world != null:
+			world.set_animate(value)
+## The persistent pit world hosting this board (godot/world/README.md).
+var world: BattleWorld
+var tiles: Array = []
+## true = the "2D" view: straight-down narrow-FOV camera on this same board.
+var top_down = false
+## While a battle presentation runs, chess state changes are applied only after it (see PitSequence).
+var sync_hold = false
+const TILE_PHYSICS_LAYER = 128
+var _flipped = false
+var _view_initialized = false
+var _sync_pending = false
 var _orbiting = false
 var _press = Vector2.ZERO
 var _pointer = Vector2.ZERO
@@ -38,45 +53,27 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	viewport_3d.size = Vector2i(800, 600)
 	viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(viewport_3d)
-	scene = Node3D.new()
-	viewport_3d.add_child(scene)
-	var environment_node = WorldEnvironment.new()
-	var environment = Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("14272e")
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("b5d0d1")
-	environment.ambient_light_energy = 0.22
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment_node.environment = environment
-	scene.add_child(environment_node)
-	var key = DirectionalLight3D.new()
-	key.rotation_degrees = Vector3(-55, -25, 0)
-	key.light_color = Color("fff0d5")
-	key.light_energy = 0.55
-	key.shadow_enabled = true
-	scene.add_child(key)
-	var fill = DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(-30, 145, 0)
-	fill.light_color = Color("a2c5df")
-	fill.light_energy = 0.18
-	scene.add_child(fill)
-	camera = Camera3D.new()
-	camera.fov = 45
-	camera.near = 0.1
-	camera.far = 100
-	camera.current = true
-	scene.add_child(camera)
+	# The chess board lives inside the persistent pit world (godot/world/): board on top, arena chamber
+	# below, one camera. The board itself is built exactly as before, into world.board_root.
+	world = BattleWorld.new()
+	viewport_3d.add_child(world)
+	scene = world.board_root
+	camera = world.rig.camera
+	world.rig.snap_to(CameraRig.State.CHESS_PERSPECTIVE)
+	world.set_animate(animation_enabled)
 	var plinth = Models.material(Color("263b42"), 0.3)
-	Models.box(scene, Vector3(8.65, 0.38, 8.65), Vector3(0, -0.26, 0), plinth)
-	Models.box(scene, Vector3(8.8, 0.06, 8.8), Vector3(0, -0.07, 0), Models.material(Color("c39c5d"), 0.7))
+	var plinth_node = Models.box(scene, WorldConstants.PLINTH_SIZE, WorldConstants.PLINTH_CENTER, plinth)
+	var frame_node = Models.box(scene, WorldConstants.FRAME_SIZE, WorldConstants.FRAME_CENTER, Models.material(Color("c39c5d"), 0.7))
 	var light = Models.material(Color("b7b9a5"))
 	var dark = Models.material(Color("496e70"))
 	for at in range(64):
 		var center = Interaction.world_position(at)
 		var tile = Models.box(scene, Vector3(0.995, 0.08, 0.995), center, light if (at % 8 + at / 8) % 2 else dark)
+		tiles.append(tile)
 		var body = StaticBody3D.new()
 		body.set_meta("square", at)
+		body.collision_layer = TILE_PHYSICS_LAYER  # keeps tile pickers away from the arena's fighters
+		body.collision_mask = 0
 		var collider = CollisionShape3D.new()
 		var shape = BoxShape3D.new()
 		shape.size = Vector3(0.995, 0.08, 0.995)
@@ -103,6 +100,8 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 			scene.add_child(rank_label)
 	marks = Node3D.new()
 	scene.add_child(marks)
+	BattleWorld.tag_board(scene)
+	world.bind_board(self, tiles, [plinth_node, frame_node])
 	interaction.selection_changed.connect(update_marks)
 	game.changed.connect(sync_state)
 	resized.connect(_update_camera)
@@ -110,7 +109,10 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	_update_camera()
 
 func set_flipped(value: bool) -> void:
+	_flipped = value
 	yaw = PI if value else 0.0
+	if world != null:
+		world.rig.set_flipped(value)
 	_update_camera()
 
 func reset_camera() -> void:
@@ -119,17 +121,39 @@ func reset_camera() -> void:
 	distance = 13.5
 	_update_camera()
 
-func _update_camera() -> void:
-	if camera == null:
+## Switches between the straight-down "2D" view and the orbiting perspective view (glides).
+func set_top_down(value: bool) -> void:
+	top_down = value
+	if world == null:
 		return
-	# Add distance for portrait view so all board corners remain in frame.
-	var aspect = size.x / maxf(1, size.y)
-	var adjusted = distance * maxf(1, 1.0 / maxf(0.45, aspect))
-	camera.position = Vector3(sin(yaw) * cos(elevation), sin(elevation), cos(yaw) * cos(elevation)) * adjusted
-	camera.look_at(Vector3(0, 0.15, 0))
+	world.rig.set_flipped(_flipped)
+	_update_camera()
+	var wanted = CameraRig.State.CHESS_TOP_DOWN if value else CameraRig.State.CHESS_PERSPECTIVE
+	if not world.pit.is_idle():
+		world.rig.chess_view = wanted  # restored when the battle presentation ends
+	elif not _view_initialized or not is_visible_in_tree():
+		world.rig.snap_to(wanted)
+	elif world.rig.transition_target() != wanted:
+		world.rig.go(wanted)
+	_view_initialized = true
+
+func _update_camera() -> void:
+	if camera == null or world == null:
+		return
+	world.rig.set_aspect(size.x / maxf(1, size.y))
+	world.rig.set_orbit(yaw, elevation, distance)
+
+func set_sync_hold(value: bool) -> void:
+	sync_hold = value
+	if not value and _sync_pending:
+		_sync_pending = false
+		sync_state()
 
 func sync_state() -> void:
 	if scene == null:
+		return
+	if sync_hold:
+		_sync_pending = true
 		return
 	for tween in _moves:
 		if tween.is_valid():
@@ -155,6 +179,7 @@ func sync_state() -> void:
 			pieces[id].name = id
 			_piece_roles[id] = p.role
 			scene.add_child(pieces[id])
+			BattleWorld.tag_board(pieces[id])
 			pieces[id].position = old_position if replaced else Interaction.world_position(Rules.index(p.square))
 			pieces[id].rotation.y = PI if p.color == "b" else 0.0
 		var target = Interaction.world_position(Rules.index(p.square))
@@ -181,7 +206,7 @@ func _mark(at: int, color: Color, radius: float) -> void:
 	disc.bottom_radius = radius
 	disc.height = 0.012
 	disc.radial_segments = 32
-	Models.add(marks, disc, Interaction.world_position(at) + Vector3(0, 0.055, 0), mat)
+	Models.add(marks, disc, Interaction.world_position(at) + Vector3(0, 0.055, 0), mat).layers = WorldConstants.LAYER_BOARD
 
 func update_marks() -> void:
 	if marks == null:
@@ -206,12 +231,17 @@ func square_at(point: Vector2) -> int:
 		return -1
 	var scaled = point * Vector2(viewport_3d.size) / size
 	var origin = camera.project_ray_origin(scaled)
-	var end = origin + camera.project_ray_normal(scaled) * 100
+	var end = origin + camera.project_ray_normal(scaled) * 400
 	var query = PhysicsRayQueryParameters3D.create(origin, end)
 	var hit = viewport_3d.find_world_3d().direct_space_state.intersect_ray(query)
 	return hit.collider.get_meta("square", -1) if not hit.is_empty() else -1
 
+func _presenting() -> bool:
+	return world != null and not world.pit.is_idle()
+
 func _gui_input(event: InputEvent) -> void:
+	if _presenting():
+		return
 	# Touch has its own gesture path; avoid replaying its emulated mouse events.
 	if (event is InputEventMouseButton or event is InputEventMouseMotion) and event.device == -1:
 		return
@@ -219,6 +249,9 @@ func _gui_input(event: InputEvent) -> void:
 		if event.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			_orbiting = event.pressed
 		elif event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and event.pressed:
+			if top_down:
+				accept_event()
+				return
 			distance = clampf(distance + (-0.7 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 0.7), 9, 23)
 			_update_camera()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
@@ -245,12 +278,14 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 func _orbit(delta: Vector2) -> void:
+	if top_down:
+		return
 	yaw -= delta.x * 0.008
 	elevation = clampf(elevation + delta.y * 0.006, 0.4, 1.42)
 	_update_camera()
 
 func _input(event: InputEvent) -> void:
-	if not is_visible_in_tree() or camera == null:
+	if not is_visible_in_tree() or camera == null or _presenting():
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed and get_global_rect().has_point(event.position):

@@ -29,6 +29,9 @@ func run() -> void:
 	root.add_child(app)
 	await process_frame
 	await process_frame
+	# This suite regression-tests the original Board2D / ChessBoard3D views, which stay in the repo as a
+	# fallback. The pit-world top-down view is covered by combat/tests/test_world.gd (suite "world").
+	app.set_world_mode(false)
 	app.game.new_game(0)
 	app.board_2d.animation_enabled = false
 	app.board_3d.animation_enabled = false
