@@ -64,6 +64,8 @@ Profile shows the server-issued player ID and independent Classic / Battle
 ratings, wins, losses, draws and games. Leaderboard displays each mode and opens
 other players' public profiles. Completed online matches appear in Match history
 with opponent, outcome, reason, date, final position and rating change. Results
+load in compact pages of twenty; choose **Load older matches** to browse earlier
+records without downloading their complete move histories. Results
 may take a moment to appear while the dedicated server commits them to storage.
 The result dialog offers Review board and Main menu. Clients never submit a
 rating change or choose a competitive winner.
@@ -95,8 +97,9 @@ platform's text input.
 checks mode navigation, signed-out gating, queue/invite presentation, supported
 clock choices, HTTPS/loopback policy, credential exclusion from saved
 preferences, authoritative result labels, and launch into the existing Classic
-and Battle scenes with shared 2D / 3D state. The current run passed 41 checks,
-including controller-pointer lifecycle and graphics preference application.
+and Battle scenes with shared 2D / 3D state. The current run passed 49 checks,
+including controller-pointer lifecycle, graphics preference application, compact
+history pagination, retries, and stale-response rejection after navigation.
 The existing Classic view suite passed 345 checks after these navigation changes.
 
 The shell was also rendered and visually inspected at 1280×800 using Godot 4.6.3

@@ -7,6 +7,17 @@ const Local = preload("res://app/main.tscn")
 var checks = 0
 var failures: Array = []
 var shell: Control
+class HistoryApi:
+	extends Node
+	signal proceed
+	var requests: Array = []
+	var replies: Array = []
+	var wait_for_reply = false
+	func call_api(_method: int, path: String, _body: Dictionary = {}, _authenticate: bool = true) -> Dictionary:
+		requests.append(path)
+		if wait_for_reply:
+			await proceed
+		return replies.pop_front()
 
 func expect(value: bool, label: String) -> void:
 	checks += 1
@@ -62,6 +73,42 @@ func run() -> void:
 	expect(shell.queue_label.text.contains("ABC234"), "private invite status displays server-issued code")
 	await screenshot("application-online")
 	shell.status = {"queue": null, "allocation": null, "invite": null}
+	var history_api = HistoryApi.new()
+	shell.api.queue_free()
+	shell.api = history_api
+	shell.add_child(history_api)
+	var summary = {"matchId": "summary-1", "mode": "classic", "ranked": true, "whitePlayerId": "test-profile", "blackPlayerId": "opponent", "whiteName": "Test Knight", "blackName": "Other Knight", "result": "white", "reason": "checkmate", "finalFen": "position", "plies": 73, "completedAt": 1800000000000, "ratingChange": {"white": 16, "black": -16}}
+	history_api.replies.append({"ok": true, "data": {"matches": [summary], "nextOffset": 20}})
+	shell.navigate("history")
+	expect(history_api.requests[-1] == "/v1/history/summary?limit=20&offset=0", "history requests bounded summary page without full move arrays")
+	expect(shell._history_more_button != null and shell._history_more_button.text == "Load older matches", "history exposes pagination for older records")
+	history_api.wait_for_reply = true
+	history_api.replies.append({"ok": false, "message": "Temporary failure"})
+	shell._history_more_button.pressed.emit()
+	shell._load_history(shell._refresh_generation, 20)
+	expect(history_api.requests.size() == 2 and shell._history_more_button.disabled, "duplicate history pagination taps cannot issue concurrent requests")
+	history_api.proceed.emit()
+	await process_frame
+	expect(not shell._history_more_button.disabled, "failed history page can be retried")
+	history_api.wait_for_reply = false
+	var older = summary.duplicate(true)
+	older.matchId = "summary-2"
+	history_api.replies.append({"ok": true, "data": {"matches": [older], "nextOffset": null}})
+	shell._history_more_button.pressed.emit()
+	expect(history_api.requests[-1] == "/v1/history/summary?limit=20&offset=20", "pagination requests server-provided next offset")
+	expect(shell._history_more_button == null, "last history page removes older-record button")
+	var history_cards = 0
+	for child in shell.content.get_children():
+		if child is PanelContainer:
+			history_cards += 1
+	expect(history_cards == 2, "older history summaries append without replacing current records")
+	history_api.wait_for_reply = true
+	history_api.replies.append({"ok": true, "data": {"matches": [summary], "nextOffset": 20}})
+	shell.navigate("history")
+	shell.navigate("settings")
+	history_api.proceed.emit()
+	await process_frame
+	expect(shell.page == "settings" and shell._history_more_button == null and not shell._history_loading, "stale history response cannot append records after navigation")
 	Settings.sign_out()
 	shell.navigate("settings")
 	await screenshot("application-settings")

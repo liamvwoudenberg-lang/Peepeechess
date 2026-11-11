@@ -33,6 +33,8 @@ var _busy = false
 var _opening = false
 var _refresh_generation = 0
 var _menu_buttons: Dictionary = {}
+var _history_loading = false
+var _history_more_button: Button
 
 func _ready() -> void:
 	Settings.load_preferences()
@@ -182,6 +184,8 @@ func navigate(target: String) -> void:
 		_menu_buttons[key].disabled = key == page
 	page_scroll.scroll_vertical = 0
 	queue_label = null
+	_history_loading = false
+	_history_more_button = null
 	match page:
 		"play": _play_page()
 		"account": _account_page()
@@ -419,17 +423,29 @@ func _history_page() -> void:
 		return
 	_load_history(_refresh_generation)
 
-func _load_history(generation: int) -> void:
+func _load_history(generation: int, offset: int = 0) -> void:
+	if generation != _refresh_generation or page != "history" or _history_loading:
+		return
+	_history_loading = true
+	var previous_button = _history_more_button
+	if is_instance_valid(previous_button):
+		previous_button.disabled = true
 	var loading = _label(content, "Loading match history…", 17, MUTED)
-	var response = await api.call_api(HTTPClient.METHOD_GET, "/v1/history?limit=30")
+	var response = await api.call_api(HTTPClient.METHOD_GET, "/v1/history/summary?limit=20&offset=" + str(offset))
 	if generation != _refresh_generation:
 		return
+	_history_loading = false
 	loading.queue_free()
 	if not response.ok:
+		if is_instance_valid(previous_button):
+			previous_button.disabled = false
 		_message(response.message, true)
 		return
+	if is_instance_valid(previous_button):
+		previous_button.queue_free()
+	_history_more_button = null
 	var matches: Array = response.data.get("matches", [])
-	if matches.is_empty():
+	if matches.is_empty() and offset == 0:
 		_label(content, "Your first online match is waiting. Find an opponent from Play.", 20, MUTED)
 	for record in matches:
 		var card = _card(content)
@@ -439,8 +455,11 @@ func _load_history(generation: int) -> void:
 		_label(card, result + " · " + str(record.mode).capitalize() + " Chess · " + ("Ranked" if record.ranked else "Unranked"), 21, GOLD)
 		var opponent: String = record.blackName if is_white else record.whiteName
 		var delta = int(record.ratingChange.white if is_white else record.ratingChange.black)
-		_label(card, "vs " + opponent + " · " + str(record.reason).replace("_", " ") + "\n" + str(record.history.size()) + " moves · " + ("+" if delta > 0 else "") + str(delta) + " rating · " + Time.get_datetime_string_from_unix_time(int(record.completedAt / 1000)).replace("T", " ") + " UTC", 15, MUTED)
+		_label(card, "vs " + opponent + " · " + str(record.reason).replace("_", " ") + "\n" + str(record.plies) + " moves · " + ("+" if delta > 0 else "") + str(delta) + " rating · " + Time.get_datetime_string_from_unix_time(int(record.completedAt / 1000)).replace("T", " ") + " UTC", 15, MUTED)
 		_button(card, "Copy final FEN", func(): DisplayServer.clipboard_set(str(record.finalFen)); _message("Final position copied."))
+	var next = response.data.get("nextOffset")
+	if next != null:
+		_history_more_button = _button(content, "Load older matches", func(): _load_history(generation, int(next)))
 
 func _leaderboard_page() -> void:
 	_heading("Earn your place.", "Separate Classic and Battle Chess ladders. Ratings can only be updated by authoritative match results.")
