@@ -56,10 +56,11 @@ const PAD_SETTING_RANGES := {
 	"trigger_press": [0.2, 0.9], "trigger_release": [0.05, 0.85],
 }
 const SEATS := ["auto", "kb1", "kb2", "pad1", "pad2"]
-## Keys that menus own; they cannot be combat bindings (Esc cancels / leaves, F11 toggles fullscreen).
-const RESERVED_KEYS := [KEY_ESCAPE, KEY_F11]
-## Options/Start opens menus and pauses; it cannot be rebound.
-const RESERVED_PAD_BUTTONS := [JOY_BUTTON_START]
+## Keys that menus own; they cannot be combat bindings (Esc cancels / leaves, F11 toggles fullscreen, F1 toggles the
+## battle controls overlay - see combat/presentation/control_overlay.gd).
+const RESERVED_KEYS := [KEY_ESCAPE, KEY_F11, KEY_F1]
+## Options/Start opens menus and pauses, Share/Back (JOY_BUTTON_BACK) toggles the controls overlay; neither can be rebound.
+const RESERVED_PAD_BUTTONS := [JOY_BUTTON_START, JOY_BUTTON_BACK]
 const BINDABLE_AXES := [JOY_AXIS_TRIGGER_LEFT, JOY_AXIS_TRIGGER_RIGHT]
 
 var keys: Dictionary = {}

@@ -45,6 +45,8 @@ func sync(frame: Dictionary) -> void:
 	if source != null:
 		source.builder = client.input_builder
 		source.enabled = client.authenticated and frame.state.phase == "combat" and not touch_enabled
+	if arena != null and arena.overlay != null:  # control-overlay edit: show the device the local seat really uses
+		arena.overlay.set_seat_scheme(client.player_id, "touch" if touch_enabled else input_scheme, input_scheme == "kb1" and not touch_enabled)
 	if not client.latest_combat.is_empty():
 		apply_snapshot(client.latest_combat)
 
@@ -69,6 +71,9 @@ func stop() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE and arena != null:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# control-overlay edit: the arena's SubViewport receives no input here ("the arena viewport only draws"), so F1 / Share are relayed.
+	if arena != null and arena.overlay != null:
+		arena.overlay.handle_event(event)
 
 func _exit_tree() -> void:
 	stop()

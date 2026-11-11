@@ -11,6 +11,8 @@ extends Node
 ##
 ## Automation flags (after `--`): --auto=pve|pvp|demo  --p1=p|n|b|r|q  --p2=p|n|b|r|q  --seed=N
 ##   --frames=N (quit after N frames)  --shot=PATH (save a PNG at the end)  --touch (virtual touch controls for P1)  --pad (P1 on the first gamepad)
+##   --overlay=on|off|auto (controls overlay: forced on / off / the profile's saved default; on/off are not saved)
+##   --fake-pad=ps4|xbox|unknown (screenshot aid: pretend the pad seat is that controller family)  --p2pad (P2 uses the same fake pad family)
 
 const ARENA_SCENE := "res://combat/arena.tscn"
 
@@ -38,6 +40,7 @@ func _ready() -> void:
 		config["controls"] = "touch"
 	elif _args.has("pad") or not Input.get_connected_joypads().is_empty():
 		config["controls"] = "pad"  # a gamepad is plugged in: default P1 to it (the menu can switch back)
+	_apply_automation_overlay_args()
 	arena = (load(ARENA_SCENE) as PackedScene).instantiate()
 	add_child(arena)
 	arena.rematch_requested.connect(rematch)
@@ -48,6 +51,26 @@ func _ready() -> void:
 		start_fight()
 	else:
 		show_menu()
+
+
+## Screenshot / automation aids for the controls overlay (--overlay, --fake-pad, --p2pad); never persisted.
+func _apply_automation_overlay_args() -> void:
+	if _args.has("overlay"):
+		var prefs := ControlOverlayPrefs.new()
+		prefs.autosave = false
+		match String(_args["overlay"]):
+			"off":
+				prefs.set_enabled(false)
+			"on":
+				prefs.set_enabled(true)
+		ControlOverlayPrefs.set_shared(prefs)
+	if _args.has("fake-pad"):
+		var names := {"ps4": "PS4 Controller", "xbox": "XInput Gamepad", "unknown": "Generic USB Joystick"}
+		var device_name: String = names.get(String(_args["fake-pad"]), "Generic USB Joystick")
+		ControllerGlyphs.fake_devices = {0: {"name": device_name}, 1: {"name": device_name}}
+		var ids: Array = [0, 1] if _args.has("p2pad") else [0]
+		InputAssignment.shared().connected_provider = func() -> Array: return ids
+		config["controls"] = "pad"
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -146,6 +169,11 @@ func _build_menu() -> Node:
 	seats_label.text = "%s\n%s" % [InputAssignment.shared().describe(0), InputAssignment.shared().describe(1)]
 	seats_label.modulate = Color(1, 1, 1, 0.7)
 	panel.add_child(seats_label)
+	var overlay_check := CheckButton.new()  # control-overlay hook: the remembered "show the cheat sheet in fights" choice
+	overlay_check.text = "Show controls overlay in battles"
+	overlay_check.button_pressed = ControlOverlayPrefs.shared().enabled
+	overlay_check.toggled.connect(func(on: bool): ControlOverlayPrefs.shared().set_enabled(on))
+	panel.add_child(overlay_check)
 	var controls := Button.new()
 	controls.text = "Controls…"
 	controls.pressed.connect(func(): ControlsScreen.open(self))
