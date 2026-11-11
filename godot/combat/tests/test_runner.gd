@@ -44,4 +44,15 @@ func _initialize() -> void:
 		var suite = load(SUITES[suite_name])
 		await suite.run(harness, self)
 	print("(%d ms)" % (Time.get_ticks_msec() - started))
-	quit(harness.report())
+	# Leave nothing behind: free whatever the suites parked in the tree and drop the static sound cache so the
+	# engine reports no leaked resources at exit (Codex's native-combat gate treats any ERROR: line as a failure).
+	for child in root.get_children():
+		child.queue_free()
+	await process_frame
+	await process_frame
+	load("res://combat/audio/combat_audio.gd").clear_library()
+	# The audio server releases stopped playbacks on its own mix thread; give it a moment before the engine shuts down.
+	await create_timer(0.5).timeout
+	var report := harness.report()
+	await process_frame
+	quit(report)

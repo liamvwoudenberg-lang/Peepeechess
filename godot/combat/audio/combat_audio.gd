@@ -57,6 +57,13 @@ const PROFILE := {
 static var _library: Dictionary = {}  # sound name -> Array[AudioStream]
 static var _manifest: Dictionary = {}
 
+
+## Drops the decoded-sound cache. The cache is static, so without this the streams outlive the engine's
+## shutdown cleanup ("resources still in use at exit"). Tests and the runner call it before quitting.
+static func clear_library() -> void:
+	_library.clear()
+	_manifest.clear()
+
 var sim = null
 var host: Node3D = null
 var local_player_id: String = ""
@@ -221,6 +228,20 @@ func _disconnect_sim() -> void:
 
 func _exit_tree() -> void:
 	_disconnect_sim()
+	release_voices()
+
+
+## Stops every pooled voice and drops its stream so no decoded sound (or playback) is kept alive by a node that is
+## leaving the tree; otherwise the engine reports "resources still in use at exit".
+func release_voices() -> void:
+	for p in _world:
+		if is_instance_valid(p):
+			p.stop()
+			p.stream = null
+	for p in _flat:
+		if is_instance_valid(p):
+			p.stop()
+			p.stream = null
 
 
 func _build_pools() -> void:
