@@ -94,7 +94,11 @@ one persistent camera/render world; reusable simulation lifecycle adapter using
 square collisions and actual capture squares; seamless same-world presentation.
 
 Remaining milestones: verify repeated local/online board encounters; wire tested
-prediction/reconciliation to square topology; complete owner King/RoyalCounter
-and formal royal gauntlet rules; actual device crossplay/performance; refreshed
-native artifacts. Update this file with commits, changed paths, checks actually
+prediction/reconciliation to square topology; actual device crossplay/performance;
+refreshed native artifacts. King's last stand: rules, contract, server session, flow
+hooks and tests are DONE as the opt-in `battle-royal-v1` ruleset
+(docs/architecture/BATTLE_ROYAL_V1.md; `npm run test:royal`); still open: a
+`network/royal` wire variant so online rooms can select it, the `main.gd` menu toggle
+that creates `BattleRoyalMatch`, presentation of the sequence banner, human playtests
+and the King/attrition balance recommendations in godot/combat/BALANCE.md. Update this file with commits, changed paths, checks actually
 run and remaining issues as each milestone lands. No completion is implied yet.

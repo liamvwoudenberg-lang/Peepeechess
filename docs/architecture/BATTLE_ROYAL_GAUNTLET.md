@@ -28,3 +28,7 @@ Introduce an explicit Battle v2 ruleset and versioned request/snapshot/result
 contracts for the sequence and persistent king HP. Preserve v1 as a named legacy
 ruleset until consumers migrate. The current Classic PR deliberately changes
 no combat-owned file, fighter balance table, legacy Battle rules, or v1 schema.
+
+**Update 2026-11-11:** the open decisions above are made and implemented as the opt-in
+`battle-royal-v1` ruleset; see [`BATTLE_ROYAL_V1.md`](BATTLE_ROYAL_V1.md) (ADR, contract,
+edge cases). The v1 payloads and the legacy `battle-checkmate-v1` ruleset are unchanged.
