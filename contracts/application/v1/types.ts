@@ -14,3 +14,7 @@ export type ResultReport = { matchId: string; result: MatchResult; reason: strin
 
 /** Additive ENet account handshake, reliable channel 0; distinct from anonymous Hello. */
 export type AccountHello = { schemaVersion: 1; protocol: "peepeechess-enet-v1"; ticket: string };
+
+/** Bounded history pages omit move arrays; /v1/history retains full record compatibility. */
+export type MatchSummary = Omit<MatchRecord, "history"> & { plies: number };
+export type HistoryPage = { matches: MatchSummary[]; nextOffset: number | null };
