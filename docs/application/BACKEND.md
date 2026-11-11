@@ -125,8 +125,8 @@ client processes; see its integration validation report for measured results.
 Node24.22.1, PostgreSQL17.11 (`postgres:17-alpine`, Linux x86_64), and the
 repository's `npm run lint` were executed in the development environment.
 
-- SQLite:8passing tests;1PostgreSQL-only test skipped deliberately.
-- PostgreSQL:9passing tests,0skipped. This includes reopening the entire API
+- SQLite:9passing tests;1PostgreSQL-only test skipped deliberately.
+- PostgreSQL:10passing tests,0skipped. This includes reopening the entire API
   service against the same database, and two independent API instances sharing
   PostgreSQL while queue admissions, single-use ticket redemption and duplicate
   result commits race. Exactly one allocation/result and one rating update win.
@@ -135,3 +135,11 @@ repository's `npm run lint` were executed in the development environment.
 
 These checks verify the account/control-plane implementation. They do not
 constitute physical Windows/Android testing or a production deployment.
+
+The application uses `/v1/history/summary?limit=20&offset=0` for bounded history
+pages. Both SQL adapters remove move arrays inside the database and return
+`plies` with a `nextOffset` value; the existing full-record endpoint stays
+compatible for tooling. Pages sort completedAt descending then matchId ascending.
+Tests store three 4096-ply records (combined full response exceeds 1 MiB), verify
+summaries stay below 8 KiB, traverse all pages without duplicates, enforce query
+bounds/authentication/self-only access, and refresh from offset 0 after a new result.
