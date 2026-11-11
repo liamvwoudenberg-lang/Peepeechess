@@ -7,6 +7,7 @@ extends Node3D
 
 const W := preload("res://world/world_constants.gd")
 const Models := preload("res://boards/piece_meshes.gd")
+const CEILING_ASSET := "res://assets/world/pit/chamber_ceiling.glb"
 const LADDER_TOP := "res://assets/world/pit/ladder_top.glb"
 const LADDER_SEGMENT := "res://assets/world/pit/ladder_segment_2m.glb"
 const CAMERA_COLLISION_LAYER := 4  # CombatConstants.LAYER_CAMERA
@@ -18,6 +19,7 @@ var ladder: Node3D
 var spot: SpotLight3D
 var cones: Array[MeshInstance3D] = []
 var uses_ladder_asset := false
+var uses_ceiling_asset := false
 ## When true (default) the arena's physics tick is paused on mount; the pit releases it at DROP.
 var gate_simulation := true
 var quality := "high"
@@ -86,6 +88,8 @@ func _build_ceiling() -> void:
 	body.collision_layer = CAMERA_COLLISION_LAYER
 	body.collision_mask = 0
 	holder.add_child(body)
+	if _build_ceiling_asset(holder, body):
+		return
 	var mat := _stone()
 	var h := W.HOLE_HALF
 	var e := W.CEILING_HALF
@@ -110,6 +114,33 @@ func _build_ceiling() -> void:
 
 
 ## Dark band that closes the gap between the arena wall top and the ceiling slab.
+## Generated ceiling (16 x 16 m, exact 1 m hole, coffer beams): top at y = 0 in its frame.
+func _build_ceiling_asset(holder: Node3D, body: StaticBody3D) -> bool:
+	if not ResourceLoader.exists(CEILING_ASSET):
+		return false
+	var packed = load(CEILING_ASSET)
+	if not packed is PackedScene:
+		return false
+	var node: Node3D = packed.instantiate()
+	node.position = Vector3(0, W.CEILING_BOTTOM + 0.6, 0)  # slab underside at CEILING_BOTTOM
+	holder.add_child(node)
+	for visual in node.find_children("*", "VisualInstance3D", true, false):
+		visual.layers = W.LAYER_CEILING
+	# Camera-collision slab (the asset has no colliders): four boxes around the hole, as the fallback.
+	var h := W.HOLE_HALF
+	var e := 8.0
+	var y := W.CEILING_BOTTOM + 0.3
+	for r in [Rect2(-e, -e, e - h, 2 * e), Rect2(h, -e, e - h, 2 * e), Rect2(-h, -e, 2 * h, e - h), Rect2(-h, h, 2 * h, e - h)]:
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(r.size.x, 0.6, r.size.y)
+		shape.shape = box
+		shape.position = Vector3(r.position.x + r.size.x * 0.5, y, r.position.y + r.size.y * 0.5)
+		body.add_child(shape)
+	uses_ceiling_asset = true
+	return true
+
+
 func _build_backdrop() -> void:
 	var band := MeshInstance3D.new()
 	band.name = "Backdrop"

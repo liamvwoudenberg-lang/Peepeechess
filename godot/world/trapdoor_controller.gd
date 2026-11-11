@@ -26,7 +26,10 @@ var _slabs: Array = []            # [{node, ring: Array[MeshInstance3D]}]
 var _pivot_left: Node3D
 var _pivot_right: Node3D
 var _leaf_material: Material
-var _liner: Array[MeshInstance3D] = []
+var _liner: Array[Node3D] = []
+var uses_shaft_asset := false
+const SHAFT_RIM := "res://assets/world/pit/shaft_rim.glb"
+const SHAFT_WALL := "res://assets/world/pit/shaft_wall_segment.glb"
 var _built := false
 var _active := false
 
@@ -79,15 +82,40 @@ func _build() -> void:
 			piece.material_override = source.material_override
 			add_child(piece)
 			slab["ring"].append(piece)
-	var liner_material := Models.material(Color("2a2926"), 0.0)
-	liner_material.roughness = 0.95
-	for i in 4:
-		var wall := MeshInstance3D.new()
-		wall.mesh = BoxMesh.new()
-		wall.material_override = liner_material
-		wall.layers = W.LAYER_BOARD | W.LAYER_CHAMBER
-		add_child(wall)
-		_liner.append(wall)
+	uses_shaft_asset = _build_liner_asset()
+	if not uses_shaft_asset:
+		var liner_material := Models.material(Color("2a2926"), 0.0)
+		liner_material.roughness = 0.95
+		for i in 4:
+			var wall := MeshInstance3D.new()
+			wall.mesh = BoxMesh.new()
+			wall.material_override = liner_material
+			wall.layers = W.LAYER_BOARD | W.LAYER_CHAMBER
+			add_child(wall)
+			_liner.append(wall)
+
+
+## Generated shaft set (godot/assets/world/pit/): rim under the tile layer + one 1 m wall segment below it.
+func _build_liner_asset() -> bool:
+	if not (ResourceLoader.exists(SHAFT_RIM) and ResourceLoader.exists(SHAFT_WALL)):
+		return false
+	var rim = load(SHAFT_RIM)
+	var wall = load(SHAFT_WALL)
+	if not (rim is PackedScene and wall is PackedScene):
+		return false
+	var holder := Node3D.new()
+	holder.name = "ShaftAsset"
+	var rim_node: Node3D = rim.instantiate()
+	holder.add_child(rim_node)
+	var wall_node: Node3D = wall.instantiate()
+	wall_node.position = Vector3(0, -1.54, 0)   # stacked below the rim (rim bottom is y = -0.54)
+	holder.add_child(wall_node)
+	for node in [rim_node, wall_node]:
+		for visual in node.find_children("*", "VisualInstance3D", true, false):
+			visual.layers = W.LAYER_BOARD | W.LAYER_CHAMBER
+	add_child(holder)
+	_liner.append(holder)
+	return true
 
 
 ## Prepares the hole under `at` (centre in board-local space). Visually identical to the closed tile.
@@ -144,6 +172,9 @@ func _layout_ring(slab: Dictionary) -> void:
 
 
 func _layout_liner() -> void:
+	if uses_shaft_asset:
+		_liner[0].position = Vector3(_center.x, 0, _center.z)
+		return
 	var top := W.PLINTH_CENTER.y - W.PLINTH_SIZE.y * 0.5
 	var length := W.BOARD_DEPTH + top - (W.CEILING_BOTTOM + W.CEILING_THICKNESS)
 	var h := W.TILE_SIZE * 0.5
@@ -156,7 +187,7 @@ func _layout_liner() -> void:
 		[Vector3(W.TILE_SIZE, length, t), Vector3(_center.x, cy, _center.z + h + t * 0.5)],
 	]
 	for i in 4:
-		(_liner[i].mesh as BoxMesh).size = specs[i][0]
+		((_liner[i] as MeshInstance3D).mesh as BoxMesh).size = specs[i][0]
 		_liner[i].position = specs[i][1]
 
 

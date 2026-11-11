@@ -87,7 +87,7 @@ check this after an abort in every phase.
 | `godot/app/battle_flow.gd` | `auto_return` (default true). The bridge sets it false so the 2 s aftermath timer does not commit/stop the arena before the climb is done. |
 | `godot/combat/arena.gd`, `godot/combat/presentation/stone_arena_visuals.gd` | `embedded` flag only (commented `pit-world edit` blocks): no own `WorldEnvironment`, lights restricted to the chamber layers. Default false = unchanged. **Merge note**: the combat-core worktree also edits these files. |
 | `godot/combat/tests/test_runner.gd` | registers suite `world`. |
-| `godot/tests/classic/views_test.gd`, `godot/tests/battle/ui_test.gd` | one added line each: `app.set_world_mode(false)`. These suites regression-test the original Board2D / overlay path, which stays in the repo as a fallback; no assertion was changed or removed. The world path has its own suite (`world`). |
+| `godot/tests/classic/views_test.gd`, `godot/tests/battle/ui_test.gd`, `godot/tests/battle/real_combat_test.gd` | one added line each: `app.set_world_mode(false)`. These suites regression-test the original Board2D / overlay path, which stays in the repo as a fallback; no assertion was changed or removed. The world path has its own suite (`world`). |
 
 Not edited: `battle_combat_adapter.gd`, `battle_match.gd`, `online_*`, `third_person_camera.gd`, `character_model.gd`, `combat_hud.gd`, the simulation.
 
@@ -97,13 +97,17 @@ rig camera made current); `flow.result_ready` -> `pit.present_result`; `pit.retu
 `adapter.stop()`); `flow` back to "board" without that commit (cancel, load failure, adapter failure/disconnect, chess change, resign) -> `pit.abort`.
 Board input stays disabled until the pit is idle again.
 
-## Assets
+## Assets (merged from `feature/world-assets`, `godot/assets/world/`)
 
-`PitChamber` uses `godot/assets/world/pit/ladder_top.glb` + `ladder_segment_2m.glb` (stacked down to the floor) when present; otherwise a procedural
-ladder (rails/rungs with the same 0.62 m / 0.25 m dimensions). Checked once against the generated set by copying the GLBs from the world-assets worktree
-(screenshot of the climb); the assets are not in this branch. Not adopted yet (clean procedural versions are used): `trapdoor_*.glb` (hinge names match
-`hinge_left`/`hinge_right`; its marble top would need `board_3d.gd` to use `materials/tile_*.tres`), `chamber_ceiling.glb`, `shaft_*`, `light_cone.glb`,
-the chess set and board frame. The `climb` clip is requested at `CLIMB_SPEED / 0.4167` playback speed when the model has it.
+Used when present, with procedural fallbacks that need no assets (tested both ways: the suite ran without them first):
+`pit/ladder_top.glb` + `ladder_segment_2m.glb` stacked to the floor (ladder plane 0.42 m behind the shaft centre, climber origin at the shaft centre),
+`pit/chamber_ceiling.glb` (top at y = 5.6, plus separate camera-collision boxes), `pit/shaft_rim.glb` + one `shaft_wall_segment.glb` as the liner.
+The fighters' `climb` clip is requested at `CLIMB_SPEED / 0.4167` playback speed when the model has it (else the walk clip at half speed).
+**Not adopted** (documented so the lead can decide): `trapdoor_*.glb` (hinge names match; but its marble top needs `board_3d.gd` to use `materials/tile_*.tres`,
+otherwise the tile visibly changes at capture focus), `light_cone.glb` (the procedural cone is used; the asset's additive material blew out in a first try),
+the chess set (`pieces/*.glb`, roles read well from above) and `board_frame/plaques`. Known mismatch in `board_3d.gd` (not touched): the rank Label3D "8" is at z = -3.5
+while `world_position()` puts rank 8 at z = +3.5; the pit world follows `world_position()`.
+The climber is 1.8 m against a 1.0 m opening; Rook/King props overlap the 0.62 m ladder (asset note). Nothing is scaled or hidden yet.
 
 ## Quality / mobile
 
