@@ -81,3 +81,48 @@ These protocol/UI/component checks are now also included in the full harness.
 
 These runs cover the SQLite account service. PostgreSQL-specific coverage is
 reported separately in [BACKEND.md](BACKEND.md).
+
+## Final integrated verification — 2026-11-11
+
+The root integration worktree also ran the complete account/game harness after
+compact history pagination was integrated, with exit0 (`npm run test:application`).
+It included the21 protocol/outbox checks,49 UI checks, ten real Godot AccountApi
+flows, both Classic scenarios, all four real Battle knockouts, outbox recovery,
+active-match abort, and persistent account/history/rating/statistics assertions.
+
+Additional checks completed successfully:
+
+| Command / check | Observed result |
+| --- | --- |
+| `npm run lint` | TypeScript check passed |
+| Node/web tests, including backend/export contracts | 84passed,1PostgreSQL-only case skipped out of85; PostgreSQL cases separately executed |
+| `npm test` native combat portion |4482checks /225tests passed, plus standalone900-frame arena |
+| `npm run build` | Production web build passed; existing large-chunk advisory remains |
+| `npm run test:contracts` |23Node cases,21Godot cases and9exact round trips passed |
+| `npm run test:classic` |83engine,53match/clock,345view checks;72positions/1962moves matched chess.js |
+| `npm run test:battle` |Rules/flow/UI/real-combat checks passed;106positions/747outcomes matched C0 authority |
+| `npm run test:backend` |9SQLite cases passed;1PostgreSQL-only case skipped; real PostgreSQL10case run passed separately |
+| `npm run test:multiplayer` |62authority,86roster,30UI checks plus separate-process Classic/clock/Battle scenarios passed |
+| DTLS identity checks |Wrong CA and wrong hostname refused; IP dialing with explicit DNS certificate identity authenticated |
+| Native artifacts |Actual WindowsEXE, APK and test-signed AAB built; checksums/manifests/signature verification in EXPORTS.md |
+
+The final packet-loss run observed13synchronized Battle revisions/four knockouts
+with40–59ms artificial one-way delay and10%loss per direction. ProxyA dropped445
+of4169packets; proxyB dropped440of4477. One run overlapping native compilation
+instead reached a valid disconnect forfeit at ply6 and failed the expected
+four-battle scenario; the isolated rerun passed. This is an observed stress-run
+limit, not evidence of position divergence or a disabled assertion. Further
+server-load and real-device/network testing remains needed.
+
+During setup, simultaneous Android compilation initially exhausted workspace
+storage. Generated caches/intermediates were reclaimed and the failed checks
+rerun. Export scripts now check free space and compiler availability. The first
+hosted CI run also exposed an inherited SDK-path conflict and missing ripgrep;
+SDK environment alignment and a Python-based error scanner resolve those
+assumptions, with a regression checking zero-exit Godot errors fail the script.
+
+The owner's touch fixture injects logical positions into a physical-coordinate
+input API. A Codex-owned test wrapper supplies its expected1:1transform without
+changing owner assertions. A separate production-scaling test verifies that
+physical input reaches the logical touch control exactly once. Production canvas
+scaling, gameplay code and simulation frequency remain enabled.
