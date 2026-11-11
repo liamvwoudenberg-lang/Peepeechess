@@ -45,6 +45,11 @@ export async function createNativeBackend(options: BackendOptions) {
     if (typeof value !== "string" || !/^\d{1,3}$/.test(value) || +value < 1 || +value > 100) throw new ApiError(400, "INVALID_PAYLOAD", "Limit must be 1–100.");
     return +value;
   };
+  const offsetNumber = (value: unknown) => {
+    if (value === undefined) return 0;
+    if (typeof value !== "string" || !/^\d{1,7}$/.test(value) || +value > 1000000) throw new ApiError(400, "INVALID_PAYLOAD", "Offset must be 0–1000000.");
+    return +value;
+  };
   const serverAuth = (req: express.Request) => {
     const authorization = req.headers.authorization || "";
     const secret = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -64,6 +69,7 @@ export async function createNativeBackend(options: BackendOptions) {
   app.post("/v1/auth/logout", wrap(async req => { await account(req); object(req.body, []); return service.logout(req.headers.authorization!.slice(7)); }));
   app.get("/v1/me", wrap(async req => service.getProfile(await account(req))));
   app.get("/v1/profile", wrap(async req => { const own = await account(req); const id = req.query.playerId; if (id !== undefined && (typeof id !== "string" || id.length > 96)) throw new ApiError(400, "INVALID_PAYLOAD", "Invalid player ID."); return service.getProfile(id as string || own); }));
+  app.get("/v1/history/summary", wrap(async req => service.historySummary(await account(req), limitNumber(req.query.limit), offsetNumber(req.query.offset))));
   app.get("/v1/history", wrap(async req => service.history(await account(req), limitNumber(req.query.limit))));
   app.get("/v1/leaderboard", wrap(async req => { await account(req); return service.leaderboard(req.query.mode || "classic", limitNumber(req.query.limit)); }));
   app.post("/v1/queue", wrap(async req => service.queue(await account(req), req.body)));

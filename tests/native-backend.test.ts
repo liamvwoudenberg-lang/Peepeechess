@@ -170,3 +170,43 @@ test("PostgreSQL transactions serialize matchmaking and result writes across API
     assert.equal((await second.request("GET", "/v1/me", undefined, a.token)).data.profile.classic.games, 1);
   } finally { await first.close(); await second.close(); }
 });
+
+test("native history summary pagination is bounded, stable, private and compatible with full records", async () => {
+  let now = 1800000000000; const h = await harness(":memory:", () => now); try {
+    const a = await h.register("alice"), b = await h.register("bravo"), c = await h.register("charlie");
+    const history = Array.from({ length: 4096 }, (_, ply) => ({ ply, from: "a2", to: "a3", note: "x".repeat(160) }));
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      await h.request("POST", "/v1/queue", control, a.token);
+      const allocation = (await h.request("POST", "/v1/queue", control, b.token)).data.status.allocation;
+      ids.push(allocation.matchId);
+      const ticket = (await h.request("POST", "/v1/tickets", { matchId: allocation.matchId }, a.token)).data.ticket;
+      await h.request("POST", "/internal/tickets/redeem", { ticket }, undefined, admin);
+      const reported = await h.request("POST", "/internal/results", { matchId: allocation.matchId, result: "draw", reason: "agreement", finalFen: fen, history }, undefined, admin);
+      assert.equal(reported.status, 200);
+    }
+    ids.sort();
+    const first = await h.request("GET", "/v1/history/summary?limit=2", undefined, a.token);
+    assert.equal(first.status, 200); assert.deepEqual(first.data.matches.map((m: any) => m.matchId), ids.slice(0, 2)); assert.equal(first.data.nextOffset, 2);
+    assert.equal(first.data.matches[0].plies, 4096); assert.ok(!Object.hasOwn(first.data.matches[0], "history"));
+    assert.ok(!JSON.stringify(first.data).includes('"note"')); assert.ok(Buffer.byteLength(JSON.stringify(first.data)) < 8192);
+    const second = await h.request("GET", "/v1/history/summary?limit=2&offset=2", undefined, a.token);
+    assert.deepEqual(second.data.matches.map((m: any) => m.matchId), ids.slice(2)); assert.equal(second.data.nextOffset, null);
+    const outOfRange = await h.request("GET", "/v1/history/summary?limit=2&offset=1000000", undefined, a.token); assert.deepEqual(outOfRange.data.matches, []); assert.equal(outOfRange.data.nextOffset, null);
+    const defaultPage = await h.request("GET", "/v1/history/summary", undefined, a.token); assert.equal(defaultPage.data.matches.length, 3);
+    const foreign = await h.request("GET", "/v1/history/summary?playerId=" + a.profile.playerId, undefined, c.token); assert.deepEqual(foreign.data.matches, []);
+    assert.equal((await h.request("GET", "/v1/history/summary")).status, 401);
+    for (const query of ["limit=0", "limit=101", "offset=-1", "offset=1000001", "offset=1.5", "offset=abc", "offset=0&offset=1"]) assert.equal((await h.request("GET", "/v1/history/summary?" + query, undefined, a.token)).status, 400);
+    const full = await h.request("GET", "/v1/history?limit=3", undefined, a.token);
+    assert.equal(full.data.matches.length, 3); assert.equal(full.data.matches[0].history.length, 4096); assert.ok(Buffer.byteLength(JSON.stringify(full.data)) > 1024 * 1024);
+    // A new completion sorts ahead; clients deliberately refresh offset0 after new results.
+    now += 1;
+    await h.request("POST", "/v1/queue", control, a.token);
+    const later = (await h.request("POST", "/v1/queue", control, b.token)).data.status.allocation;
+    const ticket = (await h.request("POST", "/v1/tickets", { matchId: later.matchId }, a.token)).data.ticket;
+    await h.request("POST", "/internal/tickets/redeem", { ticket }, undefined, admin);
+    await h.request("POST", "/internal/results", { matchId: later.matchId, result: "draw", reason: "agreement", finalFen: fen, history: [] }, undefined, admin);
+    const refreshed = await h.request("GET", "/v1/history/summary?limit=1&offset=0", undefined, a.token);
+    assert.equal(refreshed.data.matches[0].matchId, later.matchId); assert.equal(refreshed.data.nextOffset, 1);
+  } finally { await h.close(); }
+});

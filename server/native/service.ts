@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import type { Allocation, Endpoint, MatchOptions, MatchRecord, Mode, Profile, Stats, Status } from "../../contracts/application/v1/types.js";
+import type { Allocation, Endpoint, HistoryPage, MatchOptions, MatchRecord, Mode, Profile, Stats, Status } from "../../contracts/application/v1/types.js";
 import { NativeStorage, type Transaction } from "./storage.js";
 const scrypt = (password: string, salt: string) => new Promise<Buffer>((resolve, reject) => scryptCallback(password, salt, 64, { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 }, (error, key) => error ? reject(error) : resolve(key)));
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -79,6 +79,20 @@ export class NativeService {
   }
   getProfile(playerId: string) { return this.storage.transaction(async tx => ({ profile: await this.profile(tx, playerId) })); }
   history(playerId: string, limit: number) { return this.storage.transaction(async tx => ({ matches: (await tx.all("SELECT record_json FROM native_matches WHERE (white_player_id=$1 OR black_player_id=$2) AND record_json IS NOT NULL ORDER BY completed_at DESC LIMIT $3", playerId, playerId, limit)).map(r => JSON.parse(r.record_json)) })); }
+  historySummary(playerId: string, limit: number, offset: number): Promise<HistoryPage> {
+    return this.storage.transaction(async tx => {
+      // Strip move arrays inside the database so large records never become
+      // multi-megabyte API buffers or PostgreSQL-to-API result transfers.
+      const projection = this.storage.kind === "postgresql"
+        ? "((record_json::jsonb - 'history') || jsonb_build_object('plies',jsonb_array_length(record_json::jsonb->'history')))::text"
+        : "json_set(json_remove(record_json,'$.history'),'$.plies',json_array_length(record_json,'$.history'))";
+      const rows = await tx.all(`SELECT ${projection} AS summary_json FROM native_matches WHERE (white_player_id=$1 OR black_player_id=$2) AND record_json IS NOT NULL ORDER BY completed_at DESC,match_id ASC LIMIT $3 OFFSET $4`, playerId, playerId, limit + 1, offset);
+      return {
+        matches: rows.slice(0, limit).map(row => JSON.parse(row.summary_json)),
+        nextOffset: rows.length > limit && offset + limit <= 1000000 ? offset + limit : null,
+      };
+    });
+  }
   leaderboard(selectedMode: unknown, limit: number) { const m = mode(selectedMode); return this.storage.transaction(async tx => {
     const rows = await tx.all("SELECT player_id FROM native_stats WHERE mode=$1 AND games>0 ORDER BY rating DESC,wins DESC,player_id ASC LIMIT $2", m, limit);
     return { players: await Promise.all(rows.map(r => this.profile(tx, r.player_id))) };
