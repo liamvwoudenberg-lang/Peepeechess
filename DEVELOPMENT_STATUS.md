@@ -13,47 +13,52 @@ returns to its square and the camera glides back to the top-down view. One persi
 no black fade, no scene switch, board geometry never changes (only the contested tile's trapdoor leaves move).
 This supersedes the earlier "combat on the board" / "board expansion" wording.
 
-## Done and verified (clean-checkout runs)
+## Done (merged on `ccr-a4637d6e-lypbb4`; see "Verification" for what was actually run)
 
-* Authoritative combat core (Pawn, Knight, Bishop, Rook, Queen), netcode (prediction/reconciliation/interpolation/hit
-  grace/event dedupe/disconnects), arena presentation, Blender asset pipeline (6 classes, 19 clips incl. victory and
-  hit reactions, LODs, collision), procedural audio (54 WAVs), touch controls, profilers. Last full run of the merged
-  tree: 4482 checks across 225 tests (see "Last test runs").
-* Codex's native application (menus, accounts/matchmaking protocol, ENet DTLS server, classic + battle chess) merged in
-  (`integration/codex-merge`).
-* PC packaging script `tools/package/build_pc.sh` (Windows + Linux; `TARGET=app|arena`).
+* Combat: six fighters (King behind `allow_experimental_roles`), data-driven balance (`godot/combat/data/balance_v1.json`),
+  per-role movement, 36-pair bot matchup gate, polish (trails, impact/parry/dodge FX, hitstop, camera), procedural audio,
+  Android touch controls, two-pad (DS4/Xbox) input, rebinding, pad menus + board cursor, toggleable controls overlay
+  (F1 / Share / touch "?"), prediction/reconciliation/interpolation wired into the real online path (`OnlineCombatView`).
+* World: top-down 3D chess board; a capture opens the contested tile like trapdoors, both pieces fall into the arena
+  below, the winner climbs a ladder back and the camera returns (`godot/world/`, README there). Local play only.
+* Rules: `battle-royal-v1` King's last stand, opt-in (ADR `docs/architecture/BATTLE_ROYAL_V1.md`, contract
+  `godot/contracts/royal/v1`, `npm run test:royal`). Legacy C0 untouched.
+* Codex's native application, backend contracts, ENet/DTLS server merged in. Packaging: `tools/package/build_pc.sh`
+  (Windows + Linux), CI updated (`.github/workflows/`), tester guide `docs/application/TESTING_GUIDE.md`.
 
-## In progress (separate worktrees under `.worktrees/`)
+## Verification actually run (honest list)
 
-| Stream | Worktree / branch | Scope |
-| --- | --- | --- |
-| Gameplay | `combat-core` / `feature/combat-core` | King + Royal Counter, per-role movement, `balance_v1.json`, 36-pair matchup tuning |
-| Visual polish | `combat-core` / `feature/combat-core` | blending, trails, parry/block/dodge/ability VFX, hitstop, camera, CombatAudio wiring |
-| Pit-battle world | `pit-world` / `feature/pit-world` | top-down 3D board, trapdoor/drop/ladder sequence, camera rig, app hook |
-| Pads + controls | `pads-input` / `feature/pads-input` | two PS4 pads, rebinding, pad menu navigation, board cursor, local battle seats |
-| World assets | `world-assets` / `feature/world-assets` | chess set, trapdoor, shaft, ladder, climb/fall/land clips |
+* Combat runner (`res://combat/tests/test_runner.gd`, also under `--fixed-fps 60`): 7,949 checks / 346 tests on the
+  tree before the royal/online/artifact merges, 1 failure (pads cursor geometry, fixed); royal, net_roles, pads and
+  overlay suites 1,438 checks pass after those merges.
+* Codex gate pieces that passed locally on the integration tree: lint, build, test:contracts, test:battle,
+  test:application, test:multiplayer; test:classic passes on a quiet machine and flakes (3D touch checks) under load.
+* GitHub Actions on PR #4: native exports (Windows exe, debug APK, test-signed AAB) succeeded on `2a84383`; "Validate
+  integration" failed there on a headless popup `ERROR:` that is fixed from `993ff03` on (see runs on the PR).
+* Not verified anywhere: real Windows/Android hardware, real gamepads, real GPUs/phones, Windows-Android crossplay,
+  human playtests, audio quality, the PostgreSQL backend in production, signing.
 
-## Not started / known gaps
+## Still open
 
-* Computer opponent for Classic Chess (no chess AI exists in `godot/chess`).
-* Board customization UI beyond what Codex's settings provide; chess clocks exist (Codex).
-* Android export/APK never built or run on a device (no SDK here); Windows exe never run on Windows (built with the
-  official templates, only the Linux build is executed in CI-like headless runs here).
-* No human playtest of any build; balance and feel are unvalidated.
-* Ranked rules, matchmaking backend deployment, accounts: Codex-owned specs only; not deployed.
+| Item | State |
+| --- | --- |
+| Chess AI + opponent selection + board themes | worker `feature/chess-ai` in progress |
+| UI polish (theme, title screen, layouts, accessibility) | worker `feature/ui-polish` in progress |
+| Pit transition for ONLINE matches | not wired: `OnlineCombatView` takes any Node host now; the world must call `pit.begin / attach_arena / present_result` (see godot/world/README.md "Online path"); server countdown (180 ticks) does not wait for the pre-roll; server returns to board ~2 s after the result |
+| King last-stand: menu toggle, banners, online wire format | rules/contract/server done; presentation + `network/royal` variant open; King balance recommendations (more HP / partial refresh) not applied |
+| King selectable in the app / v1 server | no (v1 contract forbids it); needs a contract version |
+| Contract v2 handshake (tuning stamp, `actionId`, buff field) | proposed in `docs/network/ONLINE_COMBAT.md`, not implemented (v1 is immutable) |
+| Android build in the sandbox | blocked: `dl.google.com` returns 403 from the sandbox proxy; use the GitHub Actions artifact |
+| Board asset adoption (GLB chess set, trapdoor/frame assets) | pit world uses procedural versions; adoption partly pending in the chess-ai worker |
+| Real-device QA, performance on phones, production signing, deployment | cannot be done here |
 
 ## Next steps
 
-1. Merge the finished streams into `integration/codex-merge`, run: Godot import, the full combat suite
-   (`godot --headless --path godot --script res://combat/tests/test_runner.gd`), Codex's `npm run lint|test|build|
-   test:contracts|test:classic|test:battle`, then push to `ccr-a4637d6e-lypbb4`.
-2. Build the alpha package: `GODOT=... TEMPLATES_TPZ=... tools/package/build_pc.sh` (details in `tools/package/`).
-3. Chess AI, board customization, Android export validation, performance measurements on real hardware.
-
-## Last test runs
-
-* Merged tree (Codex multiplayer-application + combat): 4482 checks / 225 tests, 6 failures in one touch integration
-  test caused by Codex's UI content scaling; fixed in `146ccb1`, re-verification pending.
+1. Merge `feature/chess-ai` and `feature/ui-polish` when they report; run the full combat suite and Codex's gate on a
+   quiet machine; push; read the PR's GitHub Actions results and fix what they show.
+2. Wire the pit world to the online path; King last-stand menu toggle + banners.
+3. Real-device testing (Windows exe from CI artifacts, Android APK from CI artifacts), controller and touch feel,
+   balance playtests.
 
 ---
 
