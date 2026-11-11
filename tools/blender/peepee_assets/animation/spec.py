@@ -21,6 +21,13 @@ ABILITY_NAME = {"pawn": "last-stand", "knight": "lunging-strike", "bishop": "bli
 LIGHT_SCALE = [1.0, 0.95, 1.35]          # pawn; others use 1.3 for the finisher
 STAGGER_TICKS = 30
 DEFEAT_TICKS = 60
+# Presentation-only clips (no simulation counterpart; they are cosmetic and may be paced freely at runtime):
+#   victory          held end pose (non-looping), distinct per class
+#   hit_react_light  short flinch that returns to the ready pose (crossfades back to idle)
+#   hit_react_heavy  bigger recoil with a stumble, also returning to the ready pose
+VICTORY_TICKS = {"pawn": 96, "knight": 108, "bishop": 110, "rook": 120, "queen": 100, "king": 120}
+HIT_REACT_LIGHT_TICKS = 14
+HIT_REACT_HEAVY_TICKS = 24
 
 # (startup_end, active_end, cancel_from) as fractions, from AttackLibrary for p/n; others mirror
 # the nearest archetype. Used for the animation manifest and for choosing where the strike lands.
@@ -46,9 +53,11 @@ def clip_frames(cls: str) -> dict:
         "light_3": round(light * finisher), "heavy": heavy,
         "parry": parry_w + parry_r, "dodge": DODGE[cls], "stagger": STAGGER_TICKS,
         "ability": ABILITY[cls], "defeat": DEFEAT_TICKS,
+        "victory": VICTORY_TICKS[cls], "hit_react_light": HIT_REACT_LIGHT_TICKS, "hit_react_heavy": HIT_REACT_HEAVY_TICKS,
     })
     return frames
 
 
 CLIP_NAMES = ["idle", "walk", "run", "strafe_left", "strafe_right", "light_1", "light_2", "light_3",
-              "heavy", "block", "parry", "dodge", "stagger", "ability", "defeat"]
+              "heavy", "block", "parry", "dodge", "stagger", "ability", "defeat",
+              "victory", "hit_react_light", "hit_react_heavy"]

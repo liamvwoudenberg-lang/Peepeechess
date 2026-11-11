@@ -178,6 +178,21 @@ static func _presentation(h, tree: SceneTree) -> void:
 
 
 static func _protocol(h, tree: SceneTree) -> void:
+	h.begin("external builder: a transport-owned CombatInputBuilder is the single sequence source")
+	var shared := CombatInputBuilder.new("m", "b", "player-white")
+	shared.sequence = 40
+	var req := FighterRoster.build_request("p", "n", "w", "b", 1, 0)
+	req["matchId"] = "m"
+	var sent: Array = []
+	var ext = preload("res://combat/net/combat_net_client.gd").new(req, "player-white", func(packet): sent.append(packet), shared)
+	h.check(ext.builder == shared, "the client uses the supplied builder")
+	ext.press("light")
+	ext.tick(1)
+	ext.tick(2)
+	h.eq(int(sent[0]["sequence"]), 41, "sequence continues from the transport's builder")
+	h.eq(int(sent[0]["light"]), 1, "press counter lives in the shared builder")
+	h.eq(int(shared.counters["light"]), 1, "and the transport sees it")
+
 	h.begin("protocol mapping: InputResume lets a restarted client continue; ClockSync feeds the clock")
 	var request := FighterRoster.build_request("p", "n", "w", "proto-1", 4, 0)
 	var net = Harness.new()
