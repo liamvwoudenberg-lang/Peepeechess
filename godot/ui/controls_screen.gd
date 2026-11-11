@@ -45,7 +45,7 @@ func _ready() -> void:
 	add_to_group(PadUi.SCOPE_GROUP)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.07, 0.06, 0.98)
+	dim.color = Color(0.03, 0.07, 0.06, 1.0)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var margin := MarginContainer.new()
@@ -104,8 +104,15 @@ func _ready() -> void:
 	assignment.assignment_changed.connect(_refresh_players)
 	Input.joy_connection_changed.connect(_on_joy_changed)
 	_refresh()
-	if not _rows.is_empty():
-		_rows.values()[0].call_deferred("grab_focus")
+	_focus_first.call_deferred()
+
+
+## Start on the first player option once the layout exists (focusing earlier would scroll to a wrong position).
+func _focus_first() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if is_inside_tree() and not _seat_options.is_empty():
+		_seat_options[0].grab_focus()
 
 
 func _exit_tree() -> void:

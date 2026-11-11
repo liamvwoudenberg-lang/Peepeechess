@@ -22,6 +22,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _hotplug_mid_fight(h, tree)
 	await _custom_bindings_fight(h, tree)
 	await _keyboard_fight(h, tree)
+	await _menu_stays_out_of_combat(h, tree)
 	await load("res://combat/tests/test_pads_ui.gd").run(h, tree)  # (load, not preload: that file preloads this one)
 
 
@@ -903,6 +904,48 @@ static func _keyboard_fight(h, tree: SceneTree) -> void:
 	key(KEY_CTRL, false)
 	h.check(zero.size() == 5, "sanity")
 	arena.stop_battle()
+	arena.queue_free()
+	await tree.process_frame
+	ControlBindings.set_shared(old_b)
+	InputAssignment.set_shared(old_a)
+
+
+# ---- menus must not eat combat presses --------------------------------------------------------------------------------------
+static func _menu_stays_out_of_combat(h, tree: SceneTree) -> void:
+	h.begin("pad combat vs menu focus: while a pad fights the focus is released and Cross is dodge, not 'press the focused button'")
+	var bindings := ControlBindings.new()
+	var assignment := fake_assignment(bindings, [0, 1])
+	var old_b := ControlBindings.shared()
+	var old_a := InputAssignment.shared()
+	ControlBindings.set_shared(bindings)
+	InputAssignment.set_shared(assignment)
+	var button := Button.new()
+	button.text = "Resign (must never fire from a dodge)"
+	var fired := [0]
+	button.pressed.connect(func(): fired[0] += 1)
+	tree.root.add_child(button)
+	var ui := PadUi.install(tree.root, {"assignment": assignment})
+	ui.nav_mode = true
+	button.grab_focus()
+	await tree.process_frame
+	h.check(tree.root.gui_get_focus_owner() == button, "before the fight the pad-focused button holds focus")
+	var arena := _make_arena(tree, ["pad0", "pad1"], bindings, 9)
+	await _live(tree, arena)
+	h.check(tree.root.gui_get_focus_owner() == null, "once the fight runs the guard released the focus")
+	tap(0, JOY_BUTTON_A, tree)
+	await ticks(tree, 3)
+	h.eq(fired[0], 0, "Cross did not press the button")
+	h.eq(_counts(arena, "player-white")["dodge"], 1, "Cross dodged")
+	await ticks(tree, 30)
+	h.check(tree.root.gui_get_focus_owner() == null, "the guard does not re-grab focus during the fight even though nav mode is on")
+	arena.stop_battle()
+	await ticks(tree, 5)
+	await tree.create_timer(1.0).timeout
+	await tree.process_frame
+	h.check(tree.root.gui_get_focus_owner() == button, "about a second after the fight ended the guard gives the pad its focus back")
+	release_all()
+	ui.queue_free()
+	button.queue_free()
 	arena.queue_free()
 	await tree.process_frame
 	ControlBindings.set_shared(old_b)

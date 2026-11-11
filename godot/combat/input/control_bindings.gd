@@ -295,6 +295,10 @@ static func key_name(code: int) -> String:
 		return "Unbound"
 	# Show what is printed on the player's keycap (AZERTY: physical W is "Z"); fall back to the code's name.
 	var shown: int = DisplayServer.keyboard_get_keycode_from_physical(code as Key) if DisplayServer.get_name() != "headless" else code
+	var short := {KEY_COMMA: ",", KEY_PERIOD: ".", KEY_SLASH: "/", KEY_BACKSLASH: "\\", KEY_SEMICOLON: ";", KEY_APOSTROPHE: "'", KEY_BRACKETLEFT: "[", KEY_BRACKETRIGHT: "]",
+		KEY_MINUS: "-", KEY_EQUAL: "=", KEY_QUOTELEFT: "`"}
+	if short.has(shown if shown != KEY_NONE else code):
+		return short[shown if shown != KEY_NONE else code]
 	var name := OS.get_keycode_string(shown if shown != KEY_NONE else code)
 	return name if not name.is_empty() else "Key %d" % code
 
@@ -329,7 +333,7 @@ func _keyboard_hint(scheme: String) -> String:
 		move = "%s/%s/%s/%s" % [n.call("up"), n.call("left"), n.call("down"), n.call("right")]
 	var light: String = ("LMB/" if scheme == "kb1" else "") + n.call("light")
 	var heavy: String = ("RMB/" if scheme == "kb1" else "") + n.call("heavy")
-	var cam: String = ("mouse/" if scheme == "kb1" else "") + "%s,%s" % [n.call("orbit_l"), n.call("orbit_r")]
+	var cam: String = ("mouse or " if scheme == "kb1" else "") + "%s / %s" % [n.call("orbit_l"), n.call("orbit_r")]
 	return "%s move · %s sprint · %s light · %s heavy · %s hold block · %s parry · %s dodge · %s ability · %s lock-on · %s camera" % [
 		move, n.call("sprint"), light, heavy, n.call("block"), n.call("parry"), n.call("dodge"), n.call("ability"), n.call("lock"), cam]
 

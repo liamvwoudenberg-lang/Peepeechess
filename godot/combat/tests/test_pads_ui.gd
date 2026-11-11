@@ -394,6 +394,20 @@ static func _application_focus(h, tree: SceneTree) -> void:
 		h.check(focus_ok(tree), "navigate(%s): focus valid while a pad is in use" % page)
 		await press(0, JOY_BUTTON_DPAD_DOWN, tree)
 		h.check(focus_ok(tree), "...and after one more D-pad press")
+	# An OptionButton's popup is a window of its own: D-pad + Cross choose an item and focus returns to the button.
+	shell.navigate("play")
+	await frames(tree, 3)
+	var option: OptionButton = shell.content.find_children("*", "OptionButton", true, false)[0]
+	var chosen_before: int = shell.selected_time
+	option.grab_focus()
+	await press(0, JOY_BUTTON_A, tree)
+	await frames(tree, 2)
+	h.check(option.get_popup().visible, "Cross opens the time-control list")
+	await press(0, JOY_BUTTON_DPAD_DOWN, tree)
+	await press(0, JOY_BUTTON_A, tree)
+	await frames(tree, 3)
+	h.check(not option.get_popup().visible and shell.selected_time != chosen_before, "D-pad + Cross choose another time control (%d -> %d)" % [chosen_before, shell.selected_time])
+	h.check(focus_ok(tree), "focus is valid after the list closed")
 	var motion := InputEventMouseMotion.new()
 	motion.relative = Vector2(40, 10)
 	motion.position = Vector2(300, 300)

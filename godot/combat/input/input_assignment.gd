@@ -262,5 +262,5 @@ func describe(slot: int) -> String:
 	if scheme.begins_with("pad"):
 		var device := int(scheme.substr(3))
 		var label := ControllerGlyphs.device_label(device)
-		return "%s: %s%s" % [who, label, "" if is_pad_connected(device) else " (disconnected)"]
+		return "%s: %s (controller %d)%s" % [who, label, device, "" if is_pad_connected(device) else " - disconnected"]
 	return "%s: Keyboard %s" % [who, "1 (WASD + mouse)" if scheme == "kb1" else "2 (arrows)"]

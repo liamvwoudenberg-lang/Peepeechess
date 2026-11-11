@@ -235,6 +235,9 @@ func _play_page() -> void:
 	if not online:
 		_button(setup, "Start local " + selected_mode.capitalize() + " Chess  →", start_local, true)
 		_label(setup, "Pass-and-play chess. Battle duels use two local control schemes; no account required.", 14, MUTED)
+		if selected_mode == "battle":  # claude/pads-input: who fights with what (change it in Settings -> Controls)
+			var seats = InputAssignment.shared()
+			_label(setup, "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)

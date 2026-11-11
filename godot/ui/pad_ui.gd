@@ -302,7 +302,7 @@ func _grab(vp: Viewport) -> bool:
 		return false
 	var pool := preferred if not preferred.is_empty() else candidates
 	var best: Control = pool[0]
-	if _last_focus_center != Vector2.ZERO and preferred.is_empty() and vp == get_tree().root:  # dialogs: first control (e.g. Queen)
+	if _last_focus_center != Vector2.ZERO and preferred.is_empty() and vp == get_tree().root and scope == null:  # overlays and dialogs: first control in tree order
 		var best_d := INF
 		for c in pool:
 			var d := c.get_global_rect().get_center().distance_squared_to(_last_focus_center)

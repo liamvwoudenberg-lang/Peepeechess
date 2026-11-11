@@ -348,6 +348,19 @@ func _process(delta: float) -> void:
 			_stick[device] = {"dir": dir, "t": t}
 
 
+## One-line help in the controller's own words (drawn under the board while a pad is in use).
+func hint_text() -> String:
+	var family := ControllerGlyphs.Family.PLAYSTATION
+	for device in assignment.connected_pads():
+		family = ControllerGlyphs.family_of_device(device)
+		break
+	var b := func(button: int) -> String: return ControllerGlyphs.button_label(button, family)
+	if not promoting.is_empty():
+		return "Promote: D-pad choose · %s confirm · %s cancel" % [b.call(JOY_BUTTON_A), b.call(JOY_BUTTON_B)]
+	return "D-pad / stick move · %s select / move · %s cancel · %s next piece · %s/%s destinations · %s menu" % [
+		b.call(JOY_BUTTON_A), b.call(JOY_BUTTON_B), b.call(JOY_BUTTON_Y), b.call(JOY_BUTTON_LEFT_SHOULDER), b.call(JOY_BUTTON_RIGHT_SHOULDER), b.call(JOY_BUTTON_START)]
+
+
 ## A visible dialog (promotion, resign, FEN...) owns the pad.
 func _popup_open() -> bool:
 	if not is_inside_tree():
@@ -367,6 +380,10 @@ class _CursorOverlay:
 	extends Control
 	var cursor: BoardPadCursor
 
+	func _process(_delta: float) -> void:
+		if cursor != null and cursor.show_cursor:
+			queue_redraw()  # the board may resize, flip, switch 2D/3D or orbit under a still cursor
+
 	func _draw() -> void:
 		if cursor == null or not cursor.active or not cursor.show_cursor or not cursor.square_rect_provider.is_valid():
 			return
@@ -383,6 +400,12 @@ class _CursorOverlay:
 			draw_circle(corner, arm * 0.18, Color.WHITE)
 		if not cursor.promoting.is_empty():
 			_draw_picker(rect)
+		var font := ThemeDB.fallback_font
+		var text := cursor.hint_text()
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		var bar := Rect2(Vector2(maxf(4.0, (size.x - width) * 0.5 - 8.0), size.y - 26.0), Vector2(width + 16.0, 22.0))
+		draw_rect(bar, Color(0.04, 0.08, 0.1, 0.82), true)
+		draw_string(font, bar.position + Vector2(8, 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.95, 0.95))
 
 	func _draw_picker(anchor: Rect2) -> void:
 		var font := ThemeDB.fallback_font
