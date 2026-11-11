@@ -18,6 +18,7 @@ const SUITES: Dictionary = {
 	"roles": "res://combat/tests/test_roles.gd",
 	"balance": "res://combat/tests/test_balance.gd",
 	"king": "res://combat/tests/test_king.gd",
+	"royal": "res://combat/tests/test_royal.gd",
 	"matchups": "res://combat/tests/test_matchups.gd",
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
