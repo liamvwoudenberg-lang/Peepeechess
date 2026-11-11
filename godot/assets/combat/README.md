@@ -6,7 +6,7 @@ conventions). Do not hand-edit; change the generator and rebuild. Source of trut
 
 | Path | Contents |
 | --- | --- |
-| `characters/<class>/<class>.glb` | LOD0 rigged + animated character (15 clips), props on socket bones |
+| `characters/<class>/<class>.glb` | LOD0 rigged + animated character (22 clips: 15 gameplay + victory, hit reactions + the world clips climb, ladder_idle, drop_fall, land), props on socket bones |
 | `characters/<class>/<class>_lod1.glb` | mobile variant (~40% triangles, same skeleton and clips) |
 | `characters/<class>/<class>_collision.glb` | tiny convex hull for physics proxies (`Mesh.create_convex_shape()`) |
 | `arena/stone_arena{,_lod1}.glb`, `stone_arena_lights.json` | arena geometry + light/fog suggestions (Godot space) |
@@ -27,6 +27,14 @@ sockets), so clips and attachments are interchangeable.
 * Team tint: surfaces whose material name ends with `_Accent` take the team colour.
 * Review tool: `godot --path godot res://combat/scenes/character_gallery.tscn` (Left/Right changes clip).
 * Validation: `godot --headless --path godot --script res://combat/tests/test_runner.gd -- assets`.
+
+## World clips (pit sequence)
+
+`drop_fall` (loop, 40 f), `land` (one-shot, 36 f = 0.6 s), `climb` (loop, 72 f = 1.2 s per two rungs) and `ladder_idle` (loop, 120 f) exist for all six
+classes in both LODs. They are not in `CharacterModel.REQUIRED_CLIPS` (optional; `has_clip()` is false on an old GLB); `CharacterModel.LOOPING` now includes
+the three loops. Root motion is stripped: the game moves the character (climb at 0.4167 m/s, origin at y = n * 0.25 m at phase 0 / 0.5 and 0.42 m
+in front of the ladder plane, see `godot/assets/world/README.md`). Existing clips are unchanged (verified bit-identical per clip).
+The new world models (chess set, board, ladder, trapdoor ...) live in `godot/assets/world/`.
 
 ## Status
 
