@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build reproducible playable PC packages (Windows x86_64 .zip + Linux x86_64 .tar.gz).
+# Build playable PC packages (Windows x86_64 .zip + Linux x86_64 .tar.gz).
 #
 #   GODOT=/path/to/Godot_v4.6.3-stable_linux.x86_64 \
 #   [TEMPLATES_TPZ=/path/to/Godot_v4.6.3-stable_export_templates.tpz] \   # only needed until templates are installed
@@ -11,15 +11,17 @@
 # PRESETS=auto|repo|tools  Windows preset source: auto (default) uses the repository's own godot/export_presets.cfg
 #                       "Windows Desktop" preset when it exists, else the fallback in tools/package/export_presets.cfg.
 #                       The Linux preset always comes from tools/package/export_presets.cfg (the repo has none).
-# SMOKE=1               also export a Linux "smoke" variant (the same project plus tools/package/smoke/package_smoke.gd,
+# SMOKE=1               also export a Linux "smoke" variant (the same project with tools/package/smoke/package_smoke.tscn as main scene,
 #                       never shipped) into <out_dir>/smoke/ for tools/package/smoke_linux.sh.
 #
 # The repository is not modified: godot/ is exported from git (git archive HEAD when godot/ is clean, otherwise a copy of
 # the working tree) into <out_dir>/stage and every adjustment is made there.
 # Output (SHA = short commit id, "-dirty" if godot/ or tools/ has uncommitted changes):
 #   <out_dir>/<Name>-<SHA>-win64.zip, <Name>-<SHA>-linux64.tar.gz, SHA256SUMS, BUILD_INFO.txt
-# The archives are byte-reproducible for one commit and one toolchain: sorted entries, timestamps = commit time,
-# fixed owner and modes (SOURCE_DATE_EPOCH overrides the commit time). Windows binaries are unsigned.
+# The archive step is deterministic (sorted entries, timestamps = commit time, fixed owner/modes; SOURCE_DATE_EPOCH
+# overrides the time): the same exported files always give the same zip/tar.gz. The Godot export itself is NOT
+# byte-reproducible: two builds of one commit differ inside the embedded PCK (observed: 64 bytes in size, binaries and
+# archives get different SHA-256). Publish the SHA256SUMS of the build you distribute. Windows binaries are unsigned.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="$(realpath -m "${1:-$ROOT/dist}")"
@@ -102,7 +104,8 @@ check_log "$OUT/export_linux.log"
 if [ "${SMOKE:-0}" = "1" ]; then
   SM="$OUT/smoke"; rm -rf "$SM"; mkdir -p "$SM/project"
   cp -a "$STAGE/godot/." "$SM/project/"
-  mkdir -p "$SM/project/smoke"; cp "$ROOT/tools/package/smoke/package_smoke.gd" "$SM/project/smoke/"
+  mkdir -p "$SM/project/smoke"; cp "$ROOT/tools/package/smoke/package_smoke."{gd,tscn} "$SM/project/smoke/"
+  sed -i 's#^run/main_scene=.*#run/main_scene="res://smoke/package_smoke.tscn"#' "$SM/project/project.godot"
   "$GODOT" --headless --path "$SM/project" --editor --import >"$OUT/import_smoke.log" 2>&1 || true
   "$GODOT" --headless --path "$SM/project" --export-release "Linux" "$SM/Peepeechess-smoke.x86_64" >"$OUT/export_smoke.log" 2>&1
   check_log "$OUT/export_smoke.log"
