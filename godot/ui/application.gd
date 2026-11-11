@@ -36,6 +36,7 @@ var _menu_buttons: Dictionary = {}
 
 func _ready() -> void:
 	Settings.load_preferences()
+	Settings.ensure_platform(get_tree())
 	api = Api.new()
 	add_child(api)
 	_build_theme()
@@ -331,7 +332,7 @@ func _settings_page() -> void:
 	for value in ["low", "balanced", "high"]:
 		var quality: String = value
 		_button(quality_row, value.capitalize() + (" ✓" if Settings.quality == value else ""), func(): Settings.quality = quality; Settings.save_preferences(); navigate("settings"), Settings.quality == value)
-	_label(card, "Low limits presentation to 30 FPS. Balanced and High target 60 FPS. Server simulation remains authoritative at 60 ticks per second.", 14, MUTED)
+	_label(card, "Low: 30 FPS, no antialiasing. Balanced: 60 FPS, 2× antialiasing. High: uncapped, 4× antialiasing. Server simulation remains authoritative at 60 ticks per second.", 14, MUTED)
 	_label(card, "Master volume", 18, GOLD)
 	var volume = HSlider.new()
 	volume.min_value = 0
@@ -462,8 +463,32 @@ func _load_leaderboard(generation: int, mode: String) -> void:
 		var card = _card(content)
 		_label(card, "%02d     %s     ·     %s" % [i + 1, profile.displayName, stats.rating], 23, GOLD if profile.playerId == Settings.account.get("playerId") else PAPER)
 		_label(card, "%d wins · %d losses · %d draws" % [stats.wins, stats.losses, stats.draws], 14, MUTED)
+		var player_id: String = profile.playerId
+		_button(card, "View player profile", func(): _view_player_profile(player_id))
 	if players.is_empty():
 		_label(content, "The ladder is ready for its first players.", 20, MUTED)
+
+func _view_player_profile(player_id: String) -> void:
+	var response = await api.call_api(HTTPClient.METHOD_GET, "/v1/profile?playerId=" + player_id.uri_encode())
+	if not response.ok:
+		_message(response.message, true)
+		return
+	var profile: Dictionary = response.data.profile
+	var dialog = AcceptDialog.new()
+	dialog.title = str(profile.displayName)
+	dialog.ok_button_text = "Close profile"
+	var column = VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	dialog.add_child(column)
+	_label(column, str(profile.displayName), 28, GOLD)
+	_label(column, "@" + str(profile.username), 16, MUTED)
+	for mode in ["classic", "battle"]:
+		var stats: Dictionary = profile[mode]
+		_label(column, "%s Chess · %d rating\n%d wins · %d losses · %d draws" % [mode.capitalize(), stats.rating, stats.wins, stats.losses, stats.draws], 17)
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(380, 260))
 
 func _queue() -> void:
 	if _busy:

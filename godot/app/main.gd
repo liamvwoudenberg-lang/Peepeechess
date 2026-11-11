@@ -60,6 +60,7 @@ const TIME_CONTROLS = [["Untimed", 0, 0], ["Bullet · 1 + 0", 60000, 0], ["Blitz
 
 func _ready() -> void:
 	AppSettings.load_preferences()
+	AppSettings.ensure_platform(get_tree())
 	_build_theme()
 	_build_ui()
 	_build_dialogs()
@@ -179,7 +180,7 @@ func _build_ui() -> void:
 	settings.text = "Animate"
 	settings.button_pressed = AppSettings.animations
 	settings.tooltip_text = "Turn off movement animations."
-	settings.toggled.connect(func(on): board_2d.animation_enabled = on; board_3d.animation_enabled = on)
+	settings.toggled.connect(func(on): board_2d.animation_enabled = on; board_3d.animation_enabled = on; AppSettings.animations = on; AppSettings.save_preferences())
 	toolbar.add_child(settings)
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
@@ -582,6 +583,8 @@ func _switch_mode(index: int) -> void:
 	board_host.add_child(board_3d)
 	board_3d.setup(game, interaction)
 	mode_label.text = "BATTLE · C0" if index == 1 else "CLASSIC"
+	board_2d.animation_enabled = AppSettings.animations
+	board_3d.animation_enabled = AppSettings.animations
 	mode_select.select(index)
 	copy_notation_button.text = "Copy battle log" if index == 1 else "Copy PGN"
 	if index == 1:
@@ -622,6 +625,7 @@ func _capture_preview(request: Dictionary) -> void:
 	fight_button.disabled = not readiness.ok
 
 func _battle_phase(value: String) -> void:
+	AppSettings.set_combat_input(value in ["countdown", "combat", "aftermath"])
 	interaction.enabled = value == "board"
 	board_2d.set_process_input(value == "board")
 	board_3d.set_process_input(value == "board")
