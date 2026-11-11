@@ -38,6 +38,8 @@ if [[ "${1:-}" == "--templates-only" ]]; then
   exit 0
 fi
 SDK=${ANDROID_HOME:-"$TOOLS/android-sdk"}
+export ANDROID_HOME="$SDK"
+export ANDROID_SDK_ROOT="$SDK"
 MANAGER="$SDK/cmdline-tools/23.0/bin/sdkmanager"
 if [[ ! -x "$MANAGER" ]]; then
   CLI="$TOOLS/downloads/android-commandlinetools.zip"

@@ -21,6 +21,7 @@ if [[ ! -e "$XDG_DATA_HOME/godot/export_templates/4.6.3.stable" ]]; then
   ln -s "$TEMPLATES" "$XDG_DATA_HOME/godot/export_templates/4.6.3.stable"
 fi
 export ANDROID_HOME="$SDK"
+export ANDROID_SDK_ROOT="$SDK"
 export JAVA_HOME="$JAVA_SDK"
 export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$ROOT/work/native-gradle}"
 # Task-local editor settings; never changes the user's editor configuration.
@@ -31,9 +32,11 @@ PY
 run_checked() {
   local log="$OUT/$1.log"; shift
   "$@" 2>&1 | tee "$log"
-  if rg -q 'SCRIPT ERROR|Parse Error|Failed to load|ERROR:' "$log"; then
-    echo "Godot export/import reported errors; see $log" >&2; return 1
-  fi
+  python3 - "$log" <<'PY'
+import pathlib, re, sys
+if re.search(r'SCRIPT ERROR|Parse Error|Failed to load|ERROR:', pathlib.Path(sys.argv[1]).read_text()):
+    raise SystemExit(f'Godot export/import reported errors; see {sys.argv[1]}')
+PY
 }
 debug_key() {
   local key="$ROOT/work/keys/android-debug.keystore"

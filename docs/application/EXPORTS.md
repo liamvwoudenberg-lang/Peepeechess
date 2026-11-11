@@ -30,6 +30,9 @@ APK exports use the precompiled engine templates.
 
 Overrides: `GODOT_BIN`, `JAVA_HOME`, `ANDROID_HOME`,
 `PEEPEECHESS_TOOLCHAIN_DIR`, `NATIVE_OUTPUT_DIR`, `GRADLE_USER_HOME`.
+Both scripts align `ANDROID_SDK_ROOT` with the selected `ANDROID_HOME`, including
+on CI machines that already have a different system SDK. Error scanning uses
+Python3 and does not depend on ripgrep being installed.
 All generated editor settings, Gradle dependencies and signing material stay in
 ignored task-local directories. Standard unauthenticated `HTTPS_PROXY` routing
 is forwarded into Gradle without disabling TLS verification. Configure private
