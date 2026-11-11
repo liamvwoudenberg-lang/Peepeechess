@@ -7,7 +7,8 @@ fight), settings and the online screens. Online play needs a running Peepeechess
 START
   Windows : double-click @NAME@.exe
             (Start-with-console.bat opens it with a console window that prints errors - attach that output when
-            reporting a bug). Keep the .exe, the .console.exe and the .pck in the SAME folder.
+            reporting a bug). The game data is embedded in the .exe; keep Peepeechess.exe and Peepeechess.console.exe
+            in the SAME folder.
             Windows SmartScreen may warn about an unsigned app: "More info" -> "Run anyway".
   Linux   : ./@NAME@.x86_64
 
@@ -34,9 +35,11 @@ WHAT THIS BUILD IS - AND IS NOT
   * Real: Codex's chess rules and application, the authoritative combat rules for Pawn, Knight, Bishop, Rook and
     Queen (the King and the tuned balance data are in the code, not yet selectable in the app), combat polish
     (trails, hit/parry/dodge effects, hitstop), procedural sound, 6,800+ automated checks on the code.
-  * NOT in this build yet: the trapdoor/pit transition (a capture currently shows the older arena overlay), two PS4
-    controllers in the application's Battle Chess (only keyboard seats there; gamepads work in the standalone
-    arena), the controls-rebinding screen, a computer opponent for Classic Chess.
+  * Gamepads: two pads (Xbox / DualShock-4 layouts) are supported in Battle Chess, menus and the board cursor, and
+    Settings -> "Controls & controllers..." rebinds keys and pads. This has only been exercised with simulated
+    devices in automated tests - please report anything that feels wrong with real pads.
+  * NOT in this build yet: the trapdoor/pit transition (a capture currently shows the older arena overlay) and a
+    computer opponent for Classic Chess.
   * Never run on a real Windows machine or a real gamepad by the developers; the Windows build is produced with the
     official export templates and only the Linux build has been executed (headless / software rendering).
   * Balance and feel are unvalidated by human play. Visuals are generated placeholder-quality art.
