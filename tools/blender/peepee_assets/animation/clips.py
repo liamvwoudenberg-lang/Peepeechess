@@ -504,8 +504,11 @@ def _key(arm, solver, frame, pose):
 
 
 def add_all(arm, cls, style, joints):
+    from . import world_clips as W
     solver = poses.Solver(joints, style)
     frames = spec.clip_frames(cls)
+    climber = W.Climber(solver, style)
+    ready_pose = ready(style)
 
     def periodic(fn):
         def build(a):
@@ -537,6 +540,10 @@ def add_all(arm, cls, style, joints):
         "victory": timeline(lambda: victory_keys(style, cls)),
         "hit_react_light": timeline(lambda: hit_react_keys(style, False)),
         "hit_react_heavy": timeline(lambda: hit_react_keys(style, True)),
+        "climb": periodic(lambda ph: climber.pose(ph, ready_pose)),
+        "ladder_idle": periodic(lambda ph: W.ladder_idle_pose(climber, ready_pose, ph)),
+        "drop_fall": periodic(lambda ph: W.drop_fall_pose(style, ready_pose, ph)),
+        "land": timeline(lambda: W.land_keys(style, ready_pose, solver)),
     }
     for clip in ("light_1", "light_2", "light_3", "heavy"):
         makers[clip] = timeline(lambda clip=clip: attack_keys(style, cls, clip))
