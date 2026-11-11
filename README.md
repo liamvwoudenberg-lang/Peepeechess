@@ -7,6 +7,7 @@ Open `godot/project.godot` with pinned Godot **4.6.3**. The native application s
 - [Player guide](docs/application/PLAYER_GUIDE.md)
 - [Account backend and PostgreSQL setup](docs/application/BACKEND.md)
 - [Native Windows/Android builds and installation](docs/application/EXPORTS.md)
+- [Tester guide: install, play, report bugs](docs/application/TESTING_GUIDE.md)
 - [Trust boundaries and integration](docs/application/ARCHITECTURE.md)
 - [Reproducible validation](docs/application/VALIDATION.md)
 
