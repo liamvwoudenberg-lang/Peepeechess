@@ -166,11 +166,15 @@ async function runFight(fight, index) {
   // Real-time melee (strafing, contact, 1:1 input assumption broken by tick-phase jitter and loss) is looser than the lockstep suites;
   // the hard-snap threshold is 1.5 m, so 1.2 m worst correction still means "never teleported".
   const limit = 1.2;
+  // A seat the server stopped hearing from for >= 15 ticks (INPUT_NEUTRAL_AFTER_TICKS: link blackout, or this shared machine stalling a
+  // process) is neutralised by the server while the client keeps predicting, so a large correction / hard snap is then CORRECT behaviour.
+  const stalled = seats.some(s => s.max_gap_ticks >= 15);
+  row.stalledSeat = stalled;
   for (const s of stats) {
-    assert.equal(s.stats.hard_snaps, 0, `${fight.id}: no hard snaps`);
+    assert.ok(s.stats.hard_snaps <= (stalled ? 4 : 0), `${fight.id}: hard snaps ${s.stats.hard_snaps} (stalled=${stalled})`);
     assert.equal(s.stats.rejected, 0, `${fight.id}: no snapshot rejected by the client`);
-    assert.ok(s.corrections.mean < 0.15, `${fight.id}: mean prediction error ${s.corrections.mean}`);
-    assert.ok(s.corrections.max < limit, `${fight.id}: worst correction ${s.corrections.max}`);
+    assert.ok(s.corrections.mean < (stalled ? 0.4 : 0.15), `${fight.id}: mean prediction error ${s.corrections.mean}`);
+    assert.ok(s.corrections.max < (stalled ? 7 : limit), `${fight.id}: worst correction ${s.corrections.max}`);
   }
   for (const [i, rep] of reports.entries()) {
     if (rep.pressVisualMs.length >= 3) assert.ok(pct(rep.pressVisualMs, 0.5) < 60, `${fight.id}: predicted press visible within ~3 frames (median ${pct(rep.pressVisualMs, 0.5)} ms)`);
