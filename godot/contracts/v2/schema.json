@@ -1,0 +1,1071 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peepeechess.invalid/contracts/v2/schema.json",
+  "title": "Peepeechess shared interfaces v1",
+  "$defs": {
+    "Piece": {
+      "type": "object",
+      "properties": {
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "square": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "color": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        },
+        "role": {
+          "enum": [
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ]
+        },
+        "characterId": {
+          "$ref": "#/$defs/CharacterId"
+        }
+      },
+      "required": [
+        "pieceId",
+        "square",
+        "color",
+        "role",
+        "characterId"
+      ],
+      "additionalProperties": false
+    },
+    "CharacterId": {
+      "type": "string",
+      "pattern": "^(royal|elves|skeletons)\\.[pnbrqk]$",
+      "maxLength": 16
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "enum": [
+                "q",
+                "r",
+                "b",
+                "n"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "quiet",
+            "attacker",
+            "defender"
+          ]
+        },
+        "fen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "promotion",
+        "outcome",
+        "fen"
+      ],
+      "additionalProperties": false
+    },
+    "ChessGameState": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ply": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "initialFen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "fen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "pieces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Piece"
+          },
+          "minItems": 2,
+          "maxItems": 32
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryEntry"
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "revision",
+        "ply",
+        "initialFen",
+        "fen",
+        "pieces",
+        "history"
+      ],
+      "additionalProperties": false
+    },
+    "ChessMoveRequest": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "enum": [
+                "q",
+                "r",
+                "b",
+                "n"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "requestId",
+        "playerId",
+        "expectedRevision",
+        "from",
+        "to",
+        "promotion"
+      ],
+      "additionalProperties": false
+    },
+    "FighterStats": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "statsId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "role": {
+          "enum": [
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ]
+        },
+        "maxHp": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maxStamina": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "baseDamage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "moveSpeedMps": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "reachM": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "lightTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "heavyTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "parryTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "abilityId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "cooldownTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "statsId",
+        "role",
+        "maxHp",
+        "maxStamina",
+        "baseDamage",
+        "moveSpeedMps",
+        "reachM",
+        "lightTicks",
+        "heavyTicks",
+        "parryTicks",
+        "abilityId",
+        "cooldownTicks"
+      ],
+      "additionalProperties": false
+    },
+    "Combatant": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "characterId": {
+          "$ref": "#/$defs/CharacterId"
+        },
+        "color": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        },
+        "role": {
+          "enum": [
+            "p",
+            "n",
+            "b",
+            "r",
+            "q"
+          ]
+        },
+        "square": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "stats": {
+          "$ref": "#/$defs/FighterStats"
+        }
+      },
+      "required": [
+        "playerId",
+        "pieceId",
+        "characterId",
+        "color",
+        "role",
+        "square",
+        "stats"
+      ],
+      "additionalProperties": false
+    },
+    "BattleRequest": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "beforeFen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "enum": [
+                "q",
+                "r",
+                "b",
+                "n"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attacker": {
+          "$ref": "#/$defs/Combatant"
+        },
+        "defender": {
+          "$ref": "#/$defs/Combatant"
+        },
+        "arenaId": {
+          "enum": [
+            "board-v1"
+          ]
+        },
+        "startTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "countdownTicks": {
+          "const": 180
+        },
+        "durationTicks": {
+          "const": 5400
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "expectedRevision",
+        "beforeFen",
+        "from",
+        "to",
+        "promotion",
+        "attacker",
+        "defender",
+        "arenaId",
+        "startTick",
+        "countdownTicks",
+        "durationTicks",
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "BattleResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "resolvedTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "winnerPlayerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "outcome": {
+          "enum": [
+            "attacker",
+            "defender"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "knockout",
+            "timeout_hp",
+            "timeout_tie",
+            "double_knockout"
+          ]
+        },
+        "attackerHp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "defenderHp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "expectedRevision",
+        "resolvedTick",
+        "winnerPlayerId",
+        "outcome",
+        "reason",
+        "attackerHp",
+        "defenderHp"
+      ],
+      "additionalProperties": false
+    },
+    "CombatInput": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "clientTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "moveX": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "moveZ": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "yawRadians": {
+          "type": "number",
+          "minimum": -3.141592653589793,
+          "maximum": 3.141592653589793
+        },
+        "lockTarget": {
+          "type": "boolean"
+        },
+        "sprint": {
+          "type": "boolean"
+        },
+        "block": {
+          "type": "boolean"
+        },
+        "light": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "heavy": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "dodge": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "parry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "playerId",
+        "sequence",
+        "clientTick",
+        "moveX",
+        "moveZ",
+        "yawRadians",
+        "lockTarget",
+        "sprint",
+        "block",
+        "light",
+        "heavy",
+        "dodge",
+        "parry",
+        "ability"
+      ],
+      "additionalProperties": false
+    },
+    "FighterSnapshot": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "position": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "y": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "z": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "additionalProperties": false
+        },
+        "velocity": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "y": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "z": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "additionalProperties": false
+        },
+        "yawRadians": {
+          "type": "number",
+          "minimum": -3.141592653589793,
+          "maximum": 3.141592653589793
+        },
+        "hp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "stamina": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "state": {
+          "enum": [
+            "Idle",
+            "Moving",
+            "Attacking",
+            "Blocking",
+            "Parrying",
+            "Dodging",
+            "Staggered",
+            "AbilityCasting",
+            "Defeated"
+          ]
+        },
+        "stateTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "cooldownTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "lastInputSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "playerId",
+        "pieceId",
+        "position",
+        "velocity",
+        "yawRadians",
+        "hp",
+        "stamina",
+        "state",
+        "stateTicks",
+        "cooldownTicks",
+        "lastInputSequence"
+      ],
+      "additionalProperties": false
+    },
+    "CombatEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "type": {
+          "enum": [
+            "hit",
+            "block",
+            "parry",
+            "dodge",
+            "guardbreak",
+            "ability",
+            "whiff"
+          ]
+        },
+        "actorPlayerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "targetPlayerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "damage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "eventId",
+        "tick",
+        "type",
+        "actorPlayerId",
+        "targetPlayerId",
+        "damage"
+      ],
+      "additionalProperties": false
+    },
+    "CombatSnapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "serverTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "countdownTicksRemaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "durationTicksRemaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "fighters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FighterSnapshot"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CombatEvent"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BattleResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "serverTick",
+        "countdownTicksRemaining",
+        "durationTicksRemaining",
+        "fighters",
+        "events",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "MatchState": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "serverTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "mode": {
+          "enum": [
+            "classic",
+            "battle"
+          ]
+        },
+        "rulesetId": {
+          "enum": [
+            "classic-v1",
+            "battle-checkmate-v1"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "board",
+            "combat",
+            "aftermath",
+            "complete"
+          ]
+        },
+        "players": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            },
+            "b": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        },
+        "chess": {
+          "$ref": "#/$defs/ChessGameState"
+        },
+        "battle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BattleRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "combat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CombatSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result": {
+          "anyOf": [
+            {
+              "enum": [
+                "1-0",
+                "0-1",
+                "1/2-1/2"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "serverTick",
+        "mode",
+        "rulesetId",
+        "phase",
+        "players",
+        "chess",
+        "battle",
+        "combat",
+        "result",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "ProtocolError": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "requestId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "code": {
+          "enum": [
+            "INVALID_PAYLOAD",
+            "UNSUPPORTED_VERSION",
+            "UNAUTHENTICATED",
+            "FORBIDDEN",
+            "STALE_REVISION",
+            "ILLEGAL_MOVE",
+            "UNSAFE_OUTCOME",
+            "WRONG_PHASE",
+            "STALE_INPUT",
+            "RATE_LIMITED",
+            "INTERNAL"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "currentRevision": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "code",
+        "message",
+        "retryable",
+        "currentRevision"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

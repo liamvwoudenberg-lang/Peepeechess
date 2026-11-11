@@ -1,0 +1,792 @@
+[
+  {
+    "name": "valid ChessGameState",
+    "type": "ChessGameState",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "revision": 6,
+      "ply": 0,
+      "initialFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+      "fen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+      "pieces": [
+        {
+          "pieceId": "w-p-d2",
+          "square": "d4",
+          "color": "w",
+          "role": "p",
+          "characterId": "royal.p"
+        },
+        {
+          "pieceId": "b-q-d8",
+          "square": "e5",
+          "color": "b",
+          "role": "q",
+          "characterId": "skeletons.q"
+        },
+        {
+          "pieceId": "w-k-e1",
+          "square": "h1",
+          "color": "w",
+          "role": "k",
+          "characterId": "royal.k"
+        },
+        {
+          "pieceId": "b-k-e8",
+          "square": "h8",
+          "color": "b",
+          "role": "k",
+          "characterId": "skeletons.k"
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "name": "valid ChessMoveRequest",
+    "type": "ChessMoveRequest",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "requestId": "move-1",
+      "playerId": "player-white",
+      "expectedRevision": 6,
+      "from": "d4",
+      "to": "e5",
+      "promotion": null
+    }
+  },
+  {
+    "name": "valid BattleRequest",
+    "type": "BattleRequest",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "expectedRevision": 6,
+      "beforeFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+      "from": "d4",
+      "to": "e5",
+      "promotion": null,
+      "attacker": {
+        "pieceId": "w-p-d2",
+        "characterId": "royal.p",
+        "color": "w",
+        "role": "p",
+        "square": "d4",
+        "playerId": "player-white",
+        "stats": {
+          "schemaVersion": 2,
+          "statsId": "balance-v1.p",
+          "role": "p",
+          "maxHp": 80,
+          "maxStamina": 120,
+          "baseDamage": 12,
+          "moveSpeedMps": 3.66,
+          "reachM": 1.95,
+          "lightTicks": 24,
+          "heavyTicks": 53,
+          "parryTicks": 10,
+          "abilityId": "last-stand",
+          "cooldownTicks": 900
+        }
+      },
+      "defender": {
+        "pieceId": "b-q-d8",
+        "characterId": "skeletons.q",
+        "color": "b",
+        "role": "q",
+        "square": "e5",
+        "playerId": "player-black",
+        "stats": {
+          "schemaVersion": 2,
+          "statsId": "balance-v1.q",
+          "role": "q",
+          "maxHp": 135,
+          "maxStamina": 115,
+          "baseDamage": 24,
+          "moveSpeedMps": 3.66,
+          "reachM": 1.65,
+          "lightTicks": 28,
+          "heavyTicks": 58,
+          "parryTicks": 10,
+          "abilityId": "royal-fury",
+          "cooldownTicks": 840
+        }
+      },
+      "arenaId": "board-v1",
+      "startTick": 300,
+      "countdownTicks": 180,
+      "durationTicks": 5400,
+      "seed": 12345
+    }
+  },
+  {
+    "name": "valid BattleResult",
+    "type": "BattleResult",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "expectedRevision": 6,
+      "resolvedTick": 5880,
+      "winnerPlayerId": "player-black",
+      "outcome": "defender",
+      "reason": "timeout_tie",
+      "attackerHp": 80,
+      "defenderHp": 135
+    }
+  },
+  {
+    "name": "valid FighterStats",
+    "type": "FighterStats",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "statsId": "balance-v1.p",
+      "role": "p",
+      "maxHp": 80,
+      "maxStamina": 120,
+      "baseDamage": 12,
+      "moveSpeedMps": 3.66,
+      "reachM": 1.95,
+      "lightTicks": 24,
+      "heavyTicks": 53,
+      "parryTicks": 10,
+      "abilityId": "last-stand",
+      "cooldownTicks": 900
+    }
+  },
+  {
+    "name": "valid CombatInput",
+    "type": "CombatInput",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "sequence": 1,
+      "clientTick": 481,
+      "moveX": 0,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": false,
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0
+    }
+  },
+  {
+    "name": "valid CombatSnapshot",
+    "type": "CombatSnapshot",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "serverTick": 300,
+      "countdownTicksRemaining": 180,
+      "durationTicksRemaining": 5400,
+      "fighters": [
+        {
+          "playerId": "player-white",
+          "pieceId": "w-p-d2",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -2.6
+          },
+          "velocity": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "yawRadians": 0,
+          "hp": 80,
+          "stamina": 120,
+          "state": "Idle",
+          "stateTicks": 0,
+          "cooldownTicks": 0,
+          "lastInputSequence": 0
+        },
+        {
+          "playerId": "player-black",
+          "pieceId": "b-q-d8",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": 2.6
+          },
+          "velocity": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "yawRadians": 3.141592653589793,
+          "hp": 135,
+          "stamina": 115,
+          "state": "Idle",
+          "stateTicks": 0,
+          "cooldownTicks": 0,
+          "lastInputSequence": 0
+        }
+      ],
+      "events": [],
+      "result": null
+    }
+  },
+  {
+    "name": "valid MatchState",
+    "type": "MatchState",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "serverTick": 300,
+      "mode": "battle",
+      "rulesetId": "battle-checkmate-v1",
+      "phase": "combat",
+      "players": {
+        "w": "player-white",
+        "b": "player-black"
+      },
+      "chess": {
+        "schemaVersion": 2,
+        "matchId": "match-demo",
+        "revision": 6,
+        "ply": 0,
+        "initialFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+        "fen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+        "pieces": [
+          {
+            "pieceId": "w-p-d2",
+            "square": "d4",
+            "color": "w",
+            "role": "p",
+            "characterId": "royal.p"
+          },
+          {
+            "pieceId": "b-q-d8",
+            "square": "e5",
+            "color": "b",
+            "role": "q",
+            "characterId": "skeletons.q"
+          },
+          {
+            "pieceId": "w-k-e1",
+            "square": "h1",
+            "color": "w",
+            "role": "k",
+            "characterId": "royal.k"
+          },
+          {
+            "pieceId": "b-k-e8",
+            "square": "h8",
+            "color": "b",
+            "role": "k",
+            "characterId": "skeletons.k"
+          }
+        ],
+        "history": []
+      },
+      "battle": {
+        "schemaVersion": 2,
+        "matchId": "match-demo",
+        "battleId": "battle-demo-1",
+        "expectedRevision": 6,
+        "beforeFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+        "from": "d4",
+        "to": "e5",
+        "promotion": null,
+        "attacker": {
+          "pieceId": "w-p-d2",
+          "characterId": "royal.p",
+          "color": "w",
+          "role": "p",
+          "square": "d4",
+          "playerId": "player-white",
+          "stats": {
+            "schemaVersion": 2,
+            "statsId": "balance-v1.p",
+            "role": "p",
+            "maxHp": 80,
+            "maxStamina": 120,
+            "baseDamage": 12,
+            "moveSpeedMps": 3.66,
+            "reachM": 1.95,
+            "lightTicks": 24,
+            "heavyTicks": 53,
+            "parryTicks": 10,
+            "abilityId": "last-stand",
+            "cooldownTicks": 900
+          }
+        },
+        "defender": {
+          "pieceId": "b-q-d8",
+          "characterId": "skeletons.q",
+          "color": "b",
+          "role": "q",
+          "square": "e5",
+          "playerId": "player-black",
+          "stats": {
+            "schemaVersion": 2,
+            "statsId": "balance-v1.q",
+            "role": "q",
+            "maxHp": 135,
+            "maxStamina": 115,
+            "baseDamage": 24,
+            "moveSpeedMps": 3.66,
+            "reachM": 1.65,
+            "lightTicks": 28,
+            "heavyTicks": 58,
+            "parryTicks": 10,
+            "abilityId": "royal-fury",
+            "cooldownTicks": 840
+          }
+        },
+        "arenaId": "board-v1",
+        "startTick": 300,
+        "countdownTicks": 180,
+        "durationTicks": 5400,
+        "seed": 12345
+      },
+      "combat": {
+        "schemaVersion": 2,
+        "matchId": "match-demo",
+        "battleId": "battle-demo-1",
+        "serverTick": 300,
+        "countdownTicksRemaining": 180,
+        "durationTicksRemaining": 5400,
+        "fighters": [
+          {
+            "playerId": "player-white",
+            "pieceId": "w-p-d2",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -2.6
+            },
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "yawRadians": 0,
+            "hp": 80,
+            "stamina": 120,
+            "state": "Idle",
+            "stateTicks": 0,
+            "cooldownTicks": 0,
+            "lastInputSequence": 0
+          },
+          {
+            "playerId": "player-black",
+            "pieceId": "b-q-d8",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 2.6
+            },
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "yawRadians": 3.141592653589793,
+            "hp": 135,
+            "stamina": 115,
+            "state": "Idle",
+            "stateTicks": 0,
+            "cooldownTicks": 0,
+            "lastInputSequence": 0
+          }
+        ],
+        "events": [],
+        "result": null
+      },
+      "result": null,
+      "reason": null
+    }
+  },
+  {
+    "name": "valid ProtocolError",
+    "type": "ProtocolError",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "requestId": "move-1",
+      "code": "STALE_REVISION",
+      "message": "Refresh the match snapshot.",
+      "retryable": true,
+      "currentRevision": 7
+    }
+  },
+  {
+    "name": "wrong version",
+    "type": "ChessMoveRequest",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "requestId": "move-1",
+      "playerId": "player-white",
+      "expectedRevision": 6,
+      "from": "d4",
+      "to": "e5",
+      "promotion": null
+    }
+  },
+  {
+    "name": "unknown damage input",
+    "type": "CombatInput",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "sequence": 1,
+      "clientTick": 481,
+      "moveX": 0,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": false,
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0,
+      "damage": 999
+    }
+  },
+  {
+    "name": "unsafe sequence",
+    "type": "CombatInput",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "sequence": 2147483648,
+      "clientTick": 481,
+      "moveX": 0,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": false,
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0
+    }
+  },
+  {
+    "name": "invalid square",
+    "type": "ChessMoveRequest",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "requestId": "move-1",
+      "playerId": "player-white",
+      "expectedRevision": 6,
+      "from": "a9",
+      "to": "e5",
+      "promotion": null
+    }
+  },
+  {
+    "name": "missing field",
+    "type": "CombatInput",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "clientTick": 481,
+      "moveX": 0,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": false,
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0
+    }
+  },
+  {
+    "name": "fractional tick",
+    "type": "CombatInput",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "sequence": 1,
+      "clientTick": 1.5,
+      "moveX": 0,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": false,
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0
+    }
+  },
+  {
+    "name": "invalid character",
+    "type": "BattleRequest",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "expectedRevision": 6,
+      "beforeFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+      "from": "d4",
+      "to": "e5",
+      "promotion": null,
+      "attacker": {
+        "pieceId": "w-p-d2",
+        "characterId": "unknown.p",
+        "color": "w",
+        "role": "p",
+        "square": "d4",
+        "playerId": "player-white",
+        "stats": {
+          "schemaVersion": 2,
+          "statsId": "balance-v1.p",
+          "role": "p",
+          "maxHp": 80,
+          "maxStamina": 120,
+          "baseDamage": 12,
+          "moveSpeedMps": 3.66,
+          "reachM": 1.95,
+          "lightTicks": 24,
+          "heavyTicks": 53,
+          "parryTicks": 10,
+          "abilityId": "last-stand",
+          "cooldownTicks": 900
+        }
+      },
+      "defender": {
+        "pieceId": "b-q-d8",
+        "characterId": "skeletons.q",
+        "color": "b",
+        "role": "q",
+        "square": "e5",
+        "playerId": "player-black",
+        "stats": {
+          "schemaVersion": 2,
+          "statsId": "balance-v1.q",
+          "role": "q",
+          "maxHp": 135,
+          "maxStamina": 115,
+          "baseDamage": 24,
+          "moveSpeedMps": 3.66,
+          "reachM": 1.65,
+          "lightTicks": 28,
+          "heavyTicks": 58,
+          "parryTicks": 10,
+          "abilityId": "royal-fury",
+          "cooldownTicks": 840
+        }
+      },
+      "arenaId": "board-v1",
+      "startTick": 300,
+      "countdownTicks": 180,
+      "durationTicks": 5400,
+      "seed": 12345
+    }
+  },
+  {
+    "name": "king duel",
+    "type": "BattleRequest",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "expectedRevision": 6,
+      "beforeFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+      "from": "d4",
+      "to": "e5",
+      "promotion": null,
+      "attacker": {
+        "pieceId": "w-p-d2",
+        "characterId": "royal.p",
+        "color": "w",
+        "role": "k",
+        "square": "d4",
+        "playerId": "player-white",
+        "stats": {
+          "schemaVersion": 2,
+          "statsId": "balance-v1.p",
+          "role": "p",
+          "maxHp": 80,
+          "maxStamina": 120,
+          "baseDamage": 12,
+          "moveSpeedMps": 3.66,
+          "reachM": 1.95,
+          "lightTicks": 24,
+          "heavyTicks": 53,
+          "parryTicks": 10,
+          "abilityId": "last-stand",
+          "cooldownTicks": 900
+        }
+      },
+      "defender": {
+        "pieceId": "b-q-d8",
+        "characterId": "skeletons.q",
+        "color": "b",
+        "role": "q",
+        "square": "e5",
+        "playerId": "player-black",
+        "stats": {
+          "schemaVersion": 2,
+          "statsId": "balance-v1.q",
+          "role": "q",
+          "maxHp": 135,
+          "maxStamina": 115,
+          "baseDamage": 24,
+          "moveSpeedMps": 3.66,
+          "reachM": 1.65,
+          "lightTicks": 28,
+          "heavyTicks": 58,
+          "parryTicks": 10,
+          "abilityId": "royal-fury",
+          "cooldownTicks": 840
+        }
+      },
+      "arenaId": "board-v1",
+      "startTick": 300,
+      "countdownTicks": 180,
+      "durationTicks": 5400,
+      "seed": 12345
+    }
+  },
+  {
+    "name": "bad promotion",
+    "type": "ChessMoveRequest",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "requestId": "move-1",
+      "playerId": "player-white",
+      "expectedRevision": 6,
+      "from": "d4",
+      "to": "e5",
+      "promotion": "k"
+    }
+  },
+  {
+    "name": "one fighter",
+    "type": "CombatSnapshot",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "serverTick": 300,
+      "countdownTicksRemaining": 180,
+      "durationTicksRemaining": 5400,
+      "fighters": [
+        {
+          "playerId": "player-white",
+          "pieceId": "w-p-d2",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -2.6
+          },
+          "velocity": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "yawRadians": 0,
+          "hp": 80,
+          "stamina": 120,
+          "state": "Idle",
+          "stateTicks": 0,
+          "cooldownTicks": 0,
+          "lastInputSequence": 0
+        }
+      ],
+      "events": [],
+      "result": null
+    }
+  },
+  {
+    "name": "oversized axis",
+    "type": "CombatInput",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "sequence": 1,
+      "clientTick": 481,
+      "moveX": 2,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": false,
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0
+    }
+  },
+  {
+    "name": "string boolean",
+    "type": "CombatInput",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "matchId": "match-demo",
+      "battleId": "battle-demo-1",
+      "playerId": "player-white",
+      "sequence": 1,
+      "clientTick": 481,
+      "moveX": 0,
+      "moveZ": 1,
+      "yawRadians": 0,
+      "lockTarget": true,
+      "sprint": false,
+      "block": "true",
+      "light": 1,
+      "heavy": 0,
+      "dodge": 0,
+      "parry": 0,
+      "ability": 0
+    }
+  }
+]
