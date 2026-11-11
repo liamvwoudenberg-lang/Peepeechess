@@ -28,6 +28,7 @@ signal pause_requested
 ## Fired when this seat's pad vanishes (true) or comes back (false). The arena guard (PadHold) pauses on it.
 signal pad_lost_changed(lost: bool)
 const STICK_DEADZONE := PadMath.DEFAULT_INNER  # kept for old callers; the live value is bindings.pad_setting("deadzone")
+const PAD_GROUP := "pad_combat_input"
 const LOOK_YAW_PER_TICK := 0.05
 const LOOK_PITCH_PER_TICK := 0.03
 
@@ -61,6 +62,8 @@ var _edge_state: Dictionary = {}   # press action -> PadMath.Schmitt (axis-bound
 
 
 func _ready() -> void:
+	if scheme.begins_with("pad"):
+		add_to_group(PAD_GROUP)  # PadUi stays out of the way of menus' focus while a pad fights (Cross is dodge there)
 	if scheme != "touch":
 		return
 	_touch_layer = CanvasLayer.new()

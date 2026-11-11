@@ -47,6 +47,12 @@ static func shared() -> InputAssignment:
 	return _shared
 
 
+## "pad<id>" of the lowest-numbered connected controller ("pad0" when none: the seat is then simply neutral).
+static func first_pad_scheme() -> String:
+	var pads := shared().connected_pads()
+	return "pad%d" % pads[0] if not pads.is_empty() else "pad0"
+
+
 static func set_shared(value: InputAssignment) -> void:
 	_shared = value
 

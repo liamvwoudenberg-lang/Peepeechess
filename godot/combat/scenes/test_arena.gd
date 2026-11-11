@@ -3,7 +3,9 @@ extends Node
 ##   godot --path godot res://combat/scenes/test_arena.tscn
 ##
 ## Menu: 1 Player vs AI, 2 Players (split screen, one keyboard or two pads), or an AI-vs-AI
-## demo; each side can be any of Pawn, Knight, Bishop, Rook or Queen. After a fight: Rematch (Enter / F5) or Menu (Esc).
+## demo; each side can be any of Pawn, Knight, Bishop, Rook or Queen. After a fight: Rematch (Enter / F5 / Cross) or
+## Menu (Esc / Circle / Options). Controls: "Controls..." edits the bindings, "Assign controllers" is the press-any-button
+## join flow (combat/input/); a controller that drops mid-fight pauses it until it is back.
 ## Everything runs through CombatArena in AUTHORITY mode, i.e. the same CombatSimulation and
 ## CombatInput path a server would use - only the host differs.
 ##
@@ -40,6 +42,7 @@ func _ready() -> void:
 	add_child(arena)
 	arena.rematch_requested.connect(rematch)
 	arena.menu_requested.connect(show_menu)
+	PadUi.install(self)  # D-pad / Cross / Circle navigation of this menu and the result buttons
 	if _args.has("auto"):
 		config["mode"] = _args["auto"]
 		start_fight()
@@ -68,6 +71,7 @@ func _process(_delta: float) -> void:
 
 func show_menu() -> void:
 	arena.stop_battle()
+	InputAssignment.shared().unlock()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if menu != null:
 		menu.queue_free()
@@ -109,6 +113,20 @@ func _build_menu() -> Node:
 		role_labels.append("%s — %s" % [FighterRoster.display_name(role), FighterRoster.ability_name(role)])
 	panel.add_child(_chooser("White fighter", FighterRoster.ROLES, role_labels, "white"))
 	panel.add_child(_chooser("Black fighter", FighterRoster.ROLES, role_labels, "black"))
+	var assign := Button.new()
+	assign.text = "Assign controllers (press any button)…"
+	assign.pressed.connect(func():
+		var prompt := JoinPrompt.open(self)
+		prompt.finished.connect(func(_ok: bool): if menu != null: menu.queue_free(); menu = _build_menu(); add_child(menu)))
+	panel.add_child(assign)
+	var seats_label := Label.new()
+	seats_label.text = "%s\n%s" % [InputAssignment.shared().describe(0), InputAssignment.shared().describe(1)]
+	seats_label.modulate = Color(1, 1, 1, 0.7)
+	panel.add_child(seats_label)
+	var controls := Button.new()
+	controls.text = "Controls…"
+	controls.pressed.connect(func(): ControlsScreen.open(self))
+	panel.add_child(controls)
 	var start := Button.new()
 	start.text = "FIGHT"
 	start.custom_minimum_size = Vector2(0, 48)
@@ -116,7 +134,7 @@ func _build_menu() -> Node:
 	panel.add_child(start)
 	start.call_deferred("grab_focus")
 	var help := Label.new()
-	help.text = "P1: WASD · Shift sprint · LMB/F light · RMB/G heavy · Q block · E parry · Space dodge · R ability · Tab lock\nP2: Arrows · Ctrl sprint · J light · K heavy · U block · I parry · L dodge · O ability · P lock\nGamepad: stick · X/Y attacks · LB block · RB parry · A dodge · B ability"
+	help.text = ControlBindings.shared().help_text()  # generated from the live bindings and the connected pad
 	help.add_theme_font_size_override("font_size", 13)
 	help.modulate = Color(1, 1, 1, 0.75)
 	panel.add_child(help)
@@ -149,10 +167,10 @@ func start_fight() -> void:
 			seats = {"player-white": {"type": "human", "scheme": _p1_scheme()}, "player-black": {"type": "ai", "skill": 0.6}}
 		"pvp":
 			seats = {"player-white": {"type": "human", "scheme": _p1_scheme()}, "player-black": {"type": "human", "scheme": "kb2"}}
-			var pads := Input.get_connected_joypads()
-			if pads.size() >= 2:  # two controllers: one each
-				seats["player-white"]["scheme"] = "pad%d" % pads[0]
-				seats["player-black"]["scheme"] = "pad%d" % pads[1]
+			var assignment := InputAssignment.shared()  # two controllers: one each; fewer: the keyboard sets fill in
+			assignment.lock_for_match()
+			seats["player-white"]["scheme"] = assignment.scheme_for_slot(0)
+			seats["player-black"]["scheme"] = assignment.scheme_for_slot(1)
 		_:
 			seats = {"player-white": {"type": "ai", "skill": 0.75}, "player-black": {"type": "ai", "skill": 0.6}}
 	arena.configure_seats(seats)
@@ -163,7 +181,8 @@ func start_fight() -> void:
 	if not reply["ok"]:
 		push_error("could not start the fight: %s" % str(reply))
 		return
-	# The on-screen PAUSE button returns to the menu (touch has no Esc key).
+	PadHold.attach(arena)  # a controller that drops out pauses the fight until it is back
+	# The on-screen PAUSE button returns to the menu (touch has no Esc key); Options does the same on a pad.
 	for source in arena.find_children("*", "LocalInputSource", false, false):
 		source.pause_requested.connect(show_menu)
 
@@ -171,7 +190,7 @@ func start_fight() -> void:
 func _p1_scheme() -> String:
 	if config["controls"] == "touch":
 		return "touch"
-	var pads := Input.get_connected_joypads()
+	var pads := InputAssignment.shared().connected_pads()
 	if config["controls"] == "pad" and not pads.is_empty():
 		return "pad%d" % pads[0]
 	return "kb1"  # keyboard + mouse (also the fallback when "Gamepad" is chosen but none is connected)

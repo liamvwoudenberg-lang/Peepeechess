@@ -22,6 +22,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _hotplug_mid_fight(h, tree)
 	await _custom_bindings_fight(h, tree)
 	await _keyboard_fight(h, tree)
+	await load("res://combat/tests/test_pads_ui.gd").run(h, tree)  # (load, not preload: that file preloads this one)
 
 
 # ---- helpers ------------------------------------------------------------------------------------------

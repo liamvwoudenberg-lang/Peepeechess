@@ -27,6 +27,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_to_group("pad_ui_scope")  # PadUi keeps menu focus inside this overlay (group name = PadUi.SCOPE_GROUP)
 	add_child(root)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.03, 0.05, 0.92)
