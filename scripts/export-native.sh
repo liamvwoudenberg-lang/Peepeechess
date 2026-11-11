@@ -51,6 +51,12 @@ prepare_gradle() {
     echo "Android App Bundle compilation needs a full JDK17/21 (javac missing from JAVA_HOME=$JAVA_SDK). A JRE can sign an APK but cannot compile Java." >&2
     return 2
   fi
+  python3 - "$ROOT" <<'PY'
+import shutil, sys
+free = shutil.disk_usage(sys.argv[1]).free
+if free < 1024 ** 3:
+    raise SystemExit(f'Android bundle build requires at least 1 GiB free before starting; only {free // (1024 ** 2)} MiB available. Allow several GiB for a cold Gradle cache.')
+PY
   mkdir -p "$ROOT/godot/android/build"
   if [[ ! -f "$ROOT/godot/android/build/build.gradle" ]]; then
     unzip -q "$TEMPLATES/android_source.zip" -d "$ROOT/godot/android/build"

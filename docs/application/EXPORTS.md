@@ -1,7 +1,7 @@
 # Native Windows and Android builds
 
 Use Godot **4.6.3 stable standard**, matching standard export templates, and
-OpenJDK17 or21. These exports use the native Godot application, not the preserved
+OpenJDK 17 or 21. These exports use the native Godot application, not the preserved
 Capacitor project in the repository's top-level `android/` directory.
 
 ## Install and build
@@ -15,14 +15,18 @@ bash scripts/export-native.sh android-aab-test
 ```
 
 The installer verifies the official Godot template SHA512 and Google's published
-command-line-tools checksum. It downloads standard Windowsx64 and Android
+command-line-tools checksum. It downloads standard Windows x64 and Android
 templates into ignored `work/toolchains/`. The Android tool installer accepts the
-SDK licenses. It installs SDK platform36, build-tools36.1.0 and platform-tools.
-The **actual pinned4.6.3 Android source template** specifies these versions,
-Gradle8.11.1, Android Gradle Plugin8.6.1 and NDK29.0.14206865; older generic4.6
-documentation still lists SDK35. The template's bundled precompiled engine avoids
+SDK licenses. It installs SDK platform 36, build-tools 36.1.0 and platform-tools.
+The **actual pinned 4.6.3 Android source template** specifies these versions,
+Gradle 8.11.1, Android Gradle Plugin 8.6.1 and NDK 29.0.14206865; older generic4.6
+documentation still lists SDK 35. The template's bundled precompiled engine avoids
 compiling Godot from source. If Gradle requests its declared NDK, install
 `"ndk;29.0.14206865"` with the SDK manager and allow several additional GB.
+Bundle builds require a full JDK, including `javac`, rather than a JRE. The
+script checks that compiler and at least 1 GiB of free disk before beginning
+Gradle work; allow several GiB for a cold dependency cache. Windows and debug
+APK exports use the precompiled engine templates.
 
 Overrides: `GODOT_BIN`, `JAVA_HOME`, `ANDROID_HOME`,
 `PEEPEECHESS_TOOLCHAIN_DIR`, `NATIVE_OUTPUT_DIR`, `GRADLE_USER_HOME`.
@@ -35,7 +39,7 @@ Outputs in `artifacts/native/`:
 
 | Output | Purpose |
 | --- | --- |
-| `Peepeechess-windows-x86_64.exe` | Native release-mode Windowsx64 executable with embedded game data; unsigned |
+| `Peepeechess-windows-x86_64.exe` | Native release-mode Windows x64 executable with embedded game data; unsigned |
 | `Peepeechess-android-debug.apk` | Native debug APK, arm64 plus x86_64 for compatible emulator testing; disposable debug signature |
 | `Peepeechess-android-test.aab` | Release-mode arm64 App Bundle, signed with the disposable test key; never a Play Store release |
 | `checksums.json` | SHA256, byte count and filename for generated artifacts |
@@ -47,9 +51,11 @@ successful device run.
 
 ## Production signing
 
-`Android Release AAB` is configured for `com.peepeechess.game`, versionCode3,
-versionName0.3.0, minSDK26 and targetSDK36. Increase versionCode for every Play
-upload. Supply the existing upload key through protected environment variables:
+`Android Release AAB` is configured for `com.peepeechess.game`, versionCode 3,
+versionName 0.3.0, minSDK 26 and targetSDK 36. Increase versionCode for every Play
+upload. The non-Gradle debug APK inherits the engine template minSDK 24; the
+release AAB deliberately requires Android 8.0/API 26. Supply the existing upload
+key through protected environment variables:
 
 ```sh
 export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=/secure/path/upload.jks
@@ -91,15 +97,15 @@ touch input on both boards and combat, and Compatibility rendering. Android
 exports request Internet and network-state permissions only and disable backup
 of local profile/session data. Production account APIs use HTTPS; dedicated
 server transport remains the same authenticated ENet/DTLS protocol on both
-platforms. Local2D/3D and graphics preferences do not change authoritative match
+platforms. Local 2D/3D and graphics preferences do not change authoritative match
 state or another player's view.
 
 Keyboard/mouse work through the existing boards. Standard Godot focus navigation
 supports d-pad and A/B; left analog stick enables a visible pointer and A clicks
-either board (including the3D raycast path). Combat owns the controller while
-the virtual pointer is disabled. `PlatformInput` offers low(30fps/no MSAA),
-balanced(60fps/2x MSAA), and high(uncapped/4x MSAA) presentation settings. Physics
-and dedicated-server ticks remain60Hz. Actual device/controller ergonomics,
+either board (including the 3D raycast path). Combat owns the controller while
+the virtual pointer is disabled. `PlatformInput` offers low (30 fps/no MSAA),
+balanced (60 fps/2x MSAA), and high (uncapped/4x MSAA) presentation settings. Physics
+and dedicated-server ticks remain 60 Hz. Actual device/controller ergonomics,
 GPU performance, suspend/resume and safe-area behavior still require device QA.
 
 ## Automation
