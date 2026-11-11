@@ -95,7 +95,7 @@ ever left frozen or crashed (tested with both pads dropping at once and the guar
 
 * Select a row, press the new key / pad button / trigger. Esc cancels; a pad capture also times out after 6 s.
 * A key already used in the same set is **swapped** with the action you are changing; a key used by the other player's set is
-  **refused** with an explanation; Esc and F11 (menus / fullscreen) and Options (pause) cannot be bound; sticks cannot be bound;
+  **refused** with an explanation; Esc, F11 and F1 (menus / fullscreen / controls overlay) and Options and Share/Back (pause / controls overlay) cannot be bound; sticks cannot be bound;
   duplicates are never left in place. Pad rows can be cleared (unbound).
 * Pad tuning: stick dead zone, response curve, camera speed, trigger press point, invert camera X / Y (shared by all pads).
 * Everything saves immediately to `user://controls.json` (Windows: `%APPDATA%\Godot\app_userdata\Peepeechess\controls.json`).
@@ -103,6 +103,32 @@ ever left frozen or crashed (tested with both pads dropping at once and the guar
   section with duplicate bindings is restored to defaults; a corrupt / hostile / oversized / future-version file loads the
   defaults and is moved to `controls.json.corrupt` (never silently overwritten); a missing file is simply the defaults.
 * Mouse buttons for Player 1 (left = light, right = heavy, middle = lock-on, wheel = zoom, mouse look) are fixed.
+
+## Controls overlay
+
+During every third-person fight an on-screen cheat sheet lists the controls of each LOCAL HUMAN seat (code: `combat/presentation/control_overlay.gd`,
+remembered choice: `control_overlay_prefs.gd`). It is generated from the live bindings (`ControlBindings`) and the connected controller's own
+button names (`ControllerGlyphs`): Move, Light, Heavy, Block, Parry, Dodge, Ability (with the fighter's ability name, e.g. `R (Blink)`), Sprint,
+Lock-on, Camera, Pause. PS4 pads read Cross/Circle/Square/Triangle/L1/R1/L2/R2, Xbox A/B/X/Y/LB/RB/LT/RT, keyboards the key names, touch the
+on-screen button names (a compact legend). It updates at once when a binding is changed or a controller is plugged in / removed.
+
+* Where: White (P1) on the left edge, Black (P2) on the right edge, below the HUD bars, never in the centre; in split-screen each panel sits in its
+  player's half. An AI seat shows nothing; online only the local seat is shown. On touch the legend stays clear of `TouchControls` (it shrinks to
+  stay off the buttons). It scales with the viewport height (14 px at 720, 22 px at 1080) and honours the platform safe area.
+* Toggle: **F1** on any keyboard scheme, **Share / Back** on any gamepad (View on Xbox), a **?** button on touch, or a click on the small chip
+  on the sheet (not while the mouse is captured for mouse-look). F1 and Share/Back are reserved: they cannot be rebound. Also a checkbox
+  "Show controls overlay in battles" in Controls & controllers and in the test-arena menu.
+* States: full sheet -> (after 8 s of the countdown / fight, if you did not toggle) a small `F1 Controls` chip -> F1 brings the full sheet back;
+  F1 on the full sheet switches it off (nothing is shown; on touch only the `?` stays). Fades take 150 ms (instant with reduce-motion).
+  It is hidden on the result screen and while the pit-world camera drops into / climbs out of the arena.
+* Default and memory: a profile that never touched the toggle sees the full sheet in its first 3 battles and then only the small chip. Any
+  explicit toggle (or the checkbox) is remembered from the next battle on. Stored in `user://control_overlay.json` (versioned, written atomically;
+  a corrupt file is moved to `.corrupt` and defaults load).
+* It never takes gameplay input (every control ignores the mouse except the chip) and cannot change the simulation.
+* Hooks: `CombatArena` (small commented edit: builds one overlay per presentation battle), which covers the standalone test arena, local Battle Chess
+  in the pit chamber and `OnlineCombatView` (which relays F1 / Share because its arena viewport receives no input, and tells the overlay which device
+  the local seat uses). Test-arena automation: `--overlay=on|off|auto`, `--fake-pad=ps4|xbox|unknown [--p2pad]`.
+* Tests: suite `overlay` (`combat/tests/test_overlay.gd`). Not verified: a real GPU, a real pad's Share button, a real touchscreen.
 
 ## Files
 
