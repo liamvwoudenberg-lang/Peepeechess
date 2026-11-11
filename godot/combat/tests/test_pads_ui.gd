@@ -230,7 +230,7 @@ static func _cursor_logic(h, tree: SceneTree) -> void:
 	cursor.active = true
 	var dialog := AcceptDialog.new()
 	tree.root.add_child(dialog)
-	dialog.popup_centered(Vector2i(200, 100))
+	dialog.popup(Rect2i(Vector2i(8, 8), Vector2i(200, 100)))  # explicit rect: a centred popup in a tiny headless root window computes a negative position (engine ERROR)
 	await frames(tree, 2)
 	await press(0, JOY_BUTTON_DPAD_UP, tree)
 	h.eq(cursor.cursor, 12, "a visible dialog owns the pad")
