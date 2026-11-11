@@ -133,9 +133,14 @@ def generate(kind: str, color, seed: int) -> np.ndarray:
     return (rgb * 255.0 + 0.5).astype(np.uint8)
 
 
-def ensure_texture(name: str, kind: str, color, seed: int = 1) -> Path:
-    """Writes <textures>/<name>.png when absent and returns its path."""
+def ensure_texture(name: str, kind: str, color, seed: int = 1, size: int = SIZE) -> Path:
+    """Writes <textures>/<name>.png when absent and returns its path. `size` only applies to the world kinds
+    (world/textures_world.py); the combat kinds are always 256 px."""
     path = TEXTURE_DIR / f"{name}.png"
     if not path.exists():
-        write_png(path, generate(kind, color, seed))
+        from .world import textures_world
+        if kind in textures_world.KINDS:
+            write_png(path, textures_world.generate(kind, color, seed, size))
+        else:
+            write_png(path, generate(kind, color, seed))
     return path
