@@ -79,6 +79,7 @@ func _ready() -> void:
 	board_2d.animation_enabled = AppSettings.animations
 	board_3d.animation_enabled = AppSettings.animations
 	touch_toggle.button_pressed = AppSettings.touch_controls
+	PadUi.install(self, {"board": true})  # pad board cursor + menu focus (claude/pads-input)
 	var launch = AppSettings.take_launch()
 	if launch.has("allocation") and launch.has("ticket"):
 		_provisioned = true
@@ -159,7 +160,7 @@ func _build_ui() -> void:
 	input_select.add_item("Keyboard / mouse")
 	input_select.add_item("Gamepad 1")
 	input_select.custom_minimum_size.y = 42
-	input_select.item_selected.connect(func(index): combat_view.input_scheme = "kb1" if index == 0 else "pad0"; if_source_scheme())
+	input_select.item_selected.connect(func(index): combat_view.input_scheme = "kb1" if index == 0 else InputAssignment.first_pad_scheme(); if_source_scheme())
 	actions.add_child(input_select)
 	touch_toggle = CheckButton.new()
 	touch_toggle.text = "Touch combat"
