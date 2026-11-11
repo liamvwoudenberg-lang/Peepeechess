@@ -47,6 +47,11 @@ var seats: Dictionary = {}
 ## and, when the audio module exists, CombatAudio.
 var vfx: Node3D = null
 var audio: Node = null
+# --- BEGIN control-overlay edit ---------------------------------------------------------------
+## In-battle controls cheat sheet (presentation/control_overlay.gd): one panel per local human seat, F1 / Share toggles it.
+## Built once and reused between battles; hidden on the result screen. Null until the first presentation battle.
+var overlay: ControlOverlay = null
+# --- END control-overlay edit -----------------------------------------------------------------
 
 var _codec = null
 var _visuals: StoneArenaVisuals = null
@@ -238,6 +243,8 @@ func _fallback_shake(event: Dictionary) -> void:
 
 
 func _on_finished(result: Dictionary) -> void:
+	if overlay != null:
+		overlay.on_battle_finished()  # control-overlay edit: the cheat sheet gives way to the result screen
 	if hud != null:
 		var winner := sim.fighter_by_id(result["winnerPlayerId"])
 		var reasons := {"knockout": "Knockout", "timeout_hp": "Time - more health remaining", "timeout_tie": "Time - tie goes to the defender", "double_knockout": "Double knockout - defender holds"}
@@ -294,6 +301,7 @@ func _build_presentation(request: Dictionary) -> void:
 	hud.setup(sim, _controls_hint(humans))
 	hud.rematch_requested.connect(func(): rematch_requested.emit())
 	hud.menu_requested.connect(func(): menu_requested.emit())
+	_build_control_overlay(humans)  # control-overlay edit
 
 	cameras.clear()
 	var viewers := humans.duplicate()
@@ -398,6 +406,23 @@ func _ensure_split_layer() -> void:
 	add_child(_split_layer)
 
 
+# --- BEGIN control-overlay edit ---------------------------------------------------------------
+## Seats shown by the overlay: the human seats (online PRESENTATION: only the local one). AI seats show nothing.
+func _build_control_overlay(humans: Array[String]) -> void:
+	var list: Array = []
+	for pid in humans:
+		if _net_local_id != "" and pid != _net_local_id:
+			continue
+		var f := sim.fighter_by_id(pid)
+		var scheme := String(seats[pid].get("scheme", "kb1"))
+		list.append({"id": pid, "color": f.color, "role": f.role, "scheme": scheme, "mouse": humans.size() == 1 and scheme == "kb1"})
+	if overlay == null:
+		overlay = ControlOverlay.new()
+		add_child(overlay)
+	overlay.begin(list)
+# --- END control-overlay edit -----------------------------------------------------------------
+
+
 func _controls_hint(humans: Array[String]) -> String:
 	if humans.is_empty():
 		return "AI vs AI demonstration"
@@ -422,6 +447,8 @@ func _clear_presentation() -> void:
 	if hud != null and is_instance_valid(hud):
 		_discard(hud)
 	hud = null
+	if overlay != null and is_instance_valid(overlay):
+		overlay.end()  # control-overlay edit (the node itself is reused by the next battle)
 	if vfx != null and is_instance_valid(vfx):
 		_discard(vfx)
 	vfx = null
