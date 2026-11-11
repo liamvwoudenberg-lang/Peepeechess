@@ -179,3 +179,28 @@ must succeed. The negative probe intentionally produces a TLS-handshake error;
 all gameplay runs fail on any script/parse/resource diagnostic. Failed runs
 retain private temporary diagnostic logs; successful runs remove certificates
 and keys. See [protocol](PROTOCOL.md) and [validation report](VALIDATION.md).
+
+## Account-backed application
+
+The native application now connects through the separate persistent account API:
+[setup](../application/BACKEND.md), [trust architecture](../application/ARCHITECTURE.md)
+and [HTTP/account handshake contracts](../../contracts/application/v1/README.md).
+
+Start an account-enabled dedicated server with the same server ID and secret
+configured by the API. Keep the credential in the process environment, not in a
+client build, URL, command-line argument or Git:
+
+```sh
+# PEEPEECHESS_BACKEND_SECRET is supplied by your secret manager/environment.
+npm run server:native -- --bind=127.0.0.1 --port=2456 --insecure-local \
+  --backend-url=http://127.0.0.1:8787 --backend-insecure-local \
+  --server-id=local-1 --outbox-dir="$PWD/work/server-outbox"
+```
+
+Loopback plaintext flags are development-only. For cross-device play use a
+reachable ENet/DTLS host with a valid certificate and key, a HTTPS API, matching
+`NATIVE_GAME_HOST` and certificate hostname, and no insecure flags. The account
+API advertises that same endpoint to both platforms. Persist and back up the
+server outbox directory; never run two live dedicated processes on the same
+server ID/outbox. A restart aborts unfinished matches unrated and retries durable
+terminal reports. Active match leases expire after120seconds without heartbeat.

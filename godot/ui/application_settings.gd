@@ -1,11 +1,13 @@
 extends RefCounted
 ## Presentation and launch data only. Competitive state never lives here.
+const Platform = preload("res://ui/platform_input.gd")
+static var _platform: Node
 static var preferred_3d = false
 static var animations = true
 static var quality = "balanced"
 static var volume = 0.8
 static var touch_controls = false
-static var api_url = "http://127.0.0.1:3100"
+static var api_url = "http://127.0.0.1:8787"
 static var token = ""
 static var account: Dictionary = {}
 static var launch: Dictionary = {}
@@ -42,7 +44,25 @@ static func save_preferences() -> Error:
 static func apply() -> void:
 	if AudioServer.get_bus_count() > 0:
 		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
-	Engine.max_fps = 30 if quality == "low" else 60
+	Platform.set_quality(quality)
+
+static func ensure_platform(tree: SceneTree) -> void:
+	if not is_instance_valid(_platform):
+		_platform = tree.root.get_node_or_null("PlatformInput")
+		if _platform == null:
+			_platform = Platform.new()
+			_platform.name = "PlatformInput"
+			tree.root.call_deferred("add_child", _platform)
+	Platform.ensure_actions()
+	Platform.set_quality(quality)
+	set_combat_input(false)
+
+static func set_combat_input(active: bool) -> void:
+	if is_instance_valid(_platform):
+		if _platform.is_node_ready():
+			_platform.set_cursor_enabled(not active)
+		else:
+			_platform.call_deferred("set_cursor_enabled", not active)
 
 static func take_launch() -> Dictionary:
 	var pending = launch.duplicate(true)

@@ -36,6 +36,8 @@ jobs:
       - run: npm run test:classic
       - run: npm run test:battle
       - run: npm run test:multiplayer
+      - run: npm run test:backend
+      - run: npm run test:application
       - name: Import and run Godot
         shell: bash
         run: |
@@ -45,3 +47,28 @@ jobs:
           godot --headless --path godot --editor --import 2>&1 | tee "$RUNNER_TEMP/import.log"
           godot --headless --path godot --quit-after 2 2>&1 | tee "$RUNNER_TEMP/scene.log"
           if grep -E 'SCRIPT ERROR|Parse Error|^ERROR:' "$RUNNER_TEMP/import.log" "$RUNNER_TEMP/scene.log"; then exit 1; fi
+
+  postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: peepeechess_ci
+          POSTGRES_PASSWORD: disposable_ci_password
+          POSTGRES_DB: peepeechess_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U peepeechess_ci -d peepeechess_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:backend
+        env:
+          NATIVE_TEST_DATABASE_URL: postgresql://peepeechess_ci:disposable_ci_password@127.0.0.1:5432/peepeechess_ci

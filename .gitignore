@@ -18,3 +18,8 @@ __pycache__/
 .godot/
 work/
 *.blend1
+
+# Native Android Gradle template and local signing material (Capacitor stays tracked).
+godot/android/
+*.keystore
+*.jks

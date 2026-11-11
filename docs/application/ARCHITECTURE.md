@@ -1,7 +1,7 @@
 # Native application integration
 
 Baseline: `origin/develop` b4c6dab plus reviewed, unmerged native multiplayer PR5
-0086ebb and Claude combat handoff6cc2ea7. This branch preserves their gameplay
+0086ebb and latest Claude combat/audio/mobile handofff8128cc. This branch preserves their gameplay
 and the legacy React/Capacitor game. New work remains Codex-owned; no combat
 simulation, assets or animation files change.
 
@@ -21,6 +21,11 @@ tokens are stored hashed. The application keeps bearer credentials in memory;
 players sign in with the same username and password on either native platform.
 The API has bounded bodies, sign-in concurrency and request limits. Deploy it
 behind HTTPS with a private database and a separate server credential.
+
+The allocation supplies the expected DTLS certificate hostname independently of
+the dial address (for example, an IP address with a DNS certificate). Certificate
+chain and hostname validation remain enabled; private roots come only from the
+authenticated account service.
 
 An allocated player requests a short-lived single-use ticket over HTTPS, then
 sends AccountHello over ENet/DTLS. The dedicated server redeems it using its own

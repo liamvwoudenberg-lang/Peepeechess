@@ -32,7 +32,7 @@ func listen(address: String, port: int, certificate: String, private_key: String
 	listening = true
 	return OK
 
-func connect_to(address: String, port: int, ca_path: String = "", insecure_local: bool = false) -> Error:
+func connect_to(address: String, port: int, ca_path: String = "", insecure_local: bool = false, certificate_hostname: String = "") -> Error:
 	close()
 	if insecure_local and address not in ["127.0.0.1", "::1", "localhost"]:
 		return ERR_UNAUTHORIZED
@@ -48,7 +48,7 @@ func connect_to(address: String, port: int, ca_path: String = "", insecure_local
 			if ca.load(ca_path) != OK:
 				close()
 				return ERR_INVALID_DATA
-		result = host.dtls_client_setup(address, TLSOptions.client(ca))
+		result = host.dtls_client_setup(certificate_hostname if not certificate_hostname.is_empty() else address, TLSOptions.client(ca))
 		if result != OK:
 			close()
 			return result

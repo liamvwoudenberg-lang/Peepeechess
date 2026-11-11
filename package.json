@@ -18,7 +18,10 @@
     "test:classic": "node --import tsx scripts/test-classic.mjs",
     "test:battle": "node --import tsx scripts/test-battle.mjs --check",
     "test:multiplayer": "node scripts/test-multiplayer.mjs",
-    "server:native": "bash scripts/start-native-server.sh"
+    "server:native": "bash scripts/start-native-server.sh",
+    "backend:native": "bash scripts/start-application-backend.sh",
+    "test:backend": "node --import tsx --test tests/native-backend*.test.ts",
+    "test:application": "node scripts/test-application.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.10",
@@ -36,6 +39,7 @@
     "motion": "^12.23.24",
     "peer": "^1.0.2",
     "peerjs": "^1.5.5",
+    "pg": "^8.23.1",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "three": "^0.187.0",
@@ -47,6 +51,7 @@
     "@capacitor/cli": "^7.6.10",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "ajv": "8.17.1",
