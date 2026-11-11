@@ -418,7 +418,7 @@ func _local_view(local_tick: float) -> Dictionary:
 		"playerId": local_id, "hp": me["hp"], "stamina": me["stamina"], "cooldownTicks": me["cooldownTicks"],
 		"state": me["state"], "stateTicks": me["stateTicks"], "predicted": predicting, "predicted_action": "",
 		"yawRadians": float(_pred["yaw"]) if predicting else float(me["yawRadians"]),
-		"position": _display_pos if _display_init else Vector3(me["position"]["x"], 0.0, me["position"]["z"]),
+		"position": _local_render_position(local_tick, me, predicting),
 		"velocity": Vector3(me["velocity"]["x"], 0.0, me["velocity"]["z"]),
 	}
 	if not _pending_action.is_empty():
@@ -426,6 +426,23 @@ func _local_view(local_tick: float) -> Dictionary:
 		out["state"] = PREDICTED_STATE[_pending_action["action"]]
 		out["stateTicks"] = maxi(0, int(local_tick) - int(_pending_action["press_tick"]))
 	return out
+
+
+## The predicted position, advanced by the fraction of a tick that has elapsed since the last 60 Hz step (velocity
+## extrapolation, no added latency) so a display faster than 60 Hz stays smooth. Whole ticks (tests, the harness) are exact.
+func _local_render_position(local_tick: float, me: Dictionary, predicting: bool) -> Vector3:
+	if not _display_init:
+		return Vector3(me["position"]["x"], 0.0, me["position"]["z"])
+	var frac := clampf(local_tick - float(_local_tick), 0.0, 1.0)
+	if not predicting or frac <= 0.0 or _pred.is_empty():
+		return _display_pos
+	var vel: Vector3 = _pred["vel"]
+	var pos: Vector3 = _display_pos + vel * (frac * CombatConstants.DT)
+	var limit := CombatConstants.ARENA_WALL_RADIUS - radius
+	if Vector2(pos.x, pos.z).length() > limit:
+		var clipped := Vector2(pos.x, pos.z).normalized() * limit
+		pos = Vector3(clipped.x, 0.0, clipped.y)
+	return pos
 
 
 func _remote_view(player_id: String, local_tick: float) -> Dictionary:
