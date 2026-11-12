@@ -1,0 +1,545 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peepeechess.invalid/contracts/network/v2/schema.json",
+  "title": "Peepeechess ENet/DTLS session protocol v1",
+  "$defs": {
+    "Hello": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "protocol": {
+          "const": "peepeechess-enet-v2"
+        },
+        "resumeToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "protocol",
+        "resumeToken"
+      ],
+      "additionalProperties": false
+    },
+    "Welcome": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "protocol": {
+          "const": "peepeechess-enet-v2"
+        },
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "sessionToken": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "serverId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expiresInSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "combatRoles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "p",
+              "n",
+              "b",
+              "r",
+              "q"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "protocol",
+        "playerId",
+        "sessionToken",
+        "serverId",
+        "expiresInSeconds",
+        "combatRoles"
+      ],
+      "additionalProperties": false
+    },
+    "CreateMatch": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "mode": {
+          "enum": [
+            "classic",
+            "battle"
+          ]
+        },
+        "initialMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000
+        },
+        "incrementMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "commandId",
+        "mode",
+        "initialMs",
+        "incrementMs"
+      ],
+      "additionalProperties": false
+    },
+    "JoinMatch": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "commandId",
+        "matchId"
+      ],
+      "additionalProperties": false
+    },
+    "MatchCommand": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "action": {
+          "enum": [
+            "ready",
+            "resign",
+            "offer_draw",
+            "accept_draw",
+            "claim_draw"
+          ]
+        },
+        "drawKind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intended": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "pattern": "^[a-h][1-8]$",
+                  "maxLength": 2
+                },
+                "to": {
+                  "type": "string",
+                  "pattern": "^[a-h][1-8]$",
+                  "maxLength": 2
+                },
+                "promotion": {
+                  "enum": [
+                    "q",
+                    "r",
+                    "b",
+                    "n",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "promotion"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "commandId",
+        "matchId",
+        "action",
+        "drawKind",
+        "intended"
+      ],
+      "additionalProperties": false
+    },
+    "Ping": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "nonce": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "nonce"
+      ],
+      "additionalProperties": false
+    },
+    "Pong": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "nonce": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "nonce"
+      ],
+      "additionalProperties": false
+    },
+    "Ack": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "matchId",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "ClockState": {
+      "type": "object",
+      "properties": {
+        "whiteMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "blackMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "initialMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "incrementMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "timed": {
+          "type": "boolean"
+        },
+        "turn": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        }
+      },
+      "required": [
+        "whiteMs",
+        "blackMs",
+        "initialMs",
+        "incrementMs",
+        "running",
+        "timed",
+        "turn"
+      ],
+      "additionalProperties": false
+    },
+    "InputResume": {
+      "type": "object",
+      "properties": {
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "clientTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "light": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "heavy": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "dodge": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "parry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "battleId",
+        "sequence",
+        "clientTick",
+        "light",
+        "heavy",
+        "dodge",
+        "parry",
+        "ability"
+      ],
+      "additionalProperties": false
+    },
+    "MatchFrame": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "frameSequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "status": {
+          "enum": [
+            "waiting",
+            "active",
+            "complete"
+          ]
+        },
+        "state": {
+          "$ref": "https://peepeechess.invalid/contracts/v2/schema.json#/$defs/MatchState"
+        },
+        "clocks": {
+          "$ref": "#/$defs/ClockState"
+        },
+        "connected": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "boolean"
+            },
+            "b": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        },
+        "ready": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "boolean"
+            },
+            "b": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        },
+        "drawOffer": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputResume": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InputResume"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "frameSequence",
+        "status",
+        "state",
+        "clocks",
+        "connected",
+        "ready",
+        "drawOffer",
+        "inputResume"
+      ],
+      "additionalProperties": false
+    },
+    "ClockSync": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "serverTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "clocks": {
+          "$ref": "#/$defs/ClockState"
+        },
+        "connected": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "boolean"
+            },
+            "b": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "serverTick",
+        "clocks",
+        "connected"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

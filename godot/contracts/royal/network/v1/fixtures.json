@@ -1,0 +1,898 @@
+[
+  {
+    "name": "valid RoyalHello",
+    "type": "RoyalHello",
+    "payload": {
+      "schemaVersion": 1,
+      "protocol": "peepeechess-enet-royal-v1",
+      "rulesetId": "battle-royal-v1",
+      "resumeToken": null
+    },
+    "valid": true
+  },
+  {
+    "name": "valid RoyalHello with resume token",
+    "type": "RoyalHello",
+    "payload": {
+      "schemaVersion": 1,
+      "protocol": "peepeechess-enet-royal-v1",
+      "rulesetId": "battle-royal-v1",
+      "resumeToken": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "valid": true
+  },
+  {
+    "name": "RoyalHello with the v1 protocol id",
+    "type": "RoyalHello",
+    "payload": {
+      "schemaVersion": 1,
+      "protocol": "peepeechess-enet-v1",
+      "rulesetId": "battle-royal-v1",
+      "resumeToken": null
+    },
+    "valid": false
+  },
+  {
+    "name": "RoyalHello without ruleset",
+    "type": "RoyalHello",
+    "payload": {
+      "schemaVersion": 1,
+      "protocol": "peepeechess-enet-royal-v1",
+      "resumeToken": null
+    },
+    "valid": false
+  },
+  {
+    "name": "valid RoyalWelcome",
+    "type": "RoyalWelcome",
+    "payload": {
+      "schemaVersion": 1,
+      "protocol": "peepeechess-enet-royal-v1",
+      "rulesetId": "battle-royal-v1",
+      "playerId": "player-a",
+      "sessionToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "serverId": "server-1",
+      "expiresInSeconds": 3600,
+      "combatRoles": [
+        "p",
+        "n",
+        "b",
+        "r",
+        "q",
+        "k"
+      ]
+    },
+    "valid": true
+  },
+  {
+    "name": "RoyalWelcome with the v1 protocol id",
+    "type": "RoyalWelcome",
+    "payload": {
+      "schemaVersion": 1,
+      "protocol": "peepeechess-enet-v1",
+      "rulesetId": "battle-royal-v1",
+      "playerId": "player-a",
+      "sessionToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "serverId": "server-1",
+      "expiresInSeconds": 3600,
+      "combatRoles": [
+        "p",
+        "n",
+        "b",
+        "r",
+        "q",
+        "k"
+      ]
+    },
+    "valid": false
+  },
+  {
+    "name": "valid RoyalCreateMatch",
+    "type": "RoyalCreateMatch",
+    "payload": {
+      "schemaVersion": 1,
+      "commandId": "create-1",
+      "rulesetId": "battle-royal-v1",
+      "mode": "battle",
+      "initialMs": 0,
+      "incrementMs": 0
+    },
+    "valid": true
+  },
+  {
+    "name": "RoyalCreateMatch classic",
+    "type": "RoyalCreateMatch",
+    "payload": {
+      "schemaVersion": 1,
+      "commandId": "create-1",
+      "rulesetId": "battle-royal-v1",
+      "mode": "classic",
+      "initialMs": 0,
+      "incrementMs": 0
+    },
+    "valid": false
+  },
+  {
+    "name": "RoyalCreateMatch timed",
+    "type": "RoyalCreateMatch",
+    "payload": {
+      "schemaVersion": 1,
+      "commandId": "create-1",
+      "rulesetId": "battle-royal-v1",
+      "mode": "battle",
+      "initialMs": 60000,
+      "incrementMs": 0
+    },
+    "valid": false
+  },
+  {
+    "name": "valid RoyalMatchFrame (first duel pending)",
+    "type": "RoyalMatchFrame",
+    "payload": {
+      "schemaVersion": 1,
+      "frameSequence": 1,
+      "status": "active",
+      "state": {
+        "schemaVersion": 1,
+        "matchId": "royal-fixture-1",
+        "serverTick": 0,
+        "mode": "battle",
+        "rulesetId": "battle-royal-v1",
+        "phase": "combat",
+        "players": {
+          "w": "local-white",
+          "b": "local-black"
+        },
+        "chess": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "revision": 0,
+          "ply": 0,
+          "initialFen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "fen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "pieces": [
+            {
+              "pieceId": "w-r-e1",
+              "square": "e1",
+              "color": "w",
+              "role": "r",
+              "characterId": "royal.r"
+            },
+            {
+              "pieceId": "w-k-g1",
+              "square": "g1",
+              "color": "w",
+              "role": "k",
+              "characterId": "royal.k"
+            },
+            {
+              "pieceId": "b-p-d7",
+              "square": "d7",
+              "color": "b",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "b-p-f7",
+              "square": "f7",
+              "color": "b",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "w-r-a8",
+              "square": "a8",
+              "color": "w",
+              "role": "r",
+              "characterId": "royal.r"
+            },
+            {
+              "pieceId": "b-k-e8",
+              "square": "e8",
+              "color": "b",
+              "role": "k",
+              "characterId": "royal.k"
+            }
+          ],
+          "history": []
+        },
+        "battle": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "battleId": "royal-fixture-1:royal:1:duel:0",
+          "expectedRevision": 0,
+          "beforeFen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "from": "e8",
+          "to": "e1",
+          "promotion": null,
+          "attacker": {
+            "playerId": "local-black",
+            "pieceId": "b-k-e8",
+            "characterId": "royal.k",
+            "color": "b",
+            "role": "k",
+            "square": "e8",
+            "stats": {
+              "schemaVersion": 1,
+              "statsId": "c0-balance-v1.k",
+              "role": "k",
+              "maxHp": 160,
+              "maxStamina": 100,
+              "baseDamage": 18,
+              "moveSpeedMps": 2.79,
+              "reachM": 1.8,
+              "lightTicks": 33,
+              "heavyTicks": 63,
+              "parryTicks": 13,
+              "abilityId": "royal-counter",
+              "cooldownTicks": 600
+            }
+          },
+          "defender": {
+            "playerId": "local-white",
+            "pieceId": "w-r-e1",
+            "characterId": "royal.r",
+            "color": "w",
+            "role": "r",
+            "square": "e1",
+            "stats": {
+              "schemaVersion": 1,
+              "statsId": "c0-balance-v1.r",
+              "role": "r",
+              "maxHp": 190,
+              "maxStamina": 90,
+              "baseDamage": 25,
+              "moveSpeedMps": 2.21,
+              "reachM": 2,
+              "lightTicks": 42,
+              "heavyTicks": 74,
+              "parryTicks": 10,
+              "abilityId": "fortress-guard",
+              "cooldownTicks": 720
+            }
+          },
+          "arenaId": "stone-v1",
+          "startTick": 0,
+          "countdownTicks": 180,
+          "durationTicks": 5400,
+          "seed": 1791730498
+        },
+        "combat": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "battleId": "royal-fixture-1:royal:1:duel:0",
+          "serverTick": 0,
+          "countdownTicksRemaining": 180,
+          "durationTicksRemaining": 5400,
+          "fighters": [
+            {
+              "playerId": "local-black",
+              "pieceId": "b-k-e8",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 3.141592653589793,
+              "hp": 160,
+              "stamina": 100,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            },
+            {
+              "playerId": "local-white",
+              "pieceId": "w-r-e1",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": -2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 0,
+              "hp": 190,
+              "stamina": 90,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            }
+          ],
+          "events": [],
+          "result": null
+        },
+        "result": null,
+        "reason": null,
+        "royal": {
+          "schemaVersion": 1,
+          "rulesetId": "battle-royal-v1",
+          "battleId": "royal-fixture-1:royal:1",
+          "matchId": "royal-fixture-1",
+          "status": "active",
+          "duelIndex": 0,
+          "duelCount": 2,
+          "currentBattleId": "royal-fixture-1:royal:1:duel:0",
+          "king": {
+            "hp": 160,
+            "stamina": 100,
+            "cooldownTicks": 0
+          },
+          "defeated": [],
+          "remaining": [
+            "w-r-e1",
+            "w-r-a8"
+          ]
+        }
+      },
+      "clocks": {
+        "whiteMs": 0,
+        "blackMs": 0,
+        "initialMs": 0,
+        "incrementMs": 0,
+        "running": false,
+        "timed": false,
+        "turn": "w"
+      },
+      "connected": {
+        "w": true,
+        "b": true
+      },
+      "ready": {
+        "w": true,
+        "b": true
+      },
+      "drawOffer": null,
+      "inputResume": null
+    },
+    "valid": true
+  },
+  {
+    "name": "RoyalMatchFrame with a v1 legacy state",
+    "type": "RoyalMatchFrame",
+    "payload": {
+      "schemaVersion": 1,
+      "frameSequence": 1,
+      "status": "active",
+      "state": {
+        "schemaVersion": 1,
+        "matchId": "royal-fixture-1",
+        "serverTick": 0,
+        "mode": "battle",
+        "rulesetId": "battle-checkmate-v1",
+        "phase": "combat",
+        "players": {
+          "w": "local-white",
+          "b": "local-black"
+        },
+        "chess": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "revision": 0,
+          "ply": 0,
+          "initialFen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "fen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "pieces": [
+            {
+              "pieceId": "w-r-e1",
+              "square": "e1",
+              "color": "w",
+              "role": "r",
+              "characterId": "royal.r"
+            },
+            {
+              "pieceId": "w-k-g1",
+              "square": "g1",
+              "color": "w",
+              "role": "k",
+              "characterId": "royal.k"
+            },
+            {
+              "pieceId": "b-p-d7",
+              "square": "d7",
+              "color": "b",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "b-p-f7",
+              "square": "f7",
+              "color": "b",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "w-r-a8",
+              "square": "a8",
+              "color": "w",
+              "role": "r",
+              "characterId": "royal.r"
+            },
+            {
+              "pieceId": "b-k-e8",
+              "square": "e8",
+              "color": "b",
+              "role": "k",
+              "characterId": "royal.k"
+            }
+          ],
+          "history": []
+        },
+        "battle": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "battleId": "royal-fixture-1:royal:1:duel:0",
+          "expectedRevision": 0,
+          "beforeFen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "from": "e8",
+          "to": "e1",
+          "promotion": null,
+          "attacker": {
+            "playerId": "local-black",
+            "pieceId": "b-k-e8",
+            "characterId": "royal.k",
+            "color": "b",
+            "role": "k",
+            "square": "e8",
+            "stats": {
+              "schemaVersion": 1,
+              "statsId": "c0-balance-v1.k",
+              "role": "k",
+              "maxHp": 160,
+              "maxStamina": 100,
+              "baseDamage": 18,
+              "moveSpeedMps": 2.79,
+              "reachM": 1.8,
+              "lightTicks": 33,
+              "heavyTicks": 63,
+              "parryTicks": 13,
+              "abilityId": "royal-counter",
+              "cooldownTicks": 600
+            }
+          },
+          "defender": {
+            "playerId": "local-white",
+            "pieceId": "w-r-e1",
+            "characterId": "royal.r",
+            "color": "w",
+            "role": "r",
+            "square": "e1",
+            "stats": {
+              "schemaVersion": 1,
+              "statsId": "c0-balance-v1.r",
+              "role": "r",
+              "maxHp": 190,
+              "maxStamina": 90,
+              "baseDamage": 25,
+              "moveSpeedMps": 2.21,
+              "reachM": 2,
+              "lightTicks": 42,
+              "heavyTicks": 74,
+              "parryTicks": 10,
+              "abilityId": "fortress-guard",
+              "cooldownTicks": 720
+            }
+          },
+          "arenaId": "stone-v1",
+          "startTick": 0,
+          "countdownTicks": 180,
+          "durationTicks": 5400,
+          "seed": 1791730498
+        },
+        "combat": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "battleId": "royal-fixture-1:royal:1:duel:0",
+          "serverTick": 0,
+          "countdownTicksRemaining": 180,
+          "durationTicksRemaining": 5400,
+          "fighters": [
+            {
+              "playerId": "local-black",
+              "pieceId": "b-k-e8",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 3.141592653589793,
+              "hp": 160,
+              "stamina": 100,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            },
+            {
+              "playerId": "local-white",
+              "pieceId": "w-r-e1",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": -2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 0,
+              "hp": 190,
+              "stamina": 90,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            }
+          ],
+          "events": [],
+          "result": null
+        },
+        "result": null,
+        "reason": null,
+        "royal": {
+          "schemaVersion": 1,
+          "rulesetId": "battle-royal-v1",
+          "battleId": "royal-fixture-1:royal:1",
+          "matchId": "royal-fixture-1",
+          "status": "active",
+          "duelIndex": 0,
+          "duelCount": 2,
+          "currentBattleId": "royal-fixture-1:royal:1:duel:0",
+          "king": {
+            "hp": 160,
+            "stamina": 100,
+            "cooldownTicks": 0
+          },
+          "defeated": [],
+          "remaining": [
+            "w-r-e1",
+            "w-r-a8"
+          ]
+        }
+      },
+      "clocks": {
+        "whiteMs": 0,
+        "blackMs": 0,
+        "initialMs": 0,
+        "incrementMs": 0,
+        "running": false,
+        "timed": false,
+        "turn": "w"
+      },
+      "connected": {
+        "w": true,
+        "b": true
+      },
+      "ready": {
+        "w": true,
+        "b": true
+      },
+      "drawOffer": null,
+      "inputResume": null
+    },
+    "valid": false
+  },
+  {
+    "name": "RoyalMatchFrame without royal progress",
+    "type": "RoyalMatchFrame",
+    "payload": {
+      "schemaVersion": 1,
+      "frameSequence": 1,
+      "status": "active",
+      "state": {
+        "schemaVersion": 1,
+        "matchId": "royal-fixture-1",
+        "serverTick": 0,
+        "mode": "battle",
+        "rulesetId": "battle-royal-v1",
+        "phase": "combat",
+        "players": {
+          "w": "local-white",
+          "b": "local-black"
+        },
+        "chess": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "revision": 0,
+          "ply": 0,
+          "initialFen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "fen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "pieces": [
+            {
+              "pieceId": "w-r-e1",
+              "square": "e1",
+              "color": "w",
+              "role": "r",
+              "characterId": "royal.r"
+            },
+            {
+              "pieceId": "w-k-g1",
+              "square": "g1",
+              "color": "w",
+              "role": "k",
+              "characterId": "royal.k"
+            },
+            {
+              "pieceId": "b-p-d7",
+              "square": "d7",
+              "color": "b",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "b-p-f7",
+              "square": "f7",
+              "color": "b",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "w-r-a8",
+              "square": "a8",
+              "color": "w",
+              "role": "r",
+              "characterId": "royal.r"
+            },
+            {
+              "pieceId": "b-k-e8",
+              "square": "e8",
+              "color": "b",
+              "role": "k",
+              "characterId": "royal.k"
+            }
+          ],
+          "history": []
+        },
+        "battle": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "battleId": "royal-fixture-1:royal:1:duel:0",
+          "expectedRevision": 0,
+          "beforeFen": "R3k3/3p1p2/8/8/8/8/8/4R1K1 b - - 0 1",
+          "from": "e8",
+          "to": "e1",
+          "promotion": null,
+          "attacker": {
+            "playerId": "local-black",
+            "pieceId": "b-k-e8",
+            "characterId": "royal.k",
+            "color": "b",
+            "role": "k",
+            "square": "e8",
+            "stats": {
+              "schemaVersion": 1,
+              "statsId": "c0-balance-v1.k",
+              "role": "k",
+              "maxHp": 160,
+              "maxStamina": 100,
+              "baseDamage": 18,
+              "moveSpeedMps": 2.79,
+              "reachM": 1.8,
+              "lightTicks": 33,
+              "heavyTicks": 63,
+              "parryTicks": 13,
+              "abilityId": "royal-counter",
+              "cooldownTicks": 600
+            }
+          },
+          "defender": {
+            "playerId": "local-white",
+            "pieceId": "w-r-e1",
+            "characterId": "royal.r",
+            "color": "w",
+            "role": "r",
+            "square": "e1",
+            "stats": {
+              "schemaVersion": 1,
+              "statsId": "c0-balance-v1.r",
+              "role": "r",
+              "maxHp": 190,
+              "maxStamina": 90,
+              "baseDamage": 25,
+              "moveSpeedMps": 2.21,
+              "reachM": 2,
+              "lightTicks": 42,
+              "heavyTicks": 74,
+              "parryTicks": 10,
+              "abilityId": "fortress-guard",
+              "cooldownTicks": 720
+            }
+          },
+          "arenaId": "stone-v1",
+          "startTick": 0,
+          "countdownTicks": 180,
+          "durationTicks": 5400,
+          "seed": 1791730498
+        },
+        "combat": {
+          "schemaVersion": 1,
+          "matchId": "royal-fixture-1",
+          "battleId": "royal-fixture-1:royal:1:duel:0",
+          "serverTick": 0,
+          "countdownTicksRemaining": 180,
+          "durationTicksRemaining": 5400,
+          "fighters": [
+            {
+              "playerId": "local-black",
+              "pieceId": "b-k-e8",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 3.141592653589793,
+              "hp": 160,
+              "stamina": 100,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            },
+            {
+              "playerId": "local-white",
+              "pieceId": "w-r-e1",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": -2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 0,
+              "hp": 190,
+              "stamina": 90,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            }
+          ],
+          "events": [],
+          "result": null
+        },
+        "result": null,
+        "reason": null
+      },
+      "clocks": {
+        "whiteMs": 0,
+        "blackMs": 0,
+        "initialMs": 0,
+        "incrementMs": 0,
+        "running": false,
+        "timed": false,
+        "turn": "w"
+      },
+      "connected": {
+        "w": true,
+        "b": true
+      },
+      "ready": {
+        "w": true,
+        "b": true
+      },
+      "drawOffer": null,
+      "inputResume": null
+    },
+    "valid": false
+  },
+  {
+    "name": "valid RoyalSequenceNotice (progress)",
+    "type": "RoyalSequenceNotice",
+    "payload": {
+      "schemaVersion": 1,
+      "kind": "progress",
+      "matchId": "royal-fixture-1",
+      "progress": {
+        "schemaVersion": 1,
+        "rulesetId": "battle-royal-v1",
+        "battleId": "royal-fixture-1:royal:1",
+        "matchId": "royal-fixture-1",
+        "status": "active",
+        "duelIndex": 0,
+        "duelCount": 2,
+        "currentBattleId": "royal-fixture-1:royal:1:duel:0",
+        "king": {
+          "hp": 160,
+          "stamina": 100,
+          "cooldownTicks": 0
+        },
+        "defeated": [],
+        "remaining": [
+          "w-r-e1",
+          "w-r-a8"
+        ]
+      },
+      "duel": null,
+      "sequence": null
+    },
+    "valid": true
+  },
+  {
+    "name": "RoyalSequenceNotice with an unknown kind",
+    "type": "RoyalSequenceNotice",
+    "payload": {
+      "schemaVersion": 1,
+      "kind": "winner",
+      "matchId": "royal-fixture-1",
+      "progress": {
+        "schemaVersion": 1,
+        "rulesetId": "battle-royal-v1",
+        "battleId": "royal-fixture-1:royal:1",
+        "matchId": "royal-fixture-1",
+        "status": "active",
+        "duelIndex": 0,
+        "duelCount": 2,
+        "currentBattleId": "royal-fixture-1:royal:1:duel:0",
+        "king": {
+          "hp": 160,
+          "stamina": 100,
+          "cooldownTicks": 0
+        },
+        "defeated": [],
+        "remaining": [
+          "w-r-e1",
+          "w-r-a8"
+        ]
+      },
+      "duel": null,
+      "sequence": null
+    },
+    "valid": false
+  },
+  {
+    "name": "RoyalSequenceNotice with extra client-style field",
+    "type": "RoyalSequenceNotice",
+    "payload": {
+      "schemaVersion": 1,
+      "kind": "progress",
+      "matchId": "royal-fixture-1",
+      "progress": {
+        "schemaVersion": 1,
+        "rulesetId": "battle-royal-v1",
+        "battleId": "royal-fixture-1:royal:1",
+        "matchId": "royal-fixture-1",
+        "status": "active",
+        "duelIndex": 0,
+        "duelCount": 2,
+        "currentBattleId": "royal-fixture-1:royal:1:duel:0",
+        "king": {
+          "hp": 160,
+          "stamina": 100,
+          "cooldownTicks": 0
+        },
+        "defeated": [],
+        "remaining": [
+          "w-r-e1",
+          "w-r-a8"
+        ]
+      },
+      "duel": null,
+      "sequence": null,
+      "kingHp": 999
+    },
+    "valid": false
+  }
+]

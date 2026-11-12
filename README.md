@@ -1,4 +1,19 @@
-# Sovereign’s Gambit
+# Peepeechess
+
+## Native Godot application
+
+Open `godot/project.godot` with pinned Godot **4.6.3**. The native application starts with Classic/Battle selection, local play, account sign-in, ranked/unranked quick match and private invite codes. Each player independently chooses 2D or 3D. Settings, profiles, mode-specific statistics, match history, leaderboards and result screens wrap the existing authoritative gameplay. The legacy web game below remains available.
+
+- [Player guide](docs/application/PLAYER_GUIDE.md)
+- [Account backend and PostgreSQL setup](docs/application/BACKEND.md)
+- [Native Windows/Android builds and installation](docs/application/EXPORTS.md)
+- [Tester guide: install, play, report bugs](docs/application/TESTING_GUIDE.md)
+- [Trust boundaries and integration](docs/application/ARCHITECTURE.md)
+- [Reproducible validation](docs/application/VALIDATION.md)
+
+Native online play needs **both** the persistent account API and the dedicated Godot ENet/DTLS server. The web/Vercel backend does not host UDP or share native accounts automatically. No production service deployment or physical Windows–Android crossplay verification is implied by these source changes.
+
+## Legacy web game — Sovereign’s Gambit
 
 Classic chess inside a fantasy castle. The game opens in a 3D castle, with a lightweight drawn 2D board available any time. Choose a legion before starting; both views share its livery, faces, weapons and familiar chess silhouettes. White’s faction determines the home castle for both players.
 
@@ -103,3 +118,37 @@ The browser evidence and deployment notes distinguish a real connection test fro
 - `server/onlineStorage.ts`: durable local KV and Redis locking/atomic commits.
 - `src/three/`: shared miniature models, orthographic/perspective cameras, castle architecture and battles.
 - Older components and analytics/variant prototypes remain reference code and are not exposed as unfinished game modes.
+
+## Godot migration and two-agent development
+
+The working web/Capacitor game is preserved. The native Godot client in
+`godot/` now supports local Classic Chess in 2D and 3D, pinned to Godot 4.6.3.
+Native online and Battle integration remain separate migration steps. Start with [the repository audit](docs/architecture/REPOSITORY_AUDIT.md),
+[architecture](docs/architecture/ARCHITECTURE.md),
+[migration plan](docs/architecture/MIGRATION.md),
+[shared v1 contracts](docs/architecture/CONTRACTS.md), and
+[Battle rules](docs/architecture/BATTLE_RULES.md).
+
+Before editing, read [collaboration/worktrees](docs/development/COLLABORATION.md)
+and [file ownership](docs/development/OWNERSHIP.md). Run the checks in
+[toolchain](docs/development/TOOLCHAIN.md); current results are recorded in
+[validation](docs/development/VALIDATION.md). Integration targets `develop`.
+
+## Native Classic Chess (Godot 4.6.3)
+
+Run `godot --path godot` for local two-player Classic Chess in illustrated 2D
+or interactive 3D. Both views share one match, with legal moves, clocks,
+promotion, notation, FEN, draw claims and local undo. See
+[controls and architecture](docs/classic/CLASSIC.md) and
+[Classic validation](docs/classic/VALIDATION.md). Run `npm run test:classic`.
+Native dedicated multiplayer now uses ENet/DTLS; see [server startup and local crossplay tests](docs/network/README.md). Physical Windows/Android crossplay is not yet verified.
+
+## Native Battle C0 integration
+
+The mode selector exposes the C0 Battle board, capture previews and Claude's real
+combat arena. All five C0 fighter roles are supported. Captures run from either
+board view through input-driven combat and back to shared chess state. See
+[integration and controls](docs/battle/INTEGRATION.md) and
+[native server/testing instructions](docs/network/README.md). Run
+`npm run test:battle` and `npm run test:multiplayer`. King-gauntlet combat remains
+a separate v2 ruleset.

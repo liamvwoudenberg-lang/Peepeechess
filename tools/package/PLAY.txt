@@ -1,0 +1,61 @@
+@TITLE@ - ALPHA BUILD   (commit @SHA@)
+=================================================
+The full Peepeechess application: main menu, Classic Chess, Battle Chess (a capture starts a real-time third-person
+fight), settings and the online screens. Online play needs a running Peepeechess server/backend; offline play
+(local Classic and local Battle Chess, vs a friend on the same PC) works without anything.
+
+START
+  Windows : double-click @NAME@.exe
+            (Start-with-console.bat opens it with a console window that prints errors - attach that output when
+            reporting a bug). The game data is embedded in the .exe; keep Peepeechess.exe and Peepeechess.console.exe
+            in the SAME folder.
+            Windows SmartScreen may warn about an unsigned app: "More info" -> "Run anyway".
+  Linux   : ./@NAME@.x86_64
+
+CHESS
+  The board is a real 3D board seen from straight above, so it looks like a 2D chess game ("2D" button); the "3D"
+  button gives a perspective view with orbit and zoom (right-drag / wheel). Click a piece, then a highlighted
+  square (or drag). On a gamepad: D-pad / left stick moves the cursor, Cross selects/confirms, Circle cancels.
+  BATTLE CHESS: when you capture, the contested tile opens like trapdoors, both pieces fall into the arena below, you
+  fight in third person, the loser disappears and the winner climbs the ladder back to its square; the camera
+  returns to the top-down view. The "Skip animation" button shortens the transitions.
+
+CONTROLS (local Battle Chess; White = P1, Black = P2). Everything can be rebound: Settings -> "Controls & controllers".
+  Action                    P1 keyboard + mouse    P2 keyboard      Gamepad (PS4 label / Xbox label)
+  Move                      W A S D                Arrow keys       Left stick
+  Light attack (x3 combo)   LMB or F               J                Square / X
+  Heavy attack              RMB or G               K                Triangle / Y  (R2 also)
+  Block (hold)              Q                      U                L1 / LB
+  Parry (tap just before    E                      I                R1 / RB
+    a hit lands)
+  Dodge (hold a direction)  Space                  L                Cross / A
+  Special ability           R                      O                Circle / B
+  Sprint                    Shift                  Ctrl             L2 / LT
+  Lock-on                   Tab / middle mouse     P                L3 (stick click)
+  Camera                    Mouse (captured)       , and .          Right stick
+  Pause / menu              Esc                    -                Options
+  F11 = fullscreen.   F1 / Share (Back / View on Xbox) toggles the on-screen controls overlay in battles (it shows your
+  controls for the first few fights, then shrinks to a small hint; touch has a ? button). Settings -> Controls has the same option.
+
+TWO PS4 CONTROLLERS (or any two gamepads)
+  Plug in / pair both pads before starting a local match. Player 1 uses the first pad, player 2 the second; with one pad
+  the pad takes White and the keyboard (arrow keys) takes Black. "Controls & controllers" shows which pad is which and
+  lets you reassign. If a pad disconnects mid-fight the fight pauses until it comes back.
+  (If your PS4 pad is not recognised, use Steam Input or DS4Windows to present it as an Xbox controller.)
+
+WHAT THIS BUILD IS - AND IS NOT
+  * Real: Codex's chess rules and application, the authoritative combat rules for Pawn, Knight, Bishop, Rook and Queen
+    (the King and tuned balance data are in the code but not yet selectable), combat polish (trails, hit/parry/dodge
+    effects, hitstop), procedural sound, the top-down board with the trapdoor transition, two-pad support, and
+    7,000+ automated checks on the code.
+  * NOT in this build yet: a computer opponent for Classic Chess, the online version of the trapdoor transition (online
+    matches still use the older presentation), the King's last-chance rules, board themes.
+  * Never run on a real Windows machine or a real PS4/gamepad by the developers: gamepad and Windows behaviour is tested
+    with simulated input and software rendering only (the Windows build is made with the official export templates; only
+    the Linux build has been executed). Android is not part of this package.
+  * Balance and feel are unvalidated by human play. Visuals are generated placeholder-quality art.
+
+PLEASE REPORT
+  - What you did (mode, fighters, controls), what happened, what felt wrong (input lag, unreadable attacks, camera,
+    transitions, menus, crashes) and your PC / GPU / controller model. If it crashes, run Start-with-console.bat and send
+    the console text.

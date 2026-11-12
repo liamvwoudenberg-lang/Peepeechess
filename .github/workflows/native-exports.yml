@@ -1,0 +1,146 @@
+name: Native Windows and Android exports
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'godot/**'
+      - 'scripts/*native*.sh'
+      - 'tools/package/**'
+      - '.godot-version'
+      - '.github/workflows/native-exports.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-exports-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    # A cold Android SDK + Gradle dependency download plus two exports needs more than the original 30 minutes.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      # SDK, templates and the Gradle dependency cache are keyed on the installer script and the export presets.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            work/toolchains
+            work/native-gradle
+          key: native-toolchain-${{ runner.os }}-${{ hashFiles('scripts/install-native-toolchain.sh', 'scripts/export-native.sh', '.godot-version', 'godot/export_presets.cfg') }}
+          restore-keys: |
+            native-toolchain-${{ runner.os }}-
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned Godot editor
+        run: |
+          curl -fL --retry 2 https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip -o /tmp/godot.zip
+          echo 'a035258da32b77f966a5376f9fa29c30a6adde826a85ba918e1605bd1fc9823eba7d85f1dd5e748956bd2ba72827c0025ffa11bb82aec91128c407a2e723c99c  /tmp/godot.zip' | sha512sum -c -
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 /usr/local/bin/godot
+          rm /tmp/godot.zip
+      - name: Install export templates and Android SDK
+        env:
+          ANDROID_HOME: ${{ github.workspace }}/work/toolchains/android-sdk
+        run: bash scripts/install-native-toolchain.sh
+      - name: Build Windows executable and debug APK
+        env:
+          ANDROID_HOME: ${{ github.workspace }}/work/toolchains/android-sdk
+        run: bash scripts/export-native.sh all
+      - name: Build test-signed Android App Bundle
+        env:
+          ANDROID_HOME: ${{ github.workspace }}/work/toolchains/android-sdk
+        run: bash scripts/export-native.sh android-aab-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Peepeechess-native-test-builds
+          path: |
+            artifacts/native/*.exe
+            artifacts/native/*.apk
+            artifacts/native/*.aab
+            artifacts/native/checksums.json
+            artifacts/native/bundletool-validation.txt
+            artifacts/native/android-bundle-manifest.xml
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-export-logs
+          path: artifacts/native/*.log
+          retention-days: 14
+
+  # Windows x86_64 + Linux x86_64 playable packages (tools/package/build_pc.sh): the repository's own Windows Desktop
+  # preset, reproducible zip/tar.gz with SHA256SUMS, plus a Linux smoke test under Xvfb (menu starts; local Classic and
+  # Battle matches start; packed data/audio files readable). Unsigned; not a release.
+  pc-packages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot editor
+        run: |
+          curl -fL --retry 2 https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip -o /tmp/godot.zip
+          echo 'a035258da32b77f966a5376f9fa29c30a6adde826a85ba918e1605bd1fc9823eba7d85f1dd5e748956bd2ba72827c0025ffa11bb82aec91128c407a2e723c99c  /tmp/godot.zip' | sha512sum -c -
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 /usr/local/bin/godot
+          rm /tmp/godot.zip
+      - name: Install Windows/Linux export templates
+        run: |
+          mkdir -p work/toolchains
+          bash scripts/install-native-toolchain.sh --templates-only
+          # build_pc.sh looks for the templates in Godot's per-user template directory.
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          ln -sfn "$PWD/work/toolchains/godot/templates/4.6.3.stable" "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+      - name: Install Xvfb for the smoke test
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0
+      - name: Build packages
+        env:
+          GODOT: /usr/local/bin/godot
+          SMOKE: '1'
+        run: bash tools/package/build_pc.sh "$RUNNER_TEMP/pc"
+      - name: Smoke-test the Linux package
+        run: bash tools/package/smoke_linux.sh "$RUNNER_TEMP/pc"
+      - name: Collect upload set
+        if: always()
+        run: |
+          mkdir -p upload
+          cp "$RUNNER_TEMP"/pc/*.zip "$RUNNER_TEMP"/pc/*.tar.gz "$RUNNER_TEMP"/pc/SHA256SUMS "$RUNNER_TEMP"/pc/BUILD_INFO.txt upload/ || true
+          cp "$RUNNER_TEMP"/pc/*.log upload/ || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Peepeechess-pc-packages
+          path: upload/
+          retention-days: 14
+
+  # Untested until it has run on a GitHub-hosted Windows runner (no Windows machine was available when it was written).
+  # Starts the exported Windows executable headlessly; allowed to fail without blocking the workflow.
+  windows-smoke:
+    needs: pc-packages
+    runs-on: windows-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Peepeechess-pc-packages
+          path: pkg
+      - name: Run the Windows build headlessly
+        shell: pwsh
+        run: |
+          Expand-Archive -Path (Get-ChildItem pkg/*-win64.zip | Select-Object -First 1).FullName -DestinationPath win
+          $exe = (Get-ChildItem win -Recurse -Filter Peepeechess.console.exe | Select-Object -First 1).FullName
+          & $exe --headless --quit-after 300 2>&1 | Tee-Object -FilePath win-smoke.log
+          if ($LASTEXITCODE -ne 0) { throw "exit code $LASTEXITCODE" }
+          if (Select-String -Path win-smoke.log -Pattern 'SCRIPT ERROR|Parse Error|^ERROR:') { throw 'engine errors in log' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-smoke-log
+          path: win-smoke.log
+          retention-days: 14

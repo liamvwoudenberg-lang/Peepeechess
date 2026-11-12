@@ -1,0 +1,6 @@
+# Godot's glTF importer extracts each GLB's embedded textures next to it (derived data, rebuilt by the
+# import step). The GLBs themselves and their .glb.import files are the source of truth.
+characters/*/*_*.png
+characters/*/*_*.png.import
+arena/*_*.png
+arena/*_*.png.import

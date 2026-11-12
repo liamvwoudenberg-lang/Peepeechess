@@ -1,0 +1,277 @@
+[
+  {
+    "name": "new anonymous session",
+    "type": "Hello",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "protocol": "peepeechess-enet-v2",
+      "resumeToken": null
+    }
+  },
+  {
+    "name": "resume credential",
+    "type": "Hello",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "protocol": "peepeechess-enet-v2",
+      "resumeToken": "abababababababababababababababababababababababababababababababab"
+    }
+  },
+  {
+    "name": "create classic",
+    "type": "CreateMatch",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "commandId": "create-1",
+      "mode": "classic",
+      "initialMs": 180000,
+      "incrementMs": 2000
+    }
+  },
+  {
+    "name": "no client positions",
+    "type": "CreateMatch",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "commandId": "create-1",
+      "mode": "classic",
+      "initialMs": 180000,
+      "incrementMs": 2000,
+      "fen": "arbitrary"
+    }
+  },
+  {
+    "name": "wrong version",
+    "type": "Hello",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "protocol": "peepeechess-enet-v2",
+      "resumeToken": null
+    }
+  },
+  {
+    "name": "short credential",
+    "type": "Hello",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "protocol": "peepeechess-enet-v2",
+      "resumeToken": "guess"
+    }
+  },
+  {
+    "name": "no outcomes in commands",
+    "type": "MatchCommand",
+    "valid": false,
+    "payload": {
+      "schemaVersion": 2,
+      "commandId": "win-1",
+      "matchId": "match-demo",
+      "action": "set_winner",
+      "drawKind": null,
+      "intended": null
+    }
+  },
+  {
+    "name": "nested existing game contract",
+    "type": "MatchFrame",
+    "valid": true,
+    "payload": {
+      "schemaVersion": 2,
+      "frameSequence": 1,
+      "status": "active",
+      "state": {
+        "schemaVersion": 2,
+        "matchId": "match-demo",
+        "serverTick": 300,
+        "mode": "battle",
+        "rulesetId": "battle-checkmate-v1",
+        "phase": "combat",
+        "players": {
+          "w": "player-white",
+          "b": "player-black"
+        },
+        "chess": {
+          "schemaVersion": 2,
+          "matchId": "match-demo",
+          "revision": 6,
+          "ply": 0,
+          "initialFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+          "fen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+          "pieces": [
+            {
+              "pieceId": "w-p-d2",
+              "square": "d4",
+              "color": "w",
+              "role": "p",
+              "characterId": "royal.p"
+            },
+            {
+              "pieceId": "b-q-d8",
+              "square": "e5",
+              "color": "b",
+              "role": "q",
+              "characterId": "skeletons.q"
+            },
+            {
+              "pieceId": "w-k-e1",
+              "square": "h1",
+              "color": "w",
+              "role": "k",
+              "characterId": "royal.k"
+            },
+            {
+              "pieceId": "b-k-e8",
+              "square": "h8",
+              "color": "b",
+              "role": "k",
+              "characterId": "skeletons.k"
+            }
+          ],
+          "history": []
+        },
+        "battle": {
+          "schemaVersion": 2,
+          "matchId": "match-demo",
+          "battleId": "battle-demo-1",
+          "expectedRevision": 6,
+          "beforeFen": "7k/8/8/4q3/3P4/8/8/7K w - - 0 1",
+          "from": "d4",
+          "to": "e5",
+          "promotion": null,
+          "attacker": {
+            "pieceId": "w-p-d2",
+            "characterId": "royal.p",
+            "color": "w",
+            "role": "p",
+            "square": "d4",
+            "playerId": "player-white",
+            "stats": {
+              "schemaVersion": 2,
+              "statsId": "balance-v1.p",
+              "role": "p",
+              "maxHp": 80,
+              "maxStamina": 120,
+              "baseDamage": 12,
+              "moveSpeedMps": 3.66,
+              "reachM": 1.95,
+              "lightTicks": 24,
+              "heavyTicks": 53,
+              "parryTicks": 10,
+              "abilityId": "last-stand",
+              "cooldownTicks": 900
+            }
+          },
+          "defender": {
+            "pieceId": "b-q-d8",
+            "characterId": "skeletons.q",
+            "color": "b",
+            "role": "q",
+            "square": "e5",
+            "playerId": "player-black",
+            "stats": {
+              "schemaVersion": 2,
+              "statsId": "balance-v1.q",
+              "role": "q",
+              "maxHp": 135,
+              "maxStamina": 115,
+              "baseDamage": 24,
+              "moveSpeedMps": 3.66,
+              "reachM": 1.65,
+              "lightTicks": 28,
+              "heavyTicks": 58,
+              "parryTicks": 10,
+              "abilityId": "royal-fury",
+              "cooldownTicks": 840
+            }
+          },
+          "arenaId": "board-v1",
+          "startTick": 300,
+          "countdownTicks": 180,
+          "durationTicks": 5400,
+          "seed": 12345
+        },
+        "combat": {
+          "schemaVersion": 2,
+          "matchId": "match-demo",
+          "battleId": "battle-demo-1",
+          "serverTick": 300,
+          "countdownTicksRemaining": 180,
+          "durationTicksRemaining": 5400,
+          "fighters": [
+            {
+              "playerId": "player-white",
+              "pieceId": "w-p-d2",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": -2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 0,
+              "hp": 80,
+              "stamina": 120,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            },
+            {
+              "playerId": "player-black",
+              "pieceId": "b-q-d8",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 2.6
+              },
+              "velocity": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "yawRadians": 3.141592653589793,
+              "hp": 135,
+              "stamina": 115,
+              "state": "Idle",
+              "stateTicks": 0,
+              "cooldownTicks": 0,
+              "lastInputSequence": 0
+            }
+          ],
+          "events": [],
+          "result": null
+        },
+        "result": null,
+        "reason": null
+      },
+      "clocks": {
+        "whiteMs": 0,
+        "blackMs": 0,
+        "initialMs": 0,
+        "incrementMs": 0,
+        "running": false,
+        "timed": false,
+        "turn": "w"
+      },
+      "connected": {
+        "w": true,
+        "b": true
+      },
+      "ready": {
+        "w": true,
+        "b": true
+      },
+      "drawOffer": null,
+      "inputResume": null
+    }
+  }
+]

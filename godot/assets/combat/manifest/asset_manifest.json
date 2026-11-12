@@ -1,0 +1,623 @@
+{
+  "arena": {
+    "collision_contract": {
+      "floor_top": 0.0,
+      "pillar_height": 3.5,
+      "pillar_radius": 0.55,
+      "pillars": [
+        [
+          3.4,
+          3.4
+        ],
+        [
+          -3.4,
+          3.4
+        ],
+        [
+          3.4,
+          -3.4
+        ],
+        [
+          -3.4,
+          -3.4
+        ]
+      ],
+      "wall_height": 3.0,
+      "wall_inner_radius": 7.1
+    },
+    "lights": 9,
+    "lod0": {
+      "bytes": 594520,
+      "draw_calls_max": 16,
+      "file": "stone_arena.glb",
+      "materials_used": [
+        "Arena_BannerA",
+        "Arena_BannerB",
+        "Arena_Bone",
+        "Arena_Coal",
+        "Arena_Dark",
+        "Arena_Flame",
+        "Arena_FloorStone",
+        "Arena_Gold",
+        "Arena_Iron",
+        "Arena_PillarStone",
+        "Arena_Rubble",
+        "Arena_Statue",
+        "Arena_WallStone",
+        "Arena_Wood"
+      ],
+      "objects": 2,
+      "tris": 7988
+    },
+    "lod1": {
+      "bytes": 325520,
+      "draw_calls_max": 9,
+      "file": "stone_arena_lod1.glb",
+      "materials_used": [
+        "Arena_BannerA",
+        "Arena_BannerB",
+        "Arena_Flame",
+        "Arena_FloorStone",
+        "Arena_Gold",
+        "Arena_Iron",
+        "Arena_WallStone",
+        "Arena_Wood"
+      ],
+      "objects": 2,
+      "tris": 3912
+    },
+    "measured": {
+      "floor_top": 0.0,
+      "pillars": [
+        {
+          "godot_xz": [
+            3.4,
+            3.4
+          ],
+          "shaft_radius": 0.55
+        },
+        {
+          "godot_xz": [
+            -3.4,
+            3.4
+          ],
+          "shaft_radius": 0.55
+        },
+        {
+          "godot_xz": [
+            3.4,
+            -3.4
+          ],
+          "shaft_radius": 0.55
+        },
+        {
+          "godot_xz": [
+            -3.4,
+            -3.4
+          ],
+          "shaft_radius": 0.55
+        }
+      ],
+      "wall_inner_radius": 7.1
+    }
+  },
+  "characters": {
+    "bishop": {
+      "bounds_body": {
+        "x": [
+          -0.35324999690055847,
+          0.35324999690055847
+        ],
+        "y": [
+          -0.23499999940395355,
+          0.20600000023841858
+        ],
+        "z": [
+          0.020000003278255463,
+          2.1774394512176514
+        ]
+      },
+      "bytes_collision": 15804,
+      "bytes_lod0": 996444,
+      "bytes_lod1": 882280,
+      "class": "bishop",
+      "clips": {
+        "ability": 20,
+        "block": 40,
+        "climb": 72,
+        "defeat": 60,
+        "dodge": 24,
+        "drop_fall": 40,
+        "heavy": 59,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
+        "idle": 120,
+        "ladder_idle": 120,
+        "land": 36,
+        "light_1": 29,
+        "light_2": 28,
+        "light_3": 38,
+        "parry": 26,
+        "run": 30,
+        "stagger": 30,
+        "strafe_left": 26,
+        "strafe_right": 26,
+        "victory": 110,
+        "walk": 40
+      },
+      "collision_verts": 77,
+      "markers": {
+        "heavy": [
+          0.5,
+          0.64,
+          0.95
+        ],
+        "light_1": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_2": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_3": [
+          0.38,
+          0.58,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
+      "proportions": {
+        "hip_width": 0.92,
+        "scale": 1.0,
+        "shoulder_width": 0.95
+      },
+      "props": {
+        "Bishop_Staff": 312
+      },
+      "role": "b",
+      "tris_lod0": 3260,
+      "tris_lod1": 1293
+    },
+    "king": {
+      "bounds_body": {
+        "x": [
+          -0.4632200002670288,
+          0.4632200002670288
+        ],
+        "y": [
+          -0.2308320701122284,
+          0.28407999873161316
+        ],
+        "z": [
+          0.00795000046491623,
+          2.194200038909912
+        ]
+      },
+      "bytes_collision": 16680,
+      "bytes_lod0": 1198932,
+      "bytes_lod1": 1004888,
+      "class": "king",
+      "clips": {
+        "ability": 56,
+        "block": 40,
+        "climb": 72,
+        "defeat": 60,
+        "dodge": 28,
+        "drop_fall": 40,
+        "heavy": 63,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
+        "idle": 120,
+        "ladder_idle": 120,
+        "land": 36,
+        "light_1": 33,
+        "light_2": 31,
+        "light_3": 43,
+        "parry": 27,
+        "run": 30,
+        "stagger": 30,
+        "strafe_left": 26,
+        "strafe_right": 26,
+        "victory": 120,
+        "walk": 40
+      },
+      "collision_verts": 79,
+      "counter": {
+        "end": 26,
+        "riposte_start_frame": 24,
+        "riposte_ticks": 30,
+        "start": 6
+      },
+      "markers": {
+        "heavy": [
+          0.55,
+          0.67,
+          0.95
+        ],
+        "light_1": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_2": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_3": [
+          0.45,
+          0.62,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
+      "proportions": {
+        "hip_width": 1.05,
+        "scale": 1.06,
+        "shoulder_width": 1.15
+      },
+      "props": {
+        "King_Longsword": 236
+      },
+      "role": "k",
+      "tris_lod0": 4698,
+      "tris_lod1": 1830
+    },
+    "knight": {
+      "bounds_body": {
+        "x": [
+          -0.3868725895881653,
+          0.3868725895881653
+        ],
+        "y": [
+          -0.2547999918460846,
+          0.27663999795913696
+        ],
+        "z": [
+          -0.005199994891881943,
+          1.9918217658996582
+        ]
+      },
+      "bytes_collision": 16312,
+      "bytes_lod0": 1048016,
+      "bytes_lod1": 912912,
+      "class": "knight",
+      "clips": {
+        "ability": 72,
+        "block": 40,
+        "climb": 72,
+        "defeat": 60,
+        "dodge": 26,
+        "drop_fall": 40,
+        "heavy": 63,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
+        "idle": 120,
+        "ladder_idle": 120,
+        "land": 36,
+        "light_1": 32,
+        "light_2": 30,
+        "light_3": 42,
+        "parry": 27,
+        "run": 30,
+        "stagger": 30,
+        "strafe_left": 26,
+        "strafe_right": 26,
+        "victory": 108,
+        "walk": 40
+      },
+      "collision_verts": 88,
+      "markers": {
+        "heavy": [
+          0.55,
+          0.67,
+          0.95
+        ],
+        "light_1": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_2": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_3": [
+          0.45,
+          0.62,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
+      "proportions": {
+        "hip_width": 1.06,
+        "scale": 1.04,
+        "shoulder_width": 1.1
+      },
+      "props": {
+        "Knight_Shield": 248,
+        "Knight_Sword": 164
+      },
+      "role": "n",
+      "tris_lod0": 3192,
+      "tris_lod1": 1250
+    },
+    "pawn": {
+      "bounds_body": {
+        "x": [
+          -0.25315091013908386,
+          0.2824047803878784
+        ],
+        "y": [
+          -0.20679999887943268,
+          0.1414383351802826
+        ],
+        "z": [
+          0.0017537623643875122,
+          1.7756600379943848
+        ]
+      },
+      "bytes_collision": 15212,
+      "bytes_lod0": 932820,
+      "bytes_lod1": 854300,
+      "class": "pawn",
+      "clips": {
+        "ability": 12,
+        "block": 40,
+        "climb": 72,
+        "defeat": 60,
+        "dodge": 22,
+        "drop_fall": 40,
+        "heavy": 53,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
+        "idle": 120,
+        "ladder_idle": 120,
+        "land": 36,
+        "light_1": 24,
+        "light_2": 23,
+        "light_3": 32,
+        "parry": 27,
+        "run": 30,
+        "stagger": 30,
+        "strafe_left": 26,
+        "strafe_right": 26,
+        "victory": 96,
+        "walk": 40
+      },
+      "collision_verts": 77,
+      "markers": {
+        "heavy": [
+          0.5,
+          0.64,
+          0.95
+        ],
+        "light_1": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_2": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_3": [
+          0.38,
+          0.58,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
+      "proportions": {
+        "hip_width": 0.95,
+        "scale": 0.94,
+        "shoulder_width": 0.95
+      },
+      "props": {
+        "Pawn_Spear": 162
+      },
+      "role": "p",
+      "tris_lod0": 1876,
+      "tris_lod1": 728
+    },
+    "queen": {
+      "bounds_body": {
+        "x": [
+          -0.3724643290042877,
+          0.36187034845352173
+        ],
+        "y": [
+          -0.19499999284744263,
+          0.1899999976158142
+        ],
+        "z": [
+          0.007500000298023224,
+          2.024026870727539
+        ]
+      },
+      "bytes_collision": 13740,
+      "bytes_lod0": 1115856,
+      "bytes_lod1": 969468,
+      "class": "queen",
+      "clips": {
+        "ability": 14,
+        "block": 40,
+        "climb": 72,
+        "defeat": 60,
+        "dodge": 20,
+        "drop_fall": 40,
+        "heavy": 58,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
+        "idle": 120,
+        "ladder_idle": 120,
+        "land": 36,
+        "light_1": 29,
+        "light_2": 28,
+        "light_3": 38,
+        "parry": 25,
+        "run": 30,
+        "stagger": 30,
+        "strafe_left": 26,
+        "strafe_right": 26,
+        "victory": 100,
+        "walk": 40
+      },
+      "collision_verts": 55,
+      "markers": {
+        "heavy": [
+          0.5,
+          0.64,
+          0.95
+        ],
+        "light_1": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_2": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_3": [
+          0.38,
+          0.58,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
+      "proportions": {
+        "hip_width": 0.95,
+        "scale": 1.0,
+        "shoulder_width": 0.9
+      },
+      "props": {
+        "Queen_Blade_L": 376,
+        "Queen_Blade_R": 376
+      },
+      "role": "q",
+      "tris_lod0": 3580,
+      "tris_lod1": 1392
+    },
+    "rook": {
+      "bounds_body": {
+        "x": [
+          -0.48103439807891846,
+          0.48103439807891846
+        ],
+        "y": [
+          -0.2800000011920929,
+          0.23866026103496552
+        ],
+        "z": [
+          0.020000003278255463,
+          2.1938998699188232
+        ]
+      },
+      "bytes_collision": 15624,
+      "bytes_lod0": 1103312,
+      "bytes_lod1": 947408,
+      "class": "rook",
+      "clips": {
+        "ability": 18,
+        "block": 40,
+        "climb": 72,
+        "defeat": 60,
+        "dodge": 30,
+        "drop_fall": 40,
+        "heavy": 74,
+        "hit_react_heavy": 24,
+        "hit_react_light": 14,
+        "idle": 120,
+        "ladder_idle": 120,
+        "land": 36,
+        "light_1": 42,
+        "light_2": 40,
+        "light_3": 55,
+        "parry": 28,
+        "run": 30,
+        "stagger": 30,
+        "strafe_left": 26,
+        "strafe_right": 26,
+        "victory": 120,
+        "walk": 40
+      },
+      "collision_verts": 84,
+      "markers": {
+        "heavy": [
+          0.55,
+          0.67,
+          0.95
+        ],
+        "light_1": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_2": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_3": [
+          0.45,
+          0.62,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
+      "proportions": {
+        "hip_width": 1.15,
+        "scale": 1.12,
+        "shoulder_width": 1.3
+      },
+      "props": {
+        "Rook_TowerShield": 364,
+        "Rook_Warhammer": 314
+      },
+      "role": "r",
+      "tris_lod0": 3880,
+      "tris_lod1": 1534
+    }
+  },
+  "generator": {
+    "blender": "4.3.0",
+    "script": "tools/blender/build_all.py"
+  }
+}

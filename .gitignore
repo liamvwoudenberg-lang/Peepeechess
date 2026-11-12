@@ -13,3 +13,13 @@ android/local.properties
 android/**/build/
 artifacts/
 __pycache__/
+
+# Native Godot/editor caches and local collaboration scratch
+.godot/
+work/
+*.blend1
+
+# Native Android Gradle template and local signing material (Capacitor stays tracked).
+godot/android/
+*.keystore
+*.jks
