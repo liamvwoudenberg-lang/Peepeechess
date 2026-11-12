@@ -118,8 +118,8 @@
         ]
       },
       "bytes_collision": 15804,
-      "bytes_lod0": 1003524,
-      "bytes_lod1": 889360,
+      "bytes_lod0": 996444,
+      "bytes_lod1": 882176,
       "class": "bishop",
       "clips": {
         "ability": 20,
@@ -140,12 +140,40 @@
         "parry": 26,
         "run": 30,
         "stagger": 30,
-        "strafe_left": 40,
-        "strafe_right": 40,
+        "strafe_left": 26,
+        "strafe_right": 26,
         "victory": 110,
         "walk": 40
       },
       "collision_verts": 77,
+      "markers": {
+        "heavy": [
+          0.5,
+          0.64,
+          0.95
+        ],
+        "light_1": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_2": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_3": [
+          0.38,
+          0.58,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
       "proportions": {
         "hip_width": 0.92,
         "scale": 1.0,
@@ -173,16 +201,16 @@
           2.194200038909912
         ]
       },
-      "bytes_collision": 16808,
-      "bytes_lod0": 1200128,
-      "bytes_lod1": 1006084,
+      "bytes_collision": 16904,
+      "bytes_lod0": 1198932,
+      "bytes_lod1": 1004888,
       "class": "king",
       "clips": {
-        "ability": 40,
+        "ability": 56,
         "block": 40,
         "climb": 72,
         "defeat": 60,
-        "dodge": 26,
+        "dodge": 28,
         "drop_fall": 40,
         "heavy": 63,
         "hit_react_heavy": 24,
@@ -196,12 +224,46 @@
         "parry": 27,
         "run": 30,
         "stagger": 30,
-        "strafe_left": 40,
-        "strafe_right": 40,
+        "strafe_left": 26,
+        "strafe_right": 26,
         "victory": 120,
         "walk": 40
       },
       "collision_verts": 79,
+      "counter": {
+        "end": 26,
+        "riposte_start_frame": 24,
+        "riposte_ticks": 30,
+        "start": 6
+      },
+      "markers": {
+        "heavy": [
+          0.55,
+          0.67,
+          0.95
+        ],
+        "light_1": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_2": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_3": [
+          0.45,
+          0.62,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
       "proportions": {
         "hip_width": 1.05,
         "scale": 1.06,
@@ -230,8 +292,8 @@
         ]
       },
       "bytes_collision": 16312,
-      "bytes_lod0": 1055096,
-      "bytes_lod1": 920148,
+      "bytes_lod0": 1048016,
+      "bytes_lod1": 913120,
       "class": "knight",
       "clips": {
         "ability": 72,
@@ -252,12 +314,40 @@
         "parry": 27,
         "run": 30,
         "stagger": 30,
-        "strafe_left": 40,
-        "strafe_right": 40,
+        "strafe_left": 26,
+        "strafe_right": 26,
         "victory": 108,
         "walk": 40
       },
       "collision_verts": 88,
+      "markers": {
+        "heavy": [
+          0.55,
+          0.67,
+          0.95
+        ],
+        "light_1": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_2": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_3": [
+          0.45,
+          0.62,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
       "proportions": {
         "hip_width": 1.06,
         "scale": 1.04,
@@ -286,9 +376,9 @@
           1.7756600379943848
         ]
       },
-      "bytes_collision": 15116,
-      "bytes_lod0": 939476,
-      "bytes_lod1": 860952,
+      "bytes_collision": 15244,
+      "bytes_lod0": 932820,
+      "bytes_lod1": 854300,
       "class": "pawn",
       "clips": {
         "ability": 12,
@@ -309,12 +399,40 @@
         "parry": 27,
         "run": 30,
         "stagger": 30,
-        "strafe_left": 40,
-        "strafe_right": 40,
+        "strafe_left": 26,
+        "strafe_right": 26,
         "victory": 96,
         "walk": 40
       },
       "collision_verts": 77,
+      "markers": {
+        "heavy": [
+          0.5,
+          0.64,
+          0.95
+        ],
+        "light_1": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_2": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_3": [
+          0.38,
+          0.58,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
       "proportions": {
         "hip_width": 0.95,
         "scale": 0.94,
@@ -343,8 +461,8 @@
         ]
       },
       "bytes_collision": 13740,
-      "bytes_lod0": 1122956,
-      "bytes_lod1": 976568,
+      "bytes_lod0": 1115856,
+      "bytes_lod1": 969468,
       "class": "queen",
       "clips": {
         "ability": 14,
@@ -365,12 +483,40 @@
         "parry": 25,
         "run": 30,
         "stagger": 30,
-        "strafe_left": 40,
-        "strafe_right": 40,
+        "strafe_left": 26,
+        "strafe_right": 26,
         "victory": 100,
         "walk": 40
       },
       "collision_verts": 55,
+      "markers": {
+        "heavy": [
+          0.5,
+          0.64,
+          0.95
+        ],
+        "light_1": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_2": [
+          0.3,
+          0.5,
+          0.72
+        ],
+        "light_3": [
+          0.38,
+          0.58,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
       "proportions": {
         "hip_width": 0.95,
         "scale": 1.0,
@@ -399,9 +545,9 @@
           2.1938998699188232
         ]
       },
-      "bytes_collision": 15720,
-      "bytes_lod0": 1109964,
-      "bytes_lod1": 954068,
+      "bytes_collision": 15784,
+      "bytes_lod0": 1103312,
+      "bytes_lod1": 947408,
       "class": "rook",
       "clips": {
         "ability": 18,
@@ -422,12 +568,40 @@
         "parry": 28,
         "run": 30,
         "stagger": 30,
-        "strafe_left": 40,
-        "strafe_right": 40,
+        "strafe_left": 26,
+        "strafe_right": 26,
         "victory": 120,
         "walk": 40
       },
       "collision_verts": 84,
+      "markers": {
+        "heavy": [
+          0.55,
+          0.67,
+          0.95
+        ],
+        "light_1": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_2": [
+          0.38,
+          0.58,
+          0.75
+        ],
+        "light_3": [
+          0.45,
+          0.62,
+          0.92
+        ]
+      },
+      "nominal_speed_mps": {
+        "run": 4.5,
+        "strafe_left": 1.8,
+        "strafe_right": 1.8,
+        "walk": 2.0
+      },
       "proportions": {
         "hip_width": 1.15,
         "scale": 1.12,
@@ -439,7 +613,7 @@
       },
       "role": "r",
       "tris_lod0": 3880,
-      "tris_lod1": 1535
+      "tris_lod1": 1534
     }
   },
   "generator": {

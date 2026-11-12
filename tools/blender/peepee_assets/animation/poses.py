@@ -51,7 +51,11 @@ def over(pose: dict, **kw) -> dict:
 def _lerp(a, b, t):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return a + (b - a) * t
-    if isinstance(a, tuple) and isinstance(b, tuple) and len(a) == len(b):
+    if isinstance(a, tuple) and isinstance(b, tuple):
+        if len(a) != len(b):   # e.g. wpn (az, el) vs (az, el, roll): the missing roll is 0 (never snap halfway: that popped the weapon by ~120 deg)
+            n = max(len(a), len(b))
+            a = a + (0.0,) * (n - len(a))
+            b = b + (0.0,) * (n - len(b))
         return tuple(_lerp(x, y, t) for x, y in zip(a, b))
     if isinstance(a, dict) and isinstance(b, dict):
         return {k: _lerp(a[k], b[k], t) if k in b else a[k] for k in a}
@@ -127,6 +131,8 @@ class Solver:
                 sole = min(sole, tip.z - kin.tail[n].z)
             hips_loc = Vector((0, 0, -sole))
         r, f, u = pose["hips"]
+        if pose.get("ground", True):
+            u = max(u, 0.0)   # the ground fit already seats the lowest sole on the floor: a negative offset would sink the feet through it
         hips_loc = hips_loc + K.cf(r, f, u, "R")
 
         yaw = pose["torso"][2] + pose["pelvis"][2]
@@ -172,9 +178,13 @@ class Solver:
         d = rots["RightHand"] @ self.axis_r
         s_l = heads["LeftUpperArm"]
         want = self.style["offhand_grip"]
-        s = want
-        while s > 0.12 and (socket + d * s - s_l).length > self.reach * 0.97:
-            s -= 0.03
+        # farthest grip point the left arm can still reach: solve |socket + d*s - shoulder| = 0.97 * reach (continuous in s: a stepped search popped the elbow)
+        w = socket - s_l
+        b = 2.0 * d.dot(w)
+        c = w.dot(w) - (self.reach * 0.97) ** 2
+        disc = b * b - 4.0 * c
+        s_max = (-b + math.sqrt(disc)) * 0.5 if disc >= 0.0 else 0.12
+        s = max(0.12, min(want, s_max))
         target = socket + d * s
         weight = float(pose["armL"].get("follow", 1.0))
         if weight < 1.0:   # blend toward the authored free-hand target (smooth release/grab)

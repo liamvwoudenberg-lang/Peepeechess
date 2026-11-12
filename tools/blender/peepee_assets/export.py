@@ -8,6 +8,36 @@ import bpy
 from .runtime import make_active
 
 
+def make_quaternion_keys_continuous(action) -> int:
+    """Flips the sign of any rotation-quaternion key whose dot product with the previous key is negative (q and -q are the same
+    rotation). Blender interpolates the four components independently, so a sign flip between two keys makes the in-between
+    frames sweep through an arbitrary orientation (a one-frame "pop" of up to 180 degrees). Returns how many keys were flipped."""
+    groups = {}
+    for fc in action.fcurves:
+        if fc.data_path.endswith("rotation_quaternion"):
+            groups.setdefault(fc.data_path, {})[fc.array_index] = fc
+    flipped = 0
+    for comps in groups.values():
+        if len(comps) != 4:
+            continue
+        count = len(comps[0].keyframe_points)
+        prev = None
+        for k in range(count):
+            q = [comps[i].keyframe_points[k].co[1] for i in range(4)]
+            if prev is not None and sum(a * b for a, b in zip(q, prev)) < 0.0:
+                for i in range(4):
+                    kp = comps[i].keyframe_points[k]
+                    kp.co[1] = -kp.co[1]
+                    kp.handle_left[1] = -kp.handle_left[1]
+                    kp.handle_right[1] = -kp.handle_right[1]
+                q = [-x for x in q]
+                flipped += 1
+            prev = q
+        for i in range(4):
+            comps[i].update()
+    return flipped
+
+
 def add_clip(armature, name: str, build_fn, frames: int) -> None:
     """Creates action `name` by calling build_fn(armature) (which keys poses on frames 0..frames),
     then parks it on its own NLA track so the glTF exporter writes it as a separate animation."""
@@ -15,6 +45,7 @@ def add_clip(armature, name: str, build_fn, frames: int) -> None:
     action = bpy.data.actions.new(name)
     ad.action = action
     build_fn(armature)
+    make_quaternion_keys_continuous(action)
     action.frame_range = (0, frames)
     ad.action = None
     track = ad.nla_tracks.new()
