@@ -125,6 +125,11 @@ func _response(value: Variant) -> Dictionary:
 		response["error"] = response.get("error", response.get("message", "The combat module rejected the request."))
 	return response
 
+## true while a loaded arena is mounted and not loading a new one (battle-royal-v1 restarts it in place for the next duel
+## of a sequence instead of reloading the scene; see BattleFlow.keep_arena_for_royal).
+func has_live_arena() -> bool:
+	return is_instance_valid(arena) and not _loading and arena.is_inside_tree()
+
 ## End/current resources of one seat as the trusted local simulation reports them ({} without a running arena). Only the
 ## royal ruleset reads this: the King's HP/stamina/cooldown carry over from the authority, never from a client packet.
 func fighter_state(player_id: String) -> Dictionary:

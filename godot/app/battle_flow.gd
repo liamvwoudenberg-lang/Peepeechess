@@ -24,6 +24,14 @@ var _disposed = false
 ## pit-world hook: false = the presentation layer (godot/world/battle_bridge.gd) calls
 ## return_to_board() itself once its sequence is done, instead of the fixed 2 s aftermath timer.
 var auto_return = true
+# --- king's last stand (battle-royal-v1) hooks; never used by Classic / C0 Battle ---------------------------------------
+## The pit world's bridge sets `start_override`: it is called (instead of confirm_capture) when a royal duel's banner is over and
+## must itself call confirm_capture(); it returns {ok, error?}. A failure is handled like any other failed start (bounded retry).
+var start_override: Callable = Callable()
+## true = between two duels of one sequence the arena of the previous duel stays mounted and is restarted in place (no scene
+## reload); the pit presentation then stays in the chamber. false (default) = the arena is freed after every duel.
+var keep_arena_for_royal = false
+# --- end king's last stand ----------------------------------------------------------------------------------------------
 
 func setup(match_game: BattleChessMatch, combat_adapter: Node, combat_host: Node) -> void:
 	game = match_game
@@ -62,6 +70,10 @@ func _on_sequence_finished(summary: Dictionary) -> void:
 func _royal_duel() -> bool:
 	return game.has_method("royal_active") and game.call("royal_active")
 
+## True while the pending fight is a battle-royal-v1 duel (mandatory, banner instead of the capture preview).
+func is_royal_duel() -> bool:
+	return _royal_duel()
+
 func _prepared(request: Dictionary) -> void:
 	_battle_id = request.battleId
 	_timer = ROYAL_BANNER_SECONDS
@@ -73,6 +85,9 @@ func confirm_capture() -> Dictionary:
 		return {"ok": false, "error": "No capture preview is ready."}
 	_set_phase("loading")
 	var options: Dictionary = game.combat_options()
+	if keep_arena_for_royal and not options.is_empty() and adapter.has_method("has_live_arena") and adapter.call("has_live_arena"):
+		_arena_ready()  # king's last stand: the previous duel's arena is still mounted; restart it in place
+		return {"ok": true}
 	var response = adapter.begin_load(game.pending_request(), host) if options.is_empty() else adapter.begin_load(game.pending_request(), host, options)
 	if not response.ok:
 		_failure(response.error)
@@ -129,7 +144,8 @@ func return_to_board() -> Dictionary:
 	if not committed.ok:
 		_failure(committed.error)
 		return committed
-	adapter.stop()
+	if not (keep_arena_for_royal and _royal_duel() and phase == "preview"):  # king's last stand: the next duel reuses the arena
+		adapter.stop()
 	if phase == "returning": # not when the commit prepared the next duel of a royal sequence
 		_timer = 0.4
 		returning_to_board.emit()
@@ -147,7 +163,12 @@ func advance(seconds: float) -> void:
 		_timer -= maxf(0, seconds)
 		if _timer <= 0:
 			_timer = ROYAL_BANNER_SECONDS # retried after a refusal (for example while paused)
-			confirm_capture()
+			if start_override.is_valid():
+				var started = start_override.call()
+				if started is Dictionary and not started.get("ok", true) and phase == "preview" and not game.paused:
+					_failure(str(started.get("error", "The duel could not start.")))
+			else:
+				confirm_capture()
 	elif phase in ["aftermath", "returning"]:
 		_timer -= maxf(0, seconds)
 		if _timer <= 0:

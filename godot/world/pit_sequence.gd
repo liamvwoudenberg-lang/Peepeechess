@@ -16,8 +16,10 @@ extends Node
 ## Signals: phase_changed, drop_started, combat_started, return_ready (winner is back on its tile:
 ## the bridge may now commit the chess result and stop the arena), finished, aborted.
 
-enum Phase { IDLE, CAPTURE_FOCUS, TRAPDOOR_OPEN, DROP, COMBAT, RESOLVE, CLIMB, RETURN }
-const PHASE_NAMES: Array[String] = ["IDLE", "CAPTURE_FOCUS", "TRAPDOOR_OPEN", "DROP", "COMBAT", "RESOLVE", "CLIMB", "RETURN"]
+# INTERLUDE is appended last (king's last stand, see the marked block at the end of this file): between two duels of one
+# multi-duel sequence the pit stays in the chamber. Single captures never enter it, so the order above is unchanged.
+enum Phase { IDLE, CAPTURE_FOCUS, TRAPDOOR_OPEN, DROP, COMBAT, RESOLVE, CLIMB, RETURN, INTERLUDE }
+const PHASE_NAMES: Array[String] = ["IDLE", "CAPTURE_FOCUS", "TRAPDOOR_OPEN", "DROP", "COMBAT", "RESOLVE", "CLIMB", "RETURN", "INTERLUDE"]
 const W := preload("res://world/world_constants.gd")
 const Interaction := preload("res://boards/board_interaction.gd")
 const Rules := preload("res://chess/chess_engine.gd")
@@ -160,6 +162,7 @@ func abort(reason: String = "aborted") -> void:
 	_result = {}
 	_winner_index = -1
 	_nodes = []
+	_seq_clear()  # king's last stand: the sequence (if any) is over
 	_enter(Phase.IDLE)
 	aborted.emit(reason)
 
@@ -190,6 +193,8 @@ func advance(dt: float) -> void:
 			_tick_climb()
 		Phase.RETURN:
 			_tick_return(dt)
+		Phase.INTERLUDE:
+			_seq_tick_interlude()  # king's last stand
 
 
 # CAPTURE_FOCUS: attacker slides onto the contested tile, camera zooms toward it.
@@ -305,7 +310,10 @@ func _tick_resolve() -> void:
 	if _time >= W.RESOLVE_DEFEAT_TIME + W.RESOLVE_DISSOLVE_TIME:
 		if _loser_visual != null and is_instance_valid(_loser_visual):
 			_loser_visual.visible = false
-		_begin_climb()
+		if _seq_continues():  # king's last stand: another duel follows, the pit stays in the chamber
+			_seq_begin_interlude()
+		else:
+			_begin_climb()
 
 
 func _ensure_defeat_pose() -> void:
@@ -418,6 +426,8 @@ func _tick_return(dt: float) -> void:
 		winner.position = _stand_local(_winner_index)
 		var color := Color(1.0, 0.86, 0.55) if _colors[_winner_index] == "w" else Color(0.9, 0.55, 0.7)
 		world.fx[_winner_index].play(_stand_local(_winner_index) + world.board_root.position + Vector3(0, 0.6, 0), color)
+		_seq_vanish_begin()  # king's last stand: the removed mating group vanishes (no-op for a single capture)
+	_seq_vanish_tick()
 	var u := _time / W.RETURN_MORPH_TIME
 	if u < 1.0:
 		var pop := W.smooth(u)
@@ -426,7 +436,7 @@ func _tick_return(dt: float) -> void:
 			_winner_visual.scale = Vector3.ONE * maxf(0.001, 1.0 - pop)
 	else:
 		winner.scale = Vector3.ONE
-		winner.position = winner.position.lerp(_tile_center, minf(1.0, dt * 8.0))
+		winner.position = winner.position.lerp(_return_target(), minf(1.0, dt * 8.0))  # _return_target() == _tile_center for a single capture
 		if _winner_visual != null and is_instance_valid(_winner_visual):
 			_winner_visual.visible = false
 		if not _return_ready_sent:
@@ -445,19 +455,22 @@ func _finish_return() -> void:
 		_return_ready_sent = true
 		return_ready.emit()
 	var winner: Node3D = _nodes[_winner_index]
-	winner.position = _tile_center
-	world.restore_after_battle(_entries(), true, _winner_index)
+	winner.position = _return_target()
+	world.restore_after_battle(_entries(), _seq_restore_success(), _seq_winner_entry())  # single capture: (_entries(), true, _winner_index)
 	_winner_visual = null
 	_loser_visual = null
 	arena = null
 	_request = {}
 	_result = {}
 	_nodes = []
+	_seq_clear()
 	_enter(Phase.IDLE)
 	finished.emit()
 
 
 func _entries() -> Array:
+	if not _seq.is_empty():
+		return _seq_entries()  # king's last stand: the King and the whole mating group
 	var out: Array = []
 	for i in _nodes.size():
 		out.append({"node": _nodes[i], "pos": _origin_local[i], "rot_y": _origin_rot[i]})
@@ -494,3 +507,226 @@ static func _set_layers(root: Node, mask: int) -> void:
 		root.layers = mask
 	for child in root.find_children("*", "VisualInstance3D", true, false):
 		child.layers = mask
+
+
+# ======================================================================================================================
+# BEGIN king's last stand (battle-royal-v1): multi-duel sequences. Everything below is NEW and self-contained; the phase
+# code above only calls the small hooks named _seq_* / _return_target (all no-ops for an ordinary single capture).
+#
+# One descent for the WHOLE sequence: begin_sequence() + begin(duel 1) run the normal CAPTURE_FOCUS .. COMBAT. When the King
+# wins a duel that is not the last, RESOLVE ends in INTERLUDE instead of CLIMB: the pit stays in the chamber (no climb, no
+# scene change), `duel_cleared` tells the bridge to commit that duel, and next_duel(request) steps the next checker in: the
+# arena restarts in place, both fighters flash in at their spawn points, the camera settles into the third-person pose and
+# COMBAT resumes. Winning the last duel continues with CLIMB/RETURN: the King returns to ITS OWN square and the removed
+# mating group vanishes; losing any duel climbs the winning checker out, and every piece is restored where the board has it.
+# The sequence never decides anything (outcome / carried HP come from the combat authority through the bridge).
+# ======================================================================================================================
+
+## A non-final duel of a multi-duel sequence was won by the King and its RESOLVE finished (the pit is in INTERLUDE).
+signal duel_cleared(index: int)
+## The multi-duel sequence is over (normal end or abort); the single-capture machinery is back in charge.
+signal sequence_ended
+
+## Seconds the two fighters take to step in (flash at the spawns, camera settling) before the next duel's COMBAT.
+const SEQ_STEP_IN_TIME := 0.8
+const SEQ_VANISH_TIME := 0.5
+const SEQ_VANISH_STAGGER := 0.15
+
+var _seq: Dictionary = {}   # {} = ordinary single capture
+
+
+## `info` = BattleRoyalMatch.royal_request() ({king: combatant, attackers: [combatant...]} in fighting order); `start_index` is
+## the duel about to be presented (0 for a fresh sequence, > 0 when a duel is re-armed after an interruption). Call it while
+## IDLE, then begin(duel request). Returns false (and changes nothing) when the pieces are not on the board.
+func begin_sequence(info: Dictionary, start_index: int = 0) -> bool:
+	if phase != Phase.IDLE or world == null or not world.can_present() or not _seq.is_empty():
+		return false
+	var king_node: Node3D = world.piece_node(String(info["king"]["pieceId"]))
+	if king_node == null:
+		return false
+	var checkers: Array = []
+	for entry in info["attackers"]:
+		var node: Node3D = world.piece_node(String(entry["pieceId"]))
+		if node == null:
+			return false
+		checkers.append({"id": String(entry["pieceId"]), "node": node, "pos": node.position, "rot_y": node.rotation.y})
+	_seq = {"total": checkers.size(), "index": start_index, "stage": "", "t_stage": 0.0,
+			"king": {"id": String(info["king"]["pieceId"]), "node": king_node, "pos": king_node.position, "rot_y": king_node.rotation.y},
+			"checkers": checkers, "vanish": false}
+	return true
+
+
+func sequence_active() -> bool:
+	return not _seq.is_empty()
+
+
+## Index (0-based) of the duel being presented, -1 when no sequence runs.
+func sequence_index() -> int:
+	return int(_seq["index"]) if not _seq.is_empty() else -1
+
+
+func sequence_total() -> int:
+	return int(_seq["total"]) if not _seq.is_empty() else 0
+
+
+## INTERLUDE only: present the next duel (`request` = its frozen BattleRequest, the King is the attacker). The caller restarts the
+## arena (BattleFlow.confirm_capture -> adapter.start); the pit steps the fighters in once the arena runs the new battle.
+func next_duel(request: Dictionary) -> bool:
+	if phase != Phase.INTERLUDE or _seq.is_empty() or _seq["stage"] != "hold":
+		return false
+	var attacker: Dictionary = request["attacker"]
+	var defender: Dictionary = request["defender"]
+	var checker := _seq_checker(String(defender["pieceId"]))
+	if checker.is_empty() or String(attacker["pieceId"]) != String(_seq["king"]["id"]):
+		return false
+	_seq["index"] = int(_seq["index"]) + 1
+	_request = request.duplicate(true)
+	_nodes = [_seq["king"]["node"], checker["node"]]
+	_colors = [String(attacker["color"]), String(defender["color"])]
+	_origin_local = [_seq["king"]["pos"], checker["pos"]]
+	_origin_rot = [_seq["king"]["rot_y"], checker["rot_y"]]
+	_result = {}
+	_winner_index = -1
+	_winner_visual = null
+	_loser_visual = null
+	(checker["node"] as Node3D).visible = false   # the checker "drops": the board is out of sight, only the fighter remains
+	_seq["stage"] = "wait_arena"
+	_seq["t_stage"] = _time
+	return true
+
+
+## Explicit end of a sequence: aborts a running presentation (everything restored) or just forgets an armed one.
+func end_sequence() -> void:
+	if phase != Phase.IDLE:
+		abort("sequence ended")
+	else:
+		_seq_clear()
+
+
+func _seq_checker(piece_id: String) -> Dictionary:
+	for entry in _seq.get("checkers", []):
+		if entry["id"] == piece_id:
+			return entry
+	return {}
+
+
+func _seq_clear() -> void:
+	if _seq.is_empty():
+		return
+	_seq = {}
+	sequence_ended.emit()
+
+
+## True after RESOLVE when the King won and more duels follow.
+func _seq_continues() -> bool:
+	return not _seq.is_empty() and _winner_index == 0 and int(_seq["index"]) + 1 < int(_seq["total"])
+
+
+func _seq_begin_interlude() -> void:
+	_set_arena_overlays(false)   # the previous duel's result panel must not stay on screen
+	_seq["stage"] = "hold"
+	_enter(Phase.INTERLUDE)
+	_seq["t_stage"] = _time
+	duel_cleared.emit(int(_seq["index"]))
+
+
+func _seq_tick_interlude() -> void:
+	match String(_seq["stage"]):
+		"wait_arena":
+			var arena_ok := not require_arena or _seq_arena_runs_request()
+			if arena_ok:
+				_seq_step_in()
+			elif _time - float(_seq["t_stage"]) > ARENA_WAIT_TIMEOUT:
+				abort("arena not ready")
+		"step_in":
+			if _time - float(_seq["t_stage"]) >= SEQ_STEP_IN_TIME and not world.rig.is_transitioning():
+				_set_arena_overlays(true)
+				_enter(Phase.COMBAT)
+				combat_started.emit()
+				if not _result.is_empty():
+					_begin_resolve()
+
+
+func _seq_arena_runs_request() -> bool:
+	if arena == null or not is_instance_valid(arena):
+		return false
+	var sim = arena.get("sim")
+	return sim != null and String(sim.request.get("battleId", "")) == String(_request.get("battleId", "?"))
+
+
+## Both fighters flash in at their spawn points (the arena restarted in place: they stand at the start positions), the camera
+## settles into the third-person pose and the arena's paused simulation is released (its own countdown runs).
+func _seq_step_in() -> void:
+	_seq["stage"] = "step_in"
+	_seq["t_stage"] = _time
+	_set_fighters_visible(false)
+	for i in 2:
+		world.fx[i].play(_spawn_world(i) + Vector3(0, 0.6, 0), Color(1.0, 0.86, 0.55) if _colors[i] == "w" else Color(0.9, 0.55, 0.7))
+	_set_fighters_visible(true)
+	if arena != null and is_instance_valid(arena):
+		var cams = arena.get("cameras")
+		if cams is Array and not cams.is_empty():
+			world.rig.follow = cams[0].camera
+		world.rig.camera.make_current()
+	world.rig.go(CameraRig.State.COMBAT_THIRD_PERSON, SEQ_STEP_IN_TIME)
+	_release_simulation()
+
+
+## Where the winner of the whole sequence ends up (board-local): its own square (a single capture: the contested tile).
+func _return_target() -> Vector3:
+	if _seq.is_empty():
+		return _tile_center
+	return _origin_local[_winner_index]
+
+
+## King and mating group, each with the position/rotation to restore. Index 0 is always the King.
+func _seq_entries() -> Array:
+	var out: Array = [{"node": _seq["king"]["node"], "pos": _seq["king"]["pos"], "rot_y": _seq["king"]["rot_y"]}]
+	for entry in _seq["checkers"]:
+		out.append({"node": entry["node"], "pos": entry["pos"], "rot_y": entry["rot_y"]})
+	return out
+
+
+## King survived the whole sequence: the committed board removes the group (success, winner = the King). King fell: the board
+## is untouched, so every piece goes back to its square (not a "capture" restore).
+func _seq_restore_success() -> bool:
+	return _seq.is_empty() or _winner_index == 0
+
+
+func _seq_winner_entry() -> int:
+	if _seq.is_empty():
+		return _winner_index
+	return 0 if _winner_index == 0 else -1
+
+
+## RETURN, King won the last duel: the mating group reappears on its squares for a moment and vanishes in dust.
+func _seq_vanish_begin() -> void:
+	if _seq.is_empty() or _winner_index != 0:
+		return
+	_seq["vanish"] = true
+	var first := true
+	for entry in _seq["checkers"]:
+		var node: Node3D = entry["node"]
+		if not is_instance_valid(node):
+			continue
+		node.visible = true
+		node.scale = Vector3.ONE
+		node.position = entry["pos"]
+		node.rotation = Vector3(0, entry["rot_y"], 0)
+		if first:
+			first = false
+			world.fx[1].play(Vector3(node.position) + world.board_root.position + Vector3(0, 0.6, 0), Color(0.7, 0.65, 0.55))
+
+
+func _seq_vanish_tick() -> void:
+	if _seq.is_empty() or not _seq.get("vanish", false):
+		return
+	var k := 0
+	for entry in _seq["checkers"]:
+		var node: Node3D = entry["node"]
+		if is_instance_valid(node):
+			var u := (_time - SEQ_VANISH_STAGGER * k) / SEQ_VANISH_TIME
+			node.scale = Vector3.ONE * maxf(0.001, 1.0 - W.smooth(u))
+			node.visible = u < 1.0
+		k += 1
+# END king's last stand
