@@ -38,13 +38,13 @@ if a != b:
 PY
 ( cd "$REL" && sha256sum Peepeechess-windows-x86_64.exe "$(basename "$ZIP")" "$(basename "$TGZ")" > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt >/dev/null )
 
-field() { sed -n "s/^$1: *//p" "$PC/BUILD_INFO.txt" 2>/dev/null | head -1; }
+field() { sed -n "s/^$1: *//p" "$PC/BUILD_INFO.txt" 2>/dev/null | head -1 || true; }
 sha() { sha256sum "$REL/$1" | cut -d' ' -f1; }
 size() { stat -c %s "$REL/$1"; }
 EXE_N=Peepeechess-windows-x86_64.exe; ZIP_N="$(basename "$ZIP")"; TGZ_N="$(basename "$TGZ")"
 SMOKE="$(cat "$PC/smoke_status.txt" 2>/dev/null || echo "not run")"
 SCRIPTED="$(grep -E '^Package smoke:' "$PC/smoke_scripted.log" 2>/dev/null | tail -1 || true)"
-PACK="$(sed -n 's/^pack: *//p' "$PC/exe-inspection.txt" 2>/dev/null | head -1)"
+PACK="$(sed -n 's/^pack: *//p' "$PC/exe-inspection.txt" 2>/dev/null | head -1 || true)"
 INSPECT_OK="$(grep -c '^RESULT: ok' "$PC/exe-inspection.txt" 2>/dev/null || true)"
 
 {

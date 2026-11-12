@@ -83,7 +83,9 @@ export XDG_DATA_HOME="$OUT/runtime/data" XDG_CONFIG_HOME="$OUT/runtime/config" X
 mkdir -p "$XDG_DATA_HOME/godot/export_templates" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
 ln -sfn "$TEMPLATES" "$XDG_DATA_HOME/godot/export_templates/$VERSION.stable"
 rm -rf "$OUT/pc" "$OUT/release"
-GODOT="$GODOT" SMOKE=1 bash "$ROOT/tools/package/build_pc.sh" "$OUT/pc"
+# TARGET=app: the full application (never the combat test arena); PRESETS=repo: fail instead of silently falling back to
+# tools/package/export_presets.cfg when the repository's own "Windows Desktop" preset is missing.
+GODOT="$GODOT" SMOKE=1 TARGET=app PRESETS=repo bash "$ROOT/tools/package/build_pc.sh" "$OUT/pc"
 done_phase
 ZIP="$(ls "$OUT"/pc/Peepeechess-*-win64.zip)"
 EXE="$OUT/pc/$(basename "$ZIP" .zip)/Peepeechess.exe"

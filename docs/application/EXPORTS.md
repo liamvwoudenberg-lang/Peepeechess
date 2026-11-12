@@ -119,8 +119,106 @@ GPU performance, suspend/resume and safe-area behavior still require device QA.
 secrets and controller/quality behavior without changing the physics rate.
 The `Native Windows and Android exports` workflow produces the unsigned Windows
 build, debug APK and test-signed AAB as GitHub Actions artifacts. It does not
-publish a release or upload anything to an app store. Artifact/device verification
+publish a release or upload anything to an app store (the separate `Release Windows
+build` workflow does publish, see the next section). Artifact/device verification
 results for the integrated application belong in the final task validation log.
+
+## Publishing a Windows release
+
+A downloadable GitHub Release (tag, `Peepeechess-windows-x86_64.exe`, a Windows zip, a
+Linux tar.gz, `SHA256SUMS.txt`) is produced by one pipeline, locally or on GitHub.
+Both run the same scripts, so a local run is a faithful rehearsal of the release job.
+
+### Build the release files locally (publishes nothing)
+
+Needs Linux x86_64, Python 3, `curl`, `unzip` and Xvfb for the smoke test
+(`apt-get install xvfb libgl1-mesa-dri libglx-mesa0`). From the repository root:
+
+```sh
+bash tools/package/build_release_local.sh v0.3.0-alpha.1
+```
+
+The script (1) finds `GODOT`/`GODOT_BIN`/`godot` or downloads the pinned official
+4.6.3 editor (SHA-512 verified), (2) installs the official 4.6.3 export templates with
+`scripts/install-native-toolchain.sh --templates-only` (SHA-512 verified, 1.2 GB; skipped
+when already present in `PEEPEECHESS_TOOLCHAIN_DIR`, default `work/toolchains`),
+(3) runs `tools/package/build_pc.sh` with `SMOKE=1` using the repository's own
+`Windows Desktop` preset, (4) runs `tools/package/smoke_linux.sh` on the Linux build,
+(5) runs `tools/package/inspect_exe.py` on the Windows exe and (6) runs
+`tools/package/assemble_release.sh`. It stops at the first failure and never touches
+`HOME`, the repository or your editor settings. Options: `GODOT`,
+`PEEPEECHESS_TOOLCHAIN_DIR`, `RELEASE_OUT` (default `artifacts/release`),
+`SKIP_SMOKE=1` (only where Xvfb cannot be installed; the notes then say the smoke test
+did not run). Outputs, all git-ignored:
+
+| Path under `RELEASE_OUT` | Content |
+| --- | --- |
+| `release/Peepeechess-windows-x86_64.exe` | the exe to publish: one file, game data embedded; byte-identical to the exe in the zip |
+| `release/Peepeechess-<commit>-win64.zip` | exe, `Peepeechess.console.exe`, `Start-with-console.bat`, `PLAY.txt` |
+| `release/Peepeechess-<commit>-linux64.tar.gz` | the Linux build that the smoke test ran |
+| `release/SHA256SUMS.txt`, `release/RELEASE_NOTES.md` | `sha256sum -c` list and the release text (lists only checks that ran) |
+| `pc/` | `build_pc.sh` output: logs, `BUILD_INFO.txt`, `exe-inspection.txt`, `smoke_*.log` |
+
+Reference run, 2026-11-12, 4 shared vCPUs: 138 s from nothing (editor 5 s, templates 54 s,
+build 63 s, smoke 14 s), 85 s when the templates are cached; exe about 109 MiB, zip about 43 MiB,
+tar.gz about 35 MiB. Godot's export is not byte-reproducible (five builds of the same `godot/` tree gave five
+different exe hashes and three different sizes, 114758520 to 114758584 bytes), so publish the files of one
+build together with their own `SHA256SUMS.txt` and never mix files of different runs. A build from a tree with uncommitted changes in
+`godot/` or `tools/` carries `-dirty` in its file names and must not be published.
+
+### Publish from GitHub Actions
+
+The `Release Windows build` workflow (`.github/workflows/release-windows.yml`) runs the
+script above on `ubuntu-24.04` and creates the release with the workflow's own
+`GITHUB_TOKEN`. Run it from **Actions, Release Windows build, Run workflow**, or through the API
+(workflow `release-windows.yml`) with these inputs:
+
+| Input | Meaning |
+| --- | --- |
+| `tag` (required) | new tag such as `v0.3.0-alpha.1`; the run fails at once if the tag exists, nothing is ever overwritten |
+| `prerelease` (default `true`) | mark the release as a pre-release |
+| `ref` (optional) | branch, tag or commit to build; empty means the ref the workflow was dispatched on. That ref must contain `tools/package/build_release_local.sh` |
+| `skip_windows_smoke` (default `false`) | skip the Windows-runner check below; for use only if that check itself is broken |
+
+Jobs: `build` (script above, then uploads the files as the `release-assets` artifact),
+`windows-smoke` (on `windows-latest`: verifies the artifact checksums, extracts the zip and
+starts `Peepeechess.console.exe --headless --quit-after 300`, which must exit 0 without
+`SCRIPT ERROR`/`ERROR:` lines), and `publish`, which runs only after both succeeded and only for a
+manual dispatch. `publish` is the only job with `contents: write`; it runs no repository
+code: it re-verifies `SHA256SUMS.txt`, calls `gh release create --target <built commit>`,
+downloads the published exe again and compares it with the checksum list, and writes the link to the run
+summary. A pull request that changes the pipeline files runs `build` and `windows-smoke` as a dry run and
+publishes nothing.
+
+`workflow_dispatch` can only be started for a workflow file that exists on the repository's
+default branch (`main`; the Run workflow button needs it there). Merge the pipeline to `main`
+first; if the code to release lives on another branch, merge the pipeline into that branch too
+and pass it as `ref`. GitHub may also accept a dispatch against a branch that contains the file once
+the workflow is known to Actions (the pull-request dry run registers it); that was not verified.
+
+### What a tester does
+
+Open the repository's **Releases** page, choose the release, download
+`Peepeechess-windows-x86_64.exe` from its assets and double-click it. It is unsigned, so
+Windows SmartScreen shows "Windows protected your PC": choose **More info**, then **Run anyway**
+(some antivirus products also warn about unsigned game executables). To check the download:
+`Get-FileHash .\Peepeechess-windows-x86_64.exe -Algorithm SHA256` in PowerShell must equal the line
+in `SHA256SUMS.txt`. The zip is the same exe plus `Start-with-console.bat`, which prints errors for bug
+reports. Windows 10/11 x64 with an OpenGL-capable GPU driver is required; online play needs a
+Peepeechess server.
+
+### What is and is not verified
+
+| Check | Status |
+| --- | --- |
+| The 4.6.3 export template archive (and the editor, when the script downloads it) matches the pinned SHA-512 from the official `SHA512-SUMS.txt` | verified by the scripts whenever they download |
+| Export completes without `ERROR:`/`SCRIPT ERROR` in the import and export logs | verified by `build_pc.sh` on every run |
+| Exe is a PE32+ x86_64 image with the embedded pack, MD5 of every packed file, main scene, runtime data files and the Windows version resource present | verified statically by `inspect_exe.py` (the file is not executed) |
+| Linux build of the same commit starts, navigates the menu and starts local Classic and Battle Chess matches | verified under Xvfb with software OpenGL by `smoke_linux.sh` |
+| Windows exe starts headlessly and runs 300 frames on a Windows runner | checked by the `windows-smoke` job; that job had never run when it was written, so its first result is the proof |
+| Windows exe renders and plays on a physical Windows PC with a real GPU and gamepad | **not verified**; no Windows machine and no Wine were available |
+| Authenticode signature | **none**; signing needs an organization certificate and an added `signtool` step |
+| Online play against a public server | not verified |
 
 ## Actual build verification, 2026-11-11
 
