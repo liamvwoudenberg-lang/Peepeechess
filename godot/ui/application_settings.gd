@@ -13,6 +13,9 @@ static var account: Dictionary = {}
 static var launch: Dictionary = {}
 static var result: Dictionary = {}
 static var loaded = false
+## The 3D opening screen plays once per application run (process), not every time the player returns to the main menu.
+## It is marked as seen the moment it starts. Tests reset it with reset_intro(); `--no-intro` on the command line skips it.
+static var intro_seen = false
 
 static func load_preferences() -> void:
 	if loaded:
@@ -65,6 +68,15 @@ static func set_combat_input(active: bool) -> void:
 			_platform.set_cursor_enabled(not active)
 		else:
 			_platform.call_deferred("set_cursor_enabled", not active)
+
+static func reset_intro() -> void:
+	intro_seen = false
+
+## True while the opening screen is still due: the first time the home page is shown in this run.
+static func wants_intro() -> bool:
+	if intro_seen:
+		return false
+	return not ("--no-intro" in OS.get_cmdline_args() or "--no-intro" in OS.get_cmdline_user_args())
 
 static func take_launch() -> Dictionary:
 	var pending = launch.duplicate(true)

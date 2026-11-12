@@ -100,6 +100,7 @@ func open_page(shell: Control, page: String) -> void:
 
 func run() -> void:
 	Settings.loaded = true
+	Settings.intro_seen = true   # the pages are audited here; the opening screen has its own suite (opening_screen_test.gd)
 	Settings.preferred_3d = false
 	Settings.account = {"playerId": "p1", "displayName": "Sir Galahad of the Very Long Name", "username": "galahad", "classic": {"rating": 1432, "wins": 12, "losses": 5, "draws": 2, "games": 19}, "battle": {"rating": 1288, "wins": 4, "losses": 3, "draws": 0, "games": 7}}
 	Settings.token = "layout-test-token"

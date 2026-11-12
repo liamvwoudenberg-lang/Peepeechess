@@ -1,6 +1,7 @@
 extends Control
 ## Screen background: deep vertical gradient with edge vignette. In "home" mode it also animates a handful of
-## drifting embers and four slowly rotating chess-piece silhouettes. Cheap by design:
+## drifting embers and four slowly rotating chess-piece silhouettes. In "scene" mode a 3D scene (the castle) shows behind
+## the UI: nothing opaque is drawn, only a soft scrim (top and bottom bands plus a dim centre behind the menu). Cheap by design:
 ##   * CPU only, ~40 circles + 4 textured quads per frame, no shaders, no blur;
 ##   * state lives in preallocated Packed arrays updated in place (no per-frame allocations);
 ##   * redraws at <= 30 Hz and stops completely when motion is reduced, the node is hidden or mode is "page".
@@ -10,6 +11,13 @@ const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const EMBERS := 36
 const PIECE_KINDS := ["rook_piece", "knight", "bishop", "king"]
 const STEP := 1.0 / 30.0
+## 0..1: how strongly the centre of the screen is dimmed in "scene" mode (the menu fades it in).
+var center_dim := 0.0:
+	set(value):
+		if not is_equal_approx(value, center_dim):
+			center_dim = value
+			if mode == "scene":
+				queue_redraw()
 var mode := "page":
 	set(value):
 		mode = value
@@ -25,6 +33,7 @@ var _piece_angle := PackedFloat32Array()
 var _piece_speed := PackedFloat32Array()
 var _piece_size := PackedFloat32Array()
 var _textures: Array[ImageTexture] = []
+var _scrim_texture: GradientTexture2D
 var _accumulator := 0.0
 var _rng := RandomNumberGenerator.new()
 # cached geometry: rebuilt only when the size or mode changes, never per frame
@@ -99,9 +108,37 @@ func _process(delta: float) -> void:
 		_piece_angle[i] += _piece_speed[i] * step
 	queue_redraw()
 
+func _draw_scene_scrim(rect: Rect2) -> void:
+	var dark := Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.0)
+	var top_band := Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.55)
+	var bottom_band := Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.62)
+	var top_h := rect.size.y * 0.34
+	draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), Vector2(rect.end.x, rect.position.y + top_h), Vector2(rect.position.x, rect.position.y + top_h)]), PackedColorArray([top_band, top_band, dark, dark]))
+	var bottom_h := rect.size.y * 0.40
+	draw_polygon(PackedVector2Array([Vector2(rect.position.x, rect.end.y - bottom_h), Vector2(rect.end.x, rect.end.y - bottom_h), rect.end, Vector2(rect.position.x, rect.end.y)]), PackedColorArray([dark, dark, bottom_band, bottom_band]))
+	if center_dim > 0.003:
+		# soft ellipse behind the menu so the wordmark and tagline stay readable over the lit castle
+		if _scrim_texture == null:
+			var gradient := Gradient.new()
+			gradient.set_color(0, Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 1.0))
+			gradient.set_color(1, Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.0))
+			var texture := GradientTexture2D.new()
+			texture.gradient = gradient
+			texture.fill = GradientTexture2D.FILL_RADIAL
+			texture.fill_from = Vector2(0.5, 0.5)
+			texture.fill_to = Vector2(1.0, 0.5)
+			texture.width = 128
+			texture.height = 128
+			_scrim_texture = texture
+		var radius := Vector2(rect.size.x * 0.52, rect.size.y * 0.62)
+		draw_texture_rect(_scrim_texture, Rect2(rect.get_center() - radius, radius * 2.0), false, Color(1, 1, 1, 0.66 * center_dim))
+
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
 	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
+		return
+	if mode == "scene":
+		_draw_scene_scrim(rect)
 		return
 	var key := Vector3(rect.size.x, rect.size.y, 1.0 if mode == "home" else 0.0)
 	if key != _cache_key:

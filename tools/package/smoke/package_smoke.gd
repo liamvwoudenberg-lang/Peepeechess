@@ -41,6 +41,15 @@ func run() -> void:
 	for i in 3:
 		await get_tree().process_frame
 	expect(shell.page == "home", "application opens on the title screen")  # ui-polish: the Play page is one button away
+	# 3D opening screen: the castle (procedural meshes + the packed piece GLBs) builds, any button glides into the menu
+	expect(shell.intro != null and shell.scene3d != null and shell.scene3d.stats().draw_nodes >= 10, "opening screen shows the 3D castle first")
+	shell.intro.advance(0.1)
+	shell.intro.press()
+	expect(shell.intro.state == 1, "a button press starts the camera glide")
+	for i in 12:
+		if shell.intro != null:
+			shell.intro.advance(0.3)
+	expect(shell.intro == null and shell.content.find_child("ClassicButton", true, false) != null, "the glide ends on the main menu")
 	for target in ["account", "settings", "profile", "history", "leaderboard", "play"]:
 		shell.navigate(target)
 		expect(shell.page == target and shell.content.get_child_count() >= 3, "menu navigation opens " + target)

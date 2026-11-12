@@ -1,6 +1,6 @@
 // Native UI design-system checks (headless, deterministic): theme / contrast / preferences / kit, then page layout at
 // six resolutions + 150 % UI scale, safe-area insets, focus traversal and interrupted transitions; then the existing
-// application, online, battle and classic view UI suites so a restyle can never silently break them.
+// opening screen (3D intro), application, online, battle and classic view UI suites so a restyle can never silently break them.
 // Fails on any SCRIPT ERROR / Parse Error / "ERROR:" / "FAIL:" line.
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
@@ -25,6 +25,7 @@ const godot = process.env.GODOT_BIN || 'godot';
 const suites = [
   'res://tests/ui/ui_theme_test.gd',
   'res://tests/ui/ui_layout_test.gd',
+  'res://tests/ui/opening_screen_test.gd',
   'res://tests/test_application_ui.gd',
   'res://tests/classic/views_test.gd',
   'res://tests/network/online_ui_test.gd',
