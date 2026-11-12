@@ -1,0 +1,1899 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peepeechess.invalid/contracts/royal/network/v1/schema.json",
+  "title": "Peepeechess battle-royal-v1 wire messages (protocol peepeechess-enet-royal-v1)",
+  "$defs": {
+    "CharacterId": {
+      "type": "string",
+      "pattern": "^(royal|elves|skeletons)\\.[pnbrqk]$",
+      "maxLength": 16
+    },
+    "FighterStats": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "statsId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "role": {
+          "enum": [
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ]
+        },
+        "maxHp": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maxStamina": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "baseDamage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "moveSpeedMps": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "reachM": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "lightTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "heavyTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "parryTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "abilityId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "cooldownTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "statsId",
+        "role",
+        "maxHp",
+        "maxStamina",
+        "baseDamage",
+        "moveSpeedMps",
+        "reachM",
+        "lightTicks",
+        "heavyTicks",
+        "parryTicks",
+        "abilityId",
+        "cooldownTicks"
+      ],
+      "additionalProperties": false
+    },
+    "BattleResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "resolvedTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "winnerPlayerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "outcome": {
+          "enum": [
+            "attacker",
+            "defender"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "knockout",
+            "timeout_hp",
+            "timeout_tie",
+            "double_knockout"
+          ]
+        },
+        "attackerHp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "defenderHp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "expectedRevision",
+        "resolvedTick",
+        "winnerPlayerId",
+        "outcome",
+        "reason",
+        "attackerHp",
+        "defenderHp"
+      ],
+      "additionalProperties": false
+    },
+    "FighterSnapshot": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "position": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "y": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "z": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "additionalProperties": false
+        },
+        "velocity": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "y": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "z": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "additionalProperties": false
+        },
+        "yawRadians": {
+          "type": "number",
+          "minimum": -3.141592653589793,
+          "maximum": 3.141592653589793
+        },
+        "hp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "stamina": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "state": {
+          "enum": [
+            "Idle",
+            "Moving",
+            "Attacking",
+            "Blocking",
+            "Parrying",
+            "Dodging",
+            "Staggered",
+            "AbilityCasting",
+            "Defeated"
+          ]
+        },
+        "stateTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "cooldownTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "lastInputSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "playerId",
+        "pieceId",
+        "position",
+        "velocity",
+        "yawRadians",
+        "hp",
+        "stamina",
+        "state",
+        "stateTicks",
+        "cooldownTicks",
+        "lastInputSequence"
+      ],
+      "additionalProperties": false
+    },
+    "CombatEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "type": {
+          "enum": [
+            "hit",
+            "block",
+            "parry",
+            "dodge",
+            "guardbreak",
+            "ability",
+            "whiff"
+          ]
+        },
+        "actorPlayerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "targetPlayerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "damage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "eventId",
+        "tick",
+        "type",
+        "actorPlayerId",
+        "targetPlayerId",
+        "damage"
+      ],
+      "additionalProperties": false
+    },
+    "CombatSnapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "serverTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "countdownTicksRemaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "durationTicksRemaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "fighters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FighterSnapshot"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CombatEvent"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BattleResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "serverTick",
+        "countdownTicksRemaining",
+        "durationTicksRemaining",
+        "fighters",
+        "events",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "Piece": {
+      "type": "object",
+      "properties": {
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "square": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "color": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        },
+        "role": {
+          "enum": [
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ]
+        },
+        "characterId": {
+          "$ref": "#/$defs/CharacterId"
+        }
+      },
+      "required": [
+        "pieceId",
+        "square",
+        "color",
+        "role",
+        "characterId"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "enum": [
+                "q",
+                "r",
+                "b",
+                "n"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "quiet",
+            "attacker",
+            "defender"
+          ]
+        },
+        "fen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "promotion",
+        "outcome",
+        "fen"
+      ],
+      "additionalProperties": false
+    },
+    "ChessGameState": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ply": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "initialFen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "fen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "pieces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Piece"
+          },
+          "minItems": 2,
+          "maxItems": 32
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryEntry"
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "revision",
+        "ply",
+        "initialFen",
+        "fen",
+        "pieces",
+        "history"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalCombatant": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "characterId": {
+          "$ref": "#/$defs/CharacterId"
+        },
+        "color": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        },
+        "role": {
+          "enum": [
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ]
+        },
+        "square": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "stats": {
+          "$ref": "#/$defs/FighterStats"
+        }
+      },
+      "required": [
+        "playerId",
+        "pieceId",
+        "characterId",
+        "color",
+        "role",
+        "square",
+        "stats"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalBattleRequest": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "beforeFen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "enum": [
+                "q",
+                "r",
+                "b",
+                "n"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attacker": {
+          "$ref": "#/$defs/RoyalCombatant"
+        },
+        "defender": {
+          "$ref": "#/$defs/RoyalCombatant"
+        },
+        "arenaId": {
+          "enum": [
+            "stone-v1"
+          ]
+        },
+        "startTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "countdownTicks": {
+          "const": 180
+        },
+        "durationTicks": {
+          "const": 5400
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "battleId",
+        "expectedRevision",
+        "beforeFen",
+        "from",
+        "to",
+        "promotion",
+        "attacker",
+        "defender",
+        "arenaId",
+        "startTick",
+        "countdownTicks",
+        "durationTicks",
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalKingState": {
+      "type": "object",
+      "properties": {
+        "hp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "stamina": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "cooldownTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "hp",
+        "stamina",
+        "cooldownTicks"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalKingCombatant": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "pieceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "characterId": {
+          "$ref": "#/$defs/CharacterId"
+        },
+        "color": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        },
+        "role": {
+          "enum": [
+            "k"
+          ]
+        },
+        "square": {
+          "type": "string",
+          "pattern": "^[a-h][1-8]$",
+          "maxLength": 2
+        },
+        "stats": {
+          "$ref": "#/$defs/FighterStats"
+        },
+        "startHp": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "startStamina": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "startCooldown": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "playerId",
+        "pieceId",
+        "characterId",
+        "color",
+        "role",
+        "square",
+        "stats",
+        "startHp",
+        "startStamina",
+        "startCooldown"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalSequenceRequest": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "beforeFen": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        },
+        "mated": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        },
+        "king": {
+          "$ref": "#/$defs/RoyalKingCombatant"
+        },
+        "attackers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RoyalCombatant"
+          },
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "arenaId": {
+          "enum": [
+            "stone-v1"
+          ]
+        },
+        "startTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "rulesetId",
+        "battleId",
+        "matchId",
+        "expectedRevision",
+        "beforeFen",
+        "mated",
+        "king",
+        "attackers",
+        "arenaId",
+        "startTick"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalDuelRequest": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "duelIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "duelCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "kingStart": {
+          "$ref": "#/$defs/RoyalKingState"
+        },
+        "battle": {
+          "$ref": "#/$defs/RoyalBattleRequest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "rulesetId",
+        "battleId",
+        "duelIndex",
+        "duelCount",
+        "kingStart",
+        "battle"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalDuelResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "duelIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "duelCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "result": {
+          "$ref": "#/$defs/BattleResult"
+        },
+        "kingEnd": {
+          "$ref": "#/$defs/RoyalKingState"
+        },
+        "kingSurvived": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "rulesetId",
+        "battleId",
+        "duelIndex",
+        "duelCount",
+        "result",
+        "kingEnd",
+        "kingSurvived"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalSequenceProgress": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "status": {
+          "enum": [
+            "active"
+          ]
+        },
+        "duelIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "duelCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "currentBattleId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "king": {
+          "$ref": "#/$defs/RoyalKingState"
+        },
+        "defeated": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+            "maxLength": 96
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "remaining": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+            "maxLength": 96
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "rulesetId",
+        "battleId",
+        "matchId",
+        "status",
+        "duelIndex",
+        "duelCount",
+        "currentBattleId",
+        "king",
+        "defeated",
+        "remaining"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalSequenceResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "outcome": {
+          "enum": [
+            "king_survived",
+            "king_fell",
+            "unplayable",
+            "abandoned"
+          ]
+        },
+        "duels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RoyalDuelResult"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "defeated": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+            "maxLength": 96
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "kingEnd": {
+          "$ref": "#/$defs/RoyalKingState"
+        },
+        "resolvedTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "matchResult": {
+          "anyOf": [
+            {
+              "enum": [
+                "1-0",
+                "0-1",
+                "1/2-1/2"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fenAfter": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 120,
+          "pattern": "^[prnbqkPRNBQK1-8/]+ [wb] (K?Q?k?q?|-+?) ([a-h][36]|-) [0-9]+ [1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "rulesetId",
+        "battleId",
+        "matchId",
+        "expectedRevision",
+        "outcome",
+        "duels",
+        "defeated",
+        "kingEnd",
+        "resolvedTick",
+        "matchResult",
+        "reason",
+        "fenAfter"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalMatchState": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "serverTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "mode": {
+          "enum": [
+            "battle"
+          ]
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "phase": {
+          "enum": [
+            "board",
+            "combat",
+            "aftermath",
+            "complete"
+          ]
+        },
+        "players": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            },
+            "b": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        },
+        "chess": {
+          "$ref": "#/$defs/ChessGameState"
+        },
+        "battle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoyalBattleRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "combat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CombatSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result": {
+          "anyOf": [
+            {
+              "enum": [
+                "1-0",
+                "0-1",
+                "1/2-1/2"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "royal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoyalSequenceProgress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "serverTick",
+        "mode",
+        "rulesetId",
+        "phase",
+        "players",
+        "chess",
+        "battle",
+        "combat",
+        "result",
+        "reason",
+        "royal"
+      ],
+      "additionalProperties": false
+    },
+    "ClockState": {
+      "type": "object",
+      "properties": {
+        "whiteMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "blackMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "initialMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "incrementMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "timed": {
+          "type": "boolean"
+        },
+        "turn": {
+          "enum": [
+            "w",
+            "b"
+          ]
+        }
+      },
+      "required": [
+        "whiteMs",
+        "blackMs",
+        "initialMs",
+        "incrementMs",
+        "running",
+        "timed",
+        "turn"
+      ],
+      "additionalProperties": false
+    },
+    "InputResume": {
+      "type": "object",
+      "properties": {
+        "battleId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "clientTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "light": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "heavy": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "dodge": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "parry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "battleId",
+        "sequence",
+        "clientTick",
+        "light",
+        "heavy",
+        "dodge",
+        "parry",
+        "ability"
+      ],
+      "additionalProperties": false
+    },
+    "JoinMatch": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "commandId",
+        "matchId"
+      ],
+      "additionalProperties": false
+    },
+    "MatchCommand": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "action": {
+          "enum": [
+            "ready",
+            "resign",
+            "offer_draw",
+            "accept_draw",
+            "claim_draw"
+          ]
+        },
+        "drawKind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intended": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "pattern": "^[a-h][1-8]$",
+                  "maxLength": 2
+                },
+                "to": {
+                  "type": "string",
+                  "pattern": "^[a-h][1-8]$",
+                  "maxLength": 2
+                },
+                "promotion": {
+                  "enum": [
+                    "q",
+                    "r",
+                    "b",
+                    "n",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "promotion"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "commandId",
+        "matchId",
+        "action",
+        "drawKind",
+        "intended"
+      ],
+      "additionalProperties": false
+    },
+    "Ping": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "nonce": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "nonce"
+      ],
+      "additionalProperties": false
+    },
+    "Pong": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "nonce": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "nonce"
+      ],
+      "additionalProperties": false
+    },
+    "Ack": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "matchId",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "ClockSync": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "serverTick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "clocks": {
+          "$ref": "#/$defs/ClockState"
+        },
+        "connected": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "boolean"
+            },
+            "b": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "matchId",
+        "serverTick",
+        "clocks",
+        "connected"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalHello": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "protocol": {
+          "const": "peepeechess-enet-royal-v1"
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "resumeToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "protocol",
+        "rulesetId",
+        "resumeToken"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalWelcome": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "protocol": {
+          "const": "peepeechess-enet-royal-v1"
+        },
+        "playerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "sessionToken": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "serverId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "expiresInSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "combatRoles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "p",
+              "n",
+              "b",
+              "r",
+              "q",
+              "k"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 6
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "protocol",
+        "playerId",
+        "sessionToken",
+        "serverId",
+        "expiresInSeconds",
+        "combatRoles",
+        "rulesetId"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalCreateMatch": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "rulesetId": {
+          "const": "battle-royal-v1"
+        },
+        "mode": {
+          "enum": [
+            "battle"
+          ]
+        },
+        "initialMs": {
+          "const": 0
+        },
+        "incrementMs": {
+          "const": 0
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "commandId",
+        "rulesetId",
+        "mode",
+        "initialMs",
+        "incrementMs"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalMatchFrame": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "frameSequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "status": {
+          "enum": [
+            "waiting",
+            "active",
+            "complete"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/RoyalMatchState"
+        },
+        "clocks": {
+          "$ref": "#/$defs/ClockState"
+        },
+        "connected": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "boolean"
+            },
+            "b": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        },
+        "ready": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "type": "boolean"
+            },
+            "b": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "w",
+            "b"
+          ],
+          "additionalProperties": false
+        },
+        "drawOffer": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+              "maxLength": 96
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputResume": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InputResume"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "frameSequence",
+        "status",
+        "state",
+        "clocks",
+        "connected",
+        "ready",
+        "drawOffer",
+        "inputResume"
+      ],
+      "additionalProperties": false
+    },
+    "RoyalSequenceNotice": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "enum": [
+            "progress",
+            "duel_result",
+            "sequence_result"
+          ]
+        },
+        "matchId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$",
+          "maxLength": 96
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoyalSequenceProgress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoyalDuelResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoyalSequenceResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "matchId",
+        "progress",
+        "duel",
+        "sequence"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -9,6 +9,8 @@ var selection: Dictionary = OpponentUI.default_state()
 var _section: VBoxContainer
 var _caption: Label
 var _dialog_box: VBoxContainer
+## king's last stand: the New game dialog's ruleset choice ({"royal": bool}, persisted by RoyalOption). Applied by apply_ruleset().
+var royal_state: Dictionary = {"royal": RoyalOption.load_choice()}
 
 static func install(host: Control) -> MainOpponent:
 	var glue = MainOpponent.new()
@@ -62,6 +64,8 @@ func _rebuild_section() -> void:
 	OpponentUI.build_kind_row(_section, selection, _rebuild_section, 1)
 	if selection.kind == "computer":
 		OpponentUI.build_computer_options(_section, selection, _rebuild_section, true)
+	if main.game is BattleChessMatch:  # king's last stand: only offered for local Battle matches (two players or the computer)
+		RoyalOption.build(_section, royal_state, _rebuild_section, true)
 	_update_dialog_text()
 
 func _update_dialog_text() -> void:
@@ -88,6 +92,23 @@ func _settle_dialog() -> void:
 ## Called by main._show_new before the dialog is shown.
 func prepare_new_dialog() -> void:
 	_rebuild_section()
+
+## king's last stand: called by main._start_game before the new game. Swaps BattleMatch <-> BattleRoyalMatch when the dialog's toggle
+## differs from the running Battle match (Classic is never affected).
+func apply_ruleset() -> void:
+	if not main.game is BattleChessMatch:
+		return
+	var wanted = bool(royal_state.get("royal", false))
+	if wanted != (main.game is BattleRoyalMatch):
+		main._switch_mode(1, wanted)
+
+## The ruleset toggle currently shown in the New game dialog (null for Classic) and its explanation text; used by the tests.
+func find_royal_toggle() -> Button:
+	return _section.find_child("RoyalToggle", true, false) as Button
+
+func royal_explanation() -> String:
+	var label = _section.find_child("RoyalExplanation", true, false)
+	return label.text if label != null else ""
 
 ## Called by main._start_game after the new match exists.
 func start_selected() -> void:

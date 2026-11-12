@@ -97,6 +97,50 @@ rig camera made current); `flow.result_ready` -> `pit.present_result`; `pit.retu
 `adapter.stop()`); `flow` back to "board" without that commit (cancel, load failure, adapter failure/disconnect, chess change, resign) -> `pit.abort`.
 Board input stays disabled until the pit is idle again.
 
+## King's last stand: multi-duel sequences (battle-royal-v1, local play)
+
+The opt-in `battle-royal-v1` ruleset (ADR `docs/architecture/BATTLE_ROYAL_V1.md`) turns a checkmate into a sequence of duels: the mated
+King (attacker) fights each checking piece in turn, carrying its HP / stamina / ability cooldown. The pit presents the **whole sequence with
+ONE descent**, one fight after the other in the same chamber, and ONE climb:
+
+```
+begin_sequence(info, index) + begin(duel 1)  ->  CAPTURE_FOCUS -> TRAPDOOR_OPEN -> DROP -> COMBAT -> RESOLVE
+King won, more duels follow:  RESOLVE -> INTERLUDE (hold)  --next_duel(request)-->  INTERLUDE (step-in, 0.8 s) -> COMBAT -> RESOLVE ...
+King won the last duel:       RESOLVE -> CLIMB -> RETURN (King morphs back, glides to ITS OWN square, the mating group vanishes) -> IDLE
+King lost any duel:           RESOLVE -> CLIMB (the winning checker climbs) -> RETURN (it glides to its square; every piece is restored, the board is untouched) -> IDLE
+```
+
+`INTERLUDE` is the only new `Phase` (appended, so every existing value and the single-capture order are unchanged). The new code is one marked
+block at the end of `pit_sequence.gd` (`begin_sequence`, `next_duel`, `end_sequence`, `sequence_active/index/total`, signals `duel_cleared(index)`
+and `sequence_ended`) plus tiny `_seq_*` / `_return_target()` hooks in the old phase code that are no-ops for a single capture.
+What the interlude does: the previous duel's HUD / result panel is hidden, the camera stays below, the match commits the won duel (the bridge
+calls `flow.return_to_board()` on `duel_cleared`), `RoyalPresenter` shows the banner "KING'S LAST STAND - duel i of n" with the carried King state
+for `BattleFlow.ROYAL_BANNER_SECONDS` (1.5 s), then `BattleFlow` calls the bridge's `_royal_start()` -> `pit.next_duel(request)` and restarts the
+**still mounted arena in place** (`adapter.has_live_arena()` -> no `begin_load`, no scene reload; `CombatArena.start_battle` rebuilds fighters and HUD at
+the start positions). When the arena runs the new battle the pit flashes both fighters in at the spawn points (`MorphFx`), glides the camera
+into the new third-person pose (`rig.follow` is re-pointed) and releases the simulation. The dead checker already dissolved in RESOLVE.
+The King's carried HP / stamina / cooldown reach the simulation through `game.combat_options()` (initial_hp / initial_stamina / initial_cooldown);
+the presentation never invents them: the HUD bar of the King simply starts at the carried fraction ("90 / 160"), `CombatHud.set_context()` adds
+the "LAST STAND / DUEL i/n" line under the timer, and the banner reads the match's `royal_progress()`.
+
+Interruption at any point (resign, flow/adapter failure = disconnect, leaving the screen) goes through the existing `flow -> "board"` path:
+`bridge._on_phase("board")` -> `pit.abort()`, which restores every piece of the sequence (`_seq_entries()`: the King and the whole mating group) to its
+square, closes the trapdoor, recovers the camera and ends the sequence. A duel that is re-armed after a failure (`BattleRoyalMatch.cancel_pending`, bounded
+retries) simply starts a fresh descent at the match's current duel (`begin_sequence(info, duelIndex)`).
+
+| File | Edit (king's last stand) |
+| --- | --- |
+| `godot/world/pit_sequence.gd` | appended `INTERLUDE`, marked block of new methods at the end, `_seq_*` hooks (abort, advance, RESOLVE end, RETURN target/restore, `_entries()`) |
+| `godot/world/battle_bridge.gd` | marked royal block: `_royal_start()` (flow's `start_override`), `_on_duel_cleared()`, `keep_arena_for_royal` |
+| `godot/app/battle_flow.gd` | `start_override`, `keep_arena_for_royal`, `is_royal_duel()`, arena reuse in `confirm_capture`, no `adapter.stop()` between duels |
+| `godot/app/battle_combat_adapter.gd` | `has_live_arena()` |
+| `godot/combat/presentation/combat_hud.gd` | marked `set_context(text)` block |
+
+Tests: suite `royal_flow` (`godot/combat/tests/test_royal_flow.gd`, run by `npm run test:royal`): two-duel and three-checker sequences, phase order, one descent,
+interruption at 14 points (all phases, the interlude hold / step-in, the final climb and return), node-leak checks over three sequences, the real app
+screen with a real `CombatArena` (arena reused across duels, carried HP verified in the real simulation, computer seats) and screenshots via
+`godot/combat/tools/royal_flow_shots.gd`. Not verified: feel on a real GPU / device, human playtests.
+
 ## Assets (merged from `feature/world-assets`, `godot/assets/world/`)
 
 Used when present, with procedural fallbacks that need no assets (tested both ways: the suite ran without them first):

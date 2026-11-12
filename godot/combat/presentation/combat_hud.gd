@@ -91,6 +91,30 @@ func set_names(names: Dictionary) -> void:
 	_names = names
 
 
+# --- BEGIN king's-last-stand edit -------------------------------------------------------------------
+## Optional context line under the timer (battle-royal-v1: "LAST STAND / DUEL 2/3"). Presentation only; "" removes it.
+## The King's carried HP needs no extra widget: its bar starts at the carried fraction and reads "hp / max".
+var _context_label: Label
+
+func set_context(text: String) -> void:
+	if text.is_empty():
+		if _context_label != null:
+			_context_label.queue_free()
+			_context_label = null
+		return
+	if _context_label == null:
+		_context_label = _label(18, Control.PRESET_CENTER_TOP)
+		_context_label.name = "ContextLabel"
+		_context_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_context_label.position.y = 124  # under the two bar panels (they end at y = 120)
+		_context_label.add_theme_color_override("font_color", Color(0.95, 0.78, 0.38))
+	_context_label.text = text
+
+func context_text() -> String:
+	return _context_label.text if _context_label != null else ""
+# --- END king's-last-stand edit ---------------------------------------------------------------------
+
+
 func post(text: String, color: Color = Color(1, 1, 1)) -> void:
 	var l := Label.new()
 	l.text = text

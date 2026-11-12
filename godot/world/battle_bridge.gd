@@ -31,6 +31,7 @@ func setup(p_flow: BattleFlow, p_adapter: Node, p_world: BattleWorld) -> void:
 	world.chamber.arena_mounted.connect(_on_arena_mounted)
 	world.pit.return_ready.connect(_on_return_ready)
 	world.pit.phase_changed.connect(_on_pit_phase)
+	_royal_connect()  # king's last stand
 
 
 func dispose() -> void:
@@ -39,8 +40,11 @@ func dispose() -> void:
 		for pair in [[flow.phase_changed, _on_phase], [flow.result_ready, _on_result], [world.chamber.arena_mounted, _on_arena_mounted], [world.pit.return_ready, _on_return_ready], [world.pit.phase_changed, _on_pit_phase]]:
 			if pair[0].is_connected(pair[1]):
 				pair[0].disconnect(pair[1])
+		_royal_disconnect()  # king's last stand
 	if flow != null and is_instance_valid(flow):
 		flow.auto_return = true
+		flow.start_override = Callable()   # king's last stand
+		flow.keep_arena_for_royal = false
 	world = null
 
 
@@ -101,3 +105,52 @@ func _on_pit_phase(_value: int) -> void:
 
 func _exit_tree() -> void:
 	dispose()
+
+
+# ======================================================================================================================
+# BEGIN king's last stand (battle-royal-v1). The royal duels are mandatory and start by themselves: BattleFlow shows the banner
+# and then calls `start_override` (instead of the UI's "Start battle"). The first duel descends once (pit.begin_sequence +
+# pit.begin); every later duel of the same sequence is presented by the pit's INTERLUDE (pit.next_duel) and restarts the still
+# mounted arena in place. The bridge still decides nothing: outcomes and the King's carried resources come from the flow/match.
+# ======================================================================================================================
+
+func _royal_connect() -> void:
+	flow.start_override = Callable(self, "_royal_start")
+	flow.keep_arena_for_royal = true
+	world.pit.duel_cleared.connect(_on_duel_cleared)
+
+
+func _royal_disconnect() -> void:
+	if world != null and is_instance_valid(world) and world.pit.duel_cleared.is_connected(_on_duel_cleared):
+		world.pit.duel_cleared.disconnect(_on_duel_cleared)
+
+
+## Called by BattleFlow when a royal duel's banner is over. Returns {ok, error?}; only a pit failure is an error here (a failing
+## confirm_capture has already been reported and recovered by the flow itself).
+func _royal_start() -> Dictionary:
+	var game = flow.game
+	var request: Dictionary = game.pending_request()
+	if request.is_empty() or not game.has_method("royal_request"):
+		return {"ok": true}
+	var pit: PitSequence = world.pit
+	_return_requested = false
+	if pit.is_idle():
+		var progress: Dictionary = game.royal_progress()
+		if not pit.begin_sequence(game.royal_request(), int(progress.get("duelIndex", 0))):
+			return {"ok": false, "error": "The board could not present the King's last stand."}
+		if not pit.begin(request):
+			pit.end_sequence()
+			return {"ok": false, "error": "The board could not present the King's last stand."}
+	elif not pit.next_duel(request):
+		return {"ok": false, "error": "The next duel could not be presented."}
+	var response: Dictionary = flow.confirm_capture()
+	if not response.get("ok", false):
+		pit.abort("battle did not start")
+	return {"ok": true}
+
+
+## The King won a duel that is not the last: commit it (the match prepares the next duel and the banner shows).
+func _on_duel_cleared(_index: int) -> void:
+	if flow.phase == "aftermath":
+		flow.return_to_board()
+# END king's last stand

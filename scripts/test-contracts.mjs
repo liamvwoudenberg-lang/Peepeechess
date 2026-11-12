@@ -16,7 +16,7 @@ try {
     if (result.error) throw result.error;
     if (result.status !== 0) throw Error(`${command} failed: ${result.status}`);
   };
-  run('node', ['--import', 'tsx', '--test', 'tests/contracts/wire.test.ts', 'tests/contracts/royal.test.ts']);
+  run('node', ['--import', 'tsx', '--test', 'tests/contracts/wire.test.ts', 'tests/contracts/royal.test.ts', 'tests/contracts/royal-network.test.ts']);
   run(process.env.GODOT_BIN || 'godot', ['--headless', '--path', 'godot', '--script', 'res://tests/contracts_test.gd', '--', output]);
   const { validate } = await import('../contracts/v1/validate.ts');
   const examples = JSON.parse(readFileSync(output, 'utf8'));

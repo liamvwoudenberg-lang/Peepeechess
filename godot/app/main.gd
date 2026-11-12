@@ -12,6 +12,8 @@ const Match = preload("res://chess/classic_match.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
 const Board2D = preload("res://boards/board_2d.gd")
 const BattleMatch = preload("res://chess/battle_match.gd")
+const BattleRoyalMatch = preload("res://chess/battle_royal_match.gd")  # king's last stand (battle-royal-v1), opt-in: see "king's last stand" blocks below
+const RoyalPresenter = preload("res://app/royal_presenter.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const Flow = preload("res://app/battle_flow.gd")
 const Board3D = preload("res://boards/board_3d.gd")
@@ -39,6 +41,7 @@ var battle_bg: ColorRect
 ## inside it (trapdoor, chamber, ladder). false = the original Board2D + full-screen combat overlay.
 var use_world = true
 var bridge: WorldBattleBridge
+var royal_presenter: RoyalPresenter  # king's last stand: banner / HUD context / result note (null unless the match is a BattleRoyalMatch)
 var _return_tween: Tween
 var game = Match.new()
 var interaction = Interaction.new(game)
@@ -90,7 +93,7 @@ func _ready() -> void:
 	_refresh()
 	var launch = AppSettings.take_launch()
 	if launch.get("mode", "classic") == "battle":
-		_switch_mode(1)
+		_switch_mode(1, bool(launch.get("royal", false)))  # king's last stand: the Play page's ruleset choice
 	if not launch.is_empty():
 		game.new_game(int(launch.get("initialMs", 600000)), int(launch.get("incrementMs", 0)))
 		game.start_clock()
@@ -223,10 +226,11 @@ func _show_new() -> void:
 	new_dialog.popup_centered(Vector2i(mini(440, int(size.x) - 24), 180))
 
 func _start_game() -> void:
+	opponent.apply_ruleset()  # king's last stand: swaps BattleMatch <-> BattleRoyalMatch when the dialog's toggle changed
 	var control: Array = TIME_CONTROLS[time_select.selected]
 	game.new_game(control[1], control[2])
 	game.start_clock()
-	_message("New Battle C0 game · chess is untimed." if game is BattleChessMatch else "New game · " + control[0])
+	_message(("New King's last stand game · chess is untimed." if game is BattleRoyalMatch else "New Battle C0 game · chess is untimed.") if game is BattleChessMatch else "New game · " + control[0])
 	opponent.start_selected()  # computer opponent
 
 func _show_position() -> void:
@@ -364,6 +368,8 @@ func _reject(text: String) -> void:
 func _exit_tree() -> void:
 	if is_instance_valid(bridge):
 		bridge.dispose()
+	if is_instance_valid(royal_presenter):
+		royal_presenter.dispose()  # king's last stand
 	if is_instance_valid(battle_flow):
 		battle_flow.dispose()
 	interaction.dispose()
@@ -426,15 +432,20 @@ func _build_battle_overlay() -> void:
 	battle_bg.visible = not use_world
 	battle_overlay.hide()
 
-func _switch_mode(index: int) -> void:
+func _switch_mode(index: int, royal: bool = false) -> void:
 	if _return_tween:
 		_return_tween.kill()
-	if (index == 1) == (game is BattleChessMatch):
+	# king's last stand: the same mode with a different ruleset (royal) rebuilds the match object too
+	if (index == 1) == (game is BattleChessMatch) and (index != 1 or royal == (game is BattleRoyalMatch)):
 		return
 	if is_instance_valid(bridge):
 		bridge.dispose()
 		bridge.queue_free()
 		bridge = null
+	if is_instance_valid(royal_presenter):  # king's last stand
+		royal_presenter.dispose()
+		royal_presenter.queue_free()
+		royal_presenter = null
 	if is_instance_valid(battle_flow):
 		battle_flow.dispose()
 		battle_flow.queue_free()
@@ -450,7 +461,7 @@ func _switch_mode(index: int) -> void:
 		old.hide()
 		board_host.remove_child(old)
 		old.queue_free()
-	game = BattleMatch.new() if index == 1 else Match.new()
+	game = (BattleRoyalMatch.new() if royal else BattleMatch.new()) if index == 1 else Match.new()
 	interaction = Interaction.new(game)
 	game.changed.connect(_refresh)
 	game.rejected.connect(_reject)
@@ -463,10 +474,11 @@ func _switch_mode(index: int) -> void:
 	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board_host.add_child(board_3d)
 	board_3d.setup(game, interaction)
-	mode_label.text = "BATTLE · C0" if index == 1 else "CLASSIC"
+	mode_label.text = ("BATTLE · LAST STAND" if royal else "BATTLE · C0") if index == 1 else "CLASSIC"
 	board_2d.animation_enabled = AppSettings.animations
 	board_3d.animation_enabled = AppSettings.animations
 	mode_select.select(index)
+	mode_select.set_item_text(1, "Battle Chess · Last stand" if royal else "Battle Chess · C0")  # king's last stand
 	copy_notation_button.text = "Copy battle log" if index == 1 else "Copy PGN"
 	if index == 1:
 		_configure_battle_flow(CombatAdapter.new())
@@ -477,7 +489,7 @@ func _switch_mode(index: int) -> void:
 	battle_overlay.hide()
 	_refresh()
 	if index == 1:
-		_message("Battle C0: kings do not duel. Combat is unavailable in this build." if not battle_adapter.available() else "Battle C0 · captures trigger combat; chess is untimed.")
+		_message("Battle C0: kings do not duel. Combat is unavailable in this build." if not battle_adapter.available() else ("King's last stand · a checkmate becomes a duel for the King; chess is untimed." if royal else "Battle C0 · captures trigger combat; chess is untimed."))
 
 func _configure_battle_flow(adapter: Node) -> void:
 	if is_instance_valid(bridge):
@@ -501,6 +513,15 @@ func _configure_battle_flow(adapter: Node) -> void:
 		add_child(bridge)
 		bridge.setup(battle_flow, adapter, board_3d.world)
 		bridge.presenting_changed.connect(_world_presenting_changed)
+	# king's last stand: the banner / HUD context presenter exists only for a BattleRoyalMatch
+	if is_instance_valid(royal_presenter):
+		royal_presenter.dispose()
+		royal_presenter.queue_free()
+		royal_presenter = null
+	if game is BattleRoyalMatch:
+		royal_presenter = RoyalPresenter.new()
+		add_child(royal_presenter)
+		royal_presenter.setup(self, battle_flow, adapter)
 	battle_flow.phase_changed.connect(_battle_phase)
 	battle_flow.preview_requested.connect(_capture_preview)
 	battle_flow.result_ready.connect(_battle_result)
@@ -508,6 +529,8 @@ func _configure_battle_flow(adapter: Node) -> void:
 	battle_flow.failed.connect(_message)
 
 func _capture_preview(request: Dictionary) -> void:
+	if battle_flow.is_royal_duel():
+		return  # king's last stand: the duel is mandatory; RoyalPresenter shows the banner instead of the capture preview
 	var a: Dictionary = request.attacker
 	var d: Dictionary = request.defender
 	Hud.show_versus(self, request)
@@ -539,9 +562,10 @@ func _battle_phase_world(value: String) -> void:
 	battle_overlay.visible = value not in ["board", "returning"]
 	combat_container.visible = false
 	combat_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	battle_card.visible = value == "preview"
-	fight_button.visible = value == "preview"
-	battle_cancel.visible = value == "preview"
+	var capture_preview = value == "preview" and not battle_flow.is_royal_duel()  # king's last stand: banner instead of the preview card
+	battle_card.visible = capture_preview
+	fight_button.visible = capture_preview
+	battle_cancel.visible = capture_preview
 	battle_cancel.text = "Cancel capture"
 	battle_return.visible = false
 	battle_resign.visible = value in ["countdown", "combat", "loading"]
@@ -562,9 +586,10 @@ func _battle_phase(value: String) -> void:
 	battle_overlay.visible = value not in ["board", "returning"]
 	combat_container.visible = value in ["countdown", "combat"]
 	combat_host.render_target_update_mode = SubViewport.UPDATE_ALWAYS if combat_container.visible else SubViewport.UPDATE_DISABLED
-	battle_card.visible = value in ["preview", "loading", "aftermath"]
-	fight_button.visible = value == "preview"
-	battle_cancel.visible = value in ["preview", "loading"]
+	var royal_banner = value == "preview" and battle_flow.is_royal_duel()  # king's last stand: RoyalPresenter's banner replaces the preview card
+	battle_card.visible = value in ["preview", "loading", "aftermath"] and not royal_banner
+	fight_button.visible = value == "preview" and not royal_banner
+	battle_cancel.visible = value in ["preview", "loading"] and not (battle_flow.is_royal_duel() and value == "preview")
 	battle_cancel.text = "Cancel capture" if value == "preview" else "Cancel loading"
 	battle_return.visible = value == "aftermath"
 	battle_resign.visible = value in ["countdown", "combat"]
@@ -615,4 +640,7 @@ func _navigate_menu(open_online: bool) -> void:
 func _show_game_result(expected_match: String, expected_result: String) -> void:
 	if game.match_id != expected_match or game.engine.result != expected_result:
 		return
-	AppResults.show_dialog(self, {"result": expected_result, "reason": game.engine.reason, "mode": "battle" if game is BattleChessMatch else "classic", "plies": game.engine.history.size()}, func(): pass, func(): get_tree().change_scene_to_file("res://ui/application.tscn"))
+	var data = {"result": expected_result, "reason": game.engine.reason, "mode": "battle" if game is BattleChessMatch else "classic", "plies": game.engine.history.size()}
+	if is_instance_valid(royal_presenter) and not royal_presenter.result_note().is_empty():
+		data["note"] = royal_presenter.result_note()  # king's last stand: why this checkmate stands
+	AppResults.show_dialog(self, data, func(): pass, func(): get_tree().change_scene_to_file("res://ui/application.tscn"))
