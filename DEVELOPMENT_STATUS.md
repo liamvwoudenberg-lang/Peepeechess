@@ -21,6 +21,11 @@ This supersedes the earlier "combat on the board" / "board expansion" wording.
   (F1 / Share / touch "?"), prediction/reconciliation/interpolation wired into the real online path (`OnlineCombatView`).
 * World: top-down 3D chess board; a capture opens the contested tile like trapdoors, both pieces fall into the arena
   below, the winner climbs a ladder back and the camera returns (`godot/world/`, README there). Local play only.
+* Chess opponent: six-level computer (alpha-beta, worker thread, Battle-aware capture model, `godot/chess/ai/README.md`),
+  opponent selection in Classic and Battle, undo/clock/resign/draw handling, board themes + piece sets
+  (`godot/boards/BOARD_THEME.md`). Levels are untuned beyond bot self-play; no Elo claims.
+* UI: design-system theme (`godot/ui/theme/`), title screen, restyled application + chess HUD + settings page,
+  contrast/layout/focus tests (`npm run test:ui`).
 * Rules: `battle-royal-v1` King's last stand, opt-in (ADR `docs/architecture/BATTLE_ROYAL_V1.md`, contract
   `godot/contracts/royal/v1`, `npm run test:royal`). Legacy C0 untouched.
 * Codex's native application, backend contracts, ENet/DTLS server merged in. Packaging: `tools/package/build_pc.sh`
@@ -42,8 +47,9 @@ This supersedes the earlier "combat on the board" / "board expansion" wording.
 
 | Item | State |
 | --- | --- |
-| Chess AI + opponent selection + board themes | worker `feature/chess-ai` in progress |
-| UI polish (theme, title screen, layouts, accessibility) | worker `feature/ui-polish` in progress |
+| Play page polish | still uses old toggle buttons ("Local ✓ / 2D board ✓"); online queue needs a spinner; disabled-button reasons only on a few buttons |
+| Colour-blind option | reaches the 2D board and themed 2D highlights, not the 3D/pit board highlights |
+| Chess AI | levels untuned; wall-clock budgets make moves machine-dependent; Battle: no undo, human presses Start battle when the computer captures, AI never resigns in Battle; `test:ai` not in `npm test` |
 | Pit transition for ONLINE matches | not wired: `OnlineCombatView` takes any Node host now; the world must call `pit.begin / attach_arena / present_result` (see godot/world/README.md "Online path"); server countdown (180 ticks) does not wait for the pre-roll; server returns to board ~2 s after the result |
 | King last-stand: menu toggle, banners, online wire format | rules/contract/server done; presentation + `network/royal` variant open; King balance recommendations (more HP / partial refresh) not applied |
 | King selectable in the app / v1 server | no (v1 contract forbids it); needs a contract version |
