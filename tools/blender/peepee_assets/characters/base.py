@@ -59,4 +59,11 @@ def make_character(cls: str, out_dir: Path, lods: bool = True) -> dict:
     zs = [v.co.z for v in body.data.vertices]
     stats["bounds_body"] = {"x": [min(xs), max(xs)], "y": [min(ys), max(ys)], "z": [min(zs), max(zs)]}
     stats["clips"] = spec.clip_frames(cls)
+    # contracts the Godot side checks (test_anim_integrity): the locomotion ground speeds the clips are foot-locked at, the attack markers
+    # (startup_end, active_end, cancel_from as fractions) the strikes are authored to, and the King's counter layout.
+    stats["nominal_speed_mps"] = dict(spec.NOMINAL_SPEED_MPS)
+    stats["markers"] = {clip: list(v) for clip, v in spec.MARKERS[cls].items()}
+    if cls == "king":
+        stats["counter"] = {"start": spec.COUNTER_START, "end": spec.COUNTER_END, "riposte_start_frame": spec.COUNTER_RIPOSTE_START,
+                            "riposte_ticks": spec.COUNTER_RIPOSTE_TICKS}
     return stats

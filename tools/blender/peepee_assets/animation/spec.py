@@ -12,10 +12,16 @@ STATS = {  # == godot/chess/battle_stats.json (c0-balance-v1) lightTicks, heavyT
     "pawn": (24, 53, 11, 16), "knight": (32, 63, 13, 14), "bishop": (29, 59, 11, 15),
     "rook": (42, 74, 10, 18), "queen": (29, 58, 11, 14), "king": (33, 63, 13, 14),
 }
-DODGE = {"pawn": 22, "knight": 26, "bishop": 24, "rook": 30, "queen": 20, "king": 26}
-# Ability clip frames == the sim's cast ticks (ability_component.gd): last-stand 12, lunge 72, blink 20,
-# fortress-guard 18, royal-fury 14. King has no simulation (v2 gauntlet); 40 is a proposal.
-ABILITY = {"pawn": 12, "knight": 72, "bishop": 20, "rook": 18, "queen": 14, "king": 40}
+DODGE = {"pawn": 22, "knight": 26, "bishop": 24, "rook": 30, "queen": 20, "king": 28}   # == dodge_ticks in godot/combat/data/balance_v1.json
+# Ability clip frames == the sim's cast ticks (balance_v1.json abilities): last-stand 12, lunge 72 (absolute_ticks), blink 20,
+# fortress-guard 18, royal-fury 14, royal-counter 56 (King; experimental).
+ABILITY = {"pawn": 12, "knight": 72, "bishop": 20, "rook": 18, "queen": 14, "king": 56}
+# King's Royal Counter (sim: counter_start 6, counter_end 26 of the 56 cast ticks; a triggered counter becomes a 30-tick riposte attack
+# through AttackLibrary, `king.royal-counter`, active window 0.30-0.55). The `ability` clip lays both out on ONE timeline so the
+# presentation can play either: frames 0..6 raise the guard, 6..26 hold the stance (the counter window), 26..56 thrust and recover;
+# a triggered riposte continues the SAME clip from COUNTER_RIPOSTE_START (a held-guard frame) at 1 frame per tick, so its strike falls on
+# frames 33..41 == riposte ticks 9..17 == the sim's active window round(0.30*30)..round(0.55*30).
+COUNTER_START, COUNTER_END, COUNTER_RIPOSTE_START, COUNTER_RIPOSTE_TICKS = 6, 26, 24, 30
 ABILITY_NAME = {"pawn": "last-stand", "knight": "lunging-strike", "bishop": "blink",
                 "rook": "fortress-guard", "queen": "royal-fury", "king": "royal-counter"}
 LIGHT_SCALE = [1.0, 0.95, 1.35]          # pawn; others use 1.3 for the finisher
@@ -54,8 +60,13 @@ LAND_TICKS = 36
 CLIMB_SPEED_MPS = 2 * RUNG_SPACING / (CLIMB_TICKS / 60.0)   # 0.4167 m/s upward travel to avoid foot sliding
 
 LOOPING = {"idle", "walk", "run", "strafe_left", "strafe_right", "block", "climb", "ladder_idle", "drop_fall"}
-NOMINAL_SPEED_MPS = {"walk": 2.2, "run": 5.0, "strafe_left": 2.0, "strafe_right": 2.0}
-LOOP_FRAMES = {"idle": 120, "walk": 40, "run": 30, "strafe_left": 40, "strafe_right": 40, "block": 40,
+# Locomotion is foot-locked (animation/gait.py): the planted foot moves backwards relative to the body at exactly this ground speed, so
+# the game plays the clip at speed = actual speed / NOMINAL (CharacterModel.NOMINAL_SPEED must equal this table; test_anim_integrity checks).
+# The numbers are what a stride of the shared 0.85 m leg can reach (stance excursion S = v * duty * cycle time, hips lowered just enough to
+# reach it): walk 40 f, duty 0.55 -> S 0.73 m; run 30 f, duty 0.34 -> S 0.77 m; strafe 26 f, duty 0.60 -> S 0.47 m.
+NOMINAL_SPEED_MPS = {"walk": 2.0, "run": 4.5, "strafe_left": 1.8, "strafe_right": 1.8}
+GAIT_DUTY = {"walk": 0.55, "run": 0.34, "strafe_left": 0.60, "strafe_right": 0.60}
+LOOP_FRAMES = {"idle": 120, "walk": 40, "run": 30, "strafe_left": 26, "strafe_right": 26, "block": 40,
                "climb": CLIMB_TICKS, "ladder_idle": LADDER_IDLE_TICKS, "drop_fall": DROP_FALL_TICKS}
 
 

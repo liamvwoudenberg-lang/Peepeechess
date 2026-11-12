@@ -34,6 +34,7 @@ const SUITES: Dictionary = {
 	"soak": "res://combat/tests/test_soak.gd",
 	"world": "res://combat/tests/test_world.gd",
 	"overlay": "res://combat/tests/test_overlay.gd",
+	"anim_integrity": "res://combat/tests/test_anim_integrity.gd",
 }
 
 

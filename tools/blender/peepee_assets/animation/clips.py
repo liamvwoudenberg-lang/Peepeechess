@@ -10,6 +10,7 @@ import math
 
 from .. import export, skeleton
 from . import poses, spec
+from .gait import Gait
 from .poses import blank_pose, over
 
 STEP = 2   # sample every other frame (plus the last); every sample is IK-solved
@@ -107,7 +108,7 @@ SPEAR = {
         A(hand=(0.04, 0.48, -0.36), wpn=(0, -4), torso=(12, 0, 8), hips=(0, 0.20, -0.03), legs=(-22, 14, 28, 38))),
     "light_3": (
         A(hand=(0.22, 0.30, -0.24), wpn=(-78, 8), torso=(2, 0, -38), hips=(0, -0.03, 0), legs=(-10, 20, 8, 26)),
-        A(hand=(-0.02, 0.42, -0.28), wpn=(0, 6), torso=(4, 0, 4), hips=(0, 0.10, 0), legs=(-14, 18, 18, 30)),
+        A(hand=(-0.02, 0.62, -0.28), wpn=(0, 6), torso=(4, 0, 4), hips=(0, 0.14, 0), legs=(-14, 18, 18, 30)),
         A(hand=(-0.12, 0.30, -0.28), wpn=(72, 6), torso=(4, 0, 34), hips=(0, 0.08, 0), legs=(-14, 18, 18, 30))),
     "heavy": (
         A(hand=(0.0, -0.02, -0.42), wpn=(0, 28), torso=(10, 0, -24), hips=(0, -0.18, -0.06), legs=(-10, 30, 4, 38)),
@@ -116,7 +117,7 @@ SPEAR = {
 }
 STAFF = {
     "light_1": (
-        A(hand=(0.05, 0.10, -0.40), wpn=(0, 40), torso=(4, 0, -12), hips=(0, -0.05, 0)),
+        A(hand=(0.05, 0.02, -0.34), wpn=(0, 84), torso=(2, 0, -16), hips=(0, -0.08, 0)),
         A(hand=(0.04, 0.50, -0.18), wpn=(0, 22), torso=(8, 0, 8), hips=(0, 0.16, 0), legs=(-16, 10, 22, 30)),
         A(hand=(0.04, 0.48, -0.20), wpn=(0, 24), torso=(6, 0, 6), hips=(0, 0.16, 0), legs=(-16, 10, 22, 30))),
     "light_2": (
@@ -220,7 +221,7 @@ def attack_keys(style, cls, clip):
         (se, poses.blend(wind_x, hit, 0.4), "in"),
         (tmid, hit, "lin"),
         (ae, end, "out"),
-        (min(cancel, 0.97), poses.blend(end, base, 0.6), "in_out"),
+        (min(cancel, 0.97), poses.blend(end, base, 0.8), "in_out"),
         (1.0, base, "in_out"),
     ]
     return keys
@@ -229,7 +230,9 @@ def attack_keys(style, cls, clip):
 # ------------------------------------------------------------------------------------------
 # Locomotion (periodic functions of phase)
 # ------------------------------------------------------------------------------------------
-def loco_pose(style, kind, phase):
+def loco_pose(style, kind, phase, gait=None):
+    """Walk / run / strafe. Torso, head and arms are authored here; with `gait` (animation/gait.py) the legs, hips and pelvis come from the
+    foot-locked solver (the planted foot moves at spec.NOMINAL_SPEED_MPS[kind] relative to the body, the swing foot clears the floor)."""
     sw = style["swagger"]
     base = ready(style)
     p = 2 * math.pi * phase
@@ -253,6 +256,13 @@ def loco_pose(style, kind, phase):
         pose["pelvis"] = (0.0, 0.0, -5.0 * sw * swayk * math.sin(p))
         pose["hips"] = (0.01 * swayk * math.sin(p) + (0.012 * swayk * math.sin(p) if kind == "walk" else 0.0), 0.0, bob * math.cos(2 * p) * sw)
         pose["head"] = (-3.0 - lean * 0.6, 0.0, -pose["torso"][2] * 0.4)
+        if gait is not None:
+            sway_h = 0.01 * swayk + (0.012 * swayk if kind == "walk" else 0.0)
+            g = gait.pose(kind, phase, pose, {"lift": lift, "bob": bobk * sw,
+                                              "pelvis": lambda ph: (0.0, 0.0, -5.0 * sw * swayk * math.sin(2 * math.pi * ph)),
+                                              "hips_r": lambda ph: sway_h * math.sin(2 * math.pi * ph)})
+            for key in ("legR", "legL", "hips", "pelvis", "ground"):
+                pose[key] = g[key]
         if kind == "run":
             for side in ("armR", "armL"):
                 if pose[side]["follow"] < 0.5:
@@ -269,6 +279,10 @@ def loco_pose(style, kind, phase):
     pose[trail] = (-6 * math.sin(p), max(sp - amp * 0.7 * (0.5 + 0.5 * math.sin(p)), -4.0), 18 + 22 * max(0.0, -math.cos(p)), 0.0)
     pose["hips"] = (0.0, 0.0, 0.015 * sw * math.cos(2 * p))
     pose["torso"] = (4.0, -s * 3.0 * math.sin(p), 4.0 * math.sin(p))
+    if gait is not None:
+        g = gait.pose(kind, phase, pose, {"lift": lift, "bob": bobk, "pelvis": lambda ph: (0.0, 0.0, 0.0), "hips_r": lambda ph: 0.0})
+        for key in ("legR", "legL", "hips", "pelvis", "ground"):
+            pose[key] = g[key]
     return pose
 
 
@@ -407,17 +421,21 @@ def ability_keys(style, cls, frames):
         cross = build_pose(style, base, A(hand=(-0.10, 0.42, 0.10), wpn=(30, 70), armL={"hand": (-0.10, 0.42, 0.10), "wpn": (-30, 70)},
                                           torso=(8, 0, 0), hips=(0, 0.04, -0.04), legs=(-10, 22, 24, 28)), power=False)
         return [(0.0, base, "lin"), (0.3, cross, "out"), (0.6, flare, "out"), (1.0, base, "in_out")]
-    # king: Royal Counter (40 frames) - a readable COUNTER STANCE, then a precise riposte:
-    #   0-15%   raise the guard: blade upright across the body, free hand forward, weight sunk back
-    #   15-55%  hold the stance with a faint tremor (the window in which a blow is countered)
-    #   55-72%  the riposte: step in, thrust
+    # king: Royal Counter (56 frames == the sim's cast_ticks) - one timeline for the stance AND the riposte (see spec.COUNTER_*):
+    #   0-6    raise the guard: blade upright across the body, free hand forward, weight sunk back
+    #   6-26   hold the stance with a faint tremor (the sim's counter window); a triggered riposte continues from frame 24
+    #   26-33  coil (blade drawn in, torso wound back), then the thrust lands on frames 33-41 (the riposte's active ticks 9..17)
+    #   41-56  recover to the ready pose
     guard = build_pose(style, base, A(hand=(0.10, 0.22, 0.02), wpn=(-12, 92), torso=(-6, 0, -12), head=(-4, 0, 0), hips=(0, -0.10, -0.10),
                                       legs=(-4, 32, 34, 44), armL={"hand": (0.28, 0.34, -0.06)}), power=False)
     tremor = over(guard, torso=(-5.0, 0.0, -11.0), hips=(0, -0.11, -0.10))
-    rip = build_pose(style, base, A(hand=(0.04, 0.54, -0.12), wpn=(0, 10), torso=(20, 0, 12), hips=(0, 0.34, -0.08),
-                                    legs=(-24, 12, 36, 46), armL={"hand": (0.30, 0.14, -0.14)}), power=False)
-    return [(0.0, base, "lin"), (0.15, guard, "out"), (0.35, tremor, "in_out"), (0.55, guard, "in_out"), (0.64, rip, "in"),
-            (0.76, rip, "lin"), (1.0, base, "in_out")]
+    coil = over(guard, torso=(-10.0, 0.0, -28.0), hips=(0, -0.22, -0.10), head=(-2.0, 0.0, 0.0))
+    coil["armR"] = dict(coil["armR"], hand=(0.12, -0.02, 0.06))
+    rip = build_pose(style, base, A(hand=(0.04, 0.56, -0.10), wpn=(0, 10), torso=(20, 0, 12), hips=(0, 0.42, -0.08),
+                                    legs=(-26, 12, 38, 48), armL={"hand": (0.30, 0.14, -0.14)}), power=False)
+    n = float(frames)
+    return [(0.0, base, "lin"), (6 / n, guard, "out"), (14 / n, tremor, "in_out"), (24 / n, guard, "in_out"), (30 / n, coil, "in_out"),
+            (34 / n, rip, "in"), (41 / n, rip, "lin"), (1.0, base, "in_out")]
 
 
 # ------------------------------------------------------------------------------------------
@@ -429,9 +447,9 @@ def recoil_pose(style, base, k):
         sw, sp, kn, toe = p[leg]
         p[leg] = (sw - 4.0 * k, sp, kn + 7.0 * k, toe)
     for side in ("armR", "armL"):
-        if p[side]["follow"] < 0.5:   # two-handed grips keep the off hand on the shaft via `follow`
+        if p[side]["follow"] < 0.5 and p[side]["shield"] is None:   # two-handed grips keep the off hand on the shaft via `follow`; a shield arm stays up
             h = p[side]["hand"]
-            p[side]["hand"] = (h[0] + 0.03 * k, h[1] - 0.09 * k, h[2] + 0.05 * k)
+            p[side]["hand"] = (h[0] + 0.02 * k, h[1] - 0.055 * k, h[2] + 0.03 * k)   # (elbow stays under ~150 deg flexion)
     return p
 
 
@@ -508,6 +526,7 @@ def add_all(arm, cls, style, joints):
     solver = poses.Solver(joints, style)
     frames = spec.clip_frames(cls)
     climber = W.Climber(solver, style)
+    gait = Gait(solver, style)
     ready_pose = ready(style)
 
     def periodic(fn):
@@ -527,10 +546,10 @@ def add_all(arm, cls, style, joints):
 
     makers = {
         "idle": periodic(lambda ph: idle_pose(style, ph)),
-        "walk": periodic(lambda ph: loco_pose(style, "walk", ph)),
-        "run": periodic(lambda ph: loco_pose(style, "run", ph)),
-        "strafe_left": periodic(lambda ph: loco_pose(style, "strafe_left", ph)),
-        "strafe_right": periodic(lambda ph: loco_pose(style, "strafe_right", ph)),
+        "walk": periodic(lambda ph: loco_pose(style, "walk", ph, gait)),
+        "run": periodic(lambda ph: loco_pose(style, "run", ph, gait)),
+        "strafe_left": periodic(lambda ph: loco_pose(style, "strafe_left", ph, gait)),
+        "strafe_right": periodic(lambda ph: loco_pose(style, "strafe_right", ph, gait)),
         "block": periodic(lambda ph: block_loop(style, ph)),
         "parry": timeline(lambda: parry_keys(style, cls, frames["parry"])),
         "dodge": timeline(lambda: dodge_keys(style)),
