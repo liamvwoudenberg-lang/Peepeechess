@@ -10,6 +10,7 @@ const Backdrop = preload("res://ui/theme/backdrop.gd")
 const Title = preload("res://ui/theme/title_screen.gd")
 const Icons = preload("res://ui/theme/ui_icons.gd")
 const SettingsPage = preload("res://ui/settings_page.gd")
+const FriendsPage = preload("res://ui/friends_page.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
 const INK = Tokens.BG
 const PAPER = Tokens.TEXT
@@ -52,6 +53,12 @@ var _last_toast = ""
 var _toast_clock = 0.0
 var _history_loading = false
 var _history_more_button: Button
+var friends: Dictionary = FriendsPage.snapshot_from({})  # last friends snapshot from the account service (ui/friends_page.gd)
+var friends_loaded = false
+var friend_lists: VBoxContainer
+var _friends_loading = false
+var _friends_clock = 0.0
+var _friend_alerts: Dictionary = {}  # requests/challenges already announced with a toast
 
 func _ready() -> void:
 	Settings.load_preferences()
@@ -132,7 +139,7 @@ func _build_frame() -> void:
 	account_badge = Kit.button(brand_row, "Sign in", func(): navigate("account"), "", "user")
 	_topbar_badge = account_badge
 	var nav = _flow(_topbar)
-	for item in [["play", "Play", "crown"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
+	for item in [["play", "Play", "crown"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
 		var target: String = item[0]
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
 	page_scroll = ScrollContainer.new()
@@ -163,7 +170,7 @@ func _pad_back() -> void:
 		navigate("home")
 
 func navigate(target: String) -> void:
-	page = target if target in ["home", "play", "profile", "history", "leaderboard", "settings", "account"] else "play"
+	page = target if target in ["home", "play", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
 	_refresh_generation += 1
 	for child in content.get_children():
 		content.remove_child(child)
@@ -178,11 +185,13 @@ func navigate(target: String) -> void:
 	_page_width.call("_fit")
 	page_scroll.scroll_vertical = 0
 	queue_label = null
+	friend_lists = null
 	_history_loading = false
 	_history_more_button = null
 	match page:
 		"home": Title.build(self, content, not OS.has_feature("mobile") and not OS.has_feature("web"))
 		"play": _play_page()
+		"friends": FriendsPage.build(self)
 		"account": _account_page()
 		"settings": _settings_page()
 		"profile": _profile_page()
@@ -199,6 +208,22 @@ func _heading(title: String, detail: String) -> void:
 func _update_badge() -> void:
 	if is_instance_valid(account_badge):
 		account_badge.text = str(Settings.account.get("displayName", "Account")) if not Settings.token.is_empty() else "Sign in"
+	_update_friends_badge()
+
+## "Friends" shows how many requests and challenges are waiting for an answer.
+func _update_friends_badge() -> void:
+	var button: Button = _menu_buttons.get("friends")
+	if is_instance_valid(button):
+		var waiting = FriendsPage.badge_count(friends) if not Settings.token.is_empty() else 0
+		button.text = "Friends · %d" % waiting if waiting > 0 else "Friends"
+
+## A different account or service must never see the previous one's friends.
+func _reset_friends() -> void:
+	friends = FriendsPage.snapshot_from({})
+	friends_loaded = false
+	_friend_alerts.clear()
+	_friends_clock = 0.0
+	_update_friends_badge()
 
 func _message(text: String, error: bool = false) -> void:
 	notice.text = text
@@ -261,6 +286,7 @@ func _play_page() -> void:
 	var actions = _flow(setup)
 	_button(actions, "Quick match  →", _queue, true)
 	_button(actions, "Create private match", _create_private)
+	_button(actions, "Challenge a friend", func(): navigate("friends")).name = "ChallengeAFriend"
 	invite_edit = _field(setup, "Invite code · six characters")
 	invite_edit.max_length = 6
 	_button(setup, "Join private match", _join_private)
@@ -336,12 +362,14 @@ func _authenticate(register: bool) -> void:
 		_message(response.message, true)
 		return
 	_message("Welcome, " + str(Settings.account.get("displayName", "Player")) + ".")
+	_reset_friends()
 	navigate("play")
 
 func _sign_out() -> void:
 	await api.call_api(HTTPClient.METHOD_POST, "/v1/auth/logout", {})
 	Settings.sign_out()
 	status = {"queue": null, "allocation": null, "invite": null}
+	_reset_friends()
 	_message("Signed out on this device.")
 	navigate("account")
 
@@ -356,6 +384,7 @@ func _save_api_url() -> void:
 	if value != Settings.api_url:
 		Settings.sign_out()
 		status = {"queue": null, "allocation": null, "invite": null}
+		_reset_friends()
 	Settings.api_url = value
 	Settings.save_preferences()
 	_message("Account service saved. Sign in to this service to play online.")
@@ -598,6 +627,9 @@ func _accept_status(response: Dictionary, redraw: bool = true) -> void:
 		queue_label.text = _status_text()
 
 func _status_text() -> String:
+	var sent = friends.challenges.outgoing  # a friend challenge is a private invite only that friend can join
+	if status.invite != null and sent != null:
+		return "Waiting for " + str(sent.get("player", {}).get("displayName", "your friend")) + " to accept your challenge…"
 	if status.invite != null:
 		return "Private invite  ·  " + str(status.invite.code) + "  ·  Share this code with a friend."
 	if status.queue != null:
@@ -623,3 +655,9 @@ func _process(delta: float) -> void:
 		_poll_timer = 0.0
 		if not Settings.token.is_empty() and (status.queue != null or status.invite != null):
 			_poll_status()
+	# Friends: quick while the page is open, slowly elsewhere (the "Friends" badge and the friends' "online" dot depend on it).
+	_friends_clock += delta
+	if _friends_clock >= (3.0 if page == "friends" else 12.0):
+		_friends_clock = 0.0
+		if not Settings.token.is_empty() and not _opening:
+			FriendsPage.refresh(self)

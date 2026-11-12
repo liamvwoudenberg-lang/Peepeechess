@@ -1,10 +1,16 @@
 import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import type { Allocation, Endpoint, HistoryPage, MatchOptions, MatchRecord, Mode, Profile, Stats, Status } from "../../contracts/application/v1/types.js";
+import type { Allocation, Challenge, Endpoint, FriendsSnapshot, HistoryPage, MatchOptions, MatchRecord, Mode, PlayerRef, Profile, Side, Stats, Status } from "../../contracts/application/v1/types.js";
 import { NativeStorage, type Transaction } from "./storage.js";
 const scrypt = (password: string, salt: string) => new Promise<Buffer>((resolve, reject) => scryptCallback(password, salt, 64, { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 }, (error, key) => error ? reject(error) : resolve(key)));
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const token = () => randomBytes(32).toString("hex");
 const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+/** Friends: bounds keep one account from growing unbounded rows or flooding others. */
+export const FRIEND_LIMIT = 100, PENDING_REQUEST_LIMIT = 30, PENDING_REQUEST_MS = 30 * 24 * 60 * 60 * 1000;
+/** A player counts as online when a client polled within this window (clients poll about every 12 s while signed in). */
+export const ONLINE_MS = 45000;
+const INVITE_MS = 600000;
+const USERNAME = /^[a-zA-Z0-9_]{3,24}$/;
 export class ApiError extends Error { constructor(readonly status: number, readonly code: string, message: string) { super(message); } }
 function need(condition: unknown, status: number, code: string, message: string): asserts condition { if (!condition) throw new ApiError(status, code, message); }
 export function object(value: unknown, keys: string[], optional: string[] = []): asserts value is Record<string, any> {
@@ -100,7 +106,8 @@ export class NativeService {
   private async cleanup(tx: Transaction) {
     const now = this.now();
     await tx.run("DELETE FROM native_queue WHERE touched_at<$1", now - 600000);
-    await tx.run("DELETE FROM native_invites WHERE expires_at<=$1", now);
+    await tx.run("DELETE FROM native_invites WHERE expires_at<=$1", now);  // cascades to native_challenges
+    await tx.run("DELETE FROM native_friendships WHERE status='pending' AND created_at<$1", now - PENDING_REQUEST_MS);
     await tx.run("DELETE FROM native_tickets WHERE expires_at<=$1", now);
     const stale = await tx.all("SELECT match_id FROM native_matches WHERE status='allocated' AND created_at<$1", now - 300000);
     for (const match of stale) await this.complete(tx, match.match_id, "aborted", "allocation_timeout", "", []);
@@ -147,22 +154,140 @@ export class NativeService {
     } else await tx.run("UPDATE native_queue SET touched_at=$1 WHERE player_id=$2", this.now(), playerId);
     await this.pair(tx, playerId); return { status: await this.status(tx, playerId) };
   }); }
-  getStatus(playerId: string) { return this.storage.transaction(async tx => { await this.cleanup(tx); await tx.run("UPDATE native_queue SET touched_at=$1 WHERE player_id=$2", this.now(), playerId); await this.pair(tx, playerId); return { status: await this.status(tx, playerId) }; }); }
+  getStatus(playerId: string) { return this.storage.transaction(async tx => { await this.cleanup(tx); await this.touch(tx, playerId); await tx.run("UPDATE native_queue SET touched_at=$1 WHERE player_id=$2", this.now(), playerId); await this.pair(tx, playerId); return { status: await this.status(tx, playerId) }; }); }
   cancel(playerId: string) { return this.storage.transaction(async tx => { await this.removeWaiting(tx, playerId); return { status: await this.status(tx, playerId) }; }); }
-  createPrivate(playerId: string, body: unknown) { const opts = options(body, true); return this.storage.transaction(async tx => {
-    await this.cleanup(tx); need(!await this.active(tx, playerId), 409, "ACTIVE_MATCH", "Finish your active match first."); await this.removeWaiting(tx, playerId);
+  /** Creates the sender's single outstanding invite (replacing any previous one) and returns its code. */
+  private async newInvite(tx: Transaction, playerId: string, opts: MatchOptions): Promise<string> {
+    await this.removeWaiting(tx, playerId);
     const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = ""; do { code = [...randomBytes(6)].map(v => alphabet[v % alphabet.length]).join(""); } while (await tx.get("SELECT code FROM native_invites WHERE code=$1", code));
-    await tx.run("INSERT INTO native_invites(code,player_id,options_json,expires_at) VALUES($1,$2,$3,$4)", code, playerId, JSON.stringify(opts), this.now() + 600000);
+    await tx.run("INSERT INTO native_invites(code,player_id,options_json,expires_at) VALUES($1,$2,$3,$4)", code, playerId, JSON.stringify(opts), this.now() + INVITE_MS);
+    return code;
+  }
+  createPrivate(playerId: string, body: unknown) { const opts = options(body, true); return this.storage.transaction(async tx => {
+    await this.cleanup(tx); need(!await this.active(tx, playerId), 409, "ACTIVE_MATCH", "Finish your active match first.");
+    await this.newInvite(tx, playerId, opts);
     return { status: await this.status(tx, playerId) };
   }); }
   joinPrivate(playerId: string, body: unknown) { object(body, ["code"]); need(typeof body.code === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(body.code), 400, "INVALID_PAYLOAD", "Enter a six-character invite code."); return this.storage.transaction(async tx => {
     await this.cleanup(tx); need(!await this.active(tx, playerId), 409, "ACTIVE_MATCH", "Finish your active match first.");
     const invite = await tx.get("SELECT * FROM native_invites WHERE code=$1", body.code);
     need(invite && invite.player_id !== playerId, 404, "INVITE_NOT_FOUND", "That invite is unavailable.");
+    // A friend challenge can be joined only by the friend it was sent to; everyone else sees the same "unavailable" answer.
+    const challenge = await tx.get("SELECT target_player_id,side FROM native_challenges WHERE code=$1", body.code);
+    need(!challenge || challenge.target_player_id === playerId, 404, "INVITE_NOT_FOUND", "That invite is unavailable.");
     need(!await this.active(tx, invite.player_id), 409, "ACTIVE_MATCH", "That invite is unavailable.");
-    await this.allocate(tx, invite.player_id, playerId, JSON.parse(invite.options_json)); return { status: await this.status(tx, playerId) };
+    // Plain private invites: the sender is White. Challenges honour the sender's colour choice; "random" is decided here, by the server.
+    const senderWhite = !challenge || challenge.side === "white" || (challenge.side === "random" && randomBytes(1)[0] % 2 === 0);
+    await this.allocate(tx, senderWhite ? invite.player_id : playerId, senderWhite ? playerId : invite.player_id, JSON.parse(invite.options_json)); return { status: await this.status(tx, playerId) };
   }); }
+  // ---- friends ------------------------------------------------------------------------------------------------------
+  // SQL note: the SQLite adapter rewrites every $n to a positional "?", so each parameter is passed once per occurrence, in order.
+  private async touch(tx: Transaction, playerId: string) {
+    await tx.run("INSERT INTO native_presence(player_id,seen_at) VALUES($1,$2) ON CONFLICT(player_id) DO UPDATE SET seen_at=excluded.seen_at", playerId, this.now());
+  }
+  /** The friendship row between two players, whichever of them asked. */
+  private link(tx: Transaction, a: string, b: string) {
+    return tx.get("SELECT requester_id,addressee_id,status FROM native_friendships WHERE (requester_id=$1 AND addressee_id=$2) OR (requester_id=$3 AND addressee_id=$4)", a, b, b, a);
+  }
+  private async friendCount(tx: Transaction, playerId: string) {
+    return Number((await tx.get("SELECT COUNT(*) AS n FROM native_friendships WHERE status='accepted' AND (requester_id=$1 OR addressee_id=$2)", playerId, playerId))!.n);
+  }
+  private async befriend(tx: Transaction, requester: string, addressee: string) {
+    need(await this.friendCount(tx, requester) < FRIEND_LIMIT && await this.friendCount(tx, addressee) < FRIEND_LIMIT, 409, "FRIEND_LIMIT", "A friends list is full.");
+    await tx.run("UPDATE native_friendships SET status='accepted' WHERE requester_id=$1 AND addressee_id=$2 AND status='pending'", requester, addressee);
+  }
+  private async friendsSnapshot(tx: Transaction, me: string): Promise<FriendsSnapshot> {
+    const now = this.now();
+    const ref = (row: any): PlayerRef => ({ playerId: row.player_id, username: row.username, displayName: row.display_name });
+    const friends = await tx.all(`SELECT a.player_id,a.username,a.display_name,COALESCE(p.seen_at,0) AS seen_at,
+      (SELECT rating FROM native_stats s WHERE s.player_id=a.player_id AND s.mode='classic') AS classic_rating,
+      (SELECT rating FROM native_stats s WHERE s.player_id=a.player_id AND s.mode='battle') AS battle_rating,
+      (SELECT COUNT(*) FROM native_matches m WHERE (m.white_player_id=a.player_id OR m.black_player_id=a.player_id) AND m.status IN ('allocated','active')) AS live
+      FROM native_friendships f JOIN native_accounts a ON a.player_id=(CASE WHEN f.requester_id=$1 THEN f.addressee_id ELSE f.requester_id END)
+      LEFT JOIN native_presence p ON p.player_id=a.player_id
+      WHERE f.status='accepted' AND (f.requester_id=$2 OR f.addressee_id=$3) ORDER BY a.display_name ASC,a.player_id ASC`, me, me, me);
+    const incoming = await tx.all("SELECT a.player_id,a.username,a.display_name FROM native_friendships f JOIN native_accounts a ON a.player_id=f.requester_id WHERE f.addressee_id=$1 AND f.status='pending' ORDER BY f.created_at ASC,a.player_id ASC", me);
+    const outgoing = await tx.all("SELECT a.player_id,a.username,a.display_name FROM native_friendships f JOIN native_accounts a ON a.player_id=f.addressee_id WHERE f.requester_id=$1 AND f.status='pending' ORDER BY f.created_at ASC,a.player_id ASC", me);
+    // `side` is stored from the challenger's point of view; each viewer is shown their own colour.
+    const opposite = (side: string): Side => side === "white" ? "black" : side === "black" ? "white" : "random";
+    const challenge = (row: any, side: Side): Challenge => { const o = JSON.parse(row.options_json); return { code: row.code, player: ref(row), mode: o.mode, initialMs: o.initialMs, incrementMs: o.incrementMs, side, expiresAt: Number(row.expires_at) }; };
+    const received = await tx.all("SELECT i.code,i.options_json,i.expires_at,c.side,a.player_id,a.username,a.display_name FROM native_challenges c JOIN native_invites i ON i.code=c.code JOIN native_accounts a ON a.player_id=i.player_id WHERE c.target_player_id=$1 AND i.expires_at>$2 ORDER BY i.expires_at ASC,i.code ASC", me, now);
+    const sent = await tx.get("SELECT i.code,i.options_json,i.expires_at,c.side,a.player_id,a.username,a.display_name FROM native_challenges c JOIN native_invites i ON i.code=c.code JOIN native_accounts a ON a.player_id=c.target_player_id WHERE i.player_id=$1 AND i.expires_at>$2", me, now);
+    return {
+      friends: friends.map(row => ({ ...ref(row), online: now - Number(row.seen_at) < ONLINE_MS, inMatch: Number(row.live) > 0, classicRating: Number(row.classic_rating), battleRating: Number(row.battle_rating) })),
+      incoming: incoming.map(ref), outgoing: outgoing.map(ref),
+      challenges: { incoming: received.map(row => challenge(row, opposite(row.side))), outgoing: sent ? challenge(sent, sent.side) : null },
+    };
+  }
+  getFriends(playerId: string) { return this.storage.transaction(async tx => { await this.cleanup(tx); await this.touch(tx, playerId); return this.friendsSnapshot(tx, playerId); }); }
+  friendRequest(playerId: string, body: unknown) {
+    object(body, ["username"]); need(typeof body.username === "string" && USERNAME.test(body.username), 400, "INVALID_PAYLOAD", "Enter the other player's username.");
+    const username = body.username.toLowerCase();
+    return this.storage.transaction(async tx => {
+      await this.cleanup(tx);
+      const target = await tx.get("SELECT player_id FROM native_accounts WHERE username=$1", username);
+      need(target, 404, "NOT_FOUND", "No player has that username.");
+      need(target.player_id !== playerId, 400, "INVALID_PAYLOAD", "You cannot add yourself.");
+      const existing = await this.link(tx, playerId, target.player_id);
+      need(!existing || existing.status !== "accepted", 409, "ALREADY_FRIENDS", "You are already friends.");
+      if (existing) {
+        need(existing.requester_id !== playerId, 409, "REQUEST_PENDING", "You already sent that request.");
+        await this.befriend(tx, target.player_id, playerId);  // they asked first, so asking back is accepting
+        return { ...await this.friendsSnapshot(tx, playerId), result: "accepted" };
+      }
+      need(await this.friendCount(tx, playerId) < FRIEND_LIMIT, 409, "FRIEND_LIMIT", "Your friends list is full.");
+      const pending = Number((await tx.get("SELECT COUNT(*) AS n FROM native_friendships WHERE requester_id=$1 AND status='pending'", playerId))!.n);
+      need(pending < PENDING_REQUEST_LIMIT, 409, "REQUEST_LIMIT", "You have too many unanswered friend requests.");
+      await tx.run("INSERT INTO native_friendships(requester_id,addressee_id,status,created_at) VALUES($1,$2,'pending',$3)", playerId, target.player_id, this.now());
+      return { ...await this.friendsSnapshot(tx, playerId), result: "requested" };
+    });
+  }
+  friendAccept(playerId: string, body: unknown) {
+    object(body, ["playerId"]); need(typeof body.playerId === "string" && body.playerId.length <= 96, 400, "INVALID_PAYLOAD", "Invalid player ID.");
+    return this.storage.transaction(async tx => {
+      await this.cleanup(tx);
+      const row = await tx.get("SELECT status FROM native_friendships WHERE requester_id=$1 AND addressee_id=$2", body.playerId, playerId);
+      need(row && row.status === "pending", 404, "NOT_FOUND", "That friend request is no longer available.");
+      await this.befriend(tx, body.playerId, playerId);
+      return this.friendsSnapshot(tx, playerId);
+    });
+  }
+  /** Unfriend, decline an incoming request or cancel an outgoing one: all remove the pair (and any challenge between them). Idempotent. */
+  friendRemove(playerId: string, body: unknown) {
+    object(body, ["playerId"]); need(typeof body.playerId === "string" && body.playerId.length <= 96, 400, "INVALID_PAYLOAD", "Invalid player ID.");
+    return this.storage.transaction(async tx => {
+      await tx.run("DELETE FROM native_invites WHERE code IN (SELECT c.code FROM native_challenges c JOIN native_invites i ON i.code=c.code WHERE (i.player_id=$1 AND c.target_player_id=$2) OR (i.player_id=$3 AND c.target_player_id=$4))", playerId, body.playerId, body.playerId, playerId);
+      await tx.run("DELETE FROM native_friendships WHERE (requester_id=$1 AND addressee_id=$2) OR (requester_id=$3 AND addressee_id=$4)", playerId, body.playerId, body.playerId, playerId);
+      return this.friendsSnapshot(tx, playerId);
+    });
+  }
+  /** Challenge a friend: a private (always unranked) invite that only that friend can join, with the sender's colour choice. */
+  challenge(playerId: string, body: unknown) {
+    object(body, ["playerId", "mode", "initialMs", "incrementMs"], ["side"]);
+    need(typeof body.playerId === "string" && body.playerId.length <= 96, 400, "INVALID_PAYLOAD", "Invalid player ID.");
+    const side = body.side === undefined ? "random" : body.side;
+    need(side === "white" || side === "black" || side === "random", 400, "INVALID_PAYLOAD", "Choose White, Black or Random.");
+    const opts = options({ mode: body.mode, initialMs: body.initialMs, incrementMs: body.incrementMs }, true);
+    return this.storage.transaction(async tx => {
+      await this.cleanup(tx); need(!await this.active(tx, playerId), 409, "ACTIVE_MATCH", "Finish your active match first.");
+      const friendship = await this.link(tx, playerId, body.playerId);
+      need(friendship && friendship.status === "accepted", 403, "NOT_FRIENDS", "You can only challenge friends.");
+      const code = await this.newInvite(tx, playerId, opts);
+      await tx.run("INSERT INTO native_challenges(code,target_player_id,side) VALUES($1,$2,$3)", code, body.playerId, side);
+      return { ...await this.friendsSnapshot(tx, playerId), status: await this.status(tx, playerId) };
+    });
+  }
+  /** Decline a challenge sent to you. (Accepting is the ordinary POST /v1/private/join with its code.) */
+  declineChallenge(playerId: string, body: unknown) {
+    object(body, ["code"]); need(typeof body.code === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(body.code), 400, "INVALID_PAYLOAD", "Invalid challenge code.");
+    return this.storage.transaction(async tx => {
+      await this.cleanup(tx);
+      need(await tx.get("SELECT code FROM native_challenges WHERE code=$1 AND target_player_id=$2", body.code, playerId), 404, "INVITE_NOT_FOUND", "That challenge is no longer available.");
+      await tx.run("DELETE FROM native_invites WHERE code=$1", body.code);
+      return this.friendsSnapshot(tx, playerId);
+    });
+  }
   issueTicket(playerId: string, body: unknown) { object(body, ["matchId"]); need(typeof body.matchId === "string", 400, "INVALID_PAYLOAD", "Invalid match ID."); return this.storage.transaction(async tx => {
     await this.cleanup(tx); const allocation = await this.active(tx, playerId);
     need(allocation !== null && allocation.matchId === body.matchId, 403, "FORBIDDEN", "That match is not assigned to you.");
