@@ -1,0 +1,205 @@
+name: Release Windows build
+
+# Builds the Windows (and Linux) packages with tools/package/build_release_local.sh, then publishes a GitHub Release
+# containing Peepeechess-windows-x86_64.exe, the Windows zip, the Linux tar.gz and SHA256SUMS.txt.
+#
+#   workflow_dispatch  build, verify and publish a release. Needs the `tag` input; the tag must not exist yet.
+#   pull_request       the same build and checks as a dry run when this pipeline itself changes; NOTHING is published.
+#
+# Gates before anything is published: the Linux package passes tools/package/smoke_linux.sh (Xvfb), the Windows exe
+# passes the static PE/PCK check (tools/package/inspect_exe.py), and the packaged exe starts headlessly on a GitHub-hosted
+# Windows runner. The exe is NOT code-signed. The write token exists only in the final `publish` job, which runs no
+# repository code: it verifies the artifact checksums and calls `gh release create`.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'New release tag, for example v0.3.0-alpha.1 (must not exist yet)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark the release as a pre-release'
+        required: true
+        type: boolean
+        default: true
+      ref:
+        description: 'Branch, tag or commit to build. Empty = the ref this workflow is dispatched on. It must contain tools/package/build_release_local.sh.'
+        required: false
+        type: string
+        default: ''
+      skip_windows_smoke:
+        description: 'Skip the headless start on a Windows runner (use only if that check itself is broken)'
+        required: false
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - '.github/workflows/release-windows.yml'
+      - 'tools/package/build_release_local.sh'
+      - 'tools/package/assemble_release.sh'
+      - 'tools/package/inspect_exe.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-windows-${{ github.event.pull_request.number || github.ref }}
+  # A running release must never be cancelled halfway; a newer push to a PR supersedes its dry run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      sha: ${{ steps.src.outputs.sha }}
+    steps:
+      - name: Check the release tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; then
+            echo "::error::tag must match [A-Za-z0-9][A-Za-z0-9._-]* and be at most 64 characters"; exit 1
+          fi
+          if out=$(gh api "repos/$REPO/git/ref/tags/$TAG" 2>&1); then
+            echo "::error::tag $TAG already exists; choose a new tag, releases are never overwritten"; exit 1
+          elif grep -q 'Not Found' <<< "$out"; then
+            echo "tag $TAG is free"
+          else
+            echo "$out" >&2; exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - name: Record the built commit
+        id: src
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Install Xvfb for the smoke test
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0
+      # Downloads the pinned Godot editor and the official export templates (SHA-512 verified), builds, smoke-tests,
+      # inspects the exe and assembles flat release assets + SHA256SUMS.txt + RELEASE_NOTES.md in artifacts/release/.
+      - name: Build, smoke-test and assemble the release assets
+        env:
+          TAG: ${{ inputs.tag }}
+        run: bash tools/package/build_release_local.sh "${TAG:-pr-dry-run}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            artifacts/release/Peepeechess-windows-x86_64.exe
+            artifacts/release/*.zip
+            artifacts/release/*.tar.gz
+            artifacts/release/SHA256SUMS.txt
+            artifacts/release/RELEASE_NOTES.md
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-build-logs
+          path: |
+            artifacts/release/pc/*.log
+            artifacts/release/pc/BUILD_INFO.txt
+            artifacts/release/pc/SHA256SUMS
+            artifacts/release/pc/exe-inspection.txt
+            artifacts/release/pc/smoke_status.txt
+          retention-days: 14
+
+  # Real Windows evidence: the packaged exe from the zip is started on a GitHub-hosted Windows runner with --headless
+  # (no GPU or display; this proves it launches, loads its embedded pack and runs 300 frames, not that it renders).
+  windows-smoke:
+    needs: build
+    if: ${{ !inputs.skip_windows_smoke }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: rel
+      - name: Verify the downloaded files against SHA256SUMS.txt
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($line in Get-Content rel/SHA256SUMS.txt) {
+            $parts = $line -split '\s+', 2
+            $name = $parts[1].TrimStart('*')
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath "rel/$name").Hash.ToLower()
+            if ($actual -ne $parts[0]) { throw "checksum mismatch for $name" }
+            "$actual  $name"
+          }
+      - name: Start the packaged exe headlessly
+        shell: pwsh
+        run: |
+          Expand-Archive -Path (Get-ChildItem rel/*-win64.zip | Select-Object -First 1).FullName -DestinationPath win
+          $exe = (Get-ChildItem win -Recurse -Filter Peepeechess.console.exe | Select-Object -First 1).FullName
+          & $exe --headless --quit-after 300 2>&1 | Tee-Object -FilePath win-smoke.log
+          if ($LASTEXITCODE -ne 0) { throw "exit code $LASTEXITCODE" }
+          if (Select-String -Path win-smoke.log -Pattern 'SCRIPT ERROR|Parse Error|^ERROR:') { throw 'engine errors in log' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-smoke-log
+          path: win-smoke.log
+          retention-days: 14
+
+  publish:
+    needs: [build, windows-smoke]
+    # Only a manual dispatch publishes. A skipped Windows check (skip_windows_smoke) is allowed; a failed one is not.
+    if: >-
+      ${{ !cancelled() && github.event_name == 'workflow_dispatch' && needs.build.result == 'success'
+      && contains(fromJSON('["success","skipped"]'), needs.windows-smoke.result) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release
+      - name: Verify the files again
+        working-directory: release
+        run: sha256sum -c SHA256SUMS.txt
+      - name: Create the release
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+          TARGET_SHA: ${{ needs.build.outputs.sha }}
+          WINDOWS_SMOKE: ${{ needs.windows-smoke.result }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$REPO/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::tag $TAG exists now; not overwriting"; exit 1
+          fi
+          if [ "$WINDOWS_SMOKE" = success ]; then
+            line='- Packaged `Peepeechess.console.exe --headless --quit-after 300` from the zip on a GitHub-hosted Windows runner (windows-latest): started, ran 300 frames, exit code 0, no engine errors. Headless: this does not test rendering on a GPU.'
+          else
+            line='- Start on a Windows runner: skipped for this release.'
+          fi
+          awk -v line="$line" '/<!-- WINDOWS_RUNNER_CHECK -->/ { print line; next } { print }' RELEASE_NOTES.md > notes.md
+          flags=(--repo "$REPO" --target "$TARGET_SHA" --title "Peepeechess $TAG (Windows alpha)" --notes-file notes.md)
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" "${flags[@]}" Peepeechess-windows-x86_64.exe Peepeechess-*-win64.zip Peepeechess-*-linux64.tar.gz SHA256SUMS.txt
+          # Round trip: download the published exe again and compare it with the checksum list.
+          mkdir ../published
+          gh release download "$TAG" --repo "$REPO" --dir ../published --pattern 'Peepeechess-windows-x86_64.exe' --pattern 'SHA256SUMS.txt'
+          ( cd ../published && grep ' Peepeechess-windows-x86_64.exe$' SHA256SUMS.txt | sha256sum -c - )
+          url="$(gh release view "$TAG" --repo "$REPO" --json url --jq .url)"
+          {
+            echo "### Published $TAG"
+            echo
+            echo "$url"
+            echo
+            echo '```'
+            cat SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
