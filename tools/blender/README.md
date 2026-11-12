@@ -60,6 +60,27 @@ two-handed grips (Pawn spear, Bishop staff) use a two-bone IK solve so the off h
 (`animation/kinematics.py`); the weapon strikes inside the `spec.MARKERS` active window (peak hand speed checked).
 The `STYLE` schema each class module supplies is documented at the top of `animation/library.py`.
 
+## Animation integrity audit
+
+`godot/combat/tools/anim_audit.gd` (+ `anim_audit_runtime.gd`) measures every clip of every class and LOD through the real `CharacterModel` /
+`AnimationPlayer`: coverage and silent fallbacks, clip length and weapon contact vs the simulation's frame data, loop seams, skeleton
+sanity (finite values, bone lengths, isolated rotation pops, knee/elbow limits, foot slide / drag / ground penetration), props and sockets,
+LOD parity, cross-fade pose deltas, and seeded AI-vs-AI fights plus scripted move-set scenarios through the full presentation. Results:
+`godot/assets/combat/ANIMATION_INTEGRITY.md` (tables, findings, visual review) and `godot/assets/combat/manifest/animation_audit.json`.
+
+```sh
+godot --headless --path godot --script res://combat/tools/anim_audit.gd -- --out res://assets/combat/manifest/animation_audit.json
+godot --headless --path godot --script res://combat/tools/anim_audit.gd -- --classes knight --lod 0 --no-runtime     # quick look
+godot --headless --path godot --script res://combat/tools/anim_audit.gd -- --assets /tmp/scratch/characters --no-runtime  # a scratch build (build_all.py --out /tmp/scratch)
+godot --headless --path godot --script res://combat/tests/test_runner.gd -- anim_integrity                                 # the asserting suite
+xvfb-run -a godot --path godot --rendering-driver opengl3 --script res://combat/tools/anim_sheet.gd -- class=knight clips="light_1:0,8,14;heavy:20,36" out=/tmp/sheet.png
+```
+
+Workflow: change `animation/*`, rebuild (`build_all.py`), rerun the audit; a scratch build can be audited before it replaces the committed GLBs.
+Generator rules the audit enforces: tuples blended in `poses._lerp` must be padded, never snapped; quaternion keys stay sign-continuous;
+ground-fitted poses never carry a negative hips offset; locomotion goes through `animation/gait.py` (its nominal speeds in `spec.py` must equal
+`CharacterModel.NOMINAL_SPEED`, asserted by `test_anim_integrity`).
+
 ## Layout
 
 `runtime.py` scene/args helpers, `skeleton.py`, `modeling.py` (bmesh primitives, skinned tubes, UVs, socket

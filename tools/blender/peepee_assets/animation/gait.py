@@ -124,10 +124,10 @@ class Gait:
                 toe = 0.0
             else:                                         # swing: cycloid forward, lifted, toe-off pitch then toe-up before landing
                 u = (ph - beta) / (1.0 - beta)
-                u0 = 0.16                                  # the foot leaves the floor BEFORE it travels (no toe dragging at toe-off)
+                u0 = 0.12                                  # the foot leaves the floor BEFORE it travels (no toe dragging at toe-off)
                 s = -S * 0.5 + S * _cycloid(max(0.0, (u - u0) / (1.0 - u0)))
                 height = lift * math.sin(math.pi * u) ** 0.9
-                toe = 22.0 * max(0.0, 1.0 - u / 0.16) - 10.0 * math.sin(math.pi * min(1.0, max(0.0, (u - 0.72) / 0.28)))
+                toe = 22.0 * max(0.0, 1.0 - u / 0.12) - 10.0 * math.sin(math.pi * min(1.0, max(0.0, (u - 0.72) / 0.28)))
             # a foot pitched toe-down at lift-off pivots on its toe tip: the ankle rises by toe_len * sin(pitch) or the toe would dig in
             height = max(height, self.toe_len * math.sin(math.radians(max(0.0, toe))))
             pos = Vector((sign * half_w, 0.0, self.ankle_h + height)) + d * s

@@ -119,7 +119,7 @@
       },
       "bytes_collision": 15804,
       "bytes_lod0": 996444,
-      "bytes_lod1": 882176,
+      "bytes_lod1": 882280,
       "class": "bishop",
       "clips": {
         "ability": 20,
@@ -201,7 +201,7 @@
           2.194200038909912
         ]
       },
-      "bytes_collision": 16904,
+      "bytes_collision": 16680,
       "bytes_lod0": 1198932,
       "bytes_lod1": 1004888,
       "class": "king",
@@ -293,7 +293,7 @@
       },
       "bytes_collision": 16312,
       "bytes_lod0": 1048016,
-      "bytes_lod1": 913120,
+      "bytes_lod1": 912912,
       "class": "knight",
       "clips": {
         "ability": 72,
@@ -376,7 +376,7 @@
           1.7756600379943848
         ]
       },
-      "bytes_collision": 15244,
+      "bytes_collision": 15212,
       "bytes_lod0": 932820,
       "bytes_lod1": 854300,
       "class": "pawn",
@@ -545,7 +545,7 @@
           2.1938998699188232
         ]
       },
-      "bytes_collision": 15784,
+      "bytes_collision": 15624,
       "bytes_lod0": 1103312,
       "bytes_lod1": 947408,
       "class": "rook",
