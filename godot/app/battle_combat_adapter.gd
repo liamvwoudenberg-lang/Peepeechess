@@ -9,7 +9,7 @@ const DEFAULT_SCENE = "res://combat/arena.tscn"
 const Codec = preload("res://contracts/codec.gd")
 var scene_path = DEFAULT_SCENE
 var presentation_enabled = true
-## Set by the computer opponent (chess/ai/computer_opponent.gd): {color, seat: {type:"ai", skill, style}}. That colour is
+## Set by the computer opponent (chess/ai/computer_opponent.gd): {color, seat: {type:"ai", skill, style, attacker_style}}. That colour is
 ## fought by CombatAI; the human then always uses seat 1's controls whichever colour they play. Empty = two humans.
 var computer_seat: Dictionary = {}
 var arena: Node
@@ -91,6 +91,8 @@ func start(request: Dictionary) -> Dictionary:
 		for participant in [request.attacker, request.defender]:
 			if not computer_seat.is_empty() and participant.color == computer_seat.color:
 				seats[participant.playerId] = computer_seat.seat.duplicate()
+				if participant.playerId == request.attacker.playerId:
+					seats[participant.playerId].style = computer_seat.seat.get("attacker_style", computer_seat.seat.get("style", "balanced"))
 			else:
 				seats[participant.playerId] = {"type": "human", "scheme": assignment.scheme_for_color("w" if not computer_seat.is_empty() else participant.color)}
 		arena.call("configure_seats", seats)

@@ -48,6 +48,7 @@ func _build_new_dialog_section() -> void:
 	_dialog_box = VBoxContainer.new()
 	_dialog_box.name = "NewGameBox"
 	_dialog_box.add_theme_constant_override("separation", 10)
+	dialog.get_label().hide()  # the dialog's own label is sized to fill the window and left the dialog far taller than its content
 	dialog.remove_child(selector)
 	_section = VBoxContainer.new()
 	_section.name = "OpponentSection"
@@ -74,6 +75,19 @@ func _update_dialog_text() -> void:
 	var width = mini(460, int(main.size.x) - 24)
 	main.new_dialog.min_size = Vector2i(width, 120)
 	main.new_dialog.size = Vector2i(width, 120)  # start small: the dialog grows to its content, never shrinks
+	_settle_dialog.call_deferred()
+
+
+## The dialog is first laid out far taller than its content (AcceptDialog fills the window on its first popup); shrink it
+## a few frames later and it settles at exactly the content height.
+func _settle_dialog() -> void:
+	for i in 3:
+		await get_tree().process_frame
+	var dialog: ConfirmationDialog = main.new_dialog
+	if is_instance_valid(dialog) and dialog.visible:
+		dialog.size = Vector2i(dialog.size.x, 10)
+		await get_tree().process_frame
+		dialog.move_to_center()
 
 ## Called by main._show_new before the dialog is shown.
 func prepare_new_dialog() -> void:

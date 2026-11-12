@@ -30,3 +30,9 @@ v1 wire schema. A production transport will need a versioned clock snapshot and
 trusted clock synchronization. No native network adapter is introduced by this
 Classic slice. In server mode local undo/pause/play conveniences are disabled;
 server code must bind credentials before invoking submit_request.
+
+## Computer opponent
+
+`ai/` holds the computer opponent (alpha-beta search over this engine, six levels, Battle Chess duel model, worker thread). It uses
+`legal_moves()` / `pseudo_moves()` / `_apply()` / `_restore()` as they are and plays through `ClassicMatch.play()`. See `ai/README.md` for the
+design, the levels table, the Battle heuristic and the limits; run `npm run test:ai` for its suites.

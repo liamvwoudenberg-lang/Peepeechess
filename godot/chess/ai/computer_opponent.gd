@@ -104,7 +104,7 @@ func _sync_combat_seat() -> void:
 		return
 	if active and game is BattleChessMatch:
 		var profile = ChessAI.combat_profile(level)
-		adapter.computer_seat = {"color": ai_color, "seat": {"type": "ai", "skill": profile.skill, "style": profile.style}}
+		adapter.computer_seat = {"color": ai_color, "seat": {"type": "ai", "skill": profile.skill, "style": profile.style, "attacker_style": profile.attack_style}}
 	else:
 		adapter.computer_seat = {}
 

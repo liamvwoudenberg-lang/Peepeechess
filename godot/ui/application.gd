@@ -336,6 +336,7 @@ func _sign_out() -> void:
 
 func _settings_page() -> void:
 	_heading("Make yourself at home.", "Presentation settings belong to this device. They never change the match rules or your opponent's camera.")
+	BoardSettingsPage.build(self)  # board theme, highlights, piece set, animation speed, shadows (ui/board_settings.gd)
 	var card = _card(content)
 	var row = _flow(card)
 	_button(row, "Default board: " + ("3D" if Settings.preferred_3d else "2D"), func(): Settings.preferred_3d = not Settings.preferred_3d; Settings.save_preferences(); navigate("settings"))
@@ -373,7 +374,6 @@ func _settings_page() -> void:
 	api_edit.max_length = 200
 	api_edit.text = Settings.api_url
 	_button(card, "Save service address", _save_api_url)
-	BoardSettingsPage.build(self)  # board theme, highlights, piece set, animation speed, shadows (ui/board_settings.gd)
 	_label(card, "Keyboard / mouse: click or drag a piece. Touch: tap or drag. 3D: orbit with right-drag or swipe; zoom with scroll or pinch. Controller: use the focused controls and board cursor. Esc releases the combat mouse.", 15, MUTED)
 	_button(card, "Advanced direct-server lobby", func(): Settings.launch = {}; get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"))
 

@@ -9,12 +9,12 @@ extends RefCounted
 ## search ends on depth/node limits (`deterministic = true` removes the wall clock entirely). With a wall-clock
 ## limit the depth reached depends on machine speed, so moves can differ between machines.
 const LEVELS = {
-	1: {"name": "Beginner", "max_depth": 1, "q_ply": 0, "node_limit": 400, "time_ms": 300, "noise": 90, "margin": 330, "blunder": 0.30, "skill": 0.20, "style": "balanced"},
-	2: {"name": "Casual", "max_depth": 2, "q_ply": 2, "node_limit": 1500, "time_ms": 600, "noise": 55, "margin": 220, "blunder": 0.12, "skill": 0.38, "style": "balanced"},
-	3: {"name": "Club", "max_depth": 3, "q_ply": 4, "node_limit": 4000, "time_ms": 1000, "noise": 25, "margin": 110, "blunder": 0.04, "skill": 0.55, "style": "balanced"},
-	4: {"name": "Advanced", "max_depth": 5, "q_ply": 6, "node_limit": 9000, "time_ms": 1500, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.70, "style": "defensive"},
-	5: {"name": "Expert", "max_depth": 7, "q_ply": 8, "node_limit": 18000, "time_ms": 2500, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.82, "style": "duelist"},
-	6: {"name": "Strong", "max_depth": 12, "q_ply": 10, "node_limit": 40000, "time_ms": 4000, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.92, "style": "duelist"},
+	1: {"name": "Beginner", "max_depth": 1, "q_ply": 0, "node_limit": 400, "time_ms": 300, "noise": 90, "margin": 330, "blunder": 0.30, "skill": 0.20, "style": "balanced", "attack_style": "balanced"},
+	2: {"name": "Casual", "max_depth": 2, "q_ply": 2, "node_limit": 1500, "time_ms": 600, "noise": 55, "margin": 220, "blunder": 0.12, "skill": 0.38, "style": "balanced", "attack_style": "balanced"},
+	3: {"name": "Club", "max_depth": 3, "q_ply": 4, "node_limit": 4000, "time_ms": 1000, "noise": 25, "margin": 110, "blunder": 0.04, "skill": 0.55, "style": "balanced", "attack_style": "balanced"},
+	4: {"name": "Advanced", "max_depth": 5, "q_ply": 6, "node_limit": 9000, "time_ms": 1500, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.70, "style": "defensive", "attack_style": "aggressive"},
+	5: {"name": "Expert", "max_depth": 7, "q_ply": 8, "node_limit": 18000, "time_ms": 2500, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.82, "style": "duelist", "attack_style": "aggressive"},
+	6: {"name": "Strong", "max_depth": 12, "q_ply": 10, "node_limit": 40000, "time_ms": 4000, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.92, "style": "duelist", "attack_style": "aggressive"},
 }
 const MIN_LEVEL = 1
 const MAX_LEVEL = 6
@@ -40,10 +40,12 @@ static func level_config(value: int) -> Dictionary:
 static func level_name(value: int) -> String:
 	return LEVELS[clampi(value, MIN_LEVEL, MAX_LEVEL)].name
 
-## Combat skill 0..1 and CombatAI style for the Battle Chess duel controlled by this level.
+## Combat skill 0..1 and CombatAI styles for the Battle Chess duel controlled by this level. `style` is used when the
+## computer defends, `attack_style` when it attacks: the reactive styles (defensive / duelist) never start a fight, and
+## a tie goes to the defender, so an attacking computer that waited for a passive human would simply lose by timeout.
 static func combat_profile(value: int) -> Dictionary:
 	var config = LEVELS[clampi(value, MIN_LEVEL, MAX_LEVEL)]
-	return {"skill": config.skill, "style": config.style}
+	return {"skill": config.skill, "style": config.style, "attack_style": config.attack_style}
 
 func new_game() -> void:
 	search.clear_tables()

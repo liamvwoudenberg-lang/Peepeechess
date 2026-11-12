@@ -21,7 +21,8 @@
     "server:native": "bash scripts/start-native-server.sh",
     "backend:native": "bash scripts/start-application-backend.sh",
     "test:backend": "node --import tsx --test tests/native-backend*.test.ts",
-    "test:application": "node scripts/test-application.mjs"
+    "test:application": "node scripts/test-application.mjs",
+    "test:ai": "node scripts/test-ai.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.10",
