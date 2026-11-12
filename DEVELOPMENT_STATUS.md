@@ -51,7 +51,7 @@ This supersedes the earlier "combat on the board" / "board expansion" wording.
 | Colour-blind option | reaches the 2D board and themed 2D highlights, not the 3D/pit board highlights |
 | Chess AI | levels untuned; wall-clock budgets make moves machine-dependent; Battle: no undo, human presses Start battle when the computer captures, AI never resigns in Battle; `test:ai` not in `npm test` |
 | Pit transition for ONLINE matches | not wired: `OnlineCombatView` takes any Node host now; the world must call `pit.begin / attach_arena / present_result` (see godot/world/README.md "Online path"); server countdown (180 ticks) does not wait for the pre-roll; server returns to board ~2 s after the result |
-| King last-stand: menu toggle, banners, online wire format | rules/contract/server done; presentation + `network/royal` variant open; King balance recommendations (more HP / partial refresh) not applied |
+| King last-stand: online wire format | local play DONE (toggle on Play page + New game dialog, banner, HUD, one-descent pit sequence, computer opponent; `royal_flow` suite); `network/royal` wire variant + online presentation open; no human playtest; King balance recommendations not applied |
 | King selectable in the app / v1 server | no (v1 contract forbids it); needs a contract version |
 | Contract v2 handshake (tuning stamp, `actionId`, buff field) | proposed in `docs/network/ONLINE_COMBAT.md`, not implemented (v1 is immutable) |
 | Android build in the sandbox | blocked: `dl.google.com` returns 403 from the sandbox proxy; use the GitHub Actions artifact |
@@ -109,7 +109,6 @@ prediction/reconciliation to square topology; actual device crossplay/performanc
 refreshed native artifacts. King's last stand: rules, contract, server session, flow
 hooks and tests are DONE as the opt-in `battle-royal-v1` ruleset
 (docs/architecture/BATTLE_ROYAL_V1.md; `npm run test:royal`); still open: a
-`network/royal` wire variant so online rooms can select it, the `main.gd` menu toggle
-that creates `BattleRoyalMatch`, presentation of the sequence banner, human playtests
+`network/royal` wire variant so online rooms can select it (local play now has the Play-page/New-game toggle, the sequence banner/HUD and the one-descent pit presentation, suite `royal_flow`), human playtests
 and the King/attrition balance recommendations in godot/combat/BALANCE.md. Update this file with commits, changed paths, checks actually
 run and remaining issues as each milestone lands. No completion is implied yet.

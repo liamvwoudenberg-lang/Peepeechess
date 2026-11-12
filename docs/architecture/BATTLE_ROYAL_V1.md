@@ -132,9 +132,28 @@ See `godot/combat/BALANCE.md` ("King's last stand"). Summary: against the *defau
 checkers 22-24 of 24 but a double check from two non-pawn pieces is lost ~always by the default-AI King and by attrition
 even for a skilled King against skilled checkers. Recommendations are listed there; no stat was changed.
 
+## Implementation status (local play, 2026-11-12)
+
+Playable for LOCAL Battle Chess (two players or the computer opponent); verified by headless suites and software-GL screenshots only.
+
+* **Choice**: "King's last stand" toggle (default OFF, one-paragraph explanation, last choice persisted in `user://royal_options.cfg`) in the New game dialog
+  (Battle games) and on the Play page (local Battle / Computer; never shown for Classic or Online). `RoyalOption` (`godot/ui/royal_option.gd`);
+  `main.gd` creates `BattleRoyalMatch` instead of `BattleMatch` (`_switch_mode(1, royal)`).
+* **Who fights**: the mated King is always the attacker. Against the computer, the colour the computer plays is fought by CombatAI (the level's `attack_style`
+  when its King attacks, its defending style for a checker); the human always uses seat 1's controls. Two humans: each side keeps its own scheme. A human resigning
+  against the computer mid-sequence forfeits (not the mated side by default).
+* **Presentation** (`godot/world/README.md`, "King's last stand"): one descent, an INTERLUDE per extra duel (arena restarted in place, no scene reload, no black
+  screen), one climb; interruption at any point recovers a consistent top-down board. Banner "KING'S LAST STAND - duel i of n" with the carried HP / stamina /
+  cooldown (read from the match, fed by the trusted simulation), HUD context line "LAST STAND / DUEL i/n", King HP bar starting at the carried fraction, a result-screen
+  note when the sequence ended in checkmate.
+* **Tests**: `npm run test:royal` runs suite `royal_flow` (899 checks) besides rules / flow / session / `royal`.
+* **Not done / known**: the online wire variant (below); human playtests; the chess AI searches with C0 semantics (it treats a mate as a win and does not know the
+  King may survive); a reactive-style computer King (defensive/duelist) never attacks, and a tie goes to the checker, so low-level computer Kings are weak;
+  Skip animation during a non-final duel re-descends for the next duel; two-human split-screen cameras were not screenshotted.
+
 ## Remaining
 
-* `network/royal` wire variant and a server allocation `ruleset` so online rooms can opt in; client presentation of the sequence.
-* Menu toggle / `main.gd` wiring for local play (kept out to avoid conflicting with the pit-world work); main must create
-  `BattleRoyalMatch` instead of `BattleMatch` and pass `CombatAdapter` as today.
+* `network/royal` wire variant and a server allocation `ruleset` so online rooms can opt in (design sketch: a separate protocol id `peepeechess-enet-royal-v1`,
+  `RoyalHello/RoyalWelcome/RoyalCreateMatch/RoyalMatchFrame` plus pushed `RoyalSequenceProgress/RoyalDuelResult/RoyalSequenceResult`, negotiated per connection so v1 clients
+  and messages are untouched; the server session already carries the sequence authoritatively); client presentation of `RoyalSequenceProgress`.
 * Human playtests of the last stand; stat recommendations in BALANCE.md are unapplied.
