@@ -59,6 +59,8 @@ var arc_fx: MeshInstance3D
 var _current: String = ""
 var _arc_key: String = ""
 var _sockets: Dictionary = {}
+var _stow_props: Array = []   # [{node, scale, visible}] weapon/shield props, captured on first set_props_stowed()
+var stowed := 0.0             # 0 = carried, 1 = fully stowed (pit world ladder climb)
 var _meshes: Array[MeshInstance3D] = []
 var _model_base: Transform3D = Transform3D.IDENTITY
 var _loco_speed: float = 0.0
@@ -196,6 +198,25 @@ func _tint_accent(node: Node, color: Color) -> void:
 
 func socket(bone_name: String) -> BoneAttachment3D:
 	return _sockets.get(bone_name, null)
+
+
+## Stows (1.0) or draws (0.0) the carried weapon and shield: they shrink towards their grip and disappear when fully stowed.
+## The pit world stows them for the ladder climb (they were not authored for a 1 m shaft). Original scale and visibility are
+## remembered, so drawing them again restores exactly what was there.
+func set_props_stowed(amount: float) -> void:
+	if _stow_props.is_empty():
+		for att in _sockets.values():
+			if not (String(att.name).begins_with("WeaponSocket") or String(att.name).begins_with("ShieldSocket")):
+				continue
+			for child in att.get_children():
+				if child is Node3D:
+					_stow_props.append({"node": child, "scale": child.scale, "visible": child.visible})
+	stowed = clampf(amount, 0.0, 1.0)
+	for entry in _stow_props:
+		var prop: Node3D = entry["node"]
+		if is_instance_valid(prop):
+			prop.scale = (entry["scale"] as Vector3) * maxf(0.001, 1.0 - stowed)
+			prop.visible = bool(entry["visible"]) and stowed < 0.999
 
 
 func has_clip(clip_name: String) -> bool:

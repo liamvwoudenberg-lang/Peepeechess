@@ -68,7 +68,7 @@ leave anything behind.
 | DROP | 1.2 s fall + 0.7 s camera (`DROP_TIME + DESCENT_EXTRA_TIME`) | the arena's paused simulation is released (its own 3 s countdown now runs), pieces fall and tumble, drift to the sim spawns after clearing the ceiling, at the landing they flash and morph into the fighters, camera dolly-zooms down and settles into the third-person pose |
 | COMBAT | until the authoritative result arrives | HUD/split-screen overlays shown, input live |
 | RESOLVE | 1.3 s defeat + 0.5 s dissolve | loser's defeat plays (a timeout loser is detached and plays `defeat`), then shrinks away with dust |
-| CLIMB | walk (>= 0.6 s) + 7.04 m / 1.6 m/s + 0.5 s exit | ladder unrolls from the rim, winner walks to the foot (`walk` clip), climbs (`climb` clip if the model has one, else `walk` at half speed while the model rises), steps onto the tile |
+| CLIMB | walk (>= 0.6 s) + 7.04 m / 1.6 m/s + 0.5 s exit | ladder unrolls from the rim, winner walks to the foot (`walk` clip) **around the arena's pillars** (`PitSequence.walk_path`), **stows weapon and shield over the last 0.35 s of the walk**, climbs (`climb` clip if the model has one, else `walk` at half speed while the model rises), steps onto the tile |
 | RETURN | camera 2.0 s | winner morphs back into its mesh (0.45 s), `return_ready` is emitted (the bridge commits the result and the arena is stopped), the camera leaves through the shaft, the trapdoor closes (starts at 1.0 s, 0.7 s), board root back to the origin, `finished` |
 
 The sequence **never decides** anything: `present_result(result)` only picks which fighter climbs (`outcome` attacker/defender from the
@@ -151,7 +151,19 @@ The fighters' `climb` clip is requested at `CLIMB_SPEED / 0.4167` playback speed
 otherwise the tile visibly changes at capture focus), `light_cone.glb` (the procedural cone is used; the asset's additive material blew out in a first try),
 the chess set (`pieces/*.glb`, roles read well from above) and `board_frame/plaques`. Known mismatch in `board_3d.gd` (not touched): the rank Label3D "8" is at z = -3.5
 while `world_position()` puts rank 8 at z = +3.5; the pit world follows `world_position()`.
-The climber is 1.8 m against a 1.0 m opening; Rook/King props overlap the 0.62 m ladder (asset note). Nothing is scaled or hidden yet.
+The climber is 1.8 m against a 1.0 m opening, and the props were not authored for it. Measured on the real flow with `combat/tools/climb_audit.gd`
+(5 winning roles), the weapon or shield reached **0.2-0.5 m sideways and 0.13-0.76 m front-to-back beyond the opening**: through the ceiling slab, the
+shaft wall and the ladder (a Pawn's spear 1.0 m from the axis, a Rook's tower shield 0.95 m). The body was never the problem. The sequence therefore **stows
+the props** (`set_props_stowed`, on `CharacterModel` and the procedural `FighterVisual`: they shrink to their grip over `STOW_TIME` and stay hidden for the
+climb; the arena frees the fighter afterwards). With that, only bones remain at the opening: hands on the rungs 0.06 m from the wall (by the clip's design),
+a Rook's forearm at 0.43 m. Nothing else is scaled, so hands and feet stay on the 0.25 m rung grid the `climb` clip was authored for (scaling the body
+down would make them slide through the rungs).
+
+The walk to the ladder foot used to be a straight line with a facing that switched target at 80% and snapped by up to 180 degrees (visible for a Black
+winner walking in from z = +2.6). It is now a path that keeps pillar radius + 0.45 m body + 0.1 m margin from each of the four pillars (a duel that ends in the
+corner behind a pillar would otherwise walk through it) with a facing that turns continuously. `combat/tests/test_pit_climb.gd` (suite `pit_climb`) checks the
+walk path exhaustively over the arena, and for every winning role (plus a Black defender) that props are stowed before the climb, bone centres stay inside the
+opening, the facing never turns more than 0.25 rad in a frame and the position never steps more than 0.12 m.
 
 ## Quality / mobile
 
@@ -187,7 +199,7 @@ to keep it short.
 * Local two-human battles (the adapter configures both seats as humans) use the arena's own split-screen layer: the rig camera shows the descent, then the two
   per-player `ThirdPersonCamera` views cover it. Only a single human/AI seat gives the single third-person camera the rig follows. The adapter is not mine to change.
 * The combat view lives in the board panel (about 890x560 on a 1280x800 window), not full screen; the HUD scales with the panel.
-* The ladder top (asset) pokes 0.75 m above the board while deployed; it is hidden before the camera passes. The climber's weapon/shield clip through the rails for some roles (asset note).
+* The ladder top (asset) pokes 0.75 m above the board while deployed; it is hidden before the camera passes. The climber's weapon/shield used to clip through the rails; they are now stowed for the climb (see Assets).
 * `ThirdPersonCamera.make_current` (polish branch) is not needed: the rig re-asserts its camera after the arena starts. Merge-compatible either way.
 * Dark pieces on pale tiles from above: roles are distinguishable by their tops (cross, crenels, crown, mitre slit, horse head, dome) but flatter than the 2D art atlas.
 * Resizing the window during a sequence re-frames the board (aspect changes) mid-glide.

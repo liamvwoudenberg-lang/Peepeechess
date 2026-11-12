@@ -340,16 +340,81 @@ func _begin_climb() -> void:
 		_set_layers(visual, W.LAYER_CHAMBER | W.LAYER_BOARD)
 		var start := visual.global_position
 		var foot := world.chamber.climb_position(0.0)
-		var walk := Vector2(foot.x - start.x, foot.z - start.z).length()
+		var path := walk_path(start, foot)
+		var walk := path_length(path)
 		var t_walk := maxf(W.LADDER_DEPLOY_TIME, walk / W.CLIMB_WALK_SPEED)
 		var top := W.BOARD_DEPTH + W.TILE_THICKNESS * 0.5
-		_climb = {"start": start, "yaw": visual.rotation.y, "t_walk": t_walk, "t_climb": top / W.CLIMB_SPEED, "top": top, "stage": -1}
+		_climb = {"start": start, "path": path, "length": walk, "yaw": visual.rotation.y, "t_walk": t_walk, "t_climb": top / W.CLIMB_SPEED, "top": top, "stage": -1}
 		if visual.has_method("play_clip"):
 			visual.call("play_clip", "walk", 1.0)
 	else:  # no arena (timing-only runs): same timeline, no model to move
 		var top_y := W.BOARD_DEPTH + W.TILE_THICKNESS * 0.5
-		_climb = {"start": world.chamber.climb_position(0.0), "yaw": 0.0, "t_walk": W.LADDER_DEPLOY_TIME, "t_climb": top_y / W.CLIMB_SPEED, "top": top_y, "stage": -1}
+		var foot_only := world.chamber.climb_position(0.0)
+		_climb = {"start": foot_only, "path": [foot_only, foot_only], "length": 0.0, "yaw": 0.0, "t_walk": W.LADDER_DEPLOY_TIME, "t_climb": top_y / W.CLIMB_SPEED, "top": top_y, "stage": -1}
 	_enter(Phase.CLIMB)
+
+
+## Where the winner walks before climbing: from the fight position to the ladder foot, keeping clear of the arena's four pillars.
+## A straight line crosses a pillar when the duel ended in the corner behind it. Detour points are inserted until no segment
+## comes closer than pillar radius + body radius + margin to any pillar centre (a few passes is plenty for four pillars).
+static func walk_path(start: Vector3, foot: Vector3) -> Array[Vector3]:
+	var points: Array[Vector3] = [start, foot]
+	var clearance := StoneArena.PILLAR_RADIUS + W.WALK_BODY_RADIUS + W.WALK_MARGIN
+	for _pass in 8:
+		var detour := Vector3.INF
+		var at := -1
+		for i in points.size() - 1:
+			detour = _detour_around_pillar(points[i], points[i + 1], clearance)
+			if detour != Vector3.INF:
+				at = i + 1
+				break
+		if at < 0:
+			break
+		points.insert(at, detour)
+	return points
+
+
+## A waypoint that takes the segment a->b around the first pillar it passes too close to, or Vector3.INF if it clears them all.
+static func _detour_around_pillar(a: Vector3, b: Vector3, clearance: float) -> Vector3:
+	var ab := Vector2(b.x - a.x, b.z - a.z)
+	var length_squared := ab.length_squared()
+	if length_squared < 0.0001:
+		return Vector3.INF
+	var best_t := 2.0
+	var detour := Vector3.INF
+	for pillar in StoneArena.PILLAR_POSITIONS:
+		var centre := Vector2(pillar.x, pillar.z)
+		var t := clampf((centre - Vector2(a.x, a.z)).dot(ab) / length_squared, 0.0, 1.0)
+		var closest := Vector2(a.x, a.z) + ab * t
+		if closest.distance_to(centre) >= clearance - 0.001 or t >= best_t:
+			continue
+		var away := closest - centre
+		# A line straight through the pillar centre: step to the side it is already heading past.
+		away = away.normalized() if away.length() > 0.05 else Vector2(-ab.y, ab.x).normalized()
+		var point := centre + away * (clearance + 0.15)
+		best_t = t
+		detour = Vector3(point.x, a.y, point.y)
+	return detour
+
+
+static func path_length(points: Array) -> float:
+	var total := 0.0
+	for i in points.size() - 1:
+		total += Vector2(points[i + 1].x - points[i].x, points[i + 1].z - points[i].z).length()
+	return total
+
+
+## The point `s` metres along a path (clamped to its ends).
+static func path_point(points: Array, s: float) -> Vector3:
+	var remaining := maxf(0.0, s)
+	for i in points.size() - 1:
+		var a: Vector3 = points[i]
+		var b: Vector3 = points[i + 1]
+		var segment := Vector2(b.x - a.x, b.z - a.z).length()
+		if remaining <= segment and segment > 0.0001:
+			return a.lerp(b, remaining / segment)
+		remaining -= segment
+	return points[points.size() - 1]
 
 
 func climb_duration() -> float:
@@ -365,13 +430,20 @@ func _tick_climb() -> void:
 	var pos := Vector3.ZERO
 	var yaw := 0.0
 	var foot := world.chamber.climb_position(0.0)
+	# Weapon and shield are stowed over the last STOW_TIME of the walk (gone exactly as the climb starts) and stay stowed: they do not fit the 1 m shaft.
+	var stow := W.smooth((_time - (t_walk - W.STOW_TIME)) / W.STOW_TIME)
+	if visual != null and is_instance_valid(visual) and visual.has_method("set_props_stowed"):
+		visual.call("set_props_stowed", stow)
 	if _time < t_walk:
 		var u := W.smooth(_time / t_walk)
-		var start: Vector3 = _climb["start"]
-		pos = start.lerp(foot, u)
-		var dir := foot - start
-		var target_yaw: float = atan2(dir.x, dir.z) if Vector2(dir.x, dir.z).length() > 0.05 else 0.0
-		yaw = lerp_angle(float(_climb["yaw"]), target_yaw if u < 0.8 else 0.0, minf(1.0, u * 1.5))
+		var path: Array = _climb["path"]
+		var length: float = _climb["length"]
+		pos = path_point(path, u * length)
+		# Face the way it walks (looking half a metre ahead so a detour turns gradually), then turn to face the ladder (+Z) over the
+		# last 40% of the walk. Every blend is continuous: the old code switched the target at 80% and snapped up to 180 degrees.
+		var ahead := path_point(path, minf(length, u * length + 0.5)) - pos
+		var heading: float = atan2(ahead.x, ahead.z) if Vector2(ahead.x, ahead.z).length() > 0.05 else float(_climb["yaw"])
+		yaw = lerp_angle(lerp_angle(float(_climb["yaw"]), heading, minf(1.0, u * 3.0)), 0.0, W.smooth((u - 0.6) / 0.4))
 		_climb_stage(0, visual)
 	elif _time < t_walk + t_climb:
 		var h := (_time - t_walk) / t_climb
