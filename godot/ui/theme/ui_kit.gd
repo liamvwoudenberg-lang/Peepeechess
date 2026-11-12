@@ -371,13 +371,26 @@ static func refit(dialog: Window, min_size: Vector2i = Vector2i.ZERO) -> void:
 		return
 	var wanted := Vector2i(dialog.get_contents_minimum_size())
 	dialog.size = Vector2i(maxi(min_size.x, wanted.x), maxi(min_size.y, wanted.y))
-	dialog.move_to_center()
+	var parent_view := dialog.get_parent().get_viewport() if dialog.get_parent() != null else null
+	dialog.position = centered_position(parent_view.get_visible_rect().size if parent_view != null else Vector2(dialog.size), dialog.size)
+
+const TITLE_BAR := 48   # embedded dialogs draw their title bar above the content rect
+
+## Top-left of the content rect that centres a window of `window_size` in a viewport of `view` (never negative,
+## always leaving room for the title bar).
+static func centered_position(view: Vector2, window_size: Vector2i) -> Vector2i:
+	return Vector2i(maxi(0, int((view.x - window_size.x) * 0.5)), maxi(TITLE_BAR, int((view.y - window_size.y) * 0.5)))
+
+## Opens `dialog` centred with an explicit Rect2i (popup_centered on a tiny headless root logs an invalid position).
+static func popup_in(host: Node, dialog: Window, width: int, height: int) -> void:
+	var view := host.get_viewport().get_visible_rect().size if host.get_viewport() != null else Vector2(1280, 720)
+	var window_size := Vector2i(clampi(width, 1, maxi(1, int(view.x) - 32)), clampi(height, 1, maxi(1, int(view.y) - 32 - TITLE_BAR)))
+	dialog.popup(Rect2i(centered_position(view, window_size), window_size))
 
 static func _prepare_dialog(host: Node, dialog: AcceptDialog, width: int, height: int) -> void:
 	host.add_child(dialog)
 	dialog.theme = null   # inherit the host's theme
-	var available := Vector2i(host.get_viewport().get_visible_rect().size) if host.get_viewport() != null else Vector2i(1280, 720)
-	dialog.popup_centered_clamped(Vector2i(mini(width, available.x - 32), mini(height, available.y - 32)), 0.92)
+	popup_in(host, dialog, width, height)
 	Motion.dialog_pop(dialog)
 	refit(dialog)
 

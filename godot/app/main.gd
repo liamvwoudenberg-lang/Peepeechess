@@ -60,6 +60,7 @@ var promotion_dialog: ConfirmationDialog
 var fen_dialog: ConfirmationDialog
 var fen_edit: TextEdit
 var new_dialog: ConfirmationDialog
+var new_text: Label
 var time_select: OptionButton
 var _promotion: Dictionary = {}
 var _fen_revision = -1
@@ -167,14 +168,17 @@ func _build_dialogs() -> void:
 	add_child(fen_dialog)
 	new_dialog = ConfirmationDialog.new()
 	new_dialog.title = "New Classic game"
-	new_dialog.dialog_text = "Two players, one device.\nChoose a time control."
 	new_dialog.ok_button_text = "Start game"
+	var new_box = VBoxContainer.new()  # text above the selector (children of a dialog are otherwise laid over its text)
+	new_box.add_theme_constant_override("separation", 12)
+	new_dialog.add_child(new_box)
+	new_text = Kit.label(new_box, "Two players, one device.\nChoose a time control.", "", false)
 	time_select = OptionButton.new()
-	time_select.custom_minimum_size = Vector2(270, 48)
+	time_select.custom_minimum_size = Vector2(270, Kit.target_height())
 	for control in TIME_CONTROLS:
 		time_select.add_item(control[0])
 	time_select.select(4)
-	new_dialog.add_child(time_select)
+	new_box.add_child(time_select)
 	new_dialog.confirmed.connect(_start_game)
 	add_child(new_dialog)
 	draw_dialog = ConfirmationDialog.new()
@@ -209,7 +213,7 @@ func _choose_promotion(role: String) -> void:
 
 func _show_new() -> void:
 	new_dialog.title = "New Battle Chess game" if game is BattleChessMatch else "New Classic game"
-	new_dialog.dialog_text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
+	new_text.text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
 	time_select.disabled = game is BattleChessMatch
 	new_dialog.popup_centered(Vector2i(mini(440, int(size.x) - 24), 180))
 

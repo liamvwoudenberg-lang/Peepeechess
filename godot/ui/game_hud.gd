@@ -291,6 +291,7 @@ static func update_clocks(m: Control) -> void:
 		return
 	for pair in [["w", m.clock_white], ["b", m.clock_black]]:
 		var clock: Label = pair[1]
+		clock.visible = m.game.timed   # untimed games (Battle C0, "Untimed") show no clock
 		var ms: int = m.game.remaining[pair[0]]
 		clock.text = m._time_text(ms)
 		var low: bool = m.game.timed and ms < 10000 and ms > 0 and m.game.started and m.game.engine.result.is_empty()

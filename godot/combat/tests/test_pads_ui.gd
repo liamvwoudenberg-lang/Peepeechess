@@ -342,6 +342,8 @@ static func _application_focus(h, tree: SceneTree) -> void:
 	var shell: Control = AppScene.instantiate()
 	tree.root.add_child(shell)
 	await frames(tree, 3)
+	shell.navigate("play")  # the application now opens on the title screen; this suite exercises the Play page and the header navigation
+	await frames(tree, 3)
 	var ui: PadUi = shell.get_node_or_null("PadUi")
 	if not h.check(ui != null, "the application installs a PadUi helper"):
 		shell.queue_free()

@@ -202,6 +202,22 @@ func kit_checks() -> void:
 	var panel := Kit.toast(host, "Saved", "success")
 	await settle(2)
 	expect(panel != null and host.get_node_or_null("ToastLayer") != null, "toast layer is created on demand")
+	# animated title background: runs only on the title screen, only with motion on, and stops when hidden
+	var back = load("res://ui/theme/backdrop.gd").new()
+	host.add_child(back)
+	back.mode = "home"
+	Prefs.reduce_motion = false
+	await settle(2)
+	expect(back.is_processing(), "title background animates when motion is on")
+	Prefs.set_reduce_motion(true)
+	expect(not back.is_processing(), "reduce motion stops the animated background")
+	Prefs.set_reduce_motion(false)
+	expect(back.is_processing(), "...and turning it off again resumes it")
+	back.hide()
+	expect(not back.is_processing(), "a hidden background does not animate")
+	back.show()
+	back.mode = "page"
+	expect(not back.is_processing(), "ordinary pages use a static background")
 	# every icon rasterises and unknown names do not crash
 	for kind in Icons.KINDS + Icons.PIECES:
 		expect(Icons.texture(kind, 32).get_width() == 32, "icon %s rasterises" % kind)

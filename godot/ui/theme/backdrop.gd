@@ -27,6 +27,12 @@ var _piece_size := PackedFloat32Array()
 var _textures: Array[ImageTexture] = []
 var _accumulator := 0.0
 var _rng := RandomNumberGenerator.new()
+# cached geometry: rebuilt only when the size or mode changes, never per frame
+var _cache_key := Vector3.ZERO
+var _bg_points := PackedVector2Array()
+var _bg_colors := PackedColorArray()
+var _glow_points := PackedVector2Array()
+var _glow_colors := PackedColorArray()
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -97,16 +103,20 @@ func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
 	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
 		return
-	# base gradient: slightly lighter slate at the top centre fading into near-black
-	var top := T.SURFACE if mode == "home" else T.BG
-	var colors := PackedColorArray([top, top, T.BG_DEEP, T.BG_DEEP])
-	draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]), colors)
+	var key := Vector3(rect.size.x, rect.size.y, 1.0 if mode == "home" else 0.0)
+	if key != _cache_key:
+		_cache_key = key
+		var top := T.SURFACE if mode == "home" else T.BG
+		_bg_colors = PackedColorArray([top, top, T.BG_DEEP, T.BG_DEEP])
+		_bg_points = PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)])
+		var glow := Color(T.EMBER.r, T.EMBER.g, T.EMBER.b, 0.07)
+		var clear := Color(T.EMBER.r, T.EMBER.g, T.EMBER.b, 0.0)
+		_glow_colors = PackedColorArray([clear, clear, glow, glow])
+		_glow_points = PackedVector2Array([Vector2(0, rect.size.y * 0.55), Vector2(rect.size.x, rect.size.y * 0.55), rect.end, Vector2(0, rect.size.y)])
+	draw_polygon(_bg_points, _bg_colors)   # slate gradient, lighter at the top on the title screen
 	if mode != "home":
 		return
-	# warm glow low in the frame
-	var glow := Color(T.EMBER.r, T.EMBER.g, T.EMBER.b, 0.07)
-	var clear := Color(T.EMBER.r, T.EMBER.g, T.EMBER.b, 0.0)
-	draw_polygon(PackedVector2Array([Vector2(0, rect.size.y * 0.55), Vector2(rect.size.x, rect.size.y * 0.55), rect.end, Vector2(0, rect.size.y)]), PackedColorArray([clear, clear, glow, glow]))
+	draw_polygon(_glow_points, _glow_colors)   # warm glow low in the frame
 	for i in PIECE_KINDS.size():
 		if i >= _textures.size():
 			break

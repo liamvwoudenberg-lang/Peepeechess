@@ -41,7 +41,7 @@ static func show_dialog(host: Control, data: Dictionary, review: Callable, menu:
 	dialog.confirmed.connect(func(): review.call(); dialog.queue_free())
 	dialog.canceled.connect(func(): review.call(); dialog.queue_free())
 	host.add_child(dialog)
-	dialog.popup_centered_clamped(Vector2i(420, 260), 0.92)
+	Kit.popup_in(host, dialog, 420, 260)
 	Motion.dialog_pop(dialog)
 	Kit.refit(dialog, Vector2i(360, 200))
 	return dialog
