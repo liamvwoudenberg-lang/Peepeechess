@@ -17,5 +17,7 @@ try {
   run(['--editor', '--import']);
   for (const script of ['rules_test', 'flow_test', 'session_test']) run(['--script', `res://tests/royal/${script}.gd`]);
   run(['--script', 'res://combat/tests/test_runner.gd', '--', 'royal']);
-  console.log('PASS: battle-royal-v1 rules, flow, server session and real-simulation suites');
+  // playable integration: ruleset toggle, local flow with real duels, multi-duel pit presentation, HUD/banner, computer opponent
+  run(['--script', 'res://combat/tests/test_runner.gd', '--', 'royal_flow']);
+  console.log('PASS: battle-royal-v1 rules, flow, server session, real-simulation and playable-flow suites');
 } finally { rmSync(temporary, { recursive: true, force: true }); }
