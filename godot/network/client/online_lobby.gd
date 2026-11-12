@@ -1,7 +1,8 @@
 extends Control
 const AppSettings = preload("res://ui/application_settings.gd")
 const AppResults = preload("res://ui/results.gd")
-const AppTheme = preload("res://ui/application_theme.gd")
+const Kit = preload("res://ui/theme/ui_kit.gd")
+const Tokens = preload("res://ui/theme/ui_tokens.gd")
 var _result_key = ""
 var _provisioned = false
 var _connection_row: Control
@@ -90,7 +91,7 @@ func _ready() -> void:
 func _button(parent: Node, text: String, action: Callable) -> Button:
 	var button = Button.new()
 	button.text = text
-	button.custom_minimum_size.y = 48
+	button.custom_minimum_size.y = Kit.target_height()
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button
@@ -103,17 +104,13 @@ func _label(parent: Node, text: String) -> Label:
 	return label
 
 func _build_ui() -> void:
-	theme = AppTheme.create()
+	Kit.install(self)
 	var background = ColorRect.new()
-	background.color = Color("142924")
+	background.color = Tokens.BG
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(background)
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 12)
-	add_child(margin)
+	var margin = Kit.safe_frame(self, 12)
 	var column = VBoxContainer.new()
 	margin.add_child(column)
 	_label(column, "PEEPEECHESS · Online native crossplay")

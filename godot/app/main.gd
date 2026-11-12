@@ -1,6 +1,12 @@
 extends Control
 const AppSettings = preload("res://ui/application_settings.gd")
 const AppResults = preload("res://ui/results.gd")
+const Hud = preload("res://ui/game_hud.gd")
+const Kit = preload("res://ui/theme/ui_kit.gd")
+const Tokens = preload("res://ui/theme/ui_tokens.gd")
+const UiIcons = preload("res://ui/theme/ui_icons.gd")
+const PeepeeTheme = preload("res://ui/theme/peepee_theme.gd")
+var hud: Dictionary = {}  # nodes owned by the HUD (res://ui/game_hud.gd)
 var _result_key = ""
 const Match = preload("res://chess/classic_match.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
@@ -54,6 +60,7 @@ var promotion_dialog: ConfirmationDialog
 var fen_dialog: ConfirmationDialog
 var fen_edit: TextEdit
 var new_dialog: ConfirmationDialog
+var new_text: Label
 var time_select: OptionButton
 var _promotion: Dictionary = {}
 var _fen_revision = -1
@@ -73,7 +80,7 @@ func _ready() -> void:
 	_build_dialogs()
 	_build_battle_overlay()
 	game.changed.connect(_refresh)
-	game.rejected.connect(_message)
+	game.rejected.connect(_reject)
 	interaction.move_requested.connect(_request_move)
 	resized.connect(_responsive)
 	get_tree().auto_accept_quit = true
@@ -90,124 +97,23 @@ func _ready() -> void:
 	board_3d.animation_enabled = AppSettings.animations
 	PadUi.install(self, {"board": true, "scopes": ["battle_overlay"]})  # pad board cursor + menu focus (claude/pads-input)
 
-func _panel(color: Color, radius: int = 12) -> StyleBoxFlat:
-	var style = StyleBoxFlat.new()
-	style.bg_color = color
-	style.set_corner_radius_all(radius)
-	style.set_border_width_all(1)
-	style.border_color = Color("334c54")
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
-	return style
+func _panel(_color: Color = Tokens.SURFACE, _radius: int = 12) -> StyleBoxFlat:
+	return PeepeeTheme.flat(Tokens.SURFACE_2, Tokens.GOLD_LO, 2, Tokens.R_LG, 20, 18)
 
 func _build_theme() -> void:
-	theme = Theme.new()
-	theme.default_font_size = 17
-	theme.set_color("font_color", "Label", Color("e6eddf"))
-	theme.set_color("font_color", "Button", Color("e6eddf"))
-	theme.set_color("font_hover_color", "Button", Color("fff5ce"))
-	theme.set_color("font_disabled_color", "Button", Color("71858a"))
-	for type_name in ["Button", "OptionButton"]:
-		theme.set_stylebox("normal", type_name, _panel(Color("263c45"), 8))
-		theme.set_stylebox("hover", type_name, _panel(Color("35535b"), 8))
-		theme.set_stylebox("pressed", type_name, _panel(Color("47655e"), 8))
-		theme.set_stylebox("disabled", type_name, _panel(Color("1a2c33"), 8))
-		for state_name in ["normal", "hover", "pressed", "disabled"]:
-			var button_style = theme.get_stylebox(state_name, type_name)
-			button_style.content_margin_top = 8
-			button_style.content_margin_bottom = 8
-			button_style.content_margin_left = 12
-			button_style.content_margin_right = 12
-		var focus = _panel(Color(0, 0, 0, 0), 8)
-		focus.border_color = Color("e2bd6f")
-		focus.set_border_width_all(2)
-		theme.set_stylebox("focus", type_name, focus)
-	theme.set_stylebox("panel", "PopupMenu", _panel(Color("20363e")))
-	theme.set_stylebox("panel", "AcceptDialog", _panel(Color("20363e")))
-	theme.set_stylebox("normal", "TextEdit", _panel(Color("14272f"), 6))
-	theme.set_color("font_color", "TextEdit", Color("e6eddf"))
+	Kit.install(self)  # shared design-system theme (godot/ui/theme)
 
 func _button(parent: Node, text: String, action: Callable, tip: String = "") -> Button:
-	var button = Button.new()
-	button.text = text
-	button.custom_minimum_size.y = 44
-	button.mouse_default_cursor_shape = CURSOR_POINTING_HAND
-	button.tooltip_text = tip
-	button.pressed.connect(action)
-	parent.add_child(button)
-	return button
+	return Kit.button(parent, text, action, "", "", tip)
 
-func _label(parent: Node, text: String, font_size: int = 17, color: Color = Color("e6eddf")) -> Label:
-	var label = Label.new()
-	label.text = text
+func _label(parent: Node, text: String, font_size: int = 17, color: Color = Tokens.TEXT) -> Label:
+	var label = Kit.label(parent, text, "", false)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	parent.add_child(label)
 	return label
 
 func _build_ui() -> void:
-	var background = ColorRect.new()
-	background.color = Color("101f27")
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(background)
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for edge in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + edge, 20)
-	add_child(margin)
-	var column = VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
-	margin.add_child(column)
-	var heading = HBoxContainer.new()
-	heading.add_theme_constant_override("separation", 12)
-	column.add_child(heading)
-	var brand = _label(heading, "PEEPEECHESS", 28, Color("f0d69c"))
-	brand.size_flags_horizontal = SIZE_EXPAND_FILL
-	mode_label = _label(heading, "CLASSIC", 13, Color("85b9ae"))
-	_label(column, "One match. Two perspectives.", 16, Color("a2b7b8"))
-	var toolbar = HFlowContainer.new()
-	toolbar.add_theme_constant_override("h_separation", 8)
-	toolbar.add_theme_constant_override("v_separation", 6)
-	column.add_child(toolbar)
-	mode_select = OptionButton.new()
-	mode_select.custom_minimum_size.y = 44
-	mode_select.add_item("Classic Chess")
-	mode_select.add_item("Battle Chess · C0")
-	mode_select.item_selected.connect(_switch_mode)
-	toolbar.add_child(mode_select)
-	_button(toolbar, "Main menu", _main_menu, "Return to the application menu.")
-	_button(toolbar, "Online", _online_menu, "Find an opponent or invite a friend.")
-	_button(toolbar, "New game", _show_new, "Choose a time control and start a local two-player match.")
-	view_button = _button(toolbar, "3D board", func(): set_view(not _view_3d), "Switch views without restarting the match.")
-	flip_button = _button(toolbar, "Flip board", func(): set_flipped(not _flipped), "Change only your local perspective.")
-	_button(toolbar, "FEN / PGN", _show_position, "Import a position, or copy FEN and PGN.")
-	var settings = CheckButton.new()
-	settings.text = "Animate"
-	settings.button_pressed = AppSettings.animations
-	settings.tooltip_text = "Turn off movement animations."
-	settings.toggled.connect(func(on): board_2d.animation_enabled = on; board_3d.animation_enabled = on; AppSettings.animations = on; AppSettings.save_preferences())
-	toolbar.add_child(settings)
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	body = BoxContainer.new()
-	body.add_theme_constant_override("separation", 16)
-	body.size_flags_horizontal = SIZE_EXPAND_FILL
-	body.size_flags_vertical = SIZE_EXPAND_FILL
-	scroll.add_child(body)
-	board_panel = PanelContainer.new()
-	board_panel.add_theme_stylebox_override("panel", _panel(Color("182e36")))
-	board_panel.size_flags_horizontal = SIZE_EXPAND_FILL
-	board_panel.size_flags_vertical = SIZE_EXPAND_FILL
-	body.add_child(board_panel)
-	var host = Control.new()
-	host.size_flags_horizontal = SIZE_EXPAND_FILL
-	host.size_flags_vertical = SIZE_EXPAND_FILL
-	board_panel.add_child(host)
+	var host = Hud.build(self)  # toolbar, player cards, move list... (godot/ui/game_hud.gd); returns the board host
 	board_2d = Board2D.new()
 	board_2d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	host.add_child(board_2d)
@@ -218,51 +124,6 @@ func _build_ui() -> void:
 	board_3d.setup(game, interaction)
 	board_3d.hide()
 	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	info_panel = PanelContainer.new()
-	info_panel.add_theme_stylebox_override("panel", _panel(Color("1b3039")))
-	info_panel.size_flags_vertical = SIZE_EXPAND_FILL
-	body.add_child(info_panel)
-	var info = VBoxContainer.new()
-	info.add_theme_constant_override("separation", 12)
-	info_panel.add_child(info)
-	_label(info, "LOCAL TWO-PLAYER", 12, Color("8fb5ad"))
-	var clocks = HBoxContainer.new()
-	clocks.add_theme_constant_override("separation", 18)
-	info.add_child(clocks)
-	for color in ["w", "b"]:
-		var card = VBoxContainer.new()
-		card.size_flags_horizontal = SIZE_EXPAND_FILL
-		clocks.add_child(card)
-		_label(card, "WHITE" if color == "w" else "BLACK", 12, Color("a2b7b8"))
-		var clock = _label(card, "10:00", 31)
-		if color == "w":
-			clock_white = clock
-		else:
-			clock_black = clock
-	status_label = _label(info, "White to move", 21)
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_label.custom_minimum_size.y = 52
-	var actions = HFlowContainer.new()
-	actions.add_theme_constant_override("h_separation", 6)
-	actions.add_theme_constant_override("v_separation", 6)
-	info.add_child(actions)
-	start_button = _button(actions, "Start clock", func(): game.start_clock())
-	pause_button = _button(actions, "Pause", func(): game.set_paused(not game.paused))
-	undo_button = _button(actions, "Undo", func(): game.undo(), "Local practice only. Restores the previous move and clock checkpoint.")
-	_button(actions, "Resign", _confirm_resign)
-	claim_button = _button(info, "Draw options", _show_draw)
-	_label(info, "MOVE HISTORY", 12, Color("8fb5ad"))
-	history_text = RichTextLabel.new()
-	history_text.bbcode_enabled = true
-	history_text.selection_enabled = true
-	history_text.size_flags_vertical = SIZE_EXPAND_FILL
-	history_text.custom_minimum_size = Vector2(0, 100)
-	history_text.add_theme_font_size_override("normal_font_size", 18)
-	info.add_child(history_text)
-	var hint = _label(info, "Select a piece to see legal moves.\nTouch: tap a piece, then a square.", 13, Color("a2b7b8"))
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label = _label(column, "Ready · Choose New game for time controls. Undo is available in local play.", 13, Color("a2b7b8"))
-	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 func _responsive() -> void:
 	if body == null:
@@ -270,7 +131,7 @@ func _responsive() -> void:
 	var narrow = size.x < 850
 	body.vertical = narrow
 	board_panel.custom_minimum_size = Vector2(0, clampf(size.x - 50, 300, 560) if narrow else 430)
-	info_panel.custom_minimum_size = Vector2(0 if narrow else 300, 350 if narrow else 430)
+	info_panel.custom_minimum_size = Vector2(0 if narrow else 360, 420 if narrow else 430)
 
 func _build_dialogs() -> void:
 	promotion_dialog = ConfirmationDialog.new()
@@ -283,8 +144,9 @@ func _build_dialogs() -> void:
 	for item in [["Queen", "q"], ["Rook", "r"], ["Bishop", "b"], ["Knight", "n"]]:
 		var role: String = item[1]
 		var button = _button(grid, item[0], func(): _choose_promotion(role))
+		button.icon = UiIcons.texture(Hud.ICON[role], 28)
 		button.size_flags_horizontal = SIZE_EXPAND_FILL
-		button.custom_minimum_size.x = 120
+		button.custom_minimum_size = Vector2(150, 56)
 	promotion_dialog.canceled.connect(func(): _promotion.clear(); interaction.clear())
 	add_child(promotion_dialog)
 	fen_dialog = ConfirmationDialog.new()
@@ -306,14 +168,17 @@ func _build_dialogs() -> void:
 	add_child(fen_dialog)
 	new_dialog = ConfirmationDialog.new()
 	new_dialog.title = "New Classic game"
-	new_dialog.dialog_text = "Two players, one device.\nChoose a time control."
 	new_dialog.ok_button_text = "Start game"
+	var new_box = VBoxContainer.new()  # text above the selector (children of a dialog are otherwise laid over its text)
+	new_box.add_theme_constant_override("separation", 12)
+	new_dialog.add_child(new_box)
+	new_text = Kit.label(new_box, "Two players, one device.\nChoose a time control.", "", false)
 	time_select = OptionButton.new()
-	time_select.custom_minimum_size = Vector2(270, 48)
+	time_select.custom_minimum_size = Vector2(270, Kit.target_height())
 	for control in TIME_CONTROLS:
 		time_select.add_item(control[0])
 	time_select.select(4)
-	new_dialog.add_child(time_select)
+	new_box.add_child(time_select)
 	new_dialog.confirmed.connect(_start_game)
 	add_child(new_dialog)
 	draw_dialog = ConfirmationDialog.new()
@@ -348,7 +213,7 @@ func _choose_promotion(role: String) -> void:
 
 func _show_new() -> void:
 	new_dialog.title = "New Battle Chess game" if game is BattleChessMatch else "New Classic game"
-	new_dialog.dialog_text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
+	new_text.text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
 	time_select.disabled = game is BattleChessMatch
 	new_dialog.popup_centered(Vector2i(mini(440, int(size.x) - 24), 180))
 
@@ -378,14 +243,8 @@ func _load_position() -> void:
 func _confirm_resign() -> void:
 	if not game.engine.result.is_empty():
 		return
-	var dialog = ConfirmationDialog.new()
-	dialog.title = "Resign game?"
-	dialog.dialog_text = ("White" if game.engine.turn == "w" else "Black") + " resigns. The opponent wins."
-	dialog.ok_button_text = "Resign"
-	dialog.confirmed.connect(func(): game.resign(); dialog.queue_free())
-	dialog.canceled.connect(dialog.queue_free)
-	add_child(dialog)
-	dialog.popup_centered()
+	var who = "White" if game.engine.turn == "w" else "Black"
+	Kit.confirm(self, "Resign game?", who + " resigns. The opponent wins.", "Resign", func(): game.resign(), true)
 
 func _show_draw() -> void:
 	if game is BattleChessMatch:
@@ -398,14 +257,7 @@ func _show_draw() -> void:
 
 func _offer_draw() -> void:
 	draw_dialog.hide()
-	var dialog = ConfirmationDialog.new()
-	dialog.title = "Accept draw?"
-	dialog.dialog_text = "Pass to the opponent.\nAccept to agree a draw."
-	dialog.ok_button_text = "Accept draw"
-	dialog.confirmed.connect(func(): game.agree_draw(); dialog.queue_free())
-	dialog.canceled.connect(dialog.queue_free)
-	add_child(dialog)
-	dialog.popup_centered()
+	Kit.confirm(self, "Accept draw?", "Pass to the opponent.\nAccept to agree a draw.", "Accept draw", func(): game.agree_draw())
 
 func _claim_draw() -> void:
 	var intended: Dictionary = {}
@@ -443,6 +295,7 @@ func set_view(use_3d: bool) -> void:
 
 func set_flipped(value: bool) -> void:
 	_flipped = value
+	Hud.arrange(self, value)
 	board_2d.set_flipped(value)
 	board_3d.set_flipped(value)
 
@@ -460,9 +313,7 @@ func _process(_delta: float) -> void:
 		var snapshot = game.combat_snapshot()
 		if not snapshot.is_empty():
 			battle_title.text = "Battle begins in %d" % ceili(snapshot.countdownTicksRemaining / 60.0)
-	if clock_white != null:
-		clock_white.text = _time_text(game.remaining.w)
-		clock_black.text = _time_text(game.remaining.b)
+	Hud.update_clocks(self)
 
 func _refresh() -> void:
 	if status_label == null:
@@ -480,35 +331,25 @@ func _refresh() -> void:
 		status_label.text = ("Check · " if game.engine.in_check() else "") + color + " to move"
 	if game is BattleChessMatch and game.phase != "board":
 		status_label.text = "Capture battle pending"
-	clock_white.add_theme_color_override("font_color", Color("f0d69c") if game.engine.turn == "w" else Color("a2b7b8"))
-	clock_black.add_theme_color_override("font_color", Color("f0d69c") if game.engine.turn == "b" else Color("a2b7b8"))
 	pause_button.text = "Resume" if game.paused else "Pause"
 	pause_button.disabled = not game.engine.result.is_empty() or game.authority_mode != "local" or (game is BattleChessMatch and game.phase != "board")
 	undo_button.disabled = game.engine.history.is_empty() or not game.allow_undo or game.authority_mode != "local"
+	if undo_button.disabled:
+		undo_button.tooltip_text = "Undo is available in local play once a move has been made."
 	start_button.visible = game.timed and not game.started and game.engine.result.is_empty()
 	claim_button.disabled = not game.board_input_allowed()
+	claim_button.tooltip_text = "Draw options are available on your turn." if claim_button.disabled else ""
 	claim_button.text = "Claim draw available" if not game.engine.claimable_draws().is_empty() else "Draw options"
-	history_text.clear()
-	if game.engine.history.is_empty():
-		history_text.append_text("[color=#829c9f]Your moves will appear here.[/color]")
-	else:
-		var fields = game.engine.initial_fen.split(" ")
-		var color_to_play = fields[1]
-		var number = int(fields[5])
-		for i in range(game.engine.history.size()):
-			if color_to_play == "w":
-				history_text.append_text("[color=#829c9f]%d.[/color]  " % number)
-			elif i == 0:
-				history_text.append_text("[color=#829c9f]%d...[/color]  " % number)
-			history_text.add_text(game.engine.history[i].san + ("\n" if color_to_play == "b" else "     "))
-			if color_to_play == "b":
-				number += 1
-			color_to_play = ClassicChess.opposite(color_to_play)
-		history_text.scroll_to_line(maxi(0, history_text.get_line_count() - 1))
+	Hud.refresh(self)  # turn / check / result banner, captured material, move list
 
 func _message(text: String) -> void:
 	if message_label != null:
 		message_label.text = text
+
+## Rejected input (illegal move, wrong turn...): the status line AND a toast, so it is never a silent failure.
+func _reject(text: String) -> void:
+	_message(text)
+	Kit.toast(self, text, "warning")
 
 func _exit_tree() -> void:
 	if is_instance_valid(bridge):
@@ -522,7 +363,7 @@ func _build_battle_overlay() -> void:
 	battle_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(battle_overlay)
 	var bg = ColorRect.new()
-	bg.color = Color("101f27")
+	bg.color = Tokens.BG
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	battle_overlay.add_child(bg)
 	battle_bg = bg
@@ -542,32 +383,33 @@ func _build_battle_overlay() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	battle_overlay.add_child(center)
 	battle_card = PanelContainer.new()
-	battle_card.add_theme_stylebox_override("panel", _panel(Color("1b3039")))
+	battle_card.theme_type_variation = "RaisedPanel"
 	center.add_child(battle_card)
 	var column = VBoxContainer.new()
 	column.custom_minimum_size.x = 280
-	column.add_theme_constant_override("separation", 12)
+	column.add_theme_constant_override("separation", 14)
 	battle_card.add_child(column)
 	battle_detail = _label(column, "", 16)
 	battle_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	battle_detail.custom_minimum_size.x = 280
-	fight_button = _button(column, "Start battle", _start_battle_pressed)
+	battle_detail.custom_minimum_size.x = 260
+	battle_detail.theme_type_variation = "Muted"
+	fight_button = Kit.primary(column, "Start battle", _start_battle_pressed, "sword")
 	battle_cancel = _button(column, "Cancel capture", _cancel_battle_transition)
-	battle_return = _button(column, "Return to board", func(): battle_flow.return_to_board())
+	battle_return = Kit.primary(column, "Return to board", func(): battle_flow.return_to_board())
 	var header = MarginContainer.new()
 	header.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	header.offset_left = 20
 	header.offset_top = 16
 	header.offset_right = -20
 	battle_overlay.add_child(header)
-	battle_title = _label(header, "Capture battle", 24, Color("f0d69c"))
+	battle_title = Kit.label(header, "Capture battle", "H2", false)
 	var footer = HBoxContainer.new()
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	footer.offset_left = 20
 	footer.offset_right = -20
 	footer.offset_top = -64
 	battle_overlay.add_child(footer)
-	battle_resign = _button(footer, "Acting player resigns", _confirm_resign)
+	battle_resign = Kit.danger(footer, "Acting player resigns", _confirm_resign, "flag")
 	battle_skip = _button(footer, "Skip animation", func(): if is_instance_valid(bridge): bridge.skip_to_board(), "Commit the result now and return to the board.")
 	battle_skip.hide()
 	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if use_world else Control.MOUSE_FILTER_STOP
@@ -591,7 +433,7 @@ func _switch_mode(index: int) -> void:
 		battle_adapter.queue_free()
 		battle_adapter = null
 	game.changed.disconnect(_refresh)
-	game.rejected.disconnect(_message)
+	game.rejected.disconnect(_reject)
 	interaction.dispose()
 	var board_host = board_2d.get_parent()
 	for old in [board_2d, board_3d]:
@@ -601,7 +443,7 @@ func _switch_mode(index: int) -> void:
 	game = BattleMatch.new() if index == 1 else Match.new()
 	interaction = Interaction.new(game)
 	game.changed.connect(_refresh)
-	game.rejected.connect(_message)
+	game.rejected.connect(_reject)
 	interaction.move_requested.connect(_request_move)
 	board_2d = Board2D.new()
 	board_2d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -655,14 +497,16 @@ func _configure_battle_flow(adapter: Node) -> void:
 	battle_flow.failed.connect(_message)
 
 func _capture_preview(request: Dictionary) -> void:
-	var roles = {"p": "Pawn", "n": "Knight", "b": "Bishop", "r": "Rook", "q": "Queen", "k": "King"}
 	var a: Dictionary = request.attacker
 	var d: Dictionary = request.defender
-	battle_detail.text = "%s %s → %s %s\nAttacker: %s · %s HP\nDefender: %s · %s HP\n\nAttacker wins: captures on %s.\nDefender wins: attacker is removed;\ndefender stays on %s." % [roles[a.role], request.from, roles[d.role], d.square, "White" if a.color == "w" else "Black", a.stats.maxHp, "White" if d.color == "w" else "Black", d.stats.maxHp, request.to, d.square]
+	Hud.show_versus(self, request)
+	battle_detail.text = "Attacker wins: captures on %s.\nDefender wins: the attacker is removed and the defender stays on %s." % [request.to, d.square]
 	var readiness = battle_adapter.check_request(request) if battle_adapter.has_method("check_request") else {"ok": battle_adapter.available(), "error": "Combat is unavailable in this build."}
 	if not readiness.ok:
 		battle_detail.text += "\n\n" + readiness.error
 	fight_button.disabled = not readiness.ok
+	if not readiness.ok:
+		fight_button.tooltip_text = str(readiness.error)
 
 func _start_battle_pressed() -> void:
 	if use_world and is_instance_valid(bridge):
@@ -692,10 +536,11 @@ func _battle_phase_world(value: String) -> void:
 	battle_resign.visible = value in ["countdown", "combat", "loading"]
 	battle_skip.visible = value == "aftermath"
 	battle_title.text = {"preview": "Capture preview", "loading": "The board opens…", "countdown": "Get ready", "combat": "Battle Chess · capture duel", "aftermath": "Battle result"}.get(value, "Battle Chess")
-	battle_title.visible = value == "preview"  # the combat HUD carries its own title/countdown
+	battle_title.visible = false  # the preview card has its own heading; the combat HUD carries its own title/countdown
 
 func _battle_phase(value: String) -> void:
 	AppSettings.set_combat_input(value in ["countdown", "combat", "aftermath"])
+	Hud.set_versus_visible(self, value == "preview")
 	if use_world:
 		_battle_phase_world(value)
 		return
@@ -754,14 +599,7 @@ func _navigate_menu(open_online: bool) -> void:
 	if game.engine.history.is_empty() or not game.engine.result.is_empty():
 		leave.call()
 		return
-	var dialog = ConfirmationDialog.new()
-	dialog.title = "Leave local match?"
-	dialog.dialog_text = "This local match is not saved. Return to the main menu?"
-	dialog.ok_button_text = "Main menu"
-	dialog.confirmed.connect(leave)
-	dialog.canceled.connect(dialog.queue_free)
-	add_child(dialog)
-	dialog.popup_centered()
+	Kit.confirm(self, "Leave local match?", "This local match is not saved. Return to the main menu?", "Main menu", leave, true)
 
 func _show_game_result(expected_match: String, expected_result: String) -> void:
 	if game.match_id != expected_match or game.engine.result != expected_result:

@@ -48,7 +48,9 @@ func run() -> void:
 	root.add_child(shell)
 	await process_frame
 	await process_frame
-	expect(shell.page == "play", "main menu opens on Play")
+	expect(shell.page == "home" and shell.content.find_child("ClassicButton", true, false) != null, "application opens on the title screen with the main menu")
+	shell.navigate("play")
+	await process_frame
 	expect(root.get_node_or_null("PlatformInput") != null, "application installs persistent controller adapter")
 	expect(shell.content.get_child_count() >= 4, "mode cards and game setup rendered")
 	await screenshot("application-play")

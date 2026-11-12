@@ -1,5 +1,6 @@
 class_name ChessBoard2D
 extends Control
+const UiPrefs = preload("res://ui/theme/ui_prefs.gd")  # colour-blind-safe highlight option
 const Rules = preload("res://chess/chess_engine.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
 const ATLAS = preload("res://assets/board/legions-drawn.png")
@@ -100,13 +101,13 @@ func _draw() -> void:
 		if at == interaction.selected:
 			draw_rect(tile, Color(0.96, 0.79, 0.37, 0.65))
 		if game.engine.board[at] == ("K" if game.engine.turn == "w" else "k") and game.engine.in_check():
-			draw_circle(tile.get_center(), pitch * 0.48, Color(0.9, 0.25, 0.25, 0.75))
+			draw_circle(tile.get_center(), pitch * 0.48, Color(UiPrefs.capture_highlight(Color(0.9, 0.25, 0.25)), 0.75))
 		for m in interaction.destinations:
 			if m.to == at:
 				if game.engine.board[at].is_empty() and m.flag != "ep":
-					draw_circle(tile.get_center(), pitch * 0.13, Color(0.07, 0.24, 0.24, 0.5))
+					draw_circle(tile.get_center(), pitch * 0.13, Color(UiPrefs.move_highlight(Color(0.07, 0.24, 0.24)), 0.7 if UiPrefs.colorblind else 0.5))
 				else:
-					draw_arc(tile.get_center(), pitch * 0.43, 0, TAU, 48, Color("f4d78e"), 3, true)
+					draw_arc(tile.get_center(), pitch * 0.43, 0, TAU, 48, UiPrefs.capture_highlight(Color("f4d78e")), 3, true)
 	# Existing illustrated pieces, preserving stable IDs when animating promotions/castles.
 	for id in _current:
 		var at: int = _current[id]

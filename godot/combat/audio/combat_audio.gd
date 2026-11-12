@@ -315,10 +315,11 @@ func set_muted(value: bool) -> void:
 func _apply_volumes() -> void:
 	var sfx := AudioServer.get_bus_index(SFX_BUS)
 	var ui := AudioServer.get_bus_index(UI_BUS)
+	var user_mix: Dictionary = Engine.get_meta("ui_mix", {})  # the player's mixer levels from Settings (res://ui/theme/ui_prefs.gd)
 	if sfx != -1:
-		AudioServer.set_bus_volume_db(sfx, linear_to_db(maxf(master_volume * sfx_volume, 0.0001)))
+		AudioServer.set_bus_volume_db(sfx, linear_to_db(maxf(master_volume * sfx_volume * float(user_mix.get("sfx", 1.0)), 0.0001)))
 	if ui != -1:
-		AudioServer.set_bus_volume_db(ui, linear_to_db(maxf(master_volume * ui_volume, 0.0001)))
+		AudioServer.set_bus_volume_db(ui, linear_to_db(maxf(master_volume * ui_volume * float(user_mix.get("ui", 1.0)), 0.0001)))
 
 
 # ---------------------------------------------------------------------------------------------
