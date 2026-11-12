@@ -1,5 +1,6 @@
 class_name BoardTheme
 extends RefCounted
+const UiPrefs = preload("res://ui/theme/ui_prefs.gd")  # colour-blind-safe highlight option
 ## Board presentation settings (device-local, never part of match state): colour theme, move-highlight
 ## style, coordinates, piece set, animation speed and piece shadow quality. Persisted in the same
 ## `user://preferences.cfg` as the other presentation settings through `save_to` / `load_from`, which

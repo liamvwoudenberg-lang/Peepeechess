@@ -41,24 +41,20 @@ func _board_busy() -> bool:
 				return true
 	return false
 
-## Put the opponent picker above the time-control selector of the New game dialog.
+## Put the opponent picker above the time-control selector of the New game dialog. The dialog's box (built in main.gd,
+## holding the caption label and the selector) is reused: the picker is inserted above the selector.
 func _build_new_dialog_section() -> void:
 	var dialog: ConfirmationDialog = main.new_dialog
 	var selector: Control = main.time_select
-	_dialog_box = VBoxContainer.new()
+	_dialog_box = selector.get_parent()
 	_dialog_box.name = "NewGameBox"
-	_dialog_box.add_theme_constant_override("separation", 10)
 	dialog.get_label().hide()  # the dialog's own label is sized to fill the window and left the dialog far taller than its content
-	dialog.remove_child(selector)
 	_section = VBoxContainer.new()
 	_section.name = "OpponentSection"
 	_section.add_theme_constant_override("separation", 8)
-	_caption = Label.new()  # not the dialog's own label: its size is unbounded and left the dialog far too tall on phones
-	_caption.name = "NewGameCaption"
-	_dialog_box.add_child(_caption)
 	_dialog_box.add_child(_section)
-	_dialog_box.add_child(selector)
-	dialog.add_child(_dialog_box)
+	_dialog_box.move_child(_section, selector.get_index())
+	_caption = main.new_text  # main owns the caption label above the picker; this glue only sets its text
 	_rebuild_section()
 
 func _rebuild_section() -> void:
