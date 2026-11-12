@@ -40,7 +40,7 @@ func run() -> void:
 	root.add_child(shell)
 	for i in 3:
 		await get_tree().process_frame
-	expect(shell.page == "play", "application main menu opens on the Play page")
+	expect(shell.page == "home", "application opens on the title screen")  # ui-polish: the Play page is one button away
 	for target in ["account", "settings", "profile", "history", "leaderboard", "play"]:
 		shell.navigate(target)
 		expect(shell.page == target and shell.content.get_child_count() >= 3, "menu navigation opens " + target)
