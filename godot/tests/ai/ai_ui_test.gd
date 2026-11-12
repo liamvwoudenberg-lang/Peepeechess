@@ -52,6 +52,8 @@ func run() -> void:
 	root.add_child(shell)
 	await process_frame
 	await process_frame
+	shell.navigate("play")  # the application opens on the title screen (ui-polish); the opponent picker lives on Play
+	await process_frame
 	# ---- Play page: Local / Computer, level, colour ----
 	expect(shell.opponent.kind == "local" and named(shell.content, "ComputerOptions") == null, "Play page starts with a local two-player match and no computer options")
 	var computer_button: Button = null
@@ -233,7 +235,8 @@ func run() -> void:
 		carved += piece.find_children("Piece_*", "Node3D", true, false).size()
 	expect(carved >= 32, "carved set builds the GLB pieces when selected (%d nodes)" % carved)
 	var key_shadow = true
-	for child in board.scene.get_children():
+	var light_parent: Node = board.world if board.get("world") != null else board.scene  # pit world keeps its lights on the world node
+	for child in light_parent.get_children():
 		if child is DirectionalLight3D and child.light_energy >= 0.3:
 			key_shadow = child.shadow_enabled
 	expect(not key_shadow, "shadow quality Low turns the key-light shadow off")
