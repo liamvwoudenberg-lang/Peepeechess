@@ -122,8 +122,11 @@ The browser evidence and deployment notes distinguish a real connection test fro
 ## Godot migration and two-agent development
 
 The working web/Capacitor game is preserved. The native Godot client in
-`godot/` now supports local Classic Chess in 2D and 3D, pinned to Godot 4.6.3.
-Native online and Battle integration remain separate migration steps. Start with [the repository audit](docs/architecture/REPOSITORY_AUDIT.md),
+`godot/` (pinned to Godot 4.6.3) is the current line of development. It has local Classic and Battle Chess in 2D and 3D (a capture opens a
+trapdoor into the arena below the board), a six-level computer opponent, the opt-in King's last stand ruleset, and
+an online path over the dedicated ENet/DTLS server plus the account backend. What is finished, what is open and what has only been
+checked headlessly is tracked in [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md); the work remaining before a public release is in
+[the release checklist](docs/development/RELEASE_CHECKLIST.md). Start with [the repository audit](docs/architecture/REPOSITORY_AUDIT.md),
 [architecture](docs/architecture/ARCHITECTURE.md),
 [migration plan](docs/architecture/MIGRATION.md),
 [shared v1 contracts](docs/architecture/CONTRACTS.md), and
