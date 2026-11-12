@@ -41,6 +41,13 @@ this version; retain your credentials.
 - **Private match:** create an invite, copy its six-character code and share it
   with the other player. The other player enters the code and chooses Join.
   Private games are unranked. Codes expire after ten minutes.
+- **Friends:** open **Friends**, type a friend's username and send a request. Once they accept, you appear in each other's
+  lists with a dot that shows whether they are online or in a match, and their ratings. Choose **Challenge** on a friend to pick
+  Classic or Battle, a time control and your colour (White, Black or Random). Your friend sees it on their Friends page (the
+  Friends button shows a number when something is waiting, and a notice appears on other pages) and chooses **Accept**. From
+  there it is an ordinary online match: ready check, authoritative server, reconnect. Friend games are always unranked, and a
+  challenge lasts ten minutes. **Remove** unfriends someone, and also declines a request or cancels one you sent. There is no
+  blocking, chat or push notification yet; the page refreshes every few seconds while it is open.
 - **Ready:** after allocation, each player confirms Ready in the match lobby.
   The dedicated server owns the chess position, clocks, combat and final result.
 - **Reconnect:** the running client automatically attempts to recover its ENet

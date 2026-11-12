@@ -10,12 +10,21 @@ certificates or decisions that cannot be produced from a development sandbox.
 
 ## A. Blockers — nothing ships until these are done
 
-- [ ] **A1. Green CI on the release candidate commit.** On `2198dc4` the *Validate integration* run failed in
+- [ ] **A1. Green CI on the release candidate commit, and stable timing tests.** On `2198dc4` the *Validate integration* run failed in
   `npm run test:multiplayer` (`invalid:b-n@60ms+2%: replay rejected as stale (0)`, `scripts/test-online-combat.mjs:194`); the steps after it
-  (`test:backend`, `test:application`, the Godot import/scene check) were **skipped**, so they have no CI result at that commit.
-  The previous commit `745603b` was green. The assertion depends on one unreliable UDP datagram surviving a proxy that drops 2% of packets
-  (see `godot/tests/network/combat_bot.gd`, step 0), so it can fail without a server defect. Make the injection deterministic, then get a
-  fully green *Validate integration* **and** *Native exports* run on the same commit.
+  (`test:backend`, `test:application`, the Godot import/scene check) were **skipped**, so they have no CI result at that commit. The previous
+  commit `745603b` was green. Measured on a quiet 4-core Linux machine (2026-11-12), the same `test:multiplayer` also fails locally, but at a
+  different assertion:
+  * `ONLINE PREDICTION: loopback prediction never needed a correction above 0.1 m` (`godot/tests/network/online_prediction_test.gd:139`) failed
+    **3 of 6 runs** (max correction 0.122, 0.122 and 0.183 m). Every figure is a whole multiple of 0.061 m (2x, 2x, 3x), so the correction is
+    measured in whole simulation ticks: it looks like a one-to-three-tick timing offset between client and server, not random noise. Its cause is
+    not established; either find it or justify a threshold with the measured margin.
+  * The stale-replay scenario, run alone (`test-online-combat.mjs --only=invalid`), passed **6 of 6**, so the CI failure did not reproduce. It depends
+    on one unreliable UDP datagram surviving a proxy that drops 2% of packets (`godot/tests/network/combat_bot.gd`, step 0: a valid input and its exact
+    replay, both unreliable), which can fail without a server defect and is more likely when the 22 fights of the full profile run in parallel. Send the
+    pair reliably so the assertion no longer depends on loss.
+  Every other gate passed on the same tree (lint, contracts, royal, UI, AI, battle, classic, the full combat harness, backend, the real-server
+  application test). Get a fully green *Validate integration* **and** *Native exports* run on one commit, twice in a row.
 - [ ] **A2. Real-device QA** *(owner)*. Nothing has run on hardware (`docs/application/TESTING_GUIDE.md`, "What works and what does not"):
   Windows start-up, SmartScreen and GPU drivers on the OpenGL renderer; Android install, safe areas/notches, touch ergonomics,
   performance, thermal behaviour and suspend/resume; two real gamepads, glyph detection and rebinding; low-end and mid-range phones.
@@ -54,6 +63,12 @@ certificates or decisions that cannot be produced from a development sandbox.
   backend allocation, lobby/client handling and a two-client loopback test are missing (`docs/architecture/BATTLE_ROYAL_V1.md`, "Remaining").
   Also open there: skipping the animation during a non-final duel re-descends for the next duel, and split-screen cameras were never
   screenshotted. The King is not selectable in the v1 server by design.
+- [x] **Online play against friends** (done 2026-11-12, `ccr-a734e4c7-xxj6nw`): friends by username, requests, presence, challenges with colour choice,
+  accept into the ordinary online match. Verified with 13 backend tests on SQLite and real PostgreSQL 16, 83 UI checks and the real-server end-to-end
+  test (`docs/application/PLAYER_GUIDE.md`, `BACKEND.md`). **Still open for it:** blocking/reporting players, friend chat, push notifications (clients
+  poll), and the online pit transition (A7). Test on real devices and across the Internet with A3.
+- [x] **Ladder climb passes through the environment** (done 2026-11-12): props stowed for the climb, the walk avoids the pillars, no facing snap;
+  `pit_climb` suite. Not yet seen by a person on a real GPU or device (B7).
 - [ ] **B5. Contract v2 handshake** (tuning stamp, `actionId`, buff-remaining field) is proposed in `docs/network/ONLINE_COMBAT.md` and not
   implemented; v1 is immutable. Decide whether the release needs it.
 - [ ] **B6. Art and audio.** Art is described as generated placeholder quality; audio quality was never judged by a person. Board asset

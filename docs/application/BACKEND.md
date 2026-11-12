@@ -102,6 +102,22 @@ lease abort require operator investigation; automatic late winners never
 rewrite ratings. Production monitoring should alert on outbox failures,401/409
 reports and lease expiry. No infrastructure timeout fabricates a combat winner.
 
+## Friends
+
+Friendships, friend challenges and presence live in three additive tables created by the same `CREATE TABLE IF NOT EXISTS`
+schema step (`native_friendships`, `native_challenges`, `native_presence`); no migration or new service is needed, and the
+dedicated server and its internal routes are untouched. A friend challenge is a row in `native_challenges` that points at an
+ordinary `native_invites` row (`ON DELETE CASCADE`), so every existing way an invite disappears (expiry, cancel, the sender
+queueing or being matched, unfriending) also removes the challenge. Accepting is the ordinary private join, which refuses
+everyone but the target. HTTP routes are in [the HTTP contract](../../contracts/application/v1/README.md).
+
+Operating notes: presence is "a client polled `/v1/friends` or `/v1/status` in the last 45 seconds", so it is only as fresh as
+the clients' polling (about 12 s while signed in) and costs one small upsert per poll. A friends poll reads one snapshot in a
+single transaction; with the PostgreSQL advisory lock that serialises every transaction, watch API latency before opening large
+friend lists or pools (limits: 100 friends, 30 unanswered requests that expire after 30 days, 30 requests per hour per account).
+Not implemented: blocking or reporting players, friend chat, push or email notification, and rate limiting beyond the
+per-IP and per-account limits above. Anyone who knows a username can send a request; the recipient can decline.
+
 ## Verification
 
 `npm run test:backend` runs real HTTP requests against SQLite by default. To run

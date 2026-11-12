@@ -21,6 +21,16 @@ All `/v1` routes except registration/login/health require `Authorization: Bearer
 | POST `/v1/private` | `{mode,initialMs,incrementMs}` | `status:Status` |
 | POST `/v1/private/join` | `{code}` | `status:Status` |
 | POST `/v1/tickets` | `{matchId}` | `ticket,expiresAt,allocation` |
+| GET `/v1/friends` | none | `friends,incoming,outgoing,challenges` (`FriendsSnapshot`) |
+| POST `/v1/friends/request` | `{username}` | `FriendsSnapshot` plus `result:"requested"\|"accepted"` |
+| POST `/v1/friends/accept` | `{playerId}` | `FriendsSnapshot` |
+| POST `/v1/friends/remove` | `{playerId}` | `FriendsSnapshot` |
+| POST `/v1/friends/challenge` | `{playerId,mode,initialMs,incrementMs,side?}` | `FriendsSnapshot` plus `status:Status` |
+| POST `/v1/friends/challenge/decline` | `{code}` | `FriendsSnapshot` |
+
+**Friends (additive; nothing above changed).** `request` asks a player by username (case-insensitive); asking someone who already asked you accepts. `accept` answers an incoming request. `remove` is idempotent and means unfriend, decline or cancel depending on what exists between the two players, and also withdraws any challenge between them. A friend is shown with `online` (a client of theirs polled `/v1/friends` or `/v1/status` within 45 s), `inMatch` (an allocated or active match) and both ratings. Limits: 100 friends, 30 unanswered requests (they expire after 30 days), 30 requests per hour per account; errors `ALREADY_FRIENDS`, `REQUEST_PENDING`, `FRIEND_LIMIT`, `REQUEST_LIMIT`, `NOT_FRIENDS`, `INVITE_NOT_FOUND`.
+
+A **challenge** is a private invite that only the chosen friend can join, so it reuses everything about private invites: ten-minute expiry, one outstanding invite per account (a new challenge, a queue entry or `DELETE /v1/queue` withdraws it), no challenge while you have an allocation, and always unranked. `side` is the challenger's colour: `white`, `black` or `random` (default; decided by the server when the friend joins). The challenger's `status.invite.code` is in the response so the usual status polling continues. The friend sees it in `challenges.incoming` (with the colour they will play) and **accepts with the ordinary `POST /v1/private/join {code}`**, which refuses everyone but the target with the same `INVITE_NOT_FOUND` a wrong code gets. From the allocation on, tickets, the ENet lobby and the dedicated server are unchanged. Clients poll; there is no push channel.
 
 See `types.ts` for exact response field types. Classic supports initialMs `60000..10800000` and incrementMs `0..60000`; Battle currently requires both 0 (C0 untimed). Matchmaking matches exactly mode/ranked/time controls, FIFO opponent within ranked window ±100 widening by50 per10sec up to600; unranked has no rating restriction. No cross-mode rating. Private invites are unranked, uppercase six-character unambiguous codes with ten-minute expiry; host is White, joining player Black. Queue pairs alternate White assignment based on random server choice. Only one queue/invite/active allocation per account. A queue status poll also checks for eligible opponents. Queues expire after ten minutes without activity. Allocations not connected within five minutes expire as aborted/unrated. A server infrastructure failure is an unrated aborted record, never a fabricated win.
 

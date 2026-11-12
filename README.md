@@ -2,7 +2,7 @@
 
 ## Native Godot application
 
-Open `godot/project.godot` with pinned Godot **4.6.3**. The native application starts with Classic/Battle selection, local play, account sign-in, ranked/unranked quick match and private invite codes. Each player independently chooses 2D or 3D. Settings, profiles, mode-specific statistics, match history, leaderboards and result screens wrap the existing authoritative gameplay. The legacy web game below remains available.
+Open `godot/project.godot` with pinned Godot **4.6.3**. The native application starts with Classic/Battle selection, local play, account sign-in, ranked/unranked quick match, private invite codes and online games against friends (add by username, then challenge). Each player independently chooses 2D or 3D. Settings, profiles, mode-specific statistics, match history, leaderboards and result screens wrap the existing authoritative gameplay. The legacy web game below remains available.
 
 - [Player guide](docs/application/PLAYER_GUIDE.md)
 - [Account backend and PostgreSQL setup](docs/application/BACKEND.md)

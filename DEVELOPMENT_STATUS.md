@@ -13,6 +13,33 @@ returns to its square and the camera glides back to the top-down view. One persi
 no black fade, no scene switch, board geometry never changes (only the contested tile's trapdoor leaves move).
 This supersedes the earlier "combat on the board" / "board expansion" wording.
 
+## Update 2026-11-12 (Claude Code, branch `ccr-a734e4c7-xxj6nw`, on top of `2198dc4`)
+
+This branch is the Godot line (`ccr-a4637d6e-lypbb4`, which already contains `main`, `develop` and every `codex/*` branch) plus the work below.
+`main` still points at the old web v1.3; nothing was merged or opened as a PR.
+
+* **Online play against friends.** Friends by username, requests, presence, challenges with a colour choice, accepted through the ordinary
+  private join into the unchanged ticket -> ENet lobby -> dedicated server path; always unranked. Backend in `server/native/`, page in
+  `godot/ui/friends_page.gd`, HTTP in `contracts/application/v1/README.md`, how to use it in `docs/application/PLAYER_GUIDE.md`.
+  Open: blocking/reporting players, friend chat, push notifications (clients poll), real-device and Internet testing.
+* **Ladder climb passes through the environment.** Three causes, all measured with `godot/combat/tools/climb_audit.gd` on the real flow:
+  (1) the winner's weapon or shield reached 0.2-0.5 m sideways and 0.13-0.76 m front-to-back beyond the 1 m opening, through the ceiling
+  slab, the shaft wall and the ladder (the body fit; the props did not): they are now stowed for the climb; (2) the walk to the ladder foot
+  was a straight line and crosses a pillar when the duel ends in the corner behind it: it now detours; (3) the facing snapped by up to
+  180 degrees at 80% of the walk (Black winners): it now turns continuously. Suite `pit_climb` (52 checks); mutation-checked: re-introducing
+  each bug makes it fail (18, 3 and 2 failed checks). Seen only in software GL screenshots and numbers, not by a person on a real GPU.
+* **Repository.** Release checklist `docs/development/RELEASE_CHECKLIST.md`; stale README/TESTING_GUIDE claims fixed; two historical notes moved
+  to `docs/history/`.
+
+Verification actually run on this branch (Linux sandbox, Godot 4.6.3, Node 22): lint; contracts (84 Node tests, 21+41 Godot cases); royal; UI (theme 234, layout 182, application 83, views 345, online 30, battle 31);
+AI; battle; classic; the full combat harness `npm test` (9,949 checks in 458 tests, including the new `pit_climb` suite); backend 13/13 on SQLite
+and on real PostgreSQL 16; `test:application` end to end with the real dedicated server (now including a friends scenario); Godot import and scene
+load with no script errors. **`test:multiplayer` fails** on the prediction assertion above, as it does on the unmodified branch.
+
+CI note: GitHub's *Validate integration* is red on `2198dc4` (`test:multiplayer`, `invalid:b-n@60ms+2%`) and skipped the backend, application and
+Godot-import steps after it. Locally `test:multiplayer` fails 3 runs in 6 on `ONLINE PREDICTION` (max correction 0.122, 0.122, 0.183 m: whole multiples of 0.061 m); the CI
+assertion did not reproduce in 6 isolated runs. Both are timing-dependent assertions; see RELEASE_CHECKLIST A1. Not fixed here.
+
 ## Done (merged on `ccr-a4637d6e-lypbb4`; see "Verification" for what was actually run)
 
 * Combat: six fighters (King behind `allow_experimental_roles`), data-driven balance (`godot/combat/data/balance_v1.json`),
@@ -56,6 +83,9 @@ This supersedes the earlier "combat on the board" / "board expansion" wording.
 | Contract v2 handshake (tuning stamp, `actionId`, buff field) | proposed in `docs/network/ONLINE_COMBAT.md`, not implemented (v1 is immutable) |
 | Android build in the sandbox | blocked: `dl.google.com` returns 403 from the sandbox proxy; use the GitHub Actions artifact |
 | Board asset adoption (GLB chess set, trapdoor/frame assets) | pit world uses procedural versions; adoption partly pending in the chess-ai worker |
+| Friends | built and verified headless and end to end; open: blocking/reporting, friend chat, push notifications (polling only), real devices and the Internet |
+| Ladder climb | fixed and test-covered (`pit_climb`); open: a person's look on a real GPU/device, and the online pit transition above |
+| Timing-sensitive multiplayer tests | `test:multiplayer` fails intermittently (see RELEASE_CHECKLIST A1); CI is red on `2198dc4` until it is stabilised |
 | Real-device QA, performance on phones, production signing, deployment | cannot be done here |
 
 ## Next steps
