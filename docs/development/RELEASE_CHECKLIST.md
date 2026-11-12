@@ -81,10 +81,11 @@ certificates or decisions that cannot be produced from a development sandbox.
 
 ## C. Repository housekeeping
 
-- [ ] **C1. Land the Godot line.** `main` still points at the old web v1.3 (`29e267b`). PR #4 targets `main`, while `AGENTS.md` says the
-  integration base is `develop`. Every other branch (`develop` and all `codex/*`) is already contained in the Godot branch, so nothing
-  would be lost. Pick the route (PR #4 into `main`, or into `develop` and then `main`), then close PRs #2, #5 and #6 as superseded and delete
-  merged remote branches. *(owner decision; none of this was done automatically)*
+- [ ] **C1. Finish landing the Godot line.** PR #4 was merged into `main` (`c711908`, 2026-11-12), so `main` now carries the Godot app; before
+  that it pointed at the old web v1.3 (`29e267b`). Still to do: open a PR for `ccr-a734e4c7-xxj6nw` (friends, the ladder fix, the release checklist;
+  it sits cleanly on `main`); `AGENTS.md` still names `develop` as the integration base, so decide whether `develop` is retired or brought to `main`;
+  close PRs #2, #5 and #6 (every `codex/*` branch is already contained in `main`) and delete merged remote branches. *(owner decision; none of this
+  was done automatically)*
 - [ ] **C2. Decide the fate of the legacy web/Capacitor game.** It is preserved on purpose (`AGENTS.md`, `REPOSITORY_AUDIT.md`). If it
   keeps shipping it needs its own go-live work: Upstash Redis on Vercel, managed TURN, a persistent Node host for Battle Chess rooms, a
   release-signed APK (`DEPLOY-VERCEL.md`, `MOBILE-START-HERE.md`). If it is retired, say so in the README.

@@ -15,8 +15,9 @@ This supersedes the earlier "combat on the board" / "board expansion" wording.
 
 ## Update 2026-11-12 (Claude Code, branch `ccr-a734e4c7-xxj6nw`, on top of `2198dc4`)
 
-This branch is the Godot line (`ccr-a4637d6e-lypbb4`, which already contains `main`, `develop` and every `codex/*` branch) plus the work below.
-`main` still points at the old web v1.3; nothing was merged or opened as a PR.
+This branch is the Godot line (`ccr-a4637d6e-lypbb4`, which already contained `main`, `develop` and every `codex/*` branch) plus the work below.
+PR #4 (the Godot line) was merged into `main` as `c711908` while this was in progress, so `main` is now the Godot line and this branch is
+four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for them.
 
 * **Online play against friends.** Friends by username, requests, presence, challenges with a colour choice, accepted through the ordinary
   private join into the unchanged ticket -> ENet lobby -> dedicated server path; always unranked. Backend in `server/native/`, page in
