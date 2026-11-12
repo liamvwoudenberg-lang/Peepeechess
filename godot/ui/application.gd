@@ -22,6 +22,7 @@ var selected_mode = "classic"
 var online = false
 var ranked = false
 var selected_time = 2
+var opponent: Dictionary = OpponentUI.default_state()  # Local two-player / Computer (level, colour); see ui/opponent_ui.gd
 var status: Dictionary = {"queue": null, "allocation": null, "invite": null}
 var content: VBoxContainer
 var page_scroll: ScrollContainer
@@ -221,7 +222,8 @@ func _play_page() -> void:
 	var setup = _card(content)
 	_label(setup, "YOUR MATCH", 13, GOLD)
 	var row = _flow(setup)
-	_button(row, "Local · two players" + (" ✓" if not online else ""), func(): online = false; navigate("play"), not online)
+	_button(row, "Local · two players" + (" ✓" if not online and opponent.kind == "local" else ""), func(): online = false; opponent.kind = "local"; navigate("play"), not online and opponent.kind == "local")
+	_button(row, "Computer" + (" ✓" if not online and opponent.kind == "computer" else ""), func(): online = false; opponent.kind = "computer"; navigate("play"), not online and opponent.kind == "computer")  # computer opponent
 	_button(row, "Online crossplay" + (" ✓" if online else ""), func(): online = true; navigate("play"), online)
 	_button(row, "2D board" + (" ✓" if not Settings.preferred_3d else ""), func(): _choose_view(false), not Settings.preferred_3d)
 	_button(row, "3D board" + (" ✓" if Settings.preferred_3d else ""), func(): _choose_view(true), Settings.preferred_3d)
@@ -236,9 +238,12 @@ func _play_page() -> void:
 		setup.add_child(times)
 	else:
 		_label(setup, "Battle C0 · untimed chess · traditional checkmate · kings stay on the board", 15, MUTED)
+	if not online and opponent.kind == "computer":
+		OpponentUI.build_computer_options(setup, opponent, func(): navigate("play"))  # level + colour pickers
 	if not online:
-		_button(setup, "Start local " + selected_mode.capitalize() + " Chess  →", start_local, true)
-		_label(setup, "Pass-and-play chess. Battle duels use two local control schemes; no account required.", 14, MUTED)
+		var vs_computer = opponent.kind == "computer"
+		_button(setup, ("Play the computer · " if vs_computer else "Start local ") + selected_mode.capitalize() + " Chess  →", start_local, true)
+		_label(setup, "Play the computer at six levels; in Battle Chess it also fights your duels. No account required." if vs_computer else "Pass-and-play chess. Battle duels use two local control schemes; no account required.", 14, MUTED)
 		if selected_mode == "battle":  # claude/pads-input: who fights with what (change it in Settings -> Controls)
 			var seats = InputAssignment.shared()
 			_label(setup, "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
@@ -274,6 +279,8 @@ func match_options() -> Dictionary:
 func start_local() -> void:
 	var options = match_options()
 	Settings.launch = {"mode": options.mode, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d}
+	if opponent.kind == "computer":
+		Settings.launch["opponent"] = OpponentUI.normalize(opponent)  # consumed by app/main_opponent.gd
 	get_tree().change_scene_to_file("res://app/main.tscn")
 
 func _account_page() -> void:

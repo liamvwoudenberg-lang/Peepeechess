@@ -28,6 +28,7 @@ static func load_preferences() -> void:
 		volume = clampf(float(config.get_value("presentation", "volume", 0.8)), 0.0, 1.0)
 		touch_controls = bool(config.get_value("presentation", "touch", touch_controls))
 		api_url = str(config.get_value("network", "apiUrl", api_url))
+		BoardTheme.load_from(config)  # board theme, highlights, piece set (boards/board_theme.gd)
 	apply()
 
 static func save_preferences() -> Error:
@@ -38,6 +39,7 @@ static func save_preferences() -> Error:
 	config.set_value("presentation", "volume", volume)
 	config.set_value("presentation", "touch", touch_controls)
 	config.set_value("network", "apiUrl", api_url)
+	BoardTheme.save_to(config)  # board theme, highlights, piece set (boards/board_theme.gd)
 	apply()
 	return config.save("user://preferences.cfg")
 

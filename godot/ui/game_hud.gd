@@ -168,7 +168,7 @@ static func _build_side(m: Control) -> void:
 	var actions := Kit.flow(info, 6, 6)
 	m.start_button = Kit.primary(actions, "Start clock", func(): m.game.start_clock(), "clock")
 	m.pause_button = Kit.secondary(actions, "Pause", func(): m.game.set_paused(not m.game.paused))
-	m.undo_button = Kit.button(actions, "Undo", func(): m.game.undo(), "", "", "Local practice only. Restores the previous move and clock checkpoint.")
+	m.undo_button = Kit.button(actions, "Undo", func(): m.opponent.undo(), "", "", "Local practice only. Restores the previous move and clock checkpoint.")
 	Kit.danger(actions, "Resign", m._confirm_resign, "flag")
 	m.claim_button = Kit.secondary(info, "Draw options", m._show_draw)
 	Kit.section_header(info, "Move history", "list")

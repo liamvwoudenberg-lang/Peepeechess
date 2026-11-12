@@ -21,6 +21,7 @@ static func build(app: Control) -> void:
 	var heading := Kit.heading(content, "Make yourself at home.", "Presentation settings belong to this device. They never change the match rules or your opponent's camera.")
 	app.title_label = heading[0]
 	app.subtitle_label = heading[1]
+	BoardSettingsPage.build(app)  # board theme, highlights, piece set, animation speed, shadows (ui/board_settings.gd)
 	var columns := Kit.responsive(content, 980.0, T.S4)
 	columns.name = "SettingsColumns"
 	var left := VBoxContainer.new()

@@ -28,6 +28,7 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	interaction = controls
 	_font = ThemeDB.fallback_font
 	interaction.selection_changed.connect(queue_redraw)
+	BoardTheme.events().changed.connect(queue_redraw)  # board theme / highlight / coordinates (boards/board_theme.gd)
 	game.changed.connect(sync_state)
 	resized.connect(queue_redraw)
 	focus_mode = Control.FOCUS_ALL
@@ -44,9 +45,9 @@ func sync_state() -> void:
 	_current = updated
 	if _tween:
 		_tween.kill()
-	_animation = 0.0 if animation_enabled and not _prior.is_empty() else 1.0
+	_animation = 0.0 if animation_enabled and BoardTheme.anim_scale() > 0.0 and not _prior.is_empty() else 1.0
 	_tween = create_tween()
-	_tween.tween_method(_set_animation, _animation, 1.0, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tween.tween_method(_set_animation, _animation, 1.0, BoardTheme.anim_seconds(0.2)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	queue_redraw()
 
 func _set_animation(value: float) -> void:
@@ -85,17 +86,17 @@ func _draw() -> void:
 	var rect = board_rect()
 	var pitch = rect.size.x / 8
 	var frame = StyleBoxFlat.new()
-	frame.bg_color = Color("233a40")
+	frame.bg_color = BoardTheme.color("frame")
 	frame.set_corner_radius_all(9)
 	frame.set_border_width_all(1)
-	frame.border_color = Color("476166")
+	frame.border_color = BoardTheme.color("frame_border")
 	draw_style_box(frame, rect.grow(5))
 	var last: Dictionary = game.engine.history[-1] if not game.engine.history.is_empty() else {}
 	for at in range(64):
 		var cell = Interaction.cell(at, flipped)
 		var tile = Rect2(rect.position + Vector2(cell) * pitch, Vector2.ONE * pitch)
 		var light = (at % 8 + at / 8) % 2 == 1
-		draw_rect(tile, Color("d3d5bf") if light else Color("648788"))
+		draw_rect(tile, BoardTheme.tile_color(light))
 		if not last.is_empty() and Rules.square(at) in [last.from, last.to]:
 			draw_rect(tile, Color(0.93, 0.73, 0.28, 0.35))
 		if at == interaction.selected:
@@ -104,10 +105,7 @@ func _draw() -> void:
 			draw_circle(tile.get_center(), pitch * 0.48, Color(UiPrefs.capture_highlight(Color(0.9, 0.25, 0.25)), 0.75))
 		for m in interaction.destinations:
 			if m.to == at:
-				if game.engine.board[at].is_empty() and m.flag != "ep":
-					draw_circle(tile.get_center(), pitch * 0.13, Color(UiPrefs.move_highlight(Color(0.07, 0.24, 0.24)), 0.7 if UiPrefs.colorblind else 0.5))
-				else:
-					draw_arc(tile.get_center(), pitch * 0.43, 0, TAU, 48, UiPrefs.capture_highlight(Color("f4d78e")), 3, true)
+				BoardTheme.draw_destination_2d(self, tile, not game.engine.board[at].is_empty() or m.flag == "ep")
 	# Existing illustrated pieces, preserving stable IDs when animating promotions/castles.
 	for id in _current:
 		var at: int = _current[id]
@@ -122,11 +120,12 @@ func _draw() -> void:
 	if has_focus():
 		draw_rect(Rect2(square_center(focused_square) - Vector2.ONE * pitch * 0.47, Vector2.ONE * pitch * 0.94), Color("f4d78e"), false, 2)
 	var font_size = clampi(int(pitch * 0.17), 10, 16)
-	for file in range(8):
+	var label_color = BoardTheme.color("label")
+	for file in range(8 if BoardTheme.coordinates else 0):
 		var label = Rules.FILES[7 - file if flipped else file]
-		draw_string(_font, Vector2(rect.position.x + pitch * (file + 0.5) - 4, rect.end.y + 17), label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("a9bfc0"))
-	for rank in range(8):
-		draw_string(_font, Vector2(rect.position.x - 17, rect.position.y + pitch * (rank + 0.5) + 5), str(rank + 1 if flipped else 8 - rank), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("a9bfc0"))
+		draw_string(_font, Vector2(rect.position.x + pitch * (file + 0.5) - 4, rect.end.y + 17), label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, label_color)
+	for rank in range(8 if BoardTheme.coordinates else 0):
+		draw_string(_font, Vector2(rect.position.x - 17, rect.position.y + pitch * (rank + 0.5) + 5), str(rank + 1 if flipped else 8 - rank), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, label_color)
 
 func _pointer_press(point: Vector2) -> void:
 	if not interaction.enabled or not game.board_input_allowed():

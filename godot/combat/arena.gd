@@ -363,7 +363,7 @@ func _build_presentation(request: Dictionary) -> void:
 				_mouse_captured = true
 		elif mode == Mode.AUTHORITY:
 			var opp := sim.opponent_of(f)
-			_ais.append(CombatAI.new(builder, f.stats, opp.stats, int(request["seed"]) + (7 if f.color == "w" else 13), float(seat.get("skill", 0.6))))
+			_ais.append(CombatAI.new(builder, f.stats, opp.stats, int(request["seed"]) + (7 if f.color == "w" else 13), float(seat.get("skill", 0.6)), String(seat.get("style", "balanced"))))
 
 
 signal rematch_requested

@@ -39,6 +39,9 @@ static func sphere(root: Node3D, radius: float, at: Vector3, mat: Material, scal
 	add(root, mesh, at, mat, scale_value)
 
 static func build(role: String, color: String) -> Node3D:
+	var custom = BoardThemeView.build_piece(role, color)  # alternate piece set from board settings; null = built-in procedural set
+	if custom != null:
+		return BoardThemeView.finish_piece(custom)
 	var root = Node3D.new()
 	var body = material(Color("d4cbb2") if color == "w" else Color("303e50"), 0.18)
 	var trim = material(Color("cfa958") if color == "w" else Color("b4866c"), 0.7)
@@ -81,4 +84,4 @@ static func build(role: String, color: String) -> Node3D:
 			cylinder(root, 0.18, 0.18, 0.18, 0.99, body)
 			box(root, Vector3(0.10, 0.40, 0.10), Vector3(0, 1.26, 0), trim)
 			box(root, Vector3(0.32, 0.09, 0.10), Vector3(0, 1.31, 0), trim)
-	return root
+	return BoardThemeView.finish_piece(root)

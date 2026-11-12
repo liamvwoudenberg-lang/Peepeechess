@@ -16,6 +16,8 @@ const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const Flow = preload("res://app/battle_flow.gd")
 const Board3D = preload("res://boards/board_3d.gd")
 const Bridge = preload("res://world/battle_bridge.gd")
+const MainOpp = preload("res://app/main_opponent.gd")  # computer opponent glue (chess/ai); hooks marked "computer opponent" below
+var opponent: MainOpponent
 var mode_select: OptionButton
 var mode_label: Label
 var copy_notation_button: Button
@@ -92,6 +94,7 @@ func _ready() -> void:
 	if not launch.is_empty():
 		game.new_game(int(launch.get("initialMs", 600000)), int(launch.get("incrementMs", 0)))
 		game.start_clock()
+		opponent.apply_launch(launch)  # computer opponent
 	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
 	board_2d.animation_enabled = AppSettings.animations
 	board_3d.animation_enabled = AppSettings.animations
@@ -195,6 +198,7 @@ func _build_dialogs() -> void:
 	_button(draw_box, "Agree a draw", _offer_draw)
 	draw_dialog.confirmed.connect(_claim_draw)
 	add_child(draw_dialog)
+	opponent = MainOpp.install(self)  # computer opponent: adds the opponent picker to the New game dialog
 
 func _request_move(from: String, to: String, needs_promotion: bool) -> void:
 	if needs_promotion:
@@ -215,6 +219,7 @@ func _show_new() -> void:
 	new_dialog.title = "New Battle Chess game" if game is BattleChessMatch else "New Classic game"
 	new_text.text = "C0 uses untimed chess.\nCaptures become two-player combat." if game is BattleChessMatch else "Two players, one device.\nChoose a time control."
 	time_select.disabled = game is BattleChessMatch
+	opponent.prepare_new_dialog()  # computer opponent
 	new_dialog.popup_centered(Vector2i(mini(440, int(size.x) - 24), 180))
 
 func _start_game() -> void:
@@ -222,6 +227,7 @@ func _start_game() -> void:
 	game.new_game(control[1], control[2])
 	game.start_clock()
 	_message("New Battle C0 game · chess is untimed." if game is BattleChessMatch else "New game · " + control[0])
+	opponent.start_selected()  # computer opponent
 
 func _show_position() -> void:
 	fen_edit.text = game.engine.fen()
@@ -244,7 +250,7 @@ func _confirm_resign() -> void:
 	if not game.engine.result.is_empty():
 		return
 	var who = "White" if game.engine.turn == "w" else "Black"
-	Kit.confirm(self, "Resign game?", who + " resigns. The opponent wins.", "Resign", func(): game.resign(), true)
+	Kit.confirm(self, "Resign game?", opponent.resign_text(who + " resigns. The opponent wins."), "Resign", func(): opponent.resign(), true)  # computer opponent
 
 func _show_draw() -> void:
 	if game is BattleChessMatch:
@@ -257,6 +263,8 @@ func _show_draw() -> void:
 
 func _offer_draw() -> void:
 	draw_dialog.hide()
+	if opponent.handle_draw_offer():  # computer opponent answers draw offers itself
+		return
 	Kit.confirm(self, "Accept draw?", "Pass to the opponent.\nAccept to agree a draw.", "Accept draw", func(): game.agree_draw())
 
 func _claim_draw() -> void:
@@ -341,6 +349,8 @@ func _refresh() -> void:
 	claim_button.tooltip_text = "Draw options are available on your turn." if claim_button.disabled else ""
 	claim_button.text = "Claim draw available" if not game.engine.claimable_draws().is_empty() else "Draw options"
 	Hud.refresh(self)  # turn / check / result banner, captured material, move list
+	if opponent != null:
+		opponent.decorate()  # computer opponent: caption + "thinking" status
 
 func _message(text: String) -> void:
 	if message_label != null:
@@ -463,6 +473,7 @@ func _switch_mode(index: int) -> void:
 	game.new_game(0 if index == 1 else 600000)
 	set_view(_view_3d)
 	set_flipped(_flipped)
+	opponent.rebind()  # computer opponent follows the new match object
 	battle_overlay.hide()
 	_refresh()
 	if index == 1:
