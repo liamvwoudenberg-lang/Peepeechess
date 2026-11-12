@@ -478,6 +478,7 @@ func _switch_mode(index: int, royal: bool = false) -> void:
 	board_2d.animation_enabled = AppSettings.animations
 	board_3d.animation_enabled = AppSettings.animations
 	mode_select.select(index)
+	mode_select.set_item_text(1, "Battle Chess · Last stand" if royal else "Battle Chess · C0")  # king's last stand
 	copy_notation_button.text = "Copy battle log" if index == 1 else "Copy PGN"
 	if index == 1:
 		_configure_battle_flow(CombatAdapter.new())

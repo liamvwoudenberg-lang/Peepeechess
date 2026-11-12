@@ -106,7 +106,7 @@ func set_context(text: String) -> void:
 		_context_label = _label(18, Control.PRESET_CENTER_TOP)
 		_context_label.name = "ContextLabel"
 		_context_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		_context_label.position.y = 56
+		_context_label.position.y = 124  # under the two bar panels (they end at y = 120)
 		_context_label.add_theme_color_override("font_color", Color(0.95, 0.78, 0.38))
 	_context_label.text = text
 
