@@ -31,6 +31,10 @@ static func show_dialog(host: Control, data: Dictionary, review: Callable, menu:
 	var heading = Kit.label(banner, dialog.title, "H1")
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var detail = Kit.label(box, str(data.get("reason", "Match complete")).replace("_", " ").capitalize(), "H3")
+	if str(data.get("note", "")) != "":  # optional explanation paragraph (battle-royal-v1: why a checkmate stands)
+		var note = Kit.label(box, str(data.note), "Muted")
+		note.name = "ResultNote"
+		note.custom_minimum_size.x = 340
 	var chips = HBoxContainer.new()
 	chips.add_theme_constant_override("separation", 8)
 	box.add_child(chips)

@@ -252,14 +252,17 @@ func undo() -> bool:
 ## The human resigns. Works on either side's turn and while the computer is thinking.
 func human_resign() -> void:
 	cancel_search()
+	var last_stand = game.has_method("royal_active") and game.royal_active()  # king's last stand (battle-royal-v1) sequence running
 	if game.engine.result.is_empty():
 		game.poll_clock()
-		if game is BattleChessMatch and game.phase == "aftermath":
+		if game is BattleChessMatch and game.phase == "aftermath" and not last_stand:
 			game.commit_battle()
 		if game.engine.result.is_empty():
 			game.engine.result = "0-1" if human_color == "w" else "1-0"
 			game.engine.reason = "Resignation"
-	if game is BattleChessMatch and game.phase != "board":
+	if last_stand:
+		game.abandon_pending()  # the human forfeits, whichever side is mated: the sequence is dropped without inventing an outcome
+	elif game is BattleChessMatch and game.phase != "board":
 		game.cancel_pending()
 	else:
 		game.changed.emit()

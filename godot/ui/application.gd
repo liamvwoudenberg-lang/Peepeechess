@@ -23,6 +23,7 @@ var online = false
 var ranked = false
 var selected_time = 2
 var opponent: Dictionary = OpponentUI.default_state()  # Local two-player / Computer (level, colour); see ui/opponent_ui.gd
+var ruleset: Dictionary = {"royal": RoyalOption.load_choice()}  # king's last stand toggle (local Battle matches only); see ui/royal_option.gd
 var status: Dictionary = {"queue": null, "allocation": null, "invite": null}
 var content: VBoxContainer
 var page_scroll: ScrollContainer
@@ -237,7 +238,9 @@ func _play_page() -> void:
 		times.item_selected.connect(func(index): selected_time = index)
 		setup.add_child(times)
 	else:
-		_label(setup, "Battle C0 · untimed chess · traditional checkmate · kings stay on the board", 15, MUTED)
+		_label(setup, "Battle · untimed chess · " + ("King's last stand · kings stay on the board" if ruleset.royal and not online else "traditional checkmate · kings stay on the board"), 15, MUTED)
+		if not online:
+			RoyalOption.build(setup, ruleset, func(): navigate("play"))  # king's last stand: local Battle only (never online)
 	if not online and opponent.kind == "computer":
 		OpponentUI.build_computer_options(setup, opponent, func(): navigate("play"))  # level + colour pickers
 	if not online:
@@ -276,11 +279,18 @@ func _choose_view(use_3d: bool) -> void:
 func match_options() -> Dictionary:
 	return {"mode": selected_mode, "ranked": ranked, "initialMs": TIMES[selected_time][1] if selected_mode == "classic" else 0, "incrementMs": TIMES[selected_time][2] if selected_mode == "classic" else 0}
 
-func start_local() -> void:
+## What start_local() hands to the game screen (app/main.gd, app/main_opponent.gd).
+func launch_data() -> Dictionary:
 	var options = match_options()
-	Settings.launch = {"mode": options.mode, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d}
+	var launch = {"mode": options.mode, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d}
 	if opponent.kind == "computer":
-		Settings.launch["opponent"] = OpponentUI.normalize(opponent)  # consumed by app/main_opponent.gd
+		launch["opponent"] = OpponentUI.normalize(opponent)  # consumed by app/main_opponent.gd
+	if options.mode == "battle" and ruleset.royal:
+		launch["royal"] = true  # king's last stand: consumed by app/main.gd (_switch_mode(1, royal))
+	return launch
+
+func start_local() -> void:
+	Settings.launch = launch_data()
 	get_tree().change_scene_to_file("res://app/main.tscn")
 
 func _account_page() -> void:
