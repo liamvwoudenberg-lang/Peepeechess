@@ -3,7 +3,7 @@ extends SceneTree
 ## that makes the ATTACKER win about `target` of the duels. BOT-measured (a casual and a skilled bot, averaged), not a human claim.
 ##
 ##   godot --headless --path godot --script res://combat/tools/edge_calibrate.gd -- \
-##       target=0.62 n=32 iterations=8 seed=20000 shard=0/4 out=/tmp/edge-0.json [roles=pnbrq] [pairs=pq,qp]
+##       target=0.62 n=32 iterations=8 seed=20000 shard=0/4 out=/tmp/edge-0.json [roles=pnbrq] [pairs=pq,qp] [stamina=1,1,1] [scale=0.25]
 ##
 ## One scalar x per pairing: x > 0 boosts the attacker's damage by e^x, x < 0 boosts the defender's by e^-x (the weaker side of the
 ## pairing is boosted, nobody is nerfed). The attacker win rate rises with x, so it is found by bisection over [-X_MAX, X_MAX] with
@@ -16,10 +16,14 @@ const X_MAX := 1.8   # e^1.8 = 6.05: the table allows at most 8x, the search sto
 
 
 var stamina_rule: Dictionary = {"attacker_cost": 1.0, "defender_cost": 1.0, "defender_regen": 1.0}
+var damage_scale: float = -1.0   # scale=<x> overrides the data's duel-length scale for the whole calibration (-1 = use the data's)
 
 
 func _options(x: float) -> Dictionary:
-	return {"attacker_edge": {"attacker": exp(x) if x > 0.0 else 1.0, "defender": exp(-x) if x < 0.0 else 1.0}, "stamina_edge": stamina_rule}
+	var options := {"attacker_edge": {"attacker": exp(x) if x > 0.0 else 1.0, "defender": exp(-x) if x < 0.0 else 1.0}, "stamina_edge": stamina_rule}
+	if damage_scale > 0.0:
+		options["damage_scale"] = damage_scale
+	return options
 
 
 ## Mean attacker win rate over both bots at advantage x, plus the per-bot rates.
@@ -33,7 +37,7 @@ func _rate(a: String, d: String, x: float, n: int, seed_value: int) -> Dictionar
 
 func _initialize() -> void:
 	await process_frame
-	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": ""}
+	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": ""}
 	for token in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = String(token).split("=", true, 1)
 		if kv.size() == 2:
@@ -41,6 +45,8 @@ func _initialize() -> void:
 	if String(args["stamina"]) != "":
 		var v: PackedStringArray = String(args["stamina"]).split(",")
 		stamina_rule = {"attacker_cost": float(v[0]), "defender_cost": float(v[1]), "defender_regen": float(v[2])}
+	if String(args["scale"]) != "":
+		damage_scale = float(args["scale"])
 	var target := float(args["target"])
 	var n := int(args["n"])
 	var iterations := int(args["iterations"])
@@ -54,7 +60,7 @@ func _initialize() -> void:
 			for d in String(args["roles"]):
 				pairs.append([a, d])
 	var shard := String(args["shard"]).split("/")
-	var out := {"stamina": stamina_rule, "target": target, "n": n, "iterations": iterations, "seed": base_seed, "tuning": Balance.stamp(), "pairs": {}}
+	var out := {"stamina": stamina_rule, "target": target, "n": n, "iterations": iterations, "seed": base_seed, "tuning": Balance.stamp(), "scale": damage_scale if damage_scale > 0.0 else Balance.damage_scale(), "pairs": {}}
 	var started := Time.get_ticks_msec()
 	for i in pairs.size():
 		if i % int(shard[1]) != int(shard[0]):

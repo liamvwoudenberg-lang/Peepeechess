@@ -338,7 +338,7 @@ func _start_parry() -> int:
 	if not f.stamina.spend(float(f.profile["parry_cost"])):
 		return _deny("stamina")
 	_close_swing()
-	parry_window = int(f.stats["parryTicks"])
+	parry_window = int(f.stats["parryTicks"]) + int(f.profile.get("parry_window_bonus", 0))   # data: a wider, more readable window (BALANCE.md "Pacing")
 	parry_total = parry_window + int(f.profile["parry_recovery_ticks"])
 	parry_cooldown = parry_total + int(f.profile["parry_cooldown_ticks"])
 	parry_succeeded = false

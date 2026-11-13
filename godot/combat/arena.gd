@@ -246,7 +246,7 @@ func _fallback_shake(event: Dictionary) -> void:
 	var shake := 0.0
 	match String(event["type"]):
 		"hit":
-			shake = 0.08 + minf(float(event["damage"]) / 120.0, 0.25)
+			shake = 0.08 + minf(float(sim.felt_damage(int(event["damage"])) if sim != null else int(event["damage"])) / 120.0, 0.25)
 		"guardbreak":
 			shake = 0.3
 		"parry":

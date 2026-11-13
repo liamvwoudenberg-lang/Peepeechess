@@ -339,14 +339,16 @@ func on_event(event: Dictionary) -> void:
 	var ids := [actor.player_id, target.player_id]
 	match kind:
 		"hit":
-			var damage := int(event["damage"])
-			var power := clampf(float(damage) / 40.0, 0.2, 1.0)
+			var damage := int(event["damage"])   # the HP actually removed (the number shown)
+			var felt := sim.felt_damage(damage)   # the blow's strength before the duel-length scale (the feel)
+			var power := clampf(float(felt) / 40.0, 0.2, 1.0)
 			spawn_sprite(contact, 0.2 + 0.35 * power, 0.5 + 0.7 * power, Color(1.0, 0.8, 0.5, 0.75), 0.14)
 			spawn_sparks(contact, dir + Vector3(0, 0.25, 0), 5 + int(power * 7.0), Color(1.0, 0.75, 0.4, 0.9), 3.0 + 2.0 * power)
-			spawn_number(target.global_position + Vector3(0, 2.05, 0), damage, Color(1.0, 0.85, 0.6) if damage < 20 else Color(1.0, 0.55, 0.3))
-			request_hitstop(ids, 2 + damage / 18)
-			_target_react(target, "hit", damage, dir)
-			_camera_event("heavy_hit" if damage >= 20 else "hit", 0.08 + 0.2 * power, dir)
+			if damage > 0:   # a graze that only builds up the carried fraction takes no whole HP: no number
+				spawn_number(target.global_position + Vector3(0, 2.05, 0), damage, Color(1.0, 0.85, 0.6) if felt < 20 else Color(1.0, 0.55, 0.3))
+			request_hitstop(ids, 2 + felt / 18)
+			_target_react(target, "hit", felt, dir)
+			_camera_event("heavy_hit" if felt >= 20 else "hit", 0.08 + 0.2 * power, dir)
 		"block":
 			spawn_sprite(contact, 0.2, 0.55, Color(0.6, 0.8, 1.0, 0.7), 0.12)
 			spawn_sparks(contact, -dir + Vector3(0, 0.3, 0), 7, Color(0.7, 0.85, 1.0, 0.9), 2.8, 0.9)
@@ -365,7 +367,8 @@ func on_event(event: Dictionary) -> void:
 		"guardbreak":
 			spawn_sprite(contact, 0.3, 1.1, Color(1.0, 0.25, 0.15, 0.8), 0.22)
 			spawn_sparks(contact, dir + Vector3(0, 0.3, 0), 10, Color(1.0, 0.3, 0.2, 0.9), 3.5, 1.0)
-			spawn_number(target.global_position + Vector3(0, 2.05, 0), int(event["damage"]), Color(1.0, 0.4, 0.3))
+			if int(event["damage"]) > 0:
+				spawn_number(target.global_position + Vector3(0, 2.05, 0), int(event["damage"]), Color(1.0, 0.4, 0.3))
 			request_hitstop(ids, 4)
 			_target_flash(target, Color(1.0, 0.2, 0.12), 0.45)
 			_camera_event("guardbreak", 0.3, dir)

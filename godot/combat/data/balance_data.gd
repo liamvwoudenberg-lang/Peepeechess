@@ -30,7 +30,7 @@ const SCHEMA := 1
 const PROFILE_STR_KEYS := ["display", "weapon"]
 const PROFILE_INT_KEYS := [
 	"poise_regen_delay", "stagger_immunity_ticks", "stamina_regen_delay", "guardbreak_stun",
-	"parry_recovery_ticks", "parry_cooldown_ticks", "parry_stagger_ticks", "riposte_ticks",
+	"parry_recovery_ticks", "parry_cooldown_ticks", "parry_stagger_ticks", "parry_window_bonus", "riposte_ticks",
 	"dodge_ticks", "dodge_iframe_start", "dodge_iframe_end", "dodge_cooldown_ticks", "hit_react_ticks",
 ]
 const PROFILE_FLOAT_KEYS := [
@@ -131,6 +131,24 @@ static func ability_ids() -> Array:
 static func has_ability(id: String) -> bool:
 	_ensure()
 	return _active["abilities"].has(id)
+
+
+## The duel-length scale (BALANCE.md "Duel length") for one pairing: the multiplier on every blow's HP damage in that duel. 1.0 = the
+## raw frame data; < 1.0 makes the duel last longer without touching HP (the contract's units), stamina, timings or the attacker's
+## edge. A pairing without an entry (a King on either side, for instance) gets the section's default, 1.0 when the data has none.
+static func damage_scale(attacker_role: String = "", defender_role: String = "") -> float:
+	_ensure()
+	var section: Dictionary = _active.get("duel_length", {})
+	var pairs: Dictionary = section.get("pairs", {})
+	if pairs.has(attacker_role + defender_role):
+		return float(pairs[attacker_role + defender_role])
+	return float(section.get("damage_scale", 1.0))
+
+
+## The fight length the per-pairing scales were calibrated for, in seconds (0 when the data has none). Informational.
+static func duel_target_seconds() -> float:
+	_ensure()
+	return float(_active.get("duel_length", {}).get("target_seconds", 0.0))
 
 
 ## The stamina rule of the attacker's advantage: {"attacker_cost": 0..1, "defender_cost": 1..4, "defender_regen": 0.1..1}. The attacker's
@@ -252,6 +270,8 @@ static func validate(data: Dictionary) -> Array:
 			errors.append("attacks.%s has no profile" % role)
 			continue
 		_validate_attacks(String(role), data["attacks"][role], data["abilities"], errors)
+	if data.has("duel_length"):
+		_validate_duel_length(data["duel_length"], data["profiles"], errors)
 	if data.has("attacker_edge"):
 		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
 	for id in data["abilities"]:
@@ -301,6 +321,26 @@ static func _merge(into: Dictionary, patch: Dictionary) -> Dictionary:
 ## attacker_edge = {"target": 0..1 (documentation: the attacker win rate it was calibrated for), "pairs": {"<attacker><defender>":
 ## [attacker_damage_mult, defender_damage_mult]}}. Multipliers are 1..8 and at most one of the two is above 1 (the weaker side is
 ## boosted, nobody is nerfed); keys are two role letters that have profiles; the King is not part of the table.
+static func _validate_duel_length(length, profiles: Dictionary, errors: Array) -> void:
+	if typeof(length) != TYPE_DICTIONARY:
+		errors.append("duel_length must be an object")
+		return
+	if not _is_number(length.get("damage_scale", null)) or float(length["damage_scale"]) < 0.02 or float(length["damage_scale"]) > 1.0:
+		errors.append("duel_length.damage_scale must be a number within 0.02..1")
+	if length.has("target_seconds") and (not _is_number(length["target_seconds"]) or float(length["target_seconds"]) < 0.0):
+		errors.append("duel_length.target_seconds must be a number >= 0")
+	var pairs = length.get("pairs", {})
+	if typeof(pairs) != TYPE_DICTIONARY:
+		errors.append("duel_length.pairs must be an object")
+		return
+	for key in pairs:
+		var name := String(key)
+		if name.length() != 2 or not profiles.has(name.substr(0, 1)) or not profiles.has(name.substr(1, 1)):
+			errors.append("duel_length.pairs.%s: the key must be attacker role + defender role" % name)
+		elif not _is_number(pairs[key]) or float(pairs[key]) < 0.02 or float(pairs[key]) > 1.0:
+			errors.append("duel_length.pairs.%s must be a number within 0.02..1" % name)
+
+
 static func _validate_attacker_edge(edge, profiles: Dictionary, errors: Array) -> void:
 	if typeof(edge) != TYPE_DICTIONARY or typeof(edge.get("pairs", null)) != TYPE_DICTIONARY:
 		errors.append("attacker_edge must be an object with a pairs object")
@@ -487,6 +527,11 @@ static func _normalise(raw: Dictionary) -> Dictionary:
 		for id in t["abilities"]:
 			abilities[id] = _normalise_attack(t["abilities"][id])
 		out["attacks"][role] = {"light": lights, "heavy": _normalise_attack(t["heavy"]), "abilities": abilities}
+	if raw.has("duel_length"):
+		var length := {"damage_scale": float(raw["duel_length"]["damage_scale"]), "target_seconds": float(raw["duel_length"].get("target_seconds", 0.0)), "pairs": {}}
+		for key in raw["duel_length"].get("pairs", {}):
+			length["pairs"][String(key)] = float(raw["duel_length"]["pairs"][key])
+		out["duel_length"] = length
 	if raw.has("attacker_edge"):
 		var edge := {"target": float(raw["attacker_edge"].get("target", 0.0)), "pairs": {}}
 		if raw["attacker_edge"].has("stamina"):
