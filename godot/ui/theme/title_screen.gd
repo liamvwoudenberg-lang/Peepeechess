@@ -112,6 +112,9 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	caption.custom_minimum_size = Vector2(0, 44)
 	caption.modulate.a = 0.0
+	caption.add_theme_font_size_override("font_size", T.FS_LEAD)
+	caption.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.08, 0.95))
+	caption.add_theme_constant_override("outline_size", 8)
 	var order := 0
 	for key in buttons.keys():
 		var button: Button = buttons[key]
@@ -123,7 +126,7 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 				caption.modulate.a = 1.0
 				var backdrop = app.get("_backdrop")
 				if backdrop != null and backdrop.has_method("set_tint"):
-					backdrop.set_tint(Color(identity["accent"].r, identity["accent"].g, identity["accent"].b, 0.16))
+					backdrop.set_tint(Color(identity["accent"].r, identity["accent"].g, identity["accent"].b, 0.28))
 			var clear_identity := func():
 				caption.modulate.a = 0.0
 				var backdrop = app.get("_backdrop")
