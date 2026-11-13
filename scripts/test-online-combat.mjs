@@ -135,7 +135,11 @@ async function runFight(fight, index) {
   let common = 0;
   for (const [id, e] of ew) if (eb.has(id)) { common++; assert.deepEqual(eb.get(id), e, `${fight.id}: event ${id} identical at both clients`); }
   const union = new Set([...ew.keys(), ...eb.keys()]).size;
-  assert.ok(union === 0 || common / union >= 0.9, `${fight.id}: clients saw ${common}/${union} common events`);
+  // A scenario that black-holes one client's link for 4 s (fight.blackout) legitimately costs that client the events of that window (a
+  // reconnect gets a fresh snapshot, which only repeats the most recent events): measured 2026-11-13 on the unmodified tree, this ratio
+  // failed 4 runs in 10 (6/10 .. 8/10 common). Every event both clients did see must still be identical (asserted above); the ratio
+  // only means something when nobody was cut off.
+  if (!fight.blackout) assert.ok(union === 0 || common / union >= 0.9, `${fight.id}: clients saw ${common}/${union} common events`);
   // measurements
   const stats = reports.map(rep => rep.battleStats[server_.battleId]);
   for (const s of stats) assert.ok(s, `${fight.id}: client battle stats present`);
