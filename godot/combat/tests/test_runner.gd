@@ -30,6 +30,7 @@ const SUITES: Dictionary = {
 	"matchups": "res://combat/tests/test_matchups.gd",
 	"attacker_edge": "res://combat/tests/test_attacker_edge.gd",
 	"pacing": "res://combat/tests/test_pacing.gd",
+	"paladins": "res://combat/tests/test_paladins.gd",
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",
@@ -54,6 +55,11 @@ func _initialize() -> void:
 	await process_frame
 	var harness = Harness.new()
 	var wanted: PackedStringArray = OS.get_cmdline_user_args()
+	# The old suites assert the old Blender characters' clip behaviour: they run with the paladins off. `paladins_on` runs the chosen
+	# suites with the paladin fighters (the game's default presentation) instead.
+	PaladinFighter.prefer_paladins = "paladins_on" in wanted
+	if "paladins_on" in wanted:
+		wanted.remove_at(wanted.find("paladins_on"))
 	var started := Time.get_ticks_msec()
 	for suite_name in SUITES:
 		if wanted.size() > 0 and not (suite_name in wanted):
@@ -75,6 +81,7 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 	load("res://combat/audio/combat_audio.gd").clear_library()
+	PaladinClips.clear_caches()
 	# The audio server releases stopped playbacks on its own mix thread; give it a moment before the engine shuts down.
 	await create_timer(0.5).timeout
 	OS.delay_msec(400)  # real time: --fixed-fps makes the timer above virtual, the audio thread still needs wall-clock time

@@ -473,7 +473,7 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 				clip = "walk"
 				if local.z < -0.3:
 					speed = -1.0
-			speed *= clampf(_loco_speed / float(NOMINAL_SPEED[clip]), 0.4, MAX_LOCO_SPEED_FACTOR)
+			speed *= clampf(_loco_speed / _nominal_speed(clip), 0.4, MAX_LOCO_SPEED_FACTOR)
 		S.ATTACKING:
 			if sm.attack != null:
 				total = sm.attack_total
@@ -516,10 +516,10 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 		var base_speed := (length - start_s) / (float(total) / float(CombatConstants.TICK_RATE))
 		var u := clampf((float(sm.state_ticks) + alpha) / float(total), 0.0, 1.0)
 		var wp := warp_progress(u, startup_end, warp_p)
-		var warped := wp.x
-		var rate := wp.y
+		var remap := _remap_clip_time(clip, wp.x, startup_end)
+		var rate := wp.y * remap.y
 		speed = base_speed * rate
-		expected = minf(start_s + warped * (length - start_s), length)
+		expected = minf(start_s + remap.x * (length - start_s), length)
 	if clip != _current:
 		var blend := blend_time(_current, clip)
 		if trace_enabled:
@@ -535,6 +535,18 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 		if expected >= 0.0 and clip != "defeat" and (_hold_resync or absf(player.current_animation_position - expected) > 0.05):
 			player.seek(expected, false)
 	_hold_resync = false
+
+
+## Ground speed (m/s) the locomotion clip `clip` is foot-locked at. Subclasses with another rig override it.
+func _nominal_speed(clip: String) -> float:
+	return float(NOMINAL_SPEED[clip])
+
+
+## Maps the simulation's (warped) attack progress `u` (0..1, `startup_end` = where the hit window opens) to the position inside the
+## clip, as Vector2(clip progress, d clip progress / d u). The authored clips of this class already put their strike on startup_end, so
+## the default is the identity; a rig whose strike pose is elsewhere in its clip (PaladinFighter) remaps piecewise-linearly.
+func _remap_clip_time(_clip: String, u: float, _startup_end: float) -> Vector2:
+	return Vector2(u, 1.0)
 
 
 func _update_hitbox_fx() -> void:
