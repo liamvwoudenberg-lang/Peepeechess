@@ -7,8 +7,8 @@ extends CharacterModel
 ## the clip set is authored at run time (godot/paladins/paladin_clips.gd) and the strike pose is remapped to the simulation's hit window.
 
 ## Master switch read by CombatArena: use the paladins when their models exist. Old CharacterModel characters stay the fallback
-## and the default for the old suites; the application turns this on.
-static var prefer_paladins: bool = false
+## ; the old suites (combat test runner) switch the paladins off and assert those characters.
+static var prefer_paladins: bool = true
 ## Standing height per role (m); every supplied model is 1.7 m tall, so these only scale them.
 const HEIGHTS := {"p": 1.5, "n": 1.7, "b": 1.75, "r": 1.65, "q": 1.8, "k": 1.9}
 const STRIKE_CLIPS := ["light_1", "light_2", "light_3", "heavy"]
@@ -29,6 +29,15 @@ func setup_free(role: String, _lod_level: int = 0, team: String = "w") -> bool:
 	_add_sword(body, team)
 	_bind(team)
 	return true
+
+
+## Same contract as CharacterModel. The pit stows the weapon for the ladder climb; the paladins' broad armour also needs to slim down a
+## little (a few percent of body width and depth) to fit the 1 m shaft, which is hardly visible while they climb.
+func set_props_stowed(amount: float) -> void:
+	super.set_props_stowed(amount)
+	if model != null:
+		model.scale = Vector3(1.0 - 0.14 * stowed, 1.0, 1.0 - 0.18 * stowed)
+		_model_base.basis = Basis.from_scale(model.scale)   # the hit flinch restores the base transform: keep it slim too
 
 
 func _nominal_speed(clip: String) -> float:

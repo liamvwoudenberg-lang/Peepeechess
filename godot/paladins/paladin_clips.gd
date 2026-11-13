@@ -42,8 +42,7 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
 	_alias(library, "run", "Running")
 	_alias(library, "strafe_left", "Walking")
 	_alias(library, "strafe_right", "Walking")
-	if not library.has_animation("climb") and library.has_animation("Fast_Ladder_Climb"):
-		_alias(library, "climb", "Fast_Ladder_Climb")
+	# (the Pawn's own Fast_Ladder_Climb is wider than the 1 m shaft: every role climbs with the compact procedural clip below)
 	var specs := _specs()
 	for clip_name in specs:
 		if library.has_animation(clip_name):
@@ -54,6 +53,16 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
 	for clip_name in ["walk", "run", "strafe_left", "strafe_right", "climb"]:
 		if library.has_animation(clip_name):
 			library.get_animation(clip_name).loop_mode = Animation.LOOP_LINEAR
+
+
+## Frees the cached model templates and textures (never in the tree) so a headless run exits without leaked-resource errors.
+static func clear_caches() -> void:
+	for key in PaladinModel._templates:
+		var template = PaladinModel._templates[key]
+		if is_instance_valid(template):
+			template.free()
+	PaladinModel._templates.clear()
+	PaladinModel._textures.clear()
 
 
 static func _alias(library: AnimationLibrary, to: String, source: String) -> void:
@@ -196,8 +205,8 @@ static func _specs() -> Dictionary:
 	var vic := {"RArm": Vector3(-30, 0, -150), "RFore": Vector3(-20, 0, 0), "LArm": Vector3(0, 0, -20), "Spine": Vector3(-6, 0, 0), "Head": Vector3(-10, 0, 0)}
 	specs["victory"] = {"len": 1.2, "keys": [_k(0.0, z, {}), _k(0.5, Vector3(0, 0.03, 0), vic), _k(1.2, Vector3(0, 0.02, 0), vic)]}
 	# --- pit: ladder ------------------------------------------------------------------------------------------------------------------------------
-	var up_a := {"RArm": Vector3(-165, 0, -10), "RFore": Vector3(-25, 0, 0), "LArm": Vector3(-105, 0, 14), "LFore": Vector3(-60, 0, 0), "LUp": Vector3(-70, 0, 0), "LLeg": Vector3(80, 0, 0), "RUp": Vector3(6, 0, 0), "Spine": Vector3(8, 0, 0)}
-	var up_b := {"LArm": Vector3(-165, 0, 10), "LFore": Vector3(-25, 0, 0), "RArm": Vector3(-105, 0, -14), "RFore": Vector3(-60, 0, 0), "RUp": Vector3(-70, 0, 0), "RLeg": Vector3(80, 0, 0), "LUp": Vector3(6, 0, 0), "Spine": Vector3(8, 0, 0)}
+	var up_a := {"RArm": Vector3(-160, 0, 16), "RFore": Vector3(-30, 0, 0), "LArm": Vector3(-105, 0, 26), "LFore": Vector3(-70, 0, 0), "LUp": Vector3(-70, 0, 0), "LLeg": Vector3(80, 0, 0), "RUp": Vector3(6, 0, 0), "Spine": Vector3(8, 0, 0)}
+	var up_b := {"LArm": Vector3(-160, 0, -16), "LFore": Vector3(-30, 0, 0), "RArm": Vector3(-105, 0, -26), "RFore": Vector3(-70, 0, 0), "RUp": Vector3(-70, 0, 0), "RLeg": Vector3(80, 0, 0), "LUp": Vector3(6, 0, 0), "Spine": Vector3(8, 0, 0)}
 	specs["climb"] = {"len": 0.8, "keys": [_k(0.0, Vector3(0, 0, 0.1), up_a), _k(0.4, Vector3(0, 0.04, 0.1), up_b), _k(0.8, Vector3(0, 0, 0.1), up_a)]}
 	specs["ladder_idle"] = {"len": 2.0, "keys": [_k(0.0, Vector3(0, 0, 0.1), up_a), _k(1.0, Vector3(0, 0.01, 0.1), _mix(up_a, {"Spine": Vector3(6, 0, 0)})), _k(2.0, Vector3(0, 0, 0.1), up_a)]}
 	var fall_a := {"RArm": Vector3(-120, 0, -60), "LArm": Vector3(-120, 0, 60), "RFore": Vector3(-20, 0, 0), "LFore": Vector3(-20, 0, 0), "Spine": Vector3(-6, 0, 0), "LUp": Vector3(-20, 0, 12), "RUp": Vector3(-10, 0, -12), "LLeg": Vector3(30, 0, 0), "RLeg": Vector3(20, 0, 0)}
