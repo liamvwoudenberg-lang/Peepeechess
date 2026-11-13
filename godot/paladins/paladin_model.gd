@@ -61,6 +61,7 @@ static func create(role_code: String, side_code: String = "w", standing_height: 
 	for node in body.find_children("*", "MeshInstance3D", true, false):
 		instance.meshes.append(node)
 	instance._prepare_clips()
+	PaladinClips.ensure(instance.player, instance.skeleton)   # real idle and the combat clips (shared per template)
 	return instance
 
 
@@ -153,21 +154,24 @@ func _prepare_clips() -> void:
 			player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR if clip != "Charged_Slash" else Animation.LOOP_NONE
 
 
-## Plays "idle", "walk", "run" (and "slash" / "climb" where the GLB has them). `speed` is a playback multiplier.
+## Plays "idle", "walk", "run" (and "slash" / "climb" where the model has them). `speed` is a playback multiplier. "idle" holds the
+## standing pose of the authored idle clip (frame 0, paused: a board of 32 pieces must not evaluate 32 skeletons every frame).
 func play(clip: String, speed: float = 1.0, blend: float = 0.15) -> void:
-	if player == null:
-		return
-	var glb_name: String = String(GLB_CLIPS.get(clip, ""))
-	if clip == "idle" or glb_name == "" or not player.has_animation(glb_name):
+	current = clip
+	if player == null or not is_instance_valid(player) or not player.is_inside_tree():
+		return   # (a piece being removed from the board: nothing to pose)
+	var anim_name: String = clip if player.has_animation(clip) else String(GLB_CLIPS.get(clip, ""))
+	if anim_name == "" or not player.has_animation(anim_name):
+		anim_name = "idle" if player.has_animation("idle") else "Walking"
+		clip = "idle"
+	if clip == "idle":
 		current = "idle"
-		player.pause()
-		if player.has_animation("Walking"):
-			player.play("Walking", 0.0)
+		if player.has_animation(anim_name):
+			player.play(anim_name, 0.0)
 			player.seek(0.0, true)
 			player.pause()
 		return
-	current = clip
-	player.play(glb_name, blend, speed)
+	player.play(anim_name, blend, speed)
 
 
 ## Playback speed that keeps the feet on the ground while the piece moves at `metres_per_second`.
