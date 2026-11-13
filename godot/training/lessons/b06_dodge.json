@@ -1,0 +1,31 @@
+{
+ "id": "b06_dodge",
+ "category": "beginner",
+ "order": 6,
+ "title": "Dodging",
+ "summary": "Dodge through 3 attacks. The first frames of a dodge are invulnerable.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "attack_only",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "dodges",
+   "type": "dodge_n",
+   "text": "Dodge 3 attacks",
+   "count": 3
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [
+  "Press dodge just before the blow lands, with a direction held."
+ ]
+}

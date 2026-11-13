@@ -1,0 +1,33 @@
+{
+ "id": "b08_first_combo",
+ "category": "beginner",
+ "order": 8,
+ "title": "Your first combo",
+ "summary": "Chain three light attacks without a gap.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "combo",
+   "type": "combo",
+   "text": "Land a 3-hit combo",
+   "count": 3
+  }
+ ],
+ "fail": [],
+ "rating": {
+  "silver": {
+   "max_seconds": 25
+  },
+  "gold": {
+   "max_seconds": 15
+  }
+ },
+ "hints": [
+  "Press light again just as the swing ends: the chain window is short."
+ ]
+}

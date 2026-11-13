@@ -1,0 +1,19 @@
+{
+ "id": "b02_camera",
+ "category": "beginner",
+ "order": 2,
+ "title": "Camera control",
+ "summary": "Orbit the camera around the fighters.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [],
+ "fail": [],
+ "rating": {},
+ "hints": [],
+ "available": false,
+ "unavailable_reason": "Camera control is a presentation feature: the combat simulation reports nothing about it, so it cannot be verified. It is covered in the movement lesson's hints."
+}

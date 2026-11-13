@@ -1,0 +1,45 @@
+{
+ "id": "a05_king_vs_queen",
+ "category": "advanced",
+ "order": 5,
+ "title": "King vs Queen: survive with the counter",
+ "summary": "Answer the Queen's chain with Royal Counter and win by timing.",
+ "player_role": "k",
+ "opponent_role": "q",
+ "behaviour": "normal",
+ "difficulty": "hard",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "counter",
+   "type": "ability_use",
+   "text": "Use Royal Counter 2 times",
+   "count": 2
+  },
+  {
+   "id": "parry",
+   "type": "parry_n",
+   "text": "Counter / parry 2 attacks",
+   "count": 2
+  },
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [
+  "Plant the stance a moment before her swing lands: a late counter leaves you open."
+ ],
+ "requires": [
+  "a04_queen_vs_king"
+ ]
+}

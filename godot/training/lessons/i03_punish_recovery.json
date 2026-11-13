@@ -1,0 +1,34 @@
+{
+ "id": "i03_punish_recovery",
+ "category": "intermediate",
+ "order": 3,
+ "title": "Punish the recovery",
+ "summary": "Attack the opponent while they recover from a swing.",
+ "player_role": "b",
+ "opponent_role": "n",
+ "behaviour": "attack_only",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "punish",
+   "type": "punish",
+   "text": "Punish 2 recoveries",
+   "count": 2
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [
+  "After they swing, there is a gap: step in and hit it."
+ ],
+ "requires": [
+  "b05_block"
+ ]
+}

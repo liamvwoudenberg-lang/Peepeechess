@@ -1,0 +1,43 @@
+{
+ "id": "a04_queen_vs_king",
+ "category": "advanced",
+ "order": 4,
+ "title": "Queen vs King: combo mastery",
+ "summary": "Chain Royal Fury combos against the King and win.",
+ "player_role": "q",
+ "opponent_role": "k",
+ "behaviour": "normal",
+ "difficulty": "hard",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "fury",
+   "type": "ability_use",
+   "text": "Use Royal Fury",
+   "count": 1
+  },
+  {
+   "id": "combo",
+   "type": "combo",
+   "text": "Land a 3-hit combo",
+   "count": 3
+  },
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "i01_long_combo"
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "id": "i04_block_punish",
+ "category": "intermediate",
+ "order": 4,
+ "title": "Block and punish",
+ "summary": "Block the attack, then hit back.",
+ "player_role": "r",
+ "opponent_role": "p",
+ "behaviour": "attack_only",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "block",
+   "type": "block_n",
+   "text": "Block 2 attacks",
+   "count": 2
+  },
+  {
+   "id": "counter",
+   "type": "counter_after",
+   "text": "Hit back within 1.5 s of a block",
+   "after": "block",
+   "count": 2,
+   "window_ticks": 90
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "b05_block"
+ ]
+}

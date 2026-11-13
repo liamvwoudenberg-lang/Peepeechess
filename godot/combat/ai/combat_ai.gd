@@ -40,6 +40,12 @@ const NEUTRAL := {
 	"ability_eager": 1.0,       # scales ability use probabilities
 	"counter_eager": 0.55,      # King: chance to answer an attack start with Royal Counter
 	"precise": false,           # frame-data parry/dodge timing (duelist)
+	# ---- difficulty parameters (ai_difficulty.gd). Neutral values draw NO extra random numbers, so seeded fights stay identical.
+	"react_extra": 0,           # extra reaction delay in ticks (on top of the skill formula)
+	"error_rate": 0.0,          # chance a planned defence / attack decision is dropped (hesitation, misread)
+	"follow_chance": 1.0,       # chance each planned follow-up link of a combo is really thrown
+	"timing_jitter": 0,         # +- ticks of error on the precise (frame-data) parry / dodge timing
+	"no_attack": false,         # never starts an attack (a lesson dummy that only defends)
 }
 const STYLE_OVERRIDES := {
 	"balanced": {},
@@ -114,6 +120,13 @@ func _init(input_builder: CombatInputBuilder, my_stats: Dictionary, opponent_sta
 	_strafe_dir = 1.0 if rng.randf() < 0.5 else -1.0
 
 
+## Overlays behaviour parameters (the NEUTRAL keys above; see AIDifficulty). Unknown keys are ignored.
+func apply_params(overrides: Dictionary) -> void:
+	for key in overrides:
+		if NEUTRAL.has(key):
+			_p[key] = overrides[key]
+
+
 ## One decision per simulation tick. Returns a contract-valid CombatInput.
 func think(snapshot: Dictionary) -> Dictionary:
 	var fighters: Array = snapshot["fighters"]
@@ -163,7 +176,8 @@ func think(snapshot: Dictionary) -> Dictionary:
 		if _counter_planned:
 			_counter_planned = false  # already answering with the counter
 		elif dist < (6.0 if _opp_lunge else 3.4) and rng.randf() < minf(0.95, (0.45 + 0.5 * skill) * float(_p["defence_scale"])):
-			_choose_defence(opp, dist)
+			if float(_p["error_rate"]) <= 0.0 or rng.randf() >= float(_p["error_rate"]):
+				_choose_defence(opp, dist)
 
 	if _scheduled_in > 0:
 		_scheduled_in -= 1
@@ -232,11 +246,16 @@ func think(snapshot: Dictionary) -> Dictionary:
 		if _follow_up_in > 0:
 			_follow_up_in -= 1
 		elif _follow_up_in == 0 and _follow_ups_left > 0 and dist <= reach + 0.5:
-			builder.press("light")
+			if float(_p["follow_chance"]) >= 1.0 or rng.randf() < float(_p["follow_chance"]):
+				builder.press("light")
+			else:
+				_follow_ups_left = 0
 			_follow_ups_left -= 1
 			_follow_up_in = int(round(float(_my_stats["lightTicks"]) * 0.78)) if _follow_ups_left > 0 else -1
 		elif dist <= reach + 0.15 and my_state != "Blocking" and (_attack_cooldown <= 0 or opp_vulnerable and _attack_cooldown <= 10):
 			var want := opp_vulnerable or float(_p["poke"]) >= 1.0 or rng.randf() < float(_p["poke"])
+			if bool(_p["no_attack"]) or (float(_p["error_rate"]) > 0.0 and rng.randf() < float(_p["error_rate"]) * 0.5):
+				want = false
 			if want:
 				if rng.randf() < (float(_p["heavy_chance"]) + (0.25 if opp_vulnerable and opp["state"] == "Staggered" else 0.0)):
 					builder.press("heavy")
@@ -307,6 +326,8 @@ func _precise_defence(opp: Dictionary, dist: float, opp_attacking: bool) -> void
 				else:
 					_plan_action = "parry"
 					_plan_tick = first_active - int(_my_stats["parryTicks"]) / 2
+				if int(_p["timing_jitter"]) > 0:
+					_plan_tick += rng.randi_range(-int(_p["timing_jitter"]), int(_p["timing_jitter"]))
 	if opp_attacking:
 		_opp_idle = 0
 	else:
@@ -325,7 +346,7 @@ func _precise_defence(opp: Dictionary, dist: float, opp_attacking: bool) -> void
 
 
 func _reaction_ticks() -> int:
-	return int(lerpf(26.0, 6.0, skill)) + rng.randi_range(0, 4)
+	return int(lerpf(26.0, 6.0, skill)) + rng.randi_range(0, 4) + int(_p["react_extra"])
 
 
 ## Royal Counter (King): reads the opponent's wind-up when it starts and times the stance so the counter window

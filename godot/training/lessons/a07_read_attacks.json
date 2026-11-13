@@ -1,0 +1,32 @@
+{
+ "id": "a07_read_attacks",
+ "category": "advanced",
+ "order": 7,
+ "title": "Reading attacks",
+ "summary": "Parry 3 of the Knight's swings by watching its wind-up.",
+ "player_role": "q",
+ "opponent_role": "n",
+ "behaviour": "attack_only",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "parry",
+   "type": "parry_n",
+   "text": "Parry 3 attacks",
+   "count": 3
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "i04_block_punish"
+ ]
+}

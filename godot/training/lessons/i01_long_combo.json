@@ -1,0 +1,29 @@
+{
+ "id": "i01_long_combo",
+ "category": "intermediate",
+ "order": 1,
+ "title": "Multi-hit combos",
+ "summary": "The Queen chains a longer light combo.",
+ "player_role": "q",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "combo",
+   "type": "combo",
+   "text": "Land a 4-hit combo",
+   "count": 4
+  }
+ ],
+ "fail": [],
+ "rating": {},
+ "hints": [
+  "Keep pressing light on the beat; the Queen's chain is longer than the others."
+ ],
+ "requires": [
+  "b08_first_combo"
+ ]
+}

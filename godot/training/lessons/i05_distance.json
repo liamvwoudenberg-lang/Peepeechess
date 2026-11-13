@@ -1,0 +1,36 @@
+{
+ "id": "i05_distance",
+ "category": "intermediate",
+ "order": 5,
+ "title": "Managing distance",
+ "summary": "Hold a safe gap to the Rook for 6 seconds without being hit more than twice.",
+ "player_role": "b",
+ "opponent_role": "r",
+ "behaviour": "attack_only",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "gap",
+   "type": "hold_distance",
+   "text": "Stay 2.2-3.6 m away for 6 s",
+   "min": 2.2,
+   "max": 3.6,
+   "seconds": 6
+  }
+ ],
+ "fail": [
+  {
+   "type": "hits_taken",
+   "count": 2
+  }
+ ],
+ "rating": {},
+ "hints": [
+  "The Rook is slow: circle and keep out of reach."
+ ],
+ "requires": [
+  "b01_movement"
+ ]
+}

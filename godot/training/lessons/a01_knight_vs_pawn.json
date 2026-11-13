@@ -1,0 +1,50 @@
+{
+ "id": "a01_knight_vs_pawn",
+ "category": "advanced",
+ "order": 1,
+ "title": "Knight vs Pawn: reach and lunge",
+ "summary": "Use the Knight's reach, its Lunging Strike and a combo to win.",
+ "player_role": "n",
+ "opponent_role": "p",
+ "behaviour": "normal",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "lunge",
+   "type": "ability_use",
+   "text": "Use Lunging Strike",
+   "count": 1
+  },
+  {
+   "id": "combo",
+   "type": "combo",
+   "text": "Land a 2-hit combo",
+   "count": 2
+  },
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {
+  "silver": {
+   "max_hits_taken": 2
+  },
+  "gold": {
+   "max_hits_taken": 0
+  }
+ },
+ "hints": [],
+ "requires": [
+  "i06_moving_opponent"
+ ]
+}
