@@ -46,6 +46,11 @@ four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for t
   `test:multiplayer` still fails on its known timing flakes (`invalid:b-n` stale counter in the last run). Not done from the cinematic brief:
   staggered menu entry, mouse parallax, board/pit lighting pass, UI sound set beyond the existing ones, music slider in Settings.
   Nothing here was seen or heard by a person on real hardware.
+* **Paladin characters (2026-11-13):** the six supplied rigged models (Pawn, Knight, Bishop, Rook, Queen, King; white and black via recoloured
+  textures, gold kept) are the 3D chess pieces (they walk/run to their squares; Classic and Battle) and the duel fighters (procedurally keyed combat
+  clips on the Mixamo skeleton: docs/ui/PALADIN_BOARD.md, PALADIN_COMBAT.md). Rough: hand-keyed animation, strafe = walk, sliders walk straight over
+  squares, the pit sequence's own walk is separate. Gates: lint, contracts, royal, UI, AI, battle, classic, npm test, backend, application pass;
+  `test:multiplayer` still fails on timing flakes (last: a movement check that passes in the UI run).
 * **On-demand exe:** `.github/workflows/latest-windows-exe.yml` builds the exe on every push that changes the game and on demand (Actions tab);
   `downloads/windows/` holds the latest build in the repo (AGENTS.md rule).
 * **3D opening screen.** `godot/ui/opening/` (merged from `claude/opening-screen`), shown once per run.
