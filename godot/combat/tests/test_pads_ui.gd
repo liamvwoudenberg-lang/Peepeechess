@@ -9,6 +9,7 @@ const MainScene := preload("res://app/main.tscn")
 const Match := preload("res://chess/classic_match.gd")
 const TMP := "user://pads_test/ui_controls.json"
 const PROMO_FEN := "7k/P7/8/8/8/8/8/K7 w - - 0 1"
+const CAPTURE_FEN := "7k/8/8/4q3/3P4/8/8/7K w - - 0 1"  # d4 takes e5
 
 
 static func run(h, tree: SceneTree) -> void:
@@ -17,6 +18,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _application_focus(h, tree)
 	await _controls_screen(h, tree)
 	await _main_scene(h, tree)
+	await _capture_with_stick_pointer(h, tree)
 
 
 # ---- helpers ---------------------------------------------------------------------------------------------------
@@ -722,6 +724,87 @@ static func _main_scene(h, tree: SceneTree) -> void:
 	app._battle_phase("board")
 	await frames(tree, 3)
 	h.check(not app.battle_overlay.visible, "overlay closed")
+	app.queue_free()
+	await frames(tree, 3)
+	ControlBindings.set_shared(old_b)
+	InputAssignment.set_shared(old_a)
+	Pads.release_all()
+
+
+## Regression: "The controller can't start a battle". PlatformInput turns the left stick into a pointer, and while that pointer
+## was visible it swallowed every Cross press into a mouse click at the pointer's position (on the 3D board, which also took the
+## focus): the capture card's focused "Start battle" never fired, however often Cross was pressed.
+static func _capture_with_stick_pointer(h, tree: SceneTree) -> void:
+	h.begin("main scene: with the stick pointer active Cross still presses the focused Start battle (and a pointed-at button wins)")
+	tree.root.size = Vector2i(1200, 800)
+	Settings.loaded = true
+	Settings.launch.clear()
+	Settings.preferred_3d = false
+	var bindings := ControlBindings.new()
+	var assignment := Pads.fake_assignment(bindings, [0])  # one pad, like most players
+	var old_b := ControlBindings.shared()
+	var old_a := InputAssignment.shared()
+	ControlBindings.set_shared(bindings)
+	InputAssignment.set_shared(assignment)
+	var app: Control = MainScene.instantiate()
+	tree.root.add_child(app)
+	await frames(tree, 3)
+	app._switch_mode(1)
+	app.game.new_game(0, 0, CAPTURE_FEN)
+	app.board_3d.animation_enabled = false
+	await frames(tree, 3)
+	var ui: PadUi = app.get_node("PadUi")
+	var platform = tree.root.get_node_or_null("PlatformInput")
+	if not h.check(ui != null and ui.cursor != null and platform != null, "the app has a PadUi board cursor and the PlatformInput stick pointer"):
+		app.queue_free()
+		return
+	# In the real application the PlatformInput node is added to the root AFTER the main scene, so it sees every event first
+	# (Godot delivers _input to later nodes first). Earlier suites leave it earlier in the tree: put it back to the real order.
+	tree.root.move_child(platform, tree.root.get_child_count() - 1)
+	# 1. While the board cursor owns the pad the stick must not also fly a pointer over the board.
+	platform._cursor_visible = true
+	platform._process(0.016)
+	h.check(ui.owns_pad() and not platform._cursor_visible, "the stick pointer yields to the board cursor in board mode (it used to follow the cursor around)")
+	# 2. Capture d4xe5 with the pad, then pretend the stick had been used: the pointer is visible and sits on the board.
+	ui.cursor.set_cursor(27)
+	await press(0, JOY_BUTTON_A, tree)
+	ui.cursor.set_cursor(36)
+	await press(0, JOY_BUTTON_A, tree)
+	await frames(tree, 3)
+	h.eq(app.battle_flow.phase, "preview", "the pad captured: the preview card is up")
+	var focus := tree.root.gui_get_focus_owner()
+	h.check(focus == app.fight_button, "pad focus is already on Start battle")
+	platform._cursor_visible = true
+	platform.cursor_position = Vector2(300, 250)
+	await press(0, JOY_BUTTON_A, tree)
+	await frames(tree, 3)
+	h.check(app.battle_flow.phase != "preview", "Cross started the battle although the stick pointer was visible elsewhere (phase %s)" % app.battle_flow.phase)
+	app.battle_flow.interrupt("test interrupt")
+	await frames(tree, 5)
+	# 3. Pointing at ANOTHER button is an explicit choice: Cross clicks that one (Cancel capture), not the focused Start battle.
+	app.game.new_game(0, 0, CAPTURE_FEN)
+	await frames(tree, 3)
+	ui.cursor.set_cursor(27)
+	await press(0, JOY_BUTTON_A, tree)
+	ui.cursor.set_cursor(36)
+	await press(0, JOY_BUTTON_A, tree)
+	await frames(tree, 3)
+	h.eq(app.battle_flow.phase, "preview", "second capture: preview card up")
+	var target: Vector2 = app.battle_cancel.get_global_rect().get_center()
+	platform._cursor_visible = true
+	platform.cursor_position = target
+	var motion := InputEventMouseMotion.new()
+	motion.device = platform.VIRTUAL_POINTER_DEVICE
+	motion.position = target
+	motion.global_position = target
+	motion.relative = Vector2(5, 5)
+	Input.parse_input_event(motion)
+	Input.flush_buffered_events()
+	await frames(tree, 3)
+	await press(0, JOY_BUTTON_A, tree)
+	await frames(tree, 3)
+	h.eq(app.battle_flow.phase, "board", "the pointer rested on Cancel capture: Cross clicked it (back on the board)")
+	platform._cursor_visible = false
 	app.queue_free()
 	await frames(tree, 3)
 	ControlBindings.set_shared(old_b)

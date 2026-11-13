@@ -7,6 +7,7 @@ const Kit = preload("res://ui/theme/ui_kit.gd")
 const T = preload("res://ui/theme/ui_tokens.gd")
 const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const Audio = preload("res://ui/theme/ui_audio.gd")
+const ScreenMode = preload("res://ui/screen_mode.gd")
 const QUALITY_TEXT := {
 	"low": "Low: 30 FPS, no antialiasing. Best for older phones and long battery life.",
 	"balanced": "Medium: 60 FPS, 2x antialiasing. A good default for most devices.",
@@ -50,6 +51,7 @@ static func _graphics(_app: Control, parent: Container) -> void:
 		hint.text = QUALITY_TEXT[value])
 	presets.name = "QualityPreset"
 	card.move_child(hint, presets.get_index() + 1)
+	_display(card)
 	Kit.label(card, "Default board")
 	var board := Kit.segmented(card, [[false, "2D (top-down)"], [true, "3D (orbit)"]], Settings.preferred_3d, func(value):
 		Settings.preferred_3d = value
@@ -63,6 +65,27 @@ static func _graphics(_app: Control, parent: Container) -> void:
 		Settings.touch_controls = on
 		_save(), "On-screen buttons for duels. Turn off when you play with a controller or keyboard.")
 	touch.name = "TouchControls"
+
+## Windowed / Full screen (desktop only; F11 and Alt+Enter work everywhere). Reflects the real window state, and follows F11 while open.
+static func _display(card: Container) -> void:
+	if not ScreenMode.available():
+		return
+	Kit.label(card, "Display")
+	var row := Kit.segmented(card, [[ScreenMode.WINDOWED, "Windowed"], [ScreenMode.FULLSCREEN, "Full screen"]], ScreenMode.current(), func(value):
+		Settings.set_display_mode(value))
+	row.name = "DisplayMode"
+	for button in row.get_children():   # the buttons are pad/keyboard focusable like every other control
+		(button as Button).focus_mode = Control.FOCUS_ALL
+	var follow := func(mode: String):
+		if not is_instance_valid(row):
+			return
+		row.set_meta(&"value", mode)
+		(row.get_child(0) as Button).set_pressed_no_signal(mode == ScreenMode.WINDOWED)
+		(row.get_child(1) as Button).set_pressed_no_signal(mode == ScreenMode.FULLSCREEN)
+	ScreenMode.watch(follow)
+	row.tree_exiting.connect(func(): ScreenMode.unwatch(follow))
+	var note := Kit.muted(card, "F11 or Alt+Enter switches at any time, also during a duel.")
+	note.name = "DisplayHint"
 
 static func _interface(app: Control, parent: Container) -> void:
 	var card := Kit.card(parent)
@@ -131,7 +154,7 @@ static func _controls(app: Control, parent: Container) -> void:
 	Kit.section_header(card, "Controls", "controller")
 	Kit.muted(card, "Rebind keys and buttons, choose which device plays each side, and tune your controller.")
 	Kit.primary(card, "Controls and controllers", func(): ControlsScreen.open(app), "controller")
-	Kit.muted(card, "Keyboard and mouse: click or drag a piece. Touch: tap or drag. 3D: orbit with right-drag or swipe, zoom with scroll or pinch. Controller: use the focused controls and board cursor. Esc releases the combat mouse.")
+	Kit.muted(card, "Keyboard and mouse: click or drag a piece. Touch: tap or drag. 3D: orbit with right-drag or swipe, zoom with scroll or pinch. Controller: use the focused controls and board cursor. Esc releases the combat mouse. F11 toggles full screen.")
 
 static func _service(app: Control, parent: Container) -> void:
 	var card := Kit.card(parent)
@@ -152,6 +175,8 @@ static func reset_defaults() -> void:
 	Settings.quality = "balanced"
 	Settings.volume = 0.8
 	Settings.touch_controls = DisplayServer.is_touchscreen_available()
+	Settings.display_mode = ScreenMode.WINDOWED
+	ScreenMode.apply(ScreenMode.WINDOWED)   # no-op where the window cannot change mode
 	Settings.save_preferences()
 	Prefs.reset_defaults()
 	Prefs.save_preferences()

@@ -93,11 +93,19 @@ rating change or choose a competitive winner.
 - Low quality uses a 30 FPS presentation limit without antialiasing. Balanced
   targets 60 FPS with 2× antialiasing. High uses 4× antialiasing and uncapped FPS.
   These settings do not change the server's fixed simulation rate.
+- Display (Windows and Linux): Settings, Graphics offers **Windowed** and **Full screen** (a borderless window that covers the screen).
+  **F11** or **Alt+Enter** switches at any time, in menus, on the board and during a duel; Esc is not used for this. The choice is
+  saved per device and applied at start-up, so the opening screen is already full screen. Android is always full screen and shows
+  no Display choice. The control is reachable with a controller like every other setting.
 - Mouse / touch: select and move a piece by tapping or dragging. In 3D,
   right-drag or swipe orbits the board; scroll or pinch zooms.
-- Controller: d-pad and accept/back navigate focused controls. The left stick
-  enables a virtual pointer; A clicks at its position on either board. The
-  pointer yields to the existing combat controller when a duel begins.
+- Controller: d-pad and accept/back navigate focused controls. On the board the
+  d-pad or left stick moves the board cursor and A selects and moves. In menus
+  and on the capture card, A presses the focused button. The left stick also
+  works as a pointer in menus: A clicks where it rests only when it points at a
+  different button or nothing has the focus (a focused "Start battle" always
+  wins over a pointer parked elsewhere). The pointer yields to the board cursor
+  and to the combat controller when a duel begins.
 - Online combat offers keyboard / mouse, a gamepad scheme and virtual touch
   controls. Esc releases a captured combat mouse.
 

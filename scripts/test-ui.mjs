@@ -28,6 +28,7 @@ const suites = [
   'res://tests/ui/ui_layout_test.gd',
   'res://tests/ui/ui_overlap_test.gd',   // overlap / clipping / tiny-target audit of every page, the match screen, dialogs and a whole battle
   'res://tests/ui/opening_screen_test.gd',
+  'res://tests/ui/screen_mode_test.gd',
   'res://tests/test_application_ui.gd',
   'res://tests/classic/views_test.gd',
   'res://tests/network/online_ui_test.gd',

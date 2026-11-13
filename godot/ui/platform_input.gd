@@ -3,6 +3,7 @@ extends Node
 ## Device-independent presentation controls. Never changes clocks or simulation ticks.
 ## Add once under the SceneTree root. Disable the pointer while combat owns the pad.
 
+const ScreenMode = preload("res://ui/screen_mode.gd")
 const CURSOR_SPEED := 720.0
 const DEADZONE := 0.22
 const VIRTUAL_POINTER_DEVICE := 1000
@@ -76,6 +77,12 @@ func _process(delta: float) -> void:
 	if not cursor_enabled or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_marker.hide()
 		return
+	if _pad_cursor_in_charge():
+		# The board's pad cursor already uses the left stick; a second pointer flying over the board would only fight it
+		# (and, while visible, used to swallow every Cross press).
+		_cursor_visible = false
+		_marker.hide()
+		return
 	var pads := Input.get_connected_joypads()
 	if pads.is_empty():
 		_marker.hide()
@@ -100,14 +107,61 @@ func _process(delta: float) -> void:
 	Input.parse_input_event(motion)
 
 func _input(event: InputEvent) -> void:
+	# F11 / Alt+Enter: full screen from anywhere (menus, board, duels). Not consumed where the window cannot change mode.
+	if ScreenMode.is_toggle_event(event):
+		if ScreenMode.toggle():
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseMotion and event.relative.length() > 0 and event.device != VIRTUAL_POINTER_DEVICE:
 		_cursor_visible = false
 		_marker.hide()
+	if event is InputEventJoypadButton and event.button_index == JOY_BUTTON_A and _pressed and not event.pressed:
+		_emit_click(false)  # always finish a virtual click this node started, whatever happened to the pointer meanwhile
+		get_viewport().set_input_as_handled()
+		return
 	if not cursor_enabled or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		return
 	if event is InputEventJoypadButton and event.button_index == JOY_BUTTON_A and _cursor_visible:
-		_emit_click(event.pressed)
+		if event.pressed and pad_focus_owns_accept():
+			# A focused button (the capture card's "Start battle", a dialog, a menu) is what Cross presses. Swallowing the press
+			# into a click at a pointer that is somewhere else on the screen made the controller unable to start a battle.
+			# The focus ring is in charge until the stick moves the pointer again.
+			_cursor_visible = false
+			_marker.hide()
+			return
+		if not event.pressed:
+			return  # the matching press was not ours
+		_emit_click(true)
 		get_viewport().set_input_as_handled()
+
+## True while the application's board cursor (PadUi) is what the pad steers: the stick then moves that cursor, not a pointer.
+func _pad_cursor_in_charge() -> bool:
+	for node in get_tree().get_nodes_in_group("pad_ui"):
+		if node.has_method("owns_pad") and node.owns_pad():
+			return true
+	return false
+
+## Cross should press the focused button (ui_accept) instead of clicking at the pointer when an enabled button has the pad
+## focus and the pointer is not resting on a DIFFERENT button (pointing at a button is an explicit choice, so that one wins).
+func pad_focus_owns_accept() -> bool:
+	var focused := _focused_button()
+	if focused == null:
+		return false
+	var hovered := get_viewport().gui_get_hovered_control()
+	if hovered is BaseButton and hovered != focused and not (hovered as BaseButton).disabled and hovered.is_visible_in_tree():
+		return false
+	return true
+
+func _focused_button() -> BaseButton:
+	var root_window := get_tree().root
+	var top: Viewport = root_window
+	for window in root_window.find_children("*", "Window", true, false):
+		if window is Window and (window as Window).visible:
+			top = window  # the topmost visible dialog / popup owns the pad
+	var owner := top.gui_get_focus_owner()
+	if owner is BaseButton and owner.is_visible_in_tree() and not (owner as BaseButton).disabled:
+		return owner
+	return null
 
 func _emit_click(pressed: bool) -> void:
 	_pressed = pressed
