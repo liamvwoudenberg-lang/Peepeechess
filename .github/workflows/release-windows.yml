@@ -91,11 +91,11 @@ jobs:
         with:
           name: release-assets
           path: |
-            artifacts/release/Peepeechess-windows-x86_64.exe
-            artifacts/release/*.zip
-            artifacts/release/*.tar.gz
-            artifacts/release/SHA256SUMS.txt
-            artifacts/release/RELEASE_NOTES.md
+            artifacts/release/release/Peepeechess-windows-x86_64.exe
+            artifacts/release/release/*.zip
+            artifacts/release/release/*.tar.gz
+            artifacts/release/release/SHA256SUMS.txt
+            artifacts/release/release/RELEASE_NOTES.md
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@v4

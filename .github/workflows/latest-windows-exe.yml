@@ -37,10 +37,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          cp artifacts/release/Peepeechess-windows-x86_64.exe out/Peepeechess.exe
+          cp artifacts/release/release/Peepeechess-windows-x86_64.exe out/Peepeechess.exe
           (cd out && zip -q -9 Peepeechess-windows-x86_64.zip Peepeechess.exe && rm Peepeechess.exe)
-          cp artifacts/release/SHA256SUMS.txt out/SHA256SUMS.txt
-          cp artifacts/release/RELEASE_NOTES.md out/RELEASE_NOTES.md
+          cp artifacts/release/release/SHA256SUMS.txt out/SHA256SUMS.txt
+          cp artifacts/release/release/RELEASE_NOTES.md out/RELEASE_NOTES.md
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
