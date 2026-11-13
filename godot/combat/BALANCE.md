@@ -233,3 +233,27 @@ at best. Against skilled checkers a King without a rest is a clear underdog.
 
 Reproduce: `godot --headless --path godot --script res://combat/tools/royal_matrix.gd -- n=24 seed=7000 out=/tmp/royal.json
 checkers=balanced:0.6 king=balanced:0.6,duelist:0.9,patient:0.9` (about 8 min; the skilled-checker variant about 15 min).
+
+## Pacing and duel length (2026-11-13)
+
+Why: with the attacker's advantage duels became very short (bot knockouts at 5-10 s; a boosted Pawn could end a Knight in two hits) and
+played like button mashing. The goal is a slower, more readable fight where reading the opponent beats spamming.
+
+What changed (all data, `balance_v1.json`; simulation numbers only through the data):
+- **Pacing:** longer parry and dodge cooldowns, a wider parry window (`parry_window_bonus`), longer dodge invulnerability, a bigger parry
+  stagger and refund and a stronger riposte, and higher stamina costs for swings (a heavy Pawn swing costs 44 instead of 26), so mashing runs dry
+  and a well-timed parry or dodge opens the opponent.
+- **Duel length:** `duel_length.pairs` holds one damage scale per pairing, calibrated (`length_calibrate.gd`) so a bot duel lasts about 28 s of
+  active fight (casual bot 13-34 s, skilled bot 23-60 s). Misses: Rook vs Rook (68 s) and Rook vs Pawn (43 s) stay long because their damage
+  scale cannot go above 1.0.
+- **Attacker's edge recalibrated** for the new tuning (`edge_calibrate.gd`, n=20 per probe, n=60 refinement for Queen->Pawn, Queen->Bishop,
+  Rook->Pawn, Bishop->Pawn). Every pairing lands at 55-68% for the mean of the casual and the skilled bot at calibration time. NOT validated on
+  independent seeds yet (the first edge got that treatment); expect +-8 points of noise per pairing.
+- Presentation of the new numbers (the HUD shows felt damage) is in the combat HUD.
+
+Gates: the `attacker_edge` suite (the attacker wins more often than not on fixed seeds, duels last like a fight), the pacing suite
+(`test_pacing.gd`, including a spam check: a constantly attacking style does not beat a reactive one) and the full harness.
+Reproduce: `edge_calibrate.gd`, `length_calibrate.gd`, `merge_edge.py` and `merge_length.py` in `godot/combat/tools/`.
+
+Limits: bot-measured only. The bots do not feel "Dark Souls": real people will find the timing windows and stamina pressure either right
+or wrong. Playtest, then re-run the calibration tools.
