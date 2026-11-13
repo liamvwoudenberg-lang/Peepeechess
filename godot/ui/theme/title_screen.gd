@@ -4,6 +4,7 @@ extends RefCounted
 const T = preload("res://ui/theme/ui_tokens.gd")
 const Kit = preload("res://ui/theme/ui_kit.gd")
 const Icons = preload("res://ui/theme/ui_icons.gd")
+const Motion = preload("res://ui/theme/ui_motion.gd")
 
 ## Draws the emblem (a control so the title can size it).
 class Emblem:
@@ -24,6 +25,13 @@ class Emblem:
 		var origin := (size - Vector2(extent, extent)) * 0.5
 		draw_circle(size * 0.5, extent * 0.56, Color(T.GOLD.r, T.GOLD.g, T.GOLD.b, 0.08))
 		draw_texture_rect(_texture, Rect2(origin, Vector2(extent, extent)), false, T.GOLD)
+
+## Each mode has its own identity: accent colour, one-line promise. Shown under the menu and tinting the scene while hovered / focused.
+const MODE_IDENTITY := {
+	"classic": {"accent": Color("9fb6d4"), "line": "The pure game. Clocks, craft and checkmate."},
+	"battle": {"accent": Color("e0663a"), "line": "Every capture is a duel to the death. The attacker strikes first."},
+	"online": {"accent": Color("6fb5e8"), "line": "Face friends and rivals across Windows and Android."},
+}
 
 static func version_text() -> String:
 	return "v" + str(ProjectSettings.get_setting("application/config/version", "dev"))
@@ -98,6 +106,34 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_font_size_override("font_size", T.FS_LEAD)
 		buttons[entry[0]] = button
+	# mode identity: caption + scene tint follow hover / focus, and the buttons slide in one after another
+	var caption := Kit.label(menu, " ", "Caption", false)
+	caption.name = "ModeCaption"
+	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	caption.custom_minimum_size = Vector2(0, 44)
+	caption.modulate.a = 0.0
+	var order := 0
+	for key in buttons.keys():
+		var button: Button = buttons[key]
+		if MODE_IDENTITY.has(key):
+			var identity: Dictionary = MODE_IDENTITY[key]
+			var show_identity := func():
+				caption.text = identity["line"]
+				caption.add_theme_color_override("font_color", identity["accent"])
+				caption.modulate.a = 1.0
+				var backdrop = app.get("_backdrop")
+				if backdrop != null and backdrop.has_method("set_tint"):
+					backdrop.set_tint(Color(identity["accent"].r, identity["accent"].g, identity["accent"].b, 0.16))
+			var clear_identity := func():
+				caption.modulate.a = 0.0
+				var backdrop = app.get("_backdrop")
+				if backdrop != null and backdrop.has_method("set_tint"):
+					backdrop.set_tint(Color(1, 1, 1, 0.0))
+			button.mouse_entered.connect(show_identity)
+			button.focus_entered.connect(show_identity)
+			button.mouse_exited.connect(clear_identity)
+			button.focus_exited.connect(clear_identity)
+		order += 1
 	if Input.get_connected_joypads().size() > 0 and buttons.has("classic"):
 		buttons["classic"].call_deferred("grab_focus")   # a pad is plugged in: start with a visible focus ring
 	var bottom_pad := Control.new()

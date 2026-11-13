@@ -18,6 +18,14 @@ var center_dim := 0.0:
 			center_dim = value
 			if mode == "scene":
 				queue_redraw()
+## Mode identity tint (Classic / Battle / Online): a soft coloured wash at the edges of the scene, eased in and out.
+var tint := Color(1, 1, 1, 0.0):
+	set(value):
+		tint = value
+		if mode == "scene":
+			queue_redraw()
+var _tint_tween: Tween
+var _vignette_texture: GradientTexture2D
 var mode := "page":
 	set(value):
 		mode = value
@@ -108,7 +116,39 @@ func _process(delta: float) -> void:
 		_piece_angle[i] += _piece_speed[i] * step
 	queue_redraw()
 
+## Eases the identity tint to `colour` (alpha = strength; alpha 0 clears it). Jumps when motion is reduced.
+func set_tint(colour: Color) -> void:
+	if _tint_tween != null and _tint_tween.is_valid():
+		_tint_tween.kill()
+	if Prefs.reduce_motion or not is_inside_tree():
+		tint = colour
+		return
+	_tint_tween = create_tween()
+	_tint_tween.tween_property(self, "tint", colour, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
 func _draw_scene_scrim(rect: Rect2) -> void:
+	# restrained vignette: darkens the corners so the eye rests on the castle and the menu
+	if _vignette_texture == null:
+		var vg := Gradient.new()
+		vg.set_color(0, Color(0, 0, 0, 0.0))
+		vg.set_color(1, Color(0.01, 0.015, 0.03, 0.62))
+		vg.set_offset(0, 0.55)
+		var tex := GradientTexture2D.new()
+		tex.gradient = vg
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 1.0)
+		tex.width = 128
+		tex.height = 128
+		_vignette_texture = tex
+	draw_texture_rect(_vignette_texture, rect, false)
+	if tint.a > 0.004:
+		var wash := Color(tint.r, tint.g, tint.b, tint.a)
+		var edge := Color(tint.r, tint.g, tint.b, 0.0)
+		var w := rect.size.x * 0.45
+		draw_polygon(PackedVector2Array([rect.position, rect.position + Vector2(w, 0), rect.position + Vector2(w, rect.size.y), rect.position + Vector2(0, rect.size.y)]), PackedColorArray([wash, edge, edge, wash]))
+		var bottom_h := rect.size.y * 0.35
+		draw_polygon(PackedVector2Array([Vector2(rect.position.x, rect.end.y - bottom_h), Vector2(rect.end.x, rect.end.y - bottom_h), rect.end, Vector2(rect.position.x, rect.end.y)]), PackedColorArray([edge, edge, wash, wash]))
 	var dark := Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.0)
 	var top_band := Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.55)
 	var bottom_band := Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.62)
