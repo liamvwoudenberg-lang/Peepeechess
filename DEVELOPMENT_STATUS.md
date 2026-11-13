@@ -40,6 +40,11 @@ four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for t
 * **3D opening screen.** `godot/ui/opening/` (merged from `claude/opening-screen`), shown once per run.
 * **Windows release pipeline.** `tools/package/build_release_local.sh`, `.github/workflows/release-windows.yml` (merged from `claude/windows-release`),
   see `docs/application/EXPORTS.md`.
+  Built locally from `a583663` (2026-11-13, tag `v0.4.0-alpha.1` in the notes): `Peepeechess-windows-x86_64.exe`, SHA-256
+  `e362d719a92ba82de31c715a38629e8eaf21a3b66342a589613268671e535eef` (114,866,264 bytes); zip `9e69754b...fdf7`; Linux tar.gz `96188655...58f0`. Static PE/PCK
+  check ok; the Linux build of the same commit passed the Xvfb smoke (menu, local Classic and Battle); the exe was **never run on Windows**, is unsigned and not
+  byte-reproducible. **Not yet published as a GitHub Release:** dispatching `release-windows.yml` returns 404 because the workflow exists only on the
+  feature branch, not on `main`; it needs a PR/merge to `main` (owner decision), then *Actions > Release Windows build > Run workflow* with a new tag.
 
 Verification actually run on this branch (Linux sandbox, Godot 4.6.3, Node 22, 4 cores; 2026-11-13, on the attacker-advantage commit plus the
 merged opening screen and Windows pipeline): lint; contracts; royal; UI (theme 234, layout 182, opening screen 151, application 85, views 345,
