@@ -38,6 +38,8 @@ var battle_return: Button
 var battle_resign: Button
 var battle_skip: Button
 var battle_bg: ColorRect
+var battle_scrim: ColorRect  # pit-world mode: dims the board and HUD behind the capture card (and blocks clicks on them)
+var battle_footer: HBoxContainer  # "Acting player resigns" / "Skip animation"; see _place_battle_footer()
 ## pit world: both chess views are the same 3D board (top-down camera = "2D"); battles are presented
 ## inside it (trapdoor, chamber, ladder). false = the original Board2D + full-screen combat overlay.
 var use_world = true
@@ -139,15 +141,19 @@ func _responsive() -> void:
 	body.vertical = narrow
 	board_panel.custom_minimum_size = Vector2(0, clampf(size.x - 50, 300, 560) if narrow else 430)
 	info_panel.custom_minimum_size = Vector2(0 if narrow else 360, 420 if narrow else 430)
+	call_deferred("_place_battle_footer")   # after the containers have settled
 
 func _build_dialogs() -> void:
 	promotion_dialog = ConfirmationDialog.new()
 	promotion_dialog.title = "Choose your promotion"
-	promotion_dialog.dialog_text = "Your pawn has reached the final rank."
 	promotion_dialog.get_ok_button().hide()
+	var promotion_box = VBoxContainer.new()  # text above the buttons: children added straight to a dialog are laid over its built-in text
+	promotion_box.add_theme_constant_override("separation", 12)
+	promotion_dialog.add_child(promotion_box)
+	Kit.label(promotion_box, "Your pawn has reached the final rank.", "", false)
 	var grid = GridContainer.new()
 	grid.columns = 2
-	promotion_dialog.add_child(grid)
+	promotion_box.add_child(grid)
 	for item in [["Queen", "q"], ["Rook", "r"], ["Bishop", "b"], ["Knight", "n"]]:
 		var role: String = item[1]
 		var button = _button(grid, item[0], func(): _choose_promotion(role))
@@ -286,8 +292,30 @@ func _claim_draw() -> void:
 	else:
 		game.claim_draw(_claims[0], intended)
 
+## Pit-world mode: the footer buttons sit in the bottom-left corner of the BOARD panel (where the battle is shown), inside the part of
+## it that is visible, so they never cover the player cards, toggles or status line around the board (in a portrait layout the player
+## panel runs to the bottom of the screen). The legacy full-screen overlay keeps them at the bottom of the screen.
+func _place_battle_footer() -> void:
+	if battle_footer == null or not is_instance_valid(battle_overlay):
+		return
+	var view = battle_overlay.get_global_rect()
+	var area = Rect2(view.position + Vector2(20, view.size.y - 80), Vector2(view.size.x - 40, 40))   # legacy overlay: bottom of the screen
+	if use_world and is_instance_valid(board_panel) and board_panel.is_visible_in_tree():
+		area = board_panel.get_global_rect()
+		var scroller = body.get_parent() as Control if body != null else null
+		if scroller != null:
+			area = area.intersection(scroller.get_global_rect())   # the board panel can be taller than what is on screen
+		if area.size.x <= 0.0 or area.size.y <= 0.0:
+			return
+		area = area.grow(-12.0)
+	battle_footer.offset_left = area.position.x - view.position.x
+	battle_footer.offset_right = area.end.x - view.end.x
+	battle_footer.offset_bottom = area.end.y - view.end.y
+	battle_footer.offset_top = battle_footer.offset_bottom - 52.0
+
 func set_world_mode(value: bool) -> void:
 	use_world = value
+	call_deferred("_place_battle_footer")
 	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if value else Control.MOUSE_FILTER_STOP
 	battle_bg.visible = not value
 	if is_instance_valid(battle_flow) and is_instance_valid(battle_adapter):
@@ -384,11 +412,17 @@ func _build_battle_overlay() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	battle_overlay.add_child(bg)
 	battle_bg = bg
+	battle_scrim = ColorRect.new()
+	battle_scrim.name = "PreviewScrim"
+	battle_scrim.color = Color(Tokens.BG, 0.6)
+	battle_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	battle_scrim.visible = false
+	battle_overlay.add_child(battle_scrim)
 	combat_container = SubViewportContainer.new()
 	combat_container.stretch = true
 	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	combat_container.offset_top = 72
-	combat_container.offset_bottom = -80
+	combat_container.offset_bottom = -92   # (legacy overlay) ends above the footer buttons
 	battle_overlay.add_child(combat_container)
 	combat_host = SubViewport.new()
 	combat_host.size = Vector2i(900, 600)
@@ -424,10 +458,14 @@ func _build_battle_overlay() -> void:
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	footer.offset_left = 20
 	footer.offset_right = -20
-	footer.offset_top = -64
+	footer.offset_top = -80
+	footer.offset_bottom = -40   # above the status line at the very bottom of the screen: the buttons must not cover that text
+	battle_footer = footer
 	battle_overlay.add_child(footer)
 	battle_resign = Kit.danger(footer, "Acting player resigns", _confirm_resign, "flag")
 	battle_skip = _button(footer, "Skip animation", func(): if is_instance_valid(bridge): bridge.skip_to_board(), "Commit the result now and return to the board.")
+	for footer_button in [battle_resign, battle_skip]:
+		footer_button.size_flags_vertical = Control.SIZE_SHRINK_END   # natural height, not stretched to the footer's
 	battle_skip.hide()
 	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if use_world else Control.MOUSE_FILTER_STOP
 	battle_bg.visible = not use_world
@@ -568,6 +606,8 @@ func _battle_phase_world(value: String) -> void:
 	combat_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	var capture_preview = value == "preview" and not battle_flow.is_royal_duel()  # king's last stand: banner instead of the preview card
 	battle_card.visible = capture_preview
+	battle_scrim.visible = capture_preview   # the card floats over the live HUD: dim it so text does not run into the card
+	_place_battle_footer()
 	fight_button.visible = capture_preview
 	battle_cancel.visible = capture_preview
 	battle_cancel.text = "Cancel capture"
