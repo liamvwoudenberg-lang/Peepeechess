@@ -3,6 +3,7 @@ extends Node
 ## Device-independent presentation controls. Never changes clocks or simulation ticks.
 ## Add once under the SceneTree root. Disable the pointer while combat owns the pad.
 
+const ScreenMode = preload("res://ui/screen_mode.gd")
 const CURSOR_SPEED := 720.0
 const DEADZONE := 0.22
 const VIRTUAL_POINTER_DEVICE := 1000
@@ -106,6 +107,11 @@ func _process(delta: float) -> void:
 	Input.parse_input_event(motion)
 
 func _input(event: InputEvent) -> void:
+	# F11 / Alt+Enter: full screen from anywhere (menus, board, duels). Not consumed where the window cannot change mode.
+	if ScreenMode.is_toggle_event(event):
+		if ScreenMode.toggle():
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseMotion and event.relative.length() > 0 and event.device != VIRTUAL_POINTER_DEVICE:
 		_cursor_visible = false
 		_marker.hide()
