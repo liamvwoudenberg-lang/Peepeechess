@@ -1,4 +1,5 @@
 extends Control
+const Music = preload("res://audio/music_director.gd")
 const AppSettings = preload("res://ui/application_settings.gd")
 const AppResults = preload("res://ui/results.gd")
 const Hud = preload("res://ui/game_hud.gd")
@@ -81,6 +82,7 @@ var intended_edit: LineEdit
 const TIME_CONTROLS = [["Untimed", 0, 0], ["Bullet · 1 + 0", 60000, 0], ["Blitz · 3 + 2", 180000, 2000], ["Blitz · 5 + 0", 300000, 0], ["Rapid · 10 + 0", 600000, 0], ["Rapid · 15 + 10", 900000, 10000], ["Classical · 30 + 0", 1800000, 0]]
 
 func _ready() -> void:
+	Music.go(get_tree(), "board")
 	AppSettings.load_preferences()
 	AppSettings.ensure_platform(get_tree())
 	_build_theme()
@@ -391,6 +393,7 @@ func _message(text: String) -> void:
 
 ## Rejected input (illegal move, wrong turn...): the status line AND a toast, so it is never a silent failure.
 func _reject(text: String) -> void:
+	Music.error_cue(get_tree())
 	_message(text)
 	Kit.toast(self, text, "warning")
 
@@ -618,6 +621,7 @@ func _battle_phase_world(value: String) -> void:
 	battle_title.visible = false  # the preview card has its own heading; the combat HUD carries its own title/countdown
 
 func _battle_phase(value: String) -> void:
+	Music.go(get_tree(), {"preview": "preview", "loading": "pit", "countdown": "pit", "combat": "combat", "aftermath": "pit", "board": "board", "returning": "board"}.get(value, "board"))
 	AppSettings.set_combat_input(value in ["countdown", "combat", "aftermath"])
 	Hud.set_versus_visible(self, value == "preview")
 	if use_world:
@@ -648,6 +652,7 @@ func _cancel_battle_transition() -> void:
 		battle_flow.interrupt("Loading canceled.")
 
 func _battle_result(value: Dictionary) -> void:
+	Music.go(get_tree(), "victory")   # the fight is decided: the score resolves (stinger) while the pit shows the aftermath
 	if use_world:
 		_message("%s wins the duel · %s." % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " ")])
 	battle_detail.text = "%s wins\n%s\n\nAttacker HP: %s\nDefender HP: %s" % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " "), value.attackerHp, value.defenderHp]

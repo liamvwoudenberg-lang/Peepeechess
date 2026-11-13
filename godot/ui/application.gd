@@ -1,5 +1,6 @@
 extends Control
 ## Application navigation is independent from chess/combat authority.
+const Music = preload("res://audio/music_director.gd")
 const Settings = preload("res://ui/application_settings.gd")
 const Api = preload("res://ui/account_api.gd")
 const Results = preload("res://ui/results.gd")
@@ -183,6 +184,7 @@ func navigate(target: String) -> void:
 	if is_instance_valid(intro):
 		intro.cancel()   # any explicit navigation ends a running opening screen (the player has seen enough)
 	intro = null
+	Music.go(get_tree(), "menu")
 	_refresh_generation += 1
 	for child in content.get_children():
 		content.remove_child(child)
@@ -222,12 +224,14 @@ func _home_page() -> void:
 		Settings.intro_seen = true
 		_ensure_scene3d(0.0)
 		_backdrop.center_dim = 0.0
+		Music.go(get_tree(), "opening")
 		var screen = OpeningScreen.new()
 		intro = screen
 		add_child(screen)
 		screen.setup(scene3d, content, func(): Title.build(self, content, quit_visible, true), _backdrop)
 		screen.finished.connect(_on_intro_finished.bind(screen))
 		return
+	Music.go(get_tree(), "menu")
 	_ensure_scene3d(1.0)
 	_backdrop.center_dim = 1.0
 	Title.build(self, content, quit_visible, true)
@@ -235,6 +239,7 @@ func _home_page() -> void:
 func _on_intro_finished(screen: Control) -> void:
 	if intro == screen:
 		intro = null
+	Music.go(get_tree(), "menu")
 	Motion.settle(content)
 
 func _ensure_scene3d(blend: float) -> void:

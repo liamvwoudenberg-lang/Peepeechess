@@ -24,6 +24,7 @@ signal combat_snapshot(snapshot: Dictionary)
 signal battle_finished(result: Dictionary)
 signal battle_started(request: Dictionary)
 
+const Music := preload("res://audio/music_director.gd")
 const Codec := preload("res://contracts/codec.gd")
 const CombatVfx := preload("res://combat/presentation/vfx/combat_vfx.gd")
 const AUDIO_SCRIPT := "res://combat/audio/combat_audio.gd"
@@ -209,6 +210,12 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	if sim != null and sim.is_running() and Engine.get_process_frames() % 6 == 0 and sim.fighters.size() == 2:
+		var tree := get_tree()
+		if tree != null and tree.root.has_node("MusicDirector"):
+			var a = sim.fighters[0]
+			var b = sim.fighters[1]
+			Music.intensity(tree, Music.danger_from_health(float(a.health.current) / maxf(1.0, float(a.health.maximum)), float(b.health.current) / maxf(1.0, float(b.health.maximum))))
 	if net_client != null:
 		_refresh_net_views(float(_local_tick) + Engine.get_physics_interpolation_fraction())
 	if _visuals != null:
