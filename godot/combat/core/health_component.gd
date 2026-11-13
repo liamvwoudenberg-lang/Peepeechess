@@ -8,11 +8,26 @@ signal depleted
 
 var maximum: int = 1
 var current: int = 1
+## Fractional damage not yet taken off (see apply_scaled).
+var _carry: float = 0.0
 
 
 func setup(max_hp: float) -> void:
 	maximum = maxi(1, roundi(max_hp))
 	current = maximum
+	_carry = 0.0
+
+
+## Applies damage that is not a whole number of hit points (the duel-length scale, BALANCE.md "Duel length"): the fraction is carried
+## to the next blow, so the total over a fight is exact and HP stays an integer in the contract's units. Returns the whole HP removed
+## by THIS blow (0 for a graze that only builds up the carry).
+func apply_scaled(amount: float) -> int:
+	if current <= 0 or amount <= 0.0:
+		return 0
+	_carry += amount
+	var whole := int(floor(_carry + 0.000001))
+	_carry = maxf(0.0, _carry - float(whole))
+	return apply_damage(whole)
 
 
 ## Applies already-calculated damage; returns the HP actually removed.

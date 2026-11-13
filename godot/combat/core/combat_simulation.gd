@@ -46,6 +46,8 @@ const HIT_GRACE_CAP := 6
 ## defends, from the data table for this pairing. 1.0 = neutral. Applied to every blow in _apply_hit before armour.
 var edge_attacker: float = 1.0
 var edge_defender: float = 1.0
+## Duel length (BALANCE.md "Duel length"): every blow's HP damage is multiplied by this (< 1 = longer fights). 1.0 = raw frame data.
+var damage_scale: float = 1.0
 
 var _inputs: Dictionary = {}
 var _grace: Dictionary = {}
@@ -67,6 +69,9 @@ var _tick_count: int = 0
 ##   "attacker_edge": the attacker's advantage. Absent = the balance data's rule for this pairing (the game's rule: damage
 ##       multipliers and the stamina rule); false = none at all (raw frame data, for tests of attack numbers);
 ##       {"attacker": float, "defender": float} = explicit damage multipliers (the calibration tool).
+##   "damage_scale": the duel-length scale on its own (float). Absent = the balance data's value, except that "attacker_edge": false
+##       (raw frame data) also means 1.0, so the tests that assert exact blows keep measuring raw frame data. A King on either side
+##       is always 1.0.
 ##   "stamina_edge": the stamina half of the advantage on its own: false = neutral, or {"attacker_cost", "defender_cost",
 ##       "defender_regen"} explicit (sweeps). A King on either side is always neutral.
 ##   "initial_hp" (int), "initial_stamina" (float), "initial_cooldown" (int ticks): the King seat starts with these
@@ -135,12 +140,13 @@ func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 	return {"ok": true}
 
 
-## Sets the attacker's advantage for this duel (the "attacker_edge" and "stamina_edge" start options): the damage multipliers, and
-## the per-seat stamina cost/regeneration rule. Both default to the balance data's values for this pairing; a King on either side
-## is always neutral (King's last stand keeps its own balance).
+## Sets the attacker's advantage and the duel-length scale for this duel (the "attacker_edge", "stamina_edge" and "damage_scale" start
+## options): the damage multipliers, the per-seat stamina cost/regeneration rule and the HP damage scale. All default to the balance
+## data's values for this pairing; a King on either side is always neutral (King's last stand keeps its own balance).
 func _apply_attacker_edge(options: Dictionary, attacker_role: String, defender_role: String) -> void:
 	edge_attacker = 1.0
 	edge_defender = 1.0
+	damage_scale = 1.0
 	var attacker_fighter := attacker()
 	var defender_fighter := defender()
 	var rule := {"attacker_cost": 1.0, "defender_cost": 1.0, "defender_regen": 1.0}
@@ -156,6 +162,11 @@ func _apply_attacker_edge(options: Dictionary, attacker_role: String, defender_r
 			var pair := Balance.attacker_edge(attacker_role, defender_role)
 			edge_attacker = float(pair[0])
 			edge_defender = float(pair[1])
+		var scale_option = options.get("damage_scale", null)
+		if scale_option is float or scale_option is int:
+			damage_scale = clampf(float(scale_option), 0.01, 1.0)
+		elif not all_off:
+			damage_scale = Balance.damage_scale(attacker_role, defender_role)
 		if stamina_option is Dictionary:
 			rule.merge(stamina_option, true)
 		elif not all_off and not (stamina_option is bool and not stamina_option):
@@ -229,6 +240,7 @@ func _reset() -> void:
 	_tick_count = 0
 	edge_attacker = 1.0
 	edge_defender = 1.0
+	damage_scale = 1.0
 	server_tick = 0
 	countdown_remaining = 0
 	duration_remaining = 0
@@ -462,14 +474,14 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 			_emit("block", a, d, 0)
 		else:
 			d.stamina.lose(d.stamina.current)  # drained to zero -> exhausted
-			var chip := d.health.apply_damage(maxi(1, roundi(float(_after_armor(d, raw)) * 0.5)))
+			var chip := _deal_damage(d, raw, 0.5)
 			d.sm.enter_staggered(int(d.profile["guardbreak_stun"]), "guardbreak")
 			_emit("guardbreak", a, d, chip)
 			_defeat_if_dead(d)
 		return
 
 	# 5. Clean hit.
-	var dealt := d.health.apply_damage(_after_armor(d, raw))
+	var dealt := _deal_damage(d, raw)
 	d.add_knockback(away_from_attacker, atk.knockback_m)
 	_emit("hit", a, d, dealt)
 	if _defeat_if_dead(d):
@@ -484,8 +496,25 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		d.sm.enter_staggered(atk.hitstun_ticks, "hit")
 
 
+## The strength of a blow as the presentation should feel it: the HP it removed, scaled back by the duel-length scale, so the hit
+## effects, hitstop, camera shake and sounds are those of the frame data whatever the duel's length (a Pawn's jab is a jab even when
+## the fight is tuned to last longer). Events stay truthful: `damage` is the HP actually removed.
+func felt_damage(damage: int) -> int:
+	return roundi(float(damage) / maxf(damage_scale, 0.05))
+
+
 func _after_armor(d: FighterController, raw: int) -> int:
 	return maxi(1, roundi(float(raw) * (1.0 - float(d.profile["armor"]))))
+
+
+## Takes the HP off `d` for a blow of `raw` damage (after the attacker's edge): armour, then the duel-length scale. `factor` is 0.5
+## for the chip damage of a guard break. At scale 1.0 this is exactly the original whole-number rule; below 1.0 the fraction is carried
+## (HealthComponent.apply_scaled), so a long fight keeps the exact relative strength of every blow instead of rounding it away.
+func _deal_damage(d: FighterController, raw: int, factor: float = 1.0) -> int:
+	if damage_scale == 1.0:
+		var whole := _after_armor(d, raw)
+		return d.health.apply_damage(whole if factor == 1.0 else maxi(1, roundi(float(whole) * factor)))
+	return d.health.apply_scaled(float(raw) * (1.0 - float(d.profile["armor"])) * factor * damage_scale)
 
 
 func _defeat_if_dead(d: FighterController) -> bool:

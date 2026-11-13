@@ -2,7 +2,7 @@ extends SceneTree
 ## Attacker-versus-defender win rates, BOT-measured (not a human balance claim, see BALANCE.md).
 ##
 ##   godot --headless --path godot --script res://combat/tools/attacker_matrix.gd -- \
-##       n=24 seed=9000 style=balanced skill=0.6 out=/tmp/att.json [roles=pnbrq] [shard=0/4] [pairs=pq,qp] [edge=off] [stamina=0,1.5,0.6]
+##       n=24 seed=9000 style=balanced skill=0.6 out=/tmp/att.json [roles=pnbrq] [shard=0/4] [pairs=pq,qp] [edge=off] [stamina=0,1.5,0.6] [scale=0.2]
 ##
 ## For every ordered pair (A attacks D) it plays `n` seeded fights between the SAME bot config on both sides (so skill cancels
 ## out and what is left is the roles and the attacker/defender rules). Role A is always the attacker; the seat colour alternates
@@ -17,7 +17,7 @@ const Duel := preload("res://combat/tools/attacker_duel.gd")
 
 func _initialize() -> void:
 	await process_frame
-	var args := {"n": "24", "seed": "9000", "style": "balanced", "skill": "0.6", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "edge": "data", "stamina": ""}
+	var args := {"n": "24", "seed": "9000", "style": "balanced", "skill": "0.6", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "edge": "data", "stamina": "", "scale": ""}
 	for token in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = String(token).split("=", true, 1)
 		if kv.size() == 2:
@@ -44,16 +44,22 @@ func _initialize() -> void:
 		# stamina=<attacker cost>,<defender cost>,<defender regen>: stamina rule on its own (damage multipliers off), for sweeps
 		var v: PackedStringArray = String(args["stamina"]).split(",")
 		options = {"attacker_edge": {"attacker": 1.0, "defender": 1.0}, "stamina_edge": {"attacker_cost": float(v[0]), "defender_cost": float(v[1]), "defender_regen": float(v[2])}}
-	var out := {"n": n, "seed": base_seed, "cfg": cfg, "edge": String(args["edge"]), "stamina": String(args["stamina"]), "tuning": Balance.stamp(), "pairs": {}}
+	if String(args["scale"]) != "":
+		options["damage_scale"] = float(args["scale"])   # scale=<x>: the duel-length scale on its own (sweeps); default is the data's
+	var out := {"n": n, "seed": base_seed, "scale": String(args["scale"]), "cfg": cfg, "edge": String(args["edge"]), "stamina": String(args["stamina"]), "tuning": Balance.stamp(), "pairs": {}}
 	var started := Time.get_ticks_msec()
 	for pair in kept:
 		var attacker_wins := 0
 		var timeouts := 0
 		var ticks := 0
 		var winner_hp := 0.0
+		var lengths: Array = []   # active fight seconds per duel (the countdown is not part of the fight)
+		var hits := 0
 		for i in n:
 			var r: Dictionary = await Duel.duel(self, pair[0], pair[1], cfg, base_seed + i, options)
 			ticks += int(r["ticks"])
+			lengths.append(float(r["active_ticks"]) / 60.0)
+			hits += int(r["hits"])
 			if String(r["reason"]).begins_with("timeout"):
 				timeouts += 1
 			if r["outcome"] == "attacker":
@@ -61,8 +67,13 @@ func _initialize() -> void:
 				winner_hp += float(r["attacker_hp"])
 			else:
 				winner_hp += float(r["defender_hp"])
-		out["pairs"][pair[0] + pair[1]] = {"attacker_wins": attacker_wins, "n": n, "timeouts": timeouts, "avg_ticks": ticks / n, "avg_winner_hp": snappedf(winner_hp / n, 0.01)}
-		print("%s attacks %s: attacker %d/%d, timeouts %d, avg %d ticks, winner keeps %.0f%% HP [%d s]" % [pair[0], pair[1], attacker_wins, n, timeouts, ticks / n, 100.0 * winner_hp / n, (Time.get_ticks_msec() - started) / 1000])
+		lengths.sort()
+		var median := float(lengths[n / 2]) if n % 2 == 1 else (float(lengths[n / 2 - 1]) + float(lengths[n / 2])) / 2.0
+		var p10 := float(lengths[int(n * 0.1)])
+		var p90 := float(lengths[mini(n - 1, int(n * 0.9))])
+		out["pairs"][pair[0] + pair[1]] = {"attacker_wins": attacker_wins, "n": n, "timeouts": timeouts, "avg_ticks": ticks / n, "avg_winner_hp": snappedf(winner_hp / n, 0.01),
+				"fight_s_median": snappedf(median, 0.1), "fight_s_p10": snappedf(p10, 0.1), "fight_s_p90": snappedf(p90, 0.1), "hits_avg": snappedf(float(hits) / n, 0.1)}
+		print("%s attacks %s: attacker %d/%d, timeouts %d, fight median %.1f s (p10 %.1f, p90 %.1f), %.1f hits, winner keeps %.0f%% HP [%d s]" % [pair[0], pair[1], attacker_wins, n, timeouts, median, p10, p90, float(hits) / n, 100.0 * winner_hp / n, (Time.get_ticks_msec() - started) / 1000])
 	if String(args["out"]) != "":
 		var file := FileAccess.open(String(args["out"]), FileAccess.WRITE)
 		file.store_string(JSON.stringify(out, "\t", true))

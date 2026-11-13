@@ -145,7 +145,7 @@ func on_event(event: Dictionary) -> void:
 		"ability":
 			post("%s uses %s" % [actor, _ability_name(event["actorPlayerId"])], Color(1.0, 0.6, 0.9))
 		"hit":
-			if int(event["damage"]) >= 20:
+			if sim != null and sim.felt_damage(int(event["damage"])) >= 20:   # a big blow (judged before the duel-length scale)
 				post("%s hit for %d" % [actor, int(event["damage"])], Color(1.0, 0.6, 0.4))
 
 

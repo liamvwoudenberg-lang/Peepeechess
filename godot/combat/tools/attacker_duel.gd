@@ -6,7 +6,9 @@ extends RefCounted
 const MAX_TICKS := 6000
 
 
-## Returns {outcome: "attacker"|"defender", reason, ticks, attacker_hp, defender_hp (fractions of their maximum)}.
+## Returns {outcome: "attacker"|"defender", reason, ticks, active_ticks, hits, blocks, parries, dodges, attacker_hp, defender_hp
+## (fractions of their maximum)}. `ticks` counts from the start of the duel INCLUDING the 180-tick countdown; `active_ticks` is the
+## fight itself (what a player experiences); `hits` are clean hits that took HP away (both seats together).
 static func duel(tree: SceneTree, attacker_role: String, defender_role: String, cfg: Dictionary, seed_value: int, options: Dictionary = {}) -> Dictionary:
 	var attacker_white := seed_value % 2 == 0
 	var white_role := attacker_role if attacker_white else defender_role
@@ -27,6 +29,11 @@ static func duel(tree: SceneTree, attacker_role: String, defender_role: String, 
 	var black_builder := CombatInputBuilder.new(request["matchId"], battle_id, "player-black")
 	var ai_white := CombatAI.new(white_builder, FighterRoster.stats_for(white_role), FighterRoster.stats_for(black_role), seed_value * 2 + 1, float(cfg["skill"]), String(cfg["style"]))
 	var ai_black := CombatAI.new(black_builder, FighterRoster.stats_for(black_role), FighterRoster.stats_for(white_role), seed_value * 2 + 2, float(cfg["skill"]), String(cfg["style"]))
+	var counts := {"hit": 0, "block": 0, "parry": 0, "dodge": 0, "guardbreak": 0}
+	sim.event_emitted.connect(func(event: Dictionary) -> void:
+		var kind := String(event.get("type", ""))
+		if counts.has(kind):
+			counts[kind] += 1)
 	var guard := 0
 	while sim.is_running() and guard < MAX_TICKS:
 		var snapshot := sim.snapshot(false)
@@ -38,6 +45,8 @@ static func duel(tree: SceneTree, attacker_role: String, defender_role: String, 
 	var attacker_fighter = sim.fighters[0] if attacker_white else sim.fighters[1]
 	var defender_fighter = sim.fighters[1] if attacker_white else sim.fighters[0]
 	var out := {"outcome": String(result.get("outcome", "unfinished")), "reason": String(result.get("reason", "unfinished")), "ticks": guard,
+			"active_ticks": maxi(0, guard - CombatConstants.COUNTDOWN_TICKS), "hits": counts["hit"] + counts["guardbreak"], "blocks": counts["block"],
+			"parries": counts["parry"], "dodges": counts["dodge"],
 			"attacker_hp": attacker_fighter.health.current / float(attacker_fighter.health.maximum),
 			"defender_hp": defender_fighter.health.current / float(defender_fighter.health.maximum)}
 	sim.stop()
