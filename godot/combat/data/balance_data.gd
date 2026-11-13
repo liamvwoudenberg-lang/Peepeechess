@@ -30,7 +30,7 @@ const SCHEMA := 1
 const PROFILE_STR_KEYS := ["display", "weapon"]
 const PROFILE_INT_KEYS := [
 	"poise_regen_delay", "stagger_immunity_ticks", "stamina_regen_delay", "guardbreak_stun",
-	"parry_recovery_ticks", "parry_cooldown_ticks", "parry_stagger_ticks", "riposte_ticks",
+	"parry_recovery_ticks", "parry_cooldown_ticks", "parry_stagger_ticks", "parry_window_bonus", "riposte_ticks",
 	"dodge_ticks", "dodge_iframe_start", "dodge_iframe_end", "dodge_cooldown_ticks", "hit_react_ticks",
 ]
 const PROFILE_FLOAT_KEYS := [
