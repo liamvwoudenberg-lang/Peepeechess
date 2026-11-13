@@ -69,10 +69,29 @@ static func _first(node: Node, klass: String) -> Node:
 	return found[0] if found.size() > 0 else null
 
 
+static var _exit_hooked := false
+
+
+## Frees every cached template, texture and generated clip library (none of them is ever in the tree, so the engine would report
+## them as leaked at exit). Hooked to the SceneTree's exit the first time a template is built; the next piece simply rebuilds the cache.
+static func release_all() -> void:
+	for template in _templates.values():
+		if is_instance_valid(template):
+			template.free()
+	_templates.clear()
+	_textures.clear()
+	PaladinClips.clear_caches()
+
+
 static func _template(role_code: String, side_code: String) -> Node3D:
 	var key := role_code + "_" + side_code
 	if _templates.has(key):
 		return _templates[key]
+	if not _exit_hooked:
+		var loop := Engine.get_main_loop() as SceneTree
+		if loop != null:
+			loop.root.tree_exiting.connect(release_all)
+			_exit_hooked = true
 	if not available(role_code):
 		return null
 	var path := path_for(role_code)

@@ -25,11 +25,7 @@ var _turn: Tween
 ## Frees PaladinModel's cached templates and textures (they are never in the tree, so the engine would report them as leaked at exit).
 ## Called when a 3D board leaves the tree; the next piece simply rebuilds the cache.
 static func release_cache() -> void:
-	for template in PaladinModel._templates.values():
-		if is_instance_valid(template):
-			template.free()
-	PaladinModel._templates.clear()
-	PaladinModel._textures.clear()
+	PaladinModel.release_all()
 
 
 static func available(role_code: String) -> bool:
@@ -44,8 +40,7 @@ static func create(role_code: String, color_code: String) -> PaladinPiece:
 		# The template cache is never in the tree: release it when the engine shuts down so it is not reported as leaked.
 		var loop := Engine.get_main_loop() as SceneTree
 		if loop != null:
-			loop.root.tree_exiting.connect(release_cache)
-			_exit_hooked = true
+			_exit_hooked = true  # PaladinModel hooks its own exit release
 	var m := PaladinModel.create(role_code, color_code, float(HEIGHTS.get(role_code, 1.0)))
 	if m == null:
 		return null

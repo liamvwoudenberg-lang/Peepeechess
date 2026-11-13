@@ -115,7 +115,7 @@ func _exit_tree() -> void:
 	for node in _leaving:
 		if is_instance_valid(node):
 			node.queue_free()
-	PaladinPiece.release_cache()
+	# (the paladin template cache is released once, at engine exit, by PaladinModel.release_all)
 
 func set_flipped(value: bool) -> void:
 	_flipped = value
