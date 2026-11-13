@@ -1,0 +1,2 @@
+99aaa2879f72bc350c99ee18095734429f65774053051ea2fe21d1c6db4551dc  Peepeechess-windows-x86_64.zip
+d7a3237e248a4d7b3cc8fe427ab969e96a1cd252b1b6356b2a8032234caefb03  Peepeechess.exe (inside the zip)
