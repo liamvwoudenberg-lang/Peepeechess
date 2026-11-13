@@ -37,6 +37,17 @@ four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for t
   (`attacker_edge` in `godot/combat/data/balance_v1.json`, applied in `CombatSimulation._apply_hit`); validated on independent seeds: mean 62.8%,
   every pairing 56-72%. A per-seat stamina rule (attacker unlimited, defender limited) was built, measured and ships **neutral**: it helped only
   casual play. Details, tables and limits in `godot/combat/BALANCE.md`; suite `attacker_edge`. Bot-measured only.
+* **2026-11-13 batch (all merged on this branch):** full screen mode (Settings, F11/Alt+Enter); controller fix (the stick pointer no longer
+  swallows Cross, so a pad can start a battle); ten UI overlaps fixed with a layout regression test (`ui_overlap_test.gd`); slower, longer,
+  more skill-based duels (pacing data, ~28 s bot duels, attacker edge recalibrated, bot-measured only; BALANCE.md "Pacing and duel length");
+  generated dynamic music and layered impact audio (`godot/audio`, docs/audio/AUDIO.md); combat VFX and cinematic camera (knockout slow motion,
+  parry shockwave, dodge afterimages, duel intro; docs/ui/CINEMATIC_COMBAT.md); mode identities on the menu (docs/ui/CINEMATIC.md).
+  Gates run on this tree: lint, contracts, royal, UI (all suites 0 failures), AI, battle, classic, `npm test`, backend, application: pass.
+  `test:multiplayer` still fails on its known timing flakes (`invalid:b-n` stale counter in the last run). Not done from the cinematic brief:
+  staggered menu entry, mouse parallax, board/pit lighting pass, UI sound set beyond the existing ones, music slider in Settings.
+  Nothing here was seen or heard by a person on real hardware.
+* **On-demand exe:** `.github/workflows/latest-windows-exe.yml` builds the exe on every push that changes the game and on demand (Actions tab);
+  `downloads/windows/` holds the latest build in the repo (AGENTS.md rule).
 * **3D opening screen.** `godot/ui/opening/` (merged from `claude/opening-screen`), shown once per run.
 * **Windows release pipeline.** `tools/package/build_release_local.sh`, `.github/workflows/release-windows.yml` (merged from `claude/windows-release`),
   see `docs/application/EXPORTS.md`.

@@ -41,7 +41,7 @@ func setup(p_sim: CombatSimulation, human_hint: String) -> void:
 	_center_label = _label(72, Control.PRESET_CENTER)
 	# Duel introduction: "QUEEN  vs  PAWN" with the attacker named first, fading in over the countdown.
 	_intro_label = _label(34, Control.PRESET_CENTER_TOP)
-	_intro_label.position.y = 150
+	_intro_label.position.y = 230  # below the two fighter panels
 	_intro_label.modulate.a = 0.0
 	_intro_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	_intro_label.add_theme_constant_override("outline_size", 8)
@@ -227,6 +227,7 @@ func _process(delta: float) -> void:
 			_intro_label.modulate.a = clampf(minf(_intro_age / 0.6, (INTRO_SECONDS - _intro_age) / 0.6), 0.0, 1.0) if _intro_age < INTRO_SECONDS else 0.0
 		else:
 			_intro_label.modulate.a = maxf(0.0, _intro_label.modulate.a - delta * 2.0)
+		_intro_label.visible = _intro_label.modulate.a > 0.02  # a faded-out card must not count as (or stay) a layout element
 	if sim.phase == CombatSimulation.Phase.COUNTDOWN:
 		var seconds := ceili(float(sim.countdown_remaining) / 60.0)
 		_center_label.text = str(seconds) if seconds > 0 else "FIGHT"
