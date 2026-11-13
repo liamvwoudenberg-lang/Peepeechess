@@ -56,17 +56,24 @@ static func audible() -> bool:
 
 # ---- API ---------------------------------------------------------------------------------------------------
 ## The director node under the SceneTree root (created on first use; null in headless runs unless `force`).
+static var _pending: Node = null
+
+
 static func instance(tree: SceneTree) -> Node:
 	if tree == null:
 		return null
 	var existing := tree.root.get_node_or_null("MusicDirector")
 	if existing != null:
 		return existing
+	if is_instance_valid(_pending):
+		return _pending  # created this frame, still waiting to join the tree
 	if not audible():
 		return null
 	var node: Node = load("res://audio/music_director.gd").new()
 	node.name = "MusicDirector"
-	tree.root.add_child(node)
+	_pending = node
+	# Deferred: callers run from scene _ready functions while the root is still "busy setting up children" (add_child would fail).
+	tree.root.add_child.call_deferred(node)
 	return node
 
 
