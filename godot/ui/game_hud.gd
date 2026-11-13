@@ -49,62 +49,247 @@ static func captured_from_fen(fen: String) -> Dictionary:
 	result.balance = material.w - material.b
 	return result
 
+## The world fills the window; only these small controls float above it. Everything that used to consume a
+## permanent sidebar remains reachable in the match drawer. Nodes and match callbacks are retained.
 static func build(m: Control) -> Control:
-	m.hud = {}
-	var backdrop := Backdrop.new()
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	m.add_child(backdrop)
-	var frame := Kit.safe_frame(m, 16)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
-	frame.add_child(column)
-	# ---- toolbar
-	var toolbar := Kit.flow(column, 8, 6)
-	toolbar.name = "Toolbar"
-	var brand := Kit.button(toolbar, "PEEPEECHESS", m._main_menu, "GhostButton", "emblem", "Return to the application menu.")
-	brand.add_theme_font_size_override("font_size", T.FS_LEAD)
-	brand.add_theme_color_override("font_color", T.GOLD_HI)
-	var chip := Kit.chip(toolbar, "CLASSIC")
+	m.hud = {"combat": false, "drawer_open": false}
+	m.body = BoxContainer.new()
+	m.body.name = "GameViewport"
+	m.body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.add_child(m.body)
+	m.board_panel = PanelContainer.new()
+	m.board_panel.name = "BoardViewport"
+	m.board_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	m.board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m.board_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	m.body.add_child(m.board_panel)
+	var host := Control.new()
+	host.name = "BoardHost"
+	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	m.board_panel.add_child(host)
+	var frame := Kit.safe_frame(m, 12)
+	frame.name = "ChessChrome"
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chrome := Control.new()
+	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(chrome)
+	m.hud["chrome"] = frame
+	m.hud["root"] = chrome
+	chrome.resized.connect(func(): layout(m))
+	var top := HBoxContainer.new()
+	top.name = "FloatingToolbar"
+	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top.add_theme_constant_override("separation", 6)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chrome.add_child(top)
+	Kit.button(top, "Menu", func(): toggle_drawer(m), "", "list", "Match options and move history · Esc")
+	var chip := Kit.chip(top, "CLASSIC")
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	m.mode_label = chip.get_child(0)
+	m.hud["mode_chip"] = chip
+	var spacer := Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(spacer)
+	m.view_button = Kit.button(top, "3D", func(): m.set_view(not m._view_3d), "", "", "Switch illustrated 2D / castle 3D")
+	var overhead := Kit.button(top, "Top", func(): m._toggle_overhead(), "", "", "True top-down / tactical camera")
+	m.hud["overhead"] = overhead
+	var fullscreen := Kit.button(top, "[ ]", func(): m._toggle_fullscreen(), "", "", "Fullscreen · F11")
+	fullscreen.visible = preload("res://ui/screen_mode.gd").available()
+	fullscreen.custom_minimum_size.x = 44
+	m.hud["fullscreen"] = fullscreen
+	var help := Kit.button(top, "?", func(): toggle_help(m), "", "", "Controls · F1")
+	help.custom_minimum_size.x = 44
+	var bottom := VBoxContainer.new()
+	bottom.name = "FloatingPlayers"
+	bottom.add_theme_constant_override("separation", 6)
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chrome.add_child(bottom)
+	m.hud["bottom"] = bottom
+	var banner := PanelContainer.new()
+	banner.theme_type_variation = "InsetPanel"
+	banner.name = "StatusBanner"
+	banner.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	bottom.add_child(banner)
+	var banner_row := HBoxContainer.new()
+	banner_row.add_theme_constant_override("separation", 8)
+	banner.add_child(banner_row)
+	var banner_icon := Icons.new("crown", 18, T.GOLD)
+	banner_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	banner_row.add_child(banner_icon)
+	m.status_label = Kit.label(banner_row, "White to move", "", false)
+	m.status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	m.status_label.custom_minimum_size.x = 120
+	m.status_label.add_theme_font_size_override("font_size", 16)
+	m.hud["banner"] = banner
+	m.hud["banner_icon"] = banner_icon
+	var players := HBoxContainer.new()
+	players.add_theme_constant_override("separation", 8)
+	players.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_child(players)
+	m.hud["players"] = players
+	_player_card(m, players, "b")
+	_player_card(m, players, "w")
+	_build_drawer(m, chrome)
+	_build_help(m, chrome)
+	m.message_label = Kit.label(m.info_panel.get_node("Scroll/Contents"), "", "Muted")
+	m.message_label.add_theme_font_size_override("font_size", T.FS_SMALL)
+	layout(m)
+	return host
+
+static func _build_drawer(m: Control, chrome: Control) -> void:
+	var scrim := ColorRect.new()
+	scrim.name = "DrawerScrim"
+	scrim.color = Color(0.02, 0.025, 0.03, 0.65)
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.hide()
+	scrim.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			toggle_drawer(m))
+	chrome.add_child(scrim)
+	m.hud["scrim"] = scrim
+	m.info_panel = PanelContainer.new()
+	m.info_panel.name = "MatchDrawer"
+	m.info_panel.theme_type_variation = "RaisedPanel"
+	m.info_panel.hide()
+	chrome.add_child(m.info_panel)
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	m.info_panel.add_child(scroll)
+	var info := VBoxContainer.new()
+	info.name = "Contents"
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation", 10)
+	scroll.add_child(info)
+	var header := HBoxContainer.new()
+	info.add_child(header)
+	var heading := Kit.label(header, "MATCH OPTIONS", "Accent", false)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Kit.button(header, "Close", func(): toggle_drawer(m))
+	Kit.section_header(info, "Local two-player", "user")
+	var toolbar := Kit.flow(info, 8, 6)
+	toolbar.name = "Toolbar"
 	m.mode_select = OptionButton.new()
 	m.mode_select.custom_minimum_size.y = Kit.target_height()
 	m.mode_select.add_item("Classic Chess")
 	m.mode_select.add_item("Battle Chess · C0")
 	m.mode_select.item_selected.connect(m._switch_mode)
 	toolbar.add_child(m.mode_select)
-	Kit.button(toolbar, "Online", m._online_menu, "", "cloud", "Find an opponent or invite a friend.")
-	Kit.button(toolbar, "New game", m._show_new, "", "play", "Choose a time control and start a local two-player match.")
-	m.view_button = Kit.button(toolbar, "3D board", func(): m.set_view(not m._view_3d), "", "", "Switch views without restarting the match.")
-	m.flip_button = Kit.button(toolbar, "Flip board", func(): m.set_flipped(not m._flipped), "", "", "Change only your local perspective.")
-	Kit.button(toolbar, "FEN / PGN", m._show_position, "", "list", "Import a position, or copy FEN and PGN.")
-	# ---- body
+	Kit.button(toolbar, "New game", m._show_new, "", "play")
+	m.flip_button = Kit.button(toolbar, "Flip board", func(): m.set_flipped(not m._flipped))
+	Kit.button(toolbar, "Online", m._online_menu, "", "cloud")
+	Kit.button(toolbar, "FEN / PGN", m._show_position, "", "list")
+	Kit.button(toolbar, "Main menu", m._main_menu, "", "emblem")
+	var actions := Kit.flow(info, 6, 6)
+	m.start_button = Kit.primary(actions, "Start clock", func(): m.game.start_clock(), "clock")
+	m.pause_button = Kit.secondary(actions, "Pause", func(): m.game.set_paused(not m.game.paused))
+	m.undo_button = Kit.button(actions, "Undo", func(): m.opponent.undo())
+	Kit.danger(actions, "Resign", m._confirm_resign, "flag")
+	m.claim_button = Kit.secondary(info, "Draw options", m._show_draw)
+	Kit.section_header(info, "Move history", "list")
+	m.history_text = RichTextLabel.new()
+	m.history_text.bbcode_enabled = true
+	m.history_text.selection_enabled = true
+	m.history_text.custom_minimum_size = Vector2(0, 120)
+	m.history_text.focus_mode = Control.FOCUS_NONE
+	info.add_child(m.history_text)
+	var animate := Kit.toggle_row(info, "Animate moves", AppSettings.animations, func(on):
+		m.board_2d.animation_enabled = on
+		m.board_3d.animation_enabled = on
+		AppSettings.animations = on
+		AppSettings.save_preferences())
+	m.hud["animate"] = animate
+
+static func _build_help(m: Control, chrome: Control) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ChessHelp"
+	panel.theme_type_variation = "RaisedPanel"
+	panel.hide()
+	chrome.add_child(panel)
 	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	m.body = BoxContainer.new()
-	m.body.add_theme_constant_override("separation", 16)
-	m.body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	m.body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.add_child(m.body)
-	m.board_panel = PanelContainer.new()
-	m.board_panel.theme_type_variation = "HudPanel"
-	m.board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	m.board_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	m.body.add_child(m.board_panel)
-	var host := Control.new()
-	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	host.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	m.board_panel.add_child(host)
-	_build_side(m)
-	m.message_label = Kit.label(column, "Ready · Choose New game for time controls. Undo is available in local play.", "Muted")
-	m.message_label.add_theme_font_size_override("font_size", T.FS_SMALL)
-	return host
+	panel.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 12)
+	scroll.add_child(box)
+	Kit.label(box, "CONTROLS", "Accent", false)
+	Kit.label(box, "Select a piece, then a legal square. Drag to move.\n\n3D camera: right-drag to orbit, wheel to zoom.\nTouch: tap to move, swipe to orbit, pinch to zoom.\nTop switches tactical / true overhead view.\n\nEsc opens match options. F11 toggles fullscreen.\nF1 shows or hides controls, including during duels.")
+	Kit.button(box, "Close · F1", func(): toggle_help(m))
+	m.hud["help"] = panel
+
+static func layout(m: Control) -> void:
+	if m.hud.is_empty():
+		return
+	var root: Control = m.hud["root"]
+	var width := maxf(1.0, root.size.x if root.size.x > 1 else m.size.x - 24.0)
+	var height := maxf(1.0, root.size.y if root.size.y > 1 else m.size.y - 24.0)
+	var bottom: Control = m.hud["bottom"]
+	var hud_width := minf(620.0, width)
+	bottom.position = Vector2((width - hud_width) * 0.5, height - 108.0)
+	bottom.size = Vector2(hud_width, 108)
+	m.hud["mode_chip"].visible = width >= 560
+	m.hud["overhead"].visible = m._view_3d
+	for key in ["help"]:
+		var overlay: Control = m.hud[key]
+		var panel_size := Vector2(minf(440.0, width), minf(420.0, height - 100.0))
+		overlay.position = Vector2((width - panel_size.x) * 0.5, maxf(56.0, (height - panel_size.y) * 0.5))
+		overlay.size = panel_size
+	var drawer_width := minf(420.0, width)
+	m.info_panel.position = Vector2(0, 56)
+	m.info_panel.size = Vector2(drawer_width, maxf(80.0, height - 64.0))
+
+static func toggle_drawer(m: Control) -> void:
+	if m.hud.get("combat", false):
+		return
+	m.hud["drawer_open"] = not m.info_panel.visible
+	m.info_panel.visible = m.hud["drawer_open"]
+	m.hud["scrim"].visible = m.info_panel.visible
+	m.hud["bottom"].visible = not m.info_panel.visible
+	m.hud["help"].hide()
+	layout(m)
+	if m.info_panel.visible:
+		m.mode_select.grab_focus()
+	else:
+		m.get_viewport().gui_release_focus()
+
+static func toggle_help(m: Control) -> void:
+	if m.hud.get("combat", false):
+		return
+	var panel: Control = m.hud["help"]
+	panel.visible = not panel.visible
+	m.info_panel.hide()
+	m.hud["scrim"].visible = panel.visible
+	m.hud["bottom"].visible = not panel.visible
+	layout(m)
+
+## Visibility belongs to one parent: no chess buttons, instructions, history, clocks or tooltips can remain over a duel.
+static func set_combat(m: Control, active: bool) -> void:
+	if m.hud.is_empty():
+		return
+	m.hud["combat"] = active
+	m.hud["chrome"].visible = not active
+	if active:
+		m.info_panel.hide()
+		m.hud["help"].hide()
+		m.hud["scrim"].hide()
+		m.hud["drawer_open"] = false
+		m.hud["bottom"].show()
+		m.board_2d.tooltip_text = ""
+		m.board_3d.tooltip_text = ""
+		m.get_viewport().gui_release_focus()
+		var toast := m.get_node_or_null("ToastLayer")
+		if toast != null:
+			toast.hide()
 
 static func _player_card(m: Control, parent: Container, side: String) -> void:
 	var card := PanelContainer.new()
 	card.theme_type_variation = "PlayerCard"
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_theme_stylebox_override("panel", preload("res://ui/theme/peepee_theme.gd").flat(Color(0.055, 0.067, 0.075, 0.9), T.GOLD_LO, 1, 8, 10, 6))
 	card.name = "PlayerCard" + side.to_upper()
 	parent.add_child(card)
 	var row := HBoxContainer.new()
@@ -117,16 +302,19 @@ static func _player_card(m: Control, parent: Container, side: String) -> void:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 2)
 	row.add_child(info)
-	var name_label := Kit.label(info, "White" if side == "w" else "Black", "H3", false)
+	var name_label := Kit.label(info, "White" if side == "w" else "Black", "", false)
+	name_label.add_theme_font_size_override("font_size", 14)
 	var captured := HBoxContainer.new()
 	captured.add_theme_constant_override("separation", -6)
 	captured.custom_minimum_size.y = 16
 	info.add_child(captured)
+	captured.hide()
 	var balance := Kit.label(captured, "", "Caption", false)
 	balance.add_theme_color_override("font_color", T.GOLD)
-	var clock := Kit.label(row, "10:00", "ClockLabel", false)
+	var clock := Kit.label(row, "10:00", "", false)
+	clock.add_theme_font_size_override("font_size", 22)
 	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	clock.custom_minimum_size.x = 96
+	clock.custom_minimum_size.x = 68
 	if side == "w":
 		m.clock_white = clock
 	else:
@@ -136,66 +324,9 @@ static func _player_card(m: Control, parent: Container, side: String) -> void:
 	m.hud["balance_" + side] = balance
 	m.hud["name_" + side] = name_label
 
-static func _build_side(m: Control) -> void:
-	m.info_panel = PanelContainer.new()
-	m.info_panel.theme_type_variation = "HudPanel"
-	m.info_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	m.body.add_child(m.info_panel)
-	var info := VBoxContainer.new()
-	info.add_theme_constant_override("separation", 10)
-	m.info_panel.add_child(info)
-	Kit.section_header(info, "Local two-player", "user")
-	var players := VBoxContainer.new()
-	players.add_theme_constant_override("separation", 8)
-	info.add_child(players)
-	m.hud["players"] = players
-	_player_card(m, players, "b")
-	_player_card(m, players, "w")
-	var banner := PanelContainer.new()
-	banner.theme_type_variation = "InsetPanel"
-	banner.name = "StatusBanner"
-	info.add_child(banner)
-	var banner_row := HBoxContainer.new()
-	banner_row.add_theme_constant_override("separation", 10)
-	banner.add_child(banner_row)
-	var banner_icon := Icons.new("crown", 26, T.GOLD)
-	banner_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	banner_row.add_child(banner_icon)
-	m.status_label = Kit.label(banner_row, "White to move", "H3")
-	m.status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	m.hud["banner"] = banner
-	m.hud["banner_icon"] = banner_icon
-	var actions := Kit.flow(info, 6, 6)
-	m.start_button = Kit.primary(actions, "Start clock", func(): m.game.start_clock(), "clock")
-	m.pause_button = Kit.secondary(actions, "Pause", func(): m.game.set_paused(not m.game.paused))
-	m.undo_button = Kit.button(actions, "Undo", func(): m.opponent.undo(), "", "", "Local practice only. Restores the previous move and clock checkpoint.")
-	Kit.danger(actions, "Resign", m._confirm_resign, "flag")
-	m.claim_button = Kit.secondary(info, "Draw options", m._show_draw)
-	Kit.section_header(info, "Move history", "list")
-	var history_frame := PanelContainer.new()
-	history_frame.theme_type_variation = "InsetPanel"
-	history_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	info.add_child(history_frame)
-	m.history_text = RichTextLabel.new()
-	m.history_text.bbcode_enabled = true
-	m.history_text.selection_enabled = true
-	m.history_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	m.history_text.custom_minimum_size = Vector2(0, 90)
-	m.history_text.focus_mode = Control.FOCUS_NONE
-	history_frame.add_child(m.history_text)
-	var hint := Kit.label(info, "Select a piece to see legal moves. Touch: tap a piece, then a square.", "Muted")
-	hint.add_theme_font_size_override("font_size", T.FS_SMALL)
-	var animate := Kit.toggle_row(info, "Animate moves", AppSettings.animations, func(on):
-		m.board_2d.animation_enabled = on
-		m.board_3d.animation_enabled = on
-		AppSettings.animations = on
-		AppSettings.save_preferences(), "")
-	animate.tooltip_text = "Turn off movement animations."
-	m.hud["animate"] = animate
-
 ## Puts the card of the side shown at the bottom (the one the board faces) last.
 static func arrange(m: Control, flipped: bool) -> void:
-	var players: VBoxContainer = m.hud.get("players")
+	var players: BoxContainer = m.hud.get("players")
 	if players == null:
 		return
 	var top := "w" if flipped else "b"

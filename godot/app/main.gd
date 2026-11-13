@@ -75,6 +75,7 @@ var _promotion: Dictionary = {}
 var _fen_revision = -1
 var _fen_match_id = ""
 var _view_3d = false
+var _overhead = false
 var _flipped = false
 var _claims: Array = []
 var draw_dialog: ConfirmationDialog
@@ -130,20 +131,27 @@ func _build_ui() -> void:
 	host.add_child(board_2d)
 	board_2d.setup(game, interaction)
 	board_3d = Board3D.new()
+	board_3d.hide()  # Hidden boards initialise on demand, avoiding 32 model allocations on Android.
 	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	host.add_child(board_3d)
 	board_3d.setup(game, interaction)
+	board_2d.tooltip_text = ""
+	board_3d.tooltip_text = ""
 	board_3d.hide()
 	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func _responsive() -> void:
 	if body == null:
 		return
-	var narrow = size.x < 850
-	body.vertical = narrow
-	board_panel.custom_minimum_size = Vector2(0, clampf(size.x - 50, 300, 560) if narrow else 430)
-	info_panel.custom_minimum_size = Vector2(0 if narrow else 360, 420 if narrow else 430)
-	call_deferred("_place_battle_footer")   # after the containers have settled
+	# Keep orientation as a public presentation property; the board never shares its width with a sidebar.
+	body.vertical = size.x < 850
+	board_panel.custom_minimum_size = Vector2.ZERO
+	info_panel.custom_minimum_size = Vector2.ZERO
+	Hud.layout(self)
+	if is_instance_valid(board_2d):
+		# The illustrated board gets clear space for the floating controls. The 3D world is edge to edge.
+		board_2d.offset_top = 60
+		board_2d.offset_bottom = -120
 
 func _build_dialogs() -> void:
 	promotion_dialog = ConfirmationDialog.new()
@@ -328,13 +336,37 @@ func set_view(use_3d: bool) -> void:
 	_view_3d = use_3d
 	AppSettings.preferred_3d = use_3d
 	AppSettings.save_preferences()
-	# World mode: the 3D board is always the board; "2D" is its straight-down camera.
-	board_2d.visible = not use_3d and not use_world
-	board_3d.visible = use_3d or use_world
-	board_3d.set_top_down(use_world and not use_3d)
-	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if board_3d.visible else SubViewport.UPDATE_DISABLED
-	view_button.text = "2D board" if use_3d else "3D board"
-	_message("3D · Right-drag to orbit, scroll to zoom. Touch: swipe / pinch." if use_3d else "2D · Click or drag to move. Touch: tap or drag.")
+	# Illustrated 2D remains the original board projection, sharing the exact same match and interaction.
+	# True overhead is an independent option on the 3D view, rather than silently replacing Classic 2D.
+	board_2d.visible = not use_3d
+	board_3d.visible = use_3d
+	board_3d.set_top_down(_overhead)
+	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if use_3d else SubViewport.UPDATE_DISABLED
+	view_button.text = "2D" if use_3d else "3D"
+	Hud.layout(self)
+
+func _toggle_overhead() -> void:
+	_overhead = not _overhead
+	if not _view_3d:
+		set_view(true)
+	else:
+		board_3d.set_top_down(_overhead)
+	if hud.has("overhead"):
+		hud.overhead.text = "Angle" if _overhead else "Top"
+
+func _toggle_fullscreen() -> void:
+	preload("res://ui/screen_mode.gd").toggle()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if hud.get("combat", false) or not event is InputEventKey or not event.pressed or event.echo:
+		return  # the combat input source and its existing F1 overlay own these keys during duels
+	var code: int = event.keycode if event.keycode != KEY_NONE else event.physical_keycode
+	if code == KEY_F1:
+		Hud.toggle_help(self)
+		get_viewport().set_input_as_handled()
+	elif code == KEY_ESCAPE:
+		Hud.toggle_drawer(self)
+		get_viewport().set_input_as_handled()
 
 func set_flipped(value: bool) -> void:
 	_flipped = value
@@ -424,8 +456,8 @@ func _build_battle_overlay() -> void:
 	combat_container = SubViewportContainer.new()
 	combat_container.stretch = true
 	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	combat_container.offset_top = 72
-	combat_container.offset_bottom = -92   # (legacy overlay) ends above the footer buttons
+	combat_container.offset_top = 0
+	combat_container.offset_bottom = 0   # the combat viewport fills the available display
 	battle_overlay.add_child(combat_container)
 	combat_host = SubViewport.new()
 	combat_host.size = Vector2i(900, 600)
@@ -513,6 +545,7 @@ func _switch_mode(index: int, royal: bool = false) -> void:
 	board_host.add_child(board_2d)
 	board_2d.setup(game, interaction)
 	board_3d = Board3D.new()
+	board_3d.hide()  # Hidden boards initialise on demand, avoiding 32 model allocations on Android.
 	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board_host.add_child(board_3d)
 	board_3d.setup(game, interaction)
