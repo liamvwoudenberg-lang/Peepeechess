@@ -96,6 +96,7 @@ static func danger_from_health(hp_fraction_a: float, hp_fraction_b: float) -> fl
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	music_volume = load("res://ui/theme/ui_prefs.gd").music_volume   # the saved music slider (UiPrefs)
 	_apply_state_targets()
 	if audible():
 		_build_bus()
