@@ -28,14 +28,20 @@ var result: Dictionary = {}
 var finished_tick: int = -1
 
 
-## cfg: {up: [a,b] ticks, down: [a,b] ticks, jitter, loss, reorder, dup, seed, grace: bool}
+## cfg: {up: [a,b] ticks, down: [a,b] ticks, jitter, loss, reorder, dup, seed, grace: bool, edge: bool}
+## `edge`: true = the shipped attacker's advantage (BALANCE.md); the default is raw frame data, because these tests assert exact damage
+## numbers and trades. The replay simulation below always starts with the same options as the server.
+var _start_options: Dictionary = {"attacker_edge": false}
+
+
 func setup(p_tree: SceneTree, p_request: Dictionary, cfg: Dictionary = {}) -> void:
 	tree = p_tree
 	request = p_request
+	_start_options = {} if bool(cfg.get("edge", false)) else {"attacker_edge": false}
 	sim = CombatSimulation.new()
 	tree.root.add_child(sim)
 	server = Server.new(sim)
-	var reply: Dictionary = server.start(request)
+	var reply: Dictionary = server.start(request, _start_options)
 	assert(reply["ok"], "harness start failed: %s" % str(reply))
 	await tree.physics_frame
 	var up: Array = cfg.get("up", [0, 0])
@@ -117,7 +123,7 @@ func events_of(type: String) -> Array:
 func replay_final_snapshot(prepare: Callable = Callable()) -> String:
 	var fresh := CombatSimulation.new()
 	tree.root.add_child(fresh)
-	fresh.start(request)
+	fresh.start(request, _start_options)
 	await tree.physics_frame
 	if prepare.is_valid():
 		prepare.call(fresh)

@@ -24,13 +24,15 @@ const PILLAR_RADIUS := 0.55
 const PILLARS: Array[Vector2] = [Vector2(3.4, 3.4), Vector2(-3.4, 3.4), Vector2(3.4, -3.4), Vector2(-3.4, -3.4)]
 
 
-static func params_for(role: String, stats: Dictionary) -> Dictionary:
+## `stamina_cost_mult`: the seat's stamina cost multiplier (the attacker's advantage, see BALANCE.md; 1.0 = neutral). The server
+## scales every stamina cost by it, so the predicted sprint drain must be scaled the same way.
+static func params_for(role: String, stats: Dictionary, stamina_cost_mult: float = 1.0) -> Dictionary:
 	var profile := FighterProfile.for_role(role)
 	return {
 		"speed": float(stats["moveSpeedMps"]),
 		"sprint_mult": float(profile["sprint_mult"]),
 		"block_move_mult": float(profile["block_move_mult"]),
-		"drain": float(profile["sprint_drain_per_tick"]),
+		"drain": float(profile["sprint_drain_per_tick"]) * stamina_cost_mult,
 		"radius": float(profile["radius"]),
 		# per-role movement profile (balance_v1.json); Pawn/Knight equal the FighterMovement constants
 		"accel": float(profile.get("accel", FighterMovement.ACCEL)),

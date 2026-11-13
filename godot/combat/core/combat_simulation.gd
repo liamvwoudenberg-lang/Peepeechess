@@ -21,6 +21,7 @@ signal event_emitted(event: Dictionary)
 signal finished(result: Dictionary)
 
 const Codec := preload("res://contracts/codec.gd")
+const Balance := preload("res://combat/data/balance_data.gd")
 const S := CombatConstants.State
 
 var phase: int = Phase.IDLE
@@ -41,6 +42,11 @@ var recent_events: Array[Dictionary] = []
 ## the geometry was fixed at T on the server, the rule is symmetric, and g is capped.
 const HIT_GRACE_CAP := 6
 
+## The attacker's advantage (BALANCE.md "Attacker advantage"): damage multipliers for the seat that attacks and the seat that
+## defends, from the data table for this pairing. 1.0 = neutral. Applied to every blow in _apply_hit before armour.
+var edge_attacker: float = 1.0
+var edge_defender: float = 1.0
+
 var _inputs: Dictionary = {}
 var _grace: Dictionary = {}
 var _pending: Array[Dictionary] = []
@@ -58,6 +64,11 @@ var _tick_count: int = 0
 ##       the placeholder role "q"; everything else (every other field, the seat rules, stats.role == role) is
 ##       validated unchanged on the real request. Nothing but the king role is relaxed. Intended for the offline
 ##       arena, tests and tools; a v1 server must not pass it (it never receives king requests under v1).
+##   "attacker_edge": the attacker's advantage. Absent = the balance data's rule for this pairing (the game's rule: damage
+##       multipliers and the stamina rule); false = none at all (raw frame data, for tests of attack numbers);
+##       {"attacker": float, "defender": float} = explicit damage multipliers (the calibration tool).
+##   "stamina_edge": the stamina half of the advantage on its own: false = neutral, or {"attacker_cost", "defender_cost",
+##       "defender_regen"} explicit (sweeps). A King on either side is always neutral.
 ##   "initial_hp" (int), "initial_stamina" (float), "initial_cooldown" (int ticks): the King seat starts with these
 ##       values instead of full HP / full stamina / ready ability (battle-royal-v1 "last stand": the King's resources
 ##       carry over from one duel to the next, docs/architecture/BATTLE_ROYAL_V1.md). They apply ONLY to the seat
@@ -113,6 +124,7 @@ func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 	if carried != "":
 		_reset()
 		return _error("INVALID_PAYLOAD", carried)
+	_apply_attacker_edge(options, str(attacker_data["role"]), str(defender_data["role"]))
 
 	server_tick = int(req["startTick"])
 	countdown_remaining = CombatConstants.COUNTDOWN_TICKS
@@ -121,6 +133,36 @@ func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 		state.last_accept_tick = server_tick
 	phase = Phase.COUNTDOWN
 	return {"ok": true}
+
+
+## Sets the attacker's advantage for this duel (the "attacker_edge" and "stamina_edge" start options): the damage multipliers, and
+## the per-seat stamina cost/regeneration rule. Both default to the balance data's values for this pairing; a King on either side
+## is always neutral (King's last stand keeps its own balance).
+func _apply_attacker_edge(options: Dictionary, attacker_role: String, defender_role: String) -> void:
+	edge_attacker = 1.0
+	edge_defender = 1.0
+	var attacker_fighter := attacker()
+	var defender_fighter := defender()
+	var rule := {"attacker_cost": 1.0, "defender_cost": 1.0, "defender_regen": 1.0}
+	var neutral_pair := attacker_role == "k" or defender_role == "k"
+	var damage_option = options.get("attacker_edge", null)
+	var stamina_option = options.get("stamina_edge", null)
+	var all_off: bool = damage_option is bool and not damage_option   # attacker_edge: false = raw frame data, both rules off
+	if not neutral_pair:
+		if damage_option is Dictionary:
+			edge_attacker = maxf(0.01, float(damage_option.get("attacker", 1.0)))
+			edge_defender = maxf(0.01, float(damage_option.get("defender", 1.0)))
+		elif not all_off:
+			var pair := Balance.attacker_edge(attacker_role, defender_role)
+			edge_attacker = float(pair[0])
+			edge_defender = float(pair[1])
+		if stamina_option is Dictionary:
+			rule.merge(stamina_option, true)
+		elif not all_off and not (stamina_option is bool and not stamina_option):
+			rule = Balance.stamina_edge()
+	attacker_fighter.stamina.cost_multiplier = maxf(0.0, float(rule["attacker_cost"]))
+	defender_fighter.stamina.cost_multiplier = maxf(0.0, float(rule["defender_cost"]))
+	defender_fighter.stamina.seat_regen = maxf(0.0, float(rule["defender_regen"]))
 
 
 ## Applies the optional "initial_*" start options to the King seat. Returns "" or the reason the options are refused.
@@ -185,6 +227,8 @@ func _reset() -> void:
 	_pending.clear()
 	_next_event_id = 1
 	_tick_count = 0
+	edge_attacker = 1.0
+	edge_defender = 1.0
 	server_tick = 0
 	countdown_remaining = 0
 	duration_remaining = 0
@@ -380,6 +424,10 @@ func _flush_pending() -> void:
 func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinition, raw: int) -> void:
 	if not d.health.is_alive():
 		return
+	# The attacker's advantage: the weaker side of this pairing hits harder (before armour, so it applies to chip damage too).
+	var edge := edge_attacker if a.player_id == request["attacker"]["playerId"] else edge_defender
+	if edge != 1.0:
+		raw = maxi(1, roundi(float(raw) * edge))
 	var away_from_attacker := CombatConstants.flat(d.global_position - a.global_position)
 
 	# 1. Dodge invulnerability.

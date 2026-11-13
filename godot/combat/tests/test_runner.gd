@@ -21,6 +21,7 @@ const SUITES: Dictionary = {
 	"royal": "res://combat/tests/test_royal.gd",
 	"royal_flow": "res://combat/tests/test_royal_flow.gd",
 	"matchups": "res://combat/tests/test_matchups.gd",
+	"attacker_edge": "res://combat/tests/test_attacker_edge.gd",
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",

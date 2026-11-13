@@ -83,7 +83,9 @@ static func _soak(h, tree: SceneTree) -> void:
 		h.check(float(r["max_radius"]) <= 7.1 - 0.37, "nobody ever got through the arena wall (max radius %.2f)" % float(r["max_radius"]))
 		h.check(float(r["min_gap"]) >= 0.74, "fighters never overlapped (closest %.2f m)" % float(r["min_gap"]))
 		h.check(int(r["ticks"]) <= 180 + 5400, "ended within the time limit (%d ticks)" % int(r["ticks"]))
-		h.check(int(r["total_events"]) > 5, "the fight actually happened (%d events)" % int(r["total_events"]))
+		# More than a single event: with the attacker's advantage a Pawn can end a Knight in two hits (3 events). The invariants above
+		# (no rejected input, bounds, a valid result) are what this soak is for.
+		h.check(int(r["total_events"]) > 1, "the fight actually happened (%d events)" % int(r["total_events"]))
 		if not r["result"].is_empty():
 			wins[r["result"]["outcome"]] += 1
 			reasons[r["result"]["reason"]] = int(reasons.get(r["result"]["reason"], 0)) + 1

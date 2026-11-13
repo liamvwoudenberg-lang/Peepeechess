@@ -2,6 +2,7 @@ extends Control
 const AppSettings = preload("res://ui/application_settings.gd")
 const AppResults = preload("res://ui/results.gd")
 const Hud = preload("res://ui/game_hud.gd")
+const Balance = preload("res://combat/data/balance_data.gd")
 const Kit = preload("res://ui/theme/ui_kit.gd")
 const Tokens = preload("res://ui/theme/ui_tokens.gd")
 const UiIcons = preload("res://ui/theme/ui_icons.gd")
@@ -535,6 +536,9 @@ func _capture_preview(request: Dictionary) -> void:
 	var d: Dictionary = request.defender
 	Hud.show_versus(self, request)
 	battle_detail.text = "Attacker wins: captures on %s.\nDefender wins: the attacker is removed and the defender stays on %s." % [request.to, d.square]
+	var advantage := Balance.describe_edge(str(a.role), str(d.role))  # the attacker's advantage, in words (data/balance_v1.json)
+	if advantage != "":
+		battle_detail.text += "\n\n" + advantage
 	var readiness = battle_adapter.check_request(request) if battle_adapter.has_method("check_request") else {"ok": battle_adapter.available(), "error": "Combat is unavailable in this build."}
 	if not readiness.ok:
 		battle_detail.text += "\n\n" + readiness.error
