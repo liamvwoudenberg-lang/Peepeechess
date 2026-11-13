@@ -291,8 +291,8 @@ func _build_presentation(request: Dictionary) -> void:
 		_visuals.build(CharacterModel.prefer_lod1)
 	for f in sim.fighters:
 		var visual: Node3D = null
-		if use_models and CharacterModel.available(f.role, 1 if CharacterModel.prefer_lod1 else 0):
-			var model := CharacterModel.new()
+		if use_models and (PaladinFighter.wanted(f.role) or CharacterModel.available(f.role, 1 if CharacterModel.prefer_lod1 else 0)):
+			var model: CharacterModel = PaladinFighter.new() if PaladinFighter.wanted(f.role) else CharacterModel.new()
 			add_child(model)
 			if model.setup(f):
 				visual = model
