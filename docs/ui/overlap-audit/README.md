@@ -50,6 +50,7 @@ capture card, trapdoor drop, countdown, fight (combat HUD) and result.
 | 6 | Friends list presence chips ("Online", "In a match", "Offline") | rows with two or three lines, narrow widths | the chip stretched to the row's height and turned into a tall oval pressing on the neighbouring rows | `Kit.chip` keeps its own height (`ui/theme/ui_kit.gd`) |
 | 7 | Computer opponent difficulty buttons 1-6 | every size | 34 px wide, below the 40 px pointer minimum (touch: 48 px) | 44x44 minimum (`ui/opponent_ui.gd`) |
 | 8 | Combat result panel buttons "Rematch" and "Menu" | every size | 31 px tall | 44 px (`combat_hud.gd`) |
+| 10 | F1 controls legends (`control_overlay.gd`) | portrait phone, fresh preferences (both legends expanded) | two full legends are ~340 px each: in a 760 px viewport the right one hung off the edge and the pair overlapped | legends are pulled inside the viewport and the type shrinks (down to 10 px) until the pair fits |
 | 9 | Combat HUD one-line controls hint | every size | positioned at y = -92 from the **top** of the viewport, i.e. off screen, and 1015 px wide at 150 % | hidden: the F1 controls cheat sheet shows the same information (`combat_hud.gd`) |
 
 Pictures (software GL, so the 3D scenes look flat; only the layout matters):
