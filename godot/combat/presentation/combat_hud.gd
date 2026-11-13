@@ -18,6 +18,9 @@ var _result_label: Label
 var _help_label: Label
 var _names: Dictionary = {}
 var _messages: Array = []
+var _intro_label: Label
+var _intro_age: float = 0.0
+const INTRO_SECONDS := 3.0
 
 
 func setup(p_sim: CombatSimulation, human_hint: String) -> void:
@@ -36,6 +39,12 @@ func setup(p_sim: CombatSimulation, human_hint: String) -> void:
 	_timer_label = _label(34, Control.PRESET_CENTER_TOP)
 	_timer_label.position.y = 10
 	_center_label = _label(72, Control.PRESET_CENTER)
+	# Duel introduction: "QUEEN  vs  PAWN" with the attacker named first, fading in over the countdown.
+	_intro_label = _label(34, Control.PRESET_CENTER_TOP)
+	_intro_label.position.y = 150
+	_intro_label.modulate.a = 0.0
+	_intro_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_intro_label.add_theme_constant_override("outline_size", 8)
 	_message_box = VBoxContainer.new()
 	_message_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message_box.position = Vector2(-120, 110)
@@ -190,6 +199,16 @@ func hide_result() -> void:
 	_result_panel.visible = false
 
 
+## "ATTACKER vs DEFENDER" text for the duel introduction ("" when the request has no roles).
+func intro_text() -> String:
+	if sim == null or sim.request.is_empty():
+		return ""
+	var a: String = str(sim.request["attacker"].get("role", "")).to_upper()
+	var d: String = str(sim.request["defender"].get("role", "")).to_upper()
+	var names := {"P": "PAWN", "N": "KNIGHT", "B": "BISHOP", "R": "ROOK", "Q": "QUEEN", "K": "KING"}
+	return "%s  vs  %s\nthe attacker strikes first" % [names.get(a, a), names.get(d, d)]
+
+
 func _process(delta: float) -> void:
 	for entry in _messages.duplicate():
 		entry["age"] += delta
@@ -200,6 +219,14 @@ func _process(delta: float) -> void:
 			_messages.erase(entry)
 	if sim == null or sim.request.is_empty():
 		return
+	if _intro_label != null:
+		if sim.phase == CombatSimulation.Phase.COUNTDOWN:
+			_intro_age += delta
+			if _intro_label.text.is_empty():
+				_intro_label.text = intro_text()
+			_intro_label.modulate.a = clampf(minf(_intro_age / 0.6, (INTRO_SECONDS - _intro_age) / 0.6), 0.0, 1.0) if _intro_age < INTRO_SECONDS else 0.0
+		else:
+			_intro_label.modulate.a = maxf(0.0, _intro_label.modulate.a - delta * 2.0)
 	if sim.phase == CombatSimulation.Phase.COUNTDOWN:
 		var seconds := ceili(float(sim.countdown_remaining) / 60.0)
 		_center_label.text = str(seconds) if seconds > 0 else "FIGHT"

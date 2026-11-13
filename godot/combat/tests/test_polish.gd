@@ -44,6 +44,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _test_hitstop_is_cosmetic(h, tree)
 	await _test_model_hooks(h, tree)
 	await _test_camera(h, tree)
+	await _test_cinematics(h, tree)
 	await _test_presentation_toggle(h, tree)
 	await _test_full_run(h, tree)
 
@@ -269,6 +270,37 @@ static func _test_camera(h, tree: SceneTree) -> void:
 	h.eq(ThirdPersonCamera._clear_of_pillars(free_pos), free_pos, "a camera in the open is untouched")
 	arena.stop_battle()
 	arena.queue_free()
+
+
+# ---- cinematic extras ------------------------------------------------------------------------------
+static func _test_cinematics(h, tree: SceneTree) -> void:
+	h.begin("polish: cinematic extras (intro card, opening push-in, knockout slow motion, parry/final feedback)")
+	var arena := _make_arena(tree, true, "q", "p", 45, "polish-cine")
+	for _i in 4:
+		await tree.physics_frame
+	var cam: ThirdPersonCamera = arena.cameras[0]
+	ThirdPersonCamera.reduce_motion = false
+	h.check(cam._intro_t >= 0.0, "the opening push-in runs during the countdown")
+	h.check(arena.hud.intro_text().begins_with("QUEEN  vs  PAWN"), "the intro card names the attacker first (%s)" % arena.hud.intro_text().replace("\n", " / "))
+	for _i in 6:
+		await tree.process_frame
+	h.check(arena.hud._intro_label.modulate.a > 0.0, "the intro card fades in over the countdown")
+	cam.feedback("final", 0.4, Vector3.FORWARD)
+	h.check(cam.shake > 0.0, "the knockout blow shakes the camera")
+	h.check(not arena.vfx.slowmo_active(), "slow motion is off while headless (allow_slowmo false)")
+	h.check(not arena.vfx.request_slowmo(), "request_slowmo refuses when not allowed")
+	arena.vfx.allow_slowmo = true
+	h.check(arena.vfx.request_slowmo(0.05) and Engine.time_scale < 1.0, "an allowed knockout slows time")
+	OS.delay_msec(80)
+	await tree.process_frame
+	h.check(not arena.vfx.slowmo_active() and is_equal_approx(Engine.time_scale, 1.0), "...and restores normal time by itself")
+	arena.vfx.allow_slowmo = true
+	arena.vfx.request_slowmo(5.0)
+	arena.stop_battle()
+	arena.queue_free()
+	await tree.process_frame
+	h.check(is_equal_approx(Engine.time_scale, 1.0), "freeing the arena never leaves the game slowed down")
+	Engine.time_scale = 1.0
 
 
 # ---- presentation on / off ------------------------------------------------------------------------

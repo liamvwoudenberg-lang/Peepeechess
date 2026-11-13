@@ -377,6 +377,7 @@ func _build_feedback_layers(viewers: Array) -> void:
 	vfx.name = "CombatVfx"
 	add_child(vfx)
 	vfx.setup(sim, CharacterModel.prefer_lod1)
+	vfx.allow_slowmo = mode == Mode.AUTHORITY and DisplayServer.get_name() != "headless"
 	for i in sim.fighters.size():
 		vfx.register_model(sim.fighters[i].player_id, _fighter_visuals[i])
 	vfx.cameras = cameras.duplicate()
