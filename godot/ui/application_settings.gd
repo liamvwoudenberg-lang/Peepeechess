@@ -8,7 +8,7 @@ static var animations = true
 static var quality = "balanced"
 static var volume = 0.8
 static var touch_controls = false
-## "windowed" or "fullscreen" (ui/screen_mode.gd). Desktop only; the choice is kept per device and applied once at start-up.
+## "windowed" or "fullscreen" (ui/screen_mode.gd). Kept per device; Web waits for a direct user gesture.
 static var display_mode = "windowed"
 static var api_url = "http://127.0.0.1:8787"
 static var token = ""
@@ -39,7 +39,7 @@ static func load_preferences() -> void:
 	apply()
 	# Full screen is applied once, here (before the opening screen). It is deliberately not part of apply(), which runs on every
 	# preference change: re-applying it there would pull the window back to full screen after the OS or the player left it.
-	if display_mode == ScreenMode.FULLSCREEN:
+	if display_mode == ScreenMode.FULLSCREEN and not OS.has_feature("web"):
 		ScreenMode.apply(display_mode)
 
 static func save_preferences() -> Error:
@@ -61,7 +61,7 @@ static func apply() -> void:
 	Platform.set_quality(quality)
 
 ## The player's display choice (Settings page, F11, Alt+Enter): applies it and, unless `persist` is false, saves it. Where the window
-## cannot change mode (headless, mobile, web) nothing happens and the stored value is left alone.
+## cannot change mode (headless, mobile, a browser that disallows fullscreen) nothing happens and the stored value is left alone.
 static func set_display_mode(value: String, persist: bool = true) -> void:
 	if not ScreenMode.available():
 		return
