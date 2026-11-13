@@ -114,6 +114,10 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	scene.add_child(marks)
 	BattleWorld.tag_board(scene)
 	world.bind_board(self, tiles, [plinth_node, frame_node])
+	visibility_changed.connect(func():
+		if is_visible_in_tree() and _sync_pending:
+			_sync_pending = false
+			sync_state())
 	interaction.selection_changed.connect(update_marks)
 	game.changed.connect(sync_state)
 	resized.connect(_update_camera)
@@ -169,6 +173,9 @@ func set_sync_hold(value: bool) -> void:
 		sync_state()
 
 func sync_state() -> void:
+	if not is_visible_in_tree():
+		_sync_pending = true
+		return
 	if scene == null:
 		return
 	if sync_hold:

@@ -629,10 +629,12 @@ func _start_battle_pressed() -> void:
 	battle_flow.confirm_capture()
 
 func _world_presenting_changed(presenting: bool) -> void:
+	Hud.set_combat(self, presenting)
 	if is_instance_valid(battle_flow):
 		interaction.enabled = battle_flow.phase == "board" and not presenting
 
 func _battle_phase_world(value: String) -> void:
+	Hud.set_combat(self, value in ["loading", "countdown", "combat", "aftermath", "returning"])
 	var presenting = is_instance_valid(bridge) and bridge.is_presenting()
 	interaction.enabled = value == "board" and not presenting
 	board_2d.set_process_input(false)
@@ -648,8 +650,8 @@ func _battle_phase_world(value: String) -> void:
 	battle_cancel.visible = capture_preview
 	battle_cancel.text = "Cancel capture"
 	battle_return.visible = false
-	battle_resign.visible = value in ["countdown", "combat", "loading"]
-	battle_skip.visible = value == "aftermath"
+	battle_resign.visible = false
+	battle_skip.visible = false
 	battle_title.text = {"preview": "Capture preview", "loading": "The board opens…", "countdown": "Get ready", "combat": "Battle Chess · capture duel", "aftermath": "Battle result"}.get(value, "Battle Chess")
 	battle_title.visible = false  # the preview card has its own heading; the combat HUD carries its own title/countdown
 
