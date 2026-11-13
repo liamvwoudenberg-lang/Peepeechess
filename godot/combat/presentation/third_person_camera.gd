@@ -44,6 +44,9 @@ var _fov_kick_target: float = 0.0
 var _fov_hold: float = 0.0
 var _punch: Vector3 = Vector3.ZERO     # decaying positional impulse (world space)
 var _lock_boost: float = 0.0
+var _intro_t: float = -1.0             # >= 0 while the opening push-in runs (a slow glide from far to the normal framing)
+const INTRO_SECONDS := 3.0
+const INTRO_EXTRA_DISTANCE := 3.2
 var _finish_t: float = -1.0            # >= 0 once the battle is over
 var _finish_target: FighterController = null
 
@@ -63,6 +66,7 @@ func bind(p_target: FighterController, p_opponent: FighterController) -> void:
 	target = p_target
 	opponent = p_opponent
 	yaw = target.yaw
+	_intro_t = 0.0
 	_pivot = _fighter_position(target) + Vector3(0.0, FOLLOW_HEIGHT, 0.0)
 	if make_current:
 		camera.current = true
@@ -116,7 +120,11 @@ func feedback(kind: String, amount: float, dir: Vector3 = Vector3.ZERO) -> void:
 		"parry":
 			add_shake(amount * 0.5)
 			punch(dir, 0.1)
-			kick_fov(-5.0, 0.12)   # zoom-in snap sells the perfect parry
+			kick_fov(-6.0, 0.28)   # a slow zoom-in on the perfect parry: held long enough to read, then released
+		"final":
+			add_shake(amount)
+			punch(dir, 0.2)
+			kick_fov(-7.0, 0.5)    # the knockout blow
 		"guardbreak":
 			add_shake(amount)
 			punch(dir, 0.15)
@@ -210,6 +218,12 @@ func _process(delta: float) -> void:
 		desired_pivot += _look_ahead
 	_pivot = _pivot.lerp(desired_pivot, 1.0 - exp(-PIVOT_RATE * delta))
 
+	if _intro_t >= 0.0 and not reduce_motion:
+		_intro_t += delta
+		var k := clampf(_intro_t / INTRO_SECONDS, 0.0, 1.0)
+		want_distance += INTRO_EXTRA_DISTANCE * (1.0 - k * k * (3.0 - 2.0 * k))   # smoothstep: eases to the normal distance
+		if k >= 1.0:
+			_intro_t = -1.0
 	var heading_vec := CombatConstants.heading(yaw)
 	var right := Vector3(-heading_vec.z, 0.0, heading_vec.x)
 	var offset := -heading_vec * cos(pitch) + Vector3.UP * sin(pitch)
