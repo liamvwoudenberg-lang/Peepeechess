@@ -93,6 +93,10 @@ rating change or choose a competitive winner.
 - Low quality uses a 30 FPS presentation limit without antialiasing. Balanced
   targets 60 FPS with 2× antialiasing. High uses 4× antialiasing and uncapped FPS.
   These settings do not change the server's fixed simulation rate.
+- Display (Windows and Linux): Settings, Graphics offers **Windowed** and **Full screen** (a borderless window that covers the screen).
+  **F11** or **Alt+Enter** switches at any time, in menus, on the board and during a duel; Esc is not used for this. The choice is
+  saved per device and applied at start-up, so the opening screen is already full screen. Android is always full screen and shows
+  no Display choice. The control is reachable with a controller like every other setting.
 - Mouse / touch: select and move a piece by tapping or dragging. In 3D,
   right-drag or swipe orbits the board; scroll or pinch zooms.
 - Controller: d-pad and accept/back navigate focused controls. The left stick
