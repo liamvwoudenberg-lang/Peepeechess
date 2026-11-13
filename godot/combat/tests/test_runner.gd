@@ -30,6 +30,7 @@ const SUITES: Dictionary = {
 	"matchups": "res://combat/tests/test_matchups.gd",
 	"attacker_edge": "res://combat/tests/test_attacker_edge.gd",
 	"pacing": "res://combat/tests/test_pacing.gd",
+	"paladin_board": "res://combat/tests/test_paladin_board.gd",
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",

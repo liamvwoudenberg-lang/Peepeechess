@@ -111,6 +111,12 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	_update_camera()
 	BoardThemeView.attach_3d(self)  # board theme / piece set / shadows (boards/board_theme_view.gd)
 
+func _exit_tree() -> void:
+	for node in _leaving:
+		if is_instance_valid(node):
+			node.queue_free()
+	PaladinPiece.release_cache()
+
 func set_flipped(value: bool) -> void:
 	_flipped = value
 	yaw = PI if value else 0.0
