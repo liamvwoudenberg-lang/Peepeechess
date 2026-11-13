@@ -83,6 +83,7 @@ static func _ensure(action: String, button: int) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group("pad_ui")  # PlatformInput's stick pointer asks owns_pad() so it never competes with the board cursor
 	for node in root.find_children("*", "ScrollContainer", true, false):
 		_follow(node)
 	for node in get_tree().root.find_children("*", "Window", true, false):
@@ -215,6 +216,11 @@ func _process(delta: float) -> void:
 		_last_focus_center = owner.get_global_rect().get_center()
 	if _needs_focus(vp):
 		_grab(vp)
+
+
+## Public form of _board_owns_pad(): the board cursor is what the left stick and Cross drive right now.
+func owns_pad() -> bool:
+	return enabled and _board_owns_pad() and not _combat_active()
 
 
 ## True while the board cursor (not menu focus) is what the pad drives: board mode, no dialog, and the host lets the
