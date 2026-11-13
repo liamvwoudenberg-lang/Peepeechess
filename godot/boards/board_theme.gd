@@ -18,15 +18,15 @@ const THEMES = {
 const THEME_ORDER = ["slate", "classic_wood", "marble", "tournament_green", "midnight"]
 const HIGHLIGHTS = {"dots": "Dots", "rings": "Rings", "tint": "Tile tint"}
 const HIGHLIGHT_ORDER = ["dots", "rings", "tint"]
-const PIECE_SETS = {"procedural": "Procedural (built-in)", "carved": "Carved marble & basalt (GLB)"}
-const PIECE_SET_ORDER = ["procedural", "carved"]
+const PIECE_SETS = {"paladin": "Paladins (animated characters)", "procedural": "Procedural (built-in)", "carved": "Carved marble & basalt (GLB)"}
+const PIECE_SET_ORDER = ["paladin", "procedural", "carved"]
 const SPEEDS = {"off": 0.0, "normal": 1.0, "fast": 0.5}
 const SPEED_ORDER = ["off", "normal", "fast"]
 const SHADOW_ORDER = ["low", "high"]
 static var theme_id = "slate"
 static var highlight = "dots"
 static var coordinates = true
-static var piece_set = "procedural"
+static var piece_set = "paladin"
 static var animation_speed = "normal"
 static var shadows = "high"
 static var _events: Events
@@ -40,7 +40,7 @@ static func notify() -> void:
 	events().changed.emit()
 
 static func defaults() -> Dictionary:
-	return {"theme": "slate", "highlight": "dots", "coordinates": true, "pieces": "procedural", "animation": "normal", "shadows": "high"}
+	return {"theme": "slate", "highlight": "dots", "coordinates": true, "pieces": "paladin", "animation": "normal", "shadows": "high"}
 
 static func current() -> Dictionary:
 	return {"theme": theme_id, "highlight": highlight, "coordinates": coordinates, "pieces": piece_set, "animation": animation_speed, "shadows": shadows}

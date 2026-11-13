@@ -41,6 +41,8 @@ var _touch_distance = 0.0
 var _touch_moved = false
 var _last_match_id = ""
 var _moves: Array[Tween] = []
+var _leaving: Array = []   # captured pieces still on screen until the capturing piece has arrived
+var _last_ply = 0
 
 func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	game = match_game
@@ -109,6 +111,12 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	_update_camera()
 	BoardThemeView.attach_3d(self)  # board theme / piece set / shadows (boards/board_theme_view.gd)
 
+func _exit_tree() -> void:
+	for node in _leaving:
+		if is_instance_valid(node):
+			node.queue_free()
+	PaladinPiece.release_cache()
+
 func set_flipped(value: bool) -> void:
 	_flipped = value
 	yaw = PI if value else 0.0
@@ -160,9 +168,23 @@ func sync_state() -> void:
 		if tween.is_valid():
 			tween.kill()
 	_moves.clear()
+	for leaving in _leaving:
+		if is_instance_valid(leaving):
+			leaving.queue_free()
+	_leaving.clear()
+	for node in pieces.values():
+		if node is PaladinPiece:
+			node.stop_walk()
 	var state = game.chess_state()
 	var fresh_match = _last_match_id != game.match_id
 	_last_match_id = game.match_id
+	# Paladin pieces WALK only for one new ply forward; undo, a new game, FEN load, flip and reloads snap into place.
+	var ply: int = game.engine.history.size()
+	var forward_move: bool = ply == _last_ply + 1 and not fresh_match
+	_last_ply = ply
+	var walk_ok: bool = forward_move and animation_enabled and BoardTheme.anim_scale() > 0.0
+	var longest := 0.0
+	var swaps: Array = []
 	var active: Array = []
 	for p in state.pieces:
 		var id: String = p.pieceId
@@ -170,32 +192,73 @@ func sync_state() -> void:
 		var old_position = Vector3.ZERO
 		var replaced = false
 		if pieces.has(id) and _piece_roles[id] != p.role:
-			old_position = pieces[id].position
-			scene.remove_child(pieces[id])
-			pieces[id].queue_free()
-			pieces.erase(id)
-			replaced = true
+			if walk_ok and pieces[id] is PaladinPiece:
+				swaps.append(p)  # promotion: the pawn walks first, the new piece appears on arrival
+			else:
+				old_position = pieces[id].position
+				scene.remove_child(pieces[id])
+				pieces[id].queue_free()
+				pieces.erase(id)
+				replaced = true
 		if not pieces.has(id):
-			pieces[id] = Models.build(p.role, p.color)
-			pieces[id].name = id
-			_piece_roles[id] = p.role
-			scene.add_child(pieces[id])
-			BattleWorld.tag_board(pieces[id])
-			pieces[id].position = old_position if replaced else Interaction.world_position(Rules.index(p.square))
-			pieces[id].rotation.y = PI if p.color == "b" else 0.0
+			_spawn(id, p.role, p.color, old_position if replaced else Interaction.world_position(Rules.index(p.square)))
 		var target = Interaction.world_position(Rules.index(p.square))
-		if animation_enabled and BoardTheme.anim_scale() > 0.0 and not fresh_match and not pieces[id].position.is_equal_approx(target):
+		var node = pieces[id]
+		if node is PaladinPiece:
+			if walk_ok and not node.position.is_equal_approx(target):
+				longest = maxf(longest, node.walk_along(PaladinPiece.path_between(_piece_roles[id], node.position, target), BoardTheme.anim_seconds(1.0)))
+			else:
+				node.position = target
+		elif animation_enabled and BoardTheme.anim_scale() > 0.0 and not fresh_match and not node.position.is_equal_approx(target):
 			var tween = create_tween()
-			tween.tween_property(pieces[id], "position", target, BoardTheme.anim_seconds(0.24)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tween.tween_property(node, "position", target, BoardTheme.anim_seconds(0.24)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 			_moves.append(tween)
 		else:
-			pieces[id].position = target
+			node.position = target
 	for id in pieces.keys():
 		if id not in active:
-			scene.remove_child(pieces[id])
-			pieces[id].queue_free()
+			var gone: Node3D = pieces[id]
 			pieces.erase(id)
 			_piece_roles.erase(id)
+			if longest > 0.0 and gone is PaladinPiece:
+				# captured: it stays until the mover has arrived, then sinks away
+				_leaving.append(gone)
+				var fall = create_tween()
+				fall.tween_interval(longest * 0.85)
+				fall.tween_property(gone, "scale", Vector3(0.01, 0.01, 0.01), 0.3).set_ease(Tween.EASE_IN)
+				fall.tween_callback(func():
+					if is_instance_valid(gone):
+						gone.queue_free()
+					_leaving.erase(gone))
+				_moves.append(fall)
+			else:
+				scene.remove_child(gone)
+				gone.queue_free()
+	for p in swaps:
+		var swap = create_tween()
+		swap.tween_interval(longest)
+		swap.tween_callback(_swap_piece.bind(p))
+		_moves.append(swap)
+	update_marks()
+
+func _spawn(id: String, role: String, color: String, at_position: Vector3) -> void:
+	pieces[id] = Models.build(role, color)
+	pieces[id].name = id
+	_piece_roles[id] = role
+	scene.add_child(pieces[id])
+	BattleWorld.tag_board(pieces[id])
+	pieces[id].position = at_position
+	pieces[id].rotation.y = PI if color == "b" else 0.0
+
+func _swap_piece(p: Dictionary) -> void:
+	var id: String = p.pieceId
+	if not pieces.has(id):
+		return
+	var at_position: Vector3 = pieces[id].position
+	scene.remove_child(pieces[id])
+	pieces[id].queue_free()
+	pieces.erase(id)
+	_spawn(id, p.role, p.color, at_position)
 	update_marks()
 
 func _mark(at: int, color: Color, radius: float) -> void:
