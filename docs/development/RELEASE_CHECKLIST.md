@@ -23,6 +23,13 @@ certificates or decisions that cannot be produced from a development sandbox.
     on one unreliable UDP datagram surviving a proxy that drops 2% of packets (`godot/tests/network/combat_bot.gd`, step 0: a valid input and its exact
     replay, both unreliable), which can fail without a server defect and is more likely when the 22 fights of the full profile run in parallel. Send the
     pair reliably so the assertion no longer depends on loss.
+  * Re-measured 2026-11-13 (quiet 4-core machine). Unmodified `ae8191b`: `test:multiplayer` passed 4 of 5 full runs. With the attacker advantage
+    (`2024974`): about 1 in 10, failing on a rotating set of timing assertions: the 0.1 m prediction check (2 of 7 direct runs with fresh Godot user
+    directories on **both** trees), `invalid:b-n@60ms+2%` stale/forbidden counters (8 of 8 alone on both trees; failed 2 of 3 full runs on the new tree), and
+    a DTLS `TLS handshake error -30464` line that the `^ERROR:` filter flags. The sample sizes cannot separate the trees, so a small effect of the new
+    default cannot be ruled out: investigate before trusting a green run. The reconnect "common events" ratio (4 of 10 failures on the unmodified tree, because
+    that scenario cuts a client off for 4 s on purpose) is fixed in `scripts/test-online-combat.mjs`. Sending the invalid probes three times over did NOT fix the
+    stale counter, so "one lost datagram" is not the whole explanation either.
   Every other gate passed on the same tree (lint, contracts, royal, UI, AI, battle, classic, the full combat harness, backend, the real-server
   application test). Get a fully green *Validate integration* **and** *Native exports* run on one commit, twice in a row.
 - [ ] **A2. Real-device QA** *(owner)*. Nothing has run on hardware (`docs/application/TESTING_GUIDE.md`, "What works and what does not"):
@@ -42,10 +49,13 @@ certificates or decisions that cannot be produced from a development sandbox.
   policy and a data-safety declaration — confirm the current Google Play / Microsoft Store rules at submission time. Add edge IP
   limiting and abuse controls in front of the API (the doc lists them as deployment work) and decide what chat/name moderation, if any,
   is needed.
-- [ ] **A6. Human playtests and balance.** Balance and feel were tuned with bots only (`TESTING_GUIDE.md`). Run structured playtests of
-  Classic and Battle, local and online, with both mouse/keyboard and gamepad/touch. The computer-opponent levels are untuned beyond bot
-  self-play and use wall-clock budgets, so strength varies by machine (`godot/chess/ai/README.md`). Apply or reject the King/attrition
-  recommendations in `godot/combat/BALANCE.md`.
+- [ ] **A6. Human playtests and balance.** The attacker's advantage is in (2026-11-13): every one of the 25 pairings of Pawn..Queen favours the
+  attacker (mean of a casual and a skilled bot 62.8%, lowest 56%, highest 72%; a Pawn attacking a Queen 72%, it was 1%), see
+  `godot/combat/BALANCE.md`. It is **bot-measured only**: the two bots disagree sharply for some pairings and neither is a person. Run structured
+  playtests of Classic and Battle, local and online, with mouse/keyboard and gamepad/touch, and recalibrate (`edge_calibrate.gd`) if the numbers feel
+  wrong. Decide whether defenders should also tire faster (the stamina rule is built, tested and ships neutral; BALANCE.md explains why). The
+  computer-opponent levels are untuned beyond bot self-play and use wall-clock budgets, so strength varies by machine (`godot/chess/ai/README.md`).
+  Apply or reject the King/attrition recommendations in `godot/combat/BALANCE.md`.
 - [ ] **A7. Decide the online presentation.** The trapdoor/pit transition works for **local** play only. Online captures still use the older
   arena overlay. Either wire `OnlineCombatView` to the pit (`godot/world/README.md`, "Online path"; the server countdown of 180 ticks does
   not wait for the pre-roll and the server returns to the board about 2 s after the result) or ship online with the overlay and say so.
@@ -69,6 +79,9 @@ certificates or decisions that cannot be produced from a development sandbox.
   poll), and the online pit transition (A7). Test on real devices and across the Internet with A3.
 - [x] **Ladder climb passes through the environment** (done 2026-11-12): props stowed for the climb, the walk avoids the pillars, no facing snap;
   `pit_climb` suite. Not yet seen by a person on a real GPU or device (B7).
+- [x] **3D opening screen** (done 2026-11-13): moonlit castle, "press any button", camera glide into the main menu, once per run
+  (`godot/ui/opening/`, `docs/ui/opening-screen/`). Tested headless and in software GL screenshots only: look at it on real GPUs and phones (the
+  balanced tier may be heavy on weak phones; low tier exists), check the portrait menu layout (unchanged, small), and the moon texture shows banding.
 - [ ] **B5. Contract v2 handshake** (tuning stamp, `actionId`, buff-remaining field) is proposed in `docs/network/ONLINE_COMBAT.md` and not
   implemented; v1 is immutable. Decide whether the release needs it.
 - [ ] **B6. Art and audio.** Art is described as generated placeholder quality; audio quality was never judged by a person. Board asset

@@ -13,6 +13,14 @@ offers additional controls and untimed practice. Battle uses the integrated C0
 rules: untimed chess, legal capture duels, and traditional checkmate. Kings do
 not enter combat in C0. Local combat retains the existing two-seat controls.
 
+**The attacker's advantage (Battle Chess).** As in chess, the side that attacks has the initiative. In every
+matchup the attacker is meant to win a little more often than the defender, so a Pawn attacking a Queen has a real chance,
+and a Queen attacking a Pawn does not get a free win. The weaker fighter of a pairing hits harder for that duel (the card
+before the fight says by how much: "Underdog bonus: the attacker's blows hit x2.6 harder"); nobody is ever weakened. This is
+tuned with computer-controlled fighters, not with people, so it is a starting point: if it feels wrong, tell us which
+pairing and what happened. Kings are not affected. The numbers are in `godot/combat/data/balance_v1.json`, and
+`godot/combat/BALANCE.md` explains how they were measured.
+
 Both local boards retain selection, legal move hints, promotion, move history,
 animations and their existing mouse/touch interactions. Local practice permits
 undo and FEN import. These actions are unavailable in authoritative online play.

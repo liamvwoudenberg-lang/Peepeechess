@@ -32,14 +32,33 @@ four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for t
 * **Repository.** Release checklist `docs/development/RELEASE_CHECKLIST.md`; stale README/TESTING_GUIDE claims fixed; two historical notes moved
   to `docs/history/`.
 
-Verification actually run on this branch (Linux sandbox, Godot 4.6.3, Node 22): lint; contracts (84 Node tests, 21+41 Godot cases); royal; UI (theme 234, layout 182, application 83, views 345, online 30, battle 31);
-AI; battle; classic; the full combat harness `npm test` (9,949 checks in 458 tests, including the new `pit_climb` suite); backend 13/13 on SQLite
-and on real PostgreSQL 16; `test:application` end to end with the real dedicated server (now including a friends scenario); Godot import and scene
-load with no script errors. **`test:multiplayer` fails** on the prediction assertion above, as it does on the unmodified branch.
+* **Attacker's advantage (Battle Chess).** Measured first: the attacker had none (49%/48% win rate with a casual/skilled bot) and the roster was
+  unbalanced (a Pawn attacking a Queen won 1 in 100). Now a data table of damage multipliers per attacker/defender pairing boosts the weaker side
+  (`attacker_edge` in `godot/combat/data/balance_v1.json`, applied in `CombatSimulation._apply_hit`); validated on independent seeds: mean 62.8%,
+  every pairing 56-72%. A per-seat stamina rule (attacker unlimited, defender limited) was built, measured and ships **neutral**: it helped only
+  casual play. Details, tables and limits in `godot/combat/BALANCE.md`; suite `attacker_edge`. Bot-measured only.
+* **3D opening screen.** `godot/ui/opening/` (merged from `claude/opening-screen`), shown once per run.
+* **Windows release pipeline.** `tools/package/build_release_local.sh`, `.github/workflows/release-windows.yml` (merged from `claude/windows-release`),
+  see `docs/application/EXPORTS.md`.
+
+Verification actually run on this branch (Linux sandbox, Godot 4.6.3, Node 22, 4 cores; 2026-11-13, on the attacker-advantage commit plus the
+merged opening screen and Windows pipeline): lint; contracts; royal; UI (theme 234, layout 182, opening screen 151, application 85, views 345,
+online 30, battle 31); AI; battle; classic; backend; `test:application` end to end with the real dedicated server (friends scenario included);
+Godot import and scene load with no script errors; and `npm test` (87 Node tests, the full combat harness **10,055 checks in 464 tests, 0 failures**,
+including the new `attacker_edge` suite, plus the UI suites). Two soak floors (events per fight) were relaxed in `test_soak.gd` / `test_roles.gd`
+because a boosted Pawn can legitimately end a Knight in two hits. **`test:multiplayer` is flaky and did not pass reliably** (see below).
+
+`test:multiplayer`, measured (RELEASE_CHECKLIST A1): on the unmodified commit `ae8191b` it passed 4 of 5 full runs (the failure was the reconnect
+event-overlap ratio, now fixed in `scripts/test-online-combat.mjs`: that scenario cuts one client off for 4 s on purpose, so the ratio failed 4 runs in
+10). On the attacker-advantage tree it passed only about 1 run in 10, failing on a rotating set of timing assertions that also fail on the unmodified
+tree: the 0.1 m loopback prediction check (2 of 7 direct runs with fresh Godot user directories on BOTH trees: 0.122/0.183 m vs 0.122/0.244 m), the
+`invalid:b-n@60ms+2%` stale/forbidden counters (the scenario passes 8 of 8 on both trees when run alone; it failed in 2 of 3 full runs on this tree and once in
+CI on `2198dc4`), and a DTLS `TLS handshake error -30464` line that the script's `^ERROR:` filter flags. The sample sizes cannot separate the two trees
+(prediction check about 6 of 19 vs 2 of 17 runs), so a small effect of the new default cannot be ruled out. Sending the invalid probes three times over did
+not help and was reverted. Nothing in the changed prediction code path is active when no stamina rule is configured (the multiplier is 1.0).
 
 CI note: GitHub's *Validate integration* is red on `2198dc4` (`test:multiplayer`, `invalid:b-n@60ms+2%`) and skipped the backend, application and
-Godot-import steps after it. Locally `test:multiplayer` fails 3 runs in 6 on `ONLINE PREDICTION` (max correction 0.122, 0.122, 0.183 m: whole multiples of 0.061 m); the CI
-assertion did not reproduce in 6 isolated runs. Both are timing-dependent assertions; see RELEASE_CHECKLIST A1. Not fixed here.
+Godot-import steps after it. See RELEASE_CHECKLIST A1. Not fixed here.
 
 ## Done (merged on `ccr-a4637d6e-lypbb4`; see "Verification" for what was actually run)
 
