@@ -215,7 +215,8 @@ func brazier(pos: Vector3, scale_value: float = 1.0, with_embers: bool = true) -
 	_flame(pos + Vector3(0.2 * s, 1.9 * s, 0.12 * s), 1.2 * s)
 	_flame(pos + Vector3(-0.18 * s, 1.9 * s, -0.1 * s), 1.0 * s)
 	_glow(pos + Vector3(0, 2.4 * s, 0), Color(1.0, 0.55, 0.18, 0.9), 5.5 * s)
-	_glow(pos + Vector3(0, 2.6 * s, 0), Color(1.0, 0.42, 0.12, 0.32), 17.0 * s)
+	if quality != Quality.LOW:
+		_glow(pos + Vector3(0, 2.6 * s, 0), Color(1.0, 0.42, 0.12, 0.32), 17.0 * s)   # the wide halo is the costly overdraw: skipped on low
 	if with_embers:
 		embers.append(pos + Vector3(0, 2.7 * s, 0))
 
@@ -560,11 +561,11 @@ func _court() -> void:
 			banner(Vector3(sx * 33.3, 10.5, z), 2.2, 7.5, BANNER_CRIMSON if int(absf(z)) % 24 == 12 else BANNER_NAVY, -sx * PI * 0.5)
 	# a giant game in progress
 	var layout := [
-		["rook", "light", 0, 0], ["knight", "light", 2, 0], ["king", "light", 4, 0], ["pawn", "light", 3, 1], ["pawn", "light", 5, 2], ["bishop", "light", 6, 0],
+		["rook", "light", 1, 1], ["knight", "light", 3, 3], ["king", "light", 5, 1], ["pawn", "light", 2, 2], ["pawn", "light", 4, 3], ["bishop", "light", 6, 2],
 		["queen", "dark", 3, 7], ["rook", "dark", 7, 7], ["pawn", "dark", 2, 5], ["knight", "dark", 5, 5], ["bishop", "dark", 1, 6], ["king", "dark", 4, 7],
 	]
 	if quality == Quality.LOW:
-		layout = [["king", "light", 4, 0], ["knight", "light", 2, 1], ["queen", "dark", 3, 6], ["pawn", "dark", 5, 5]]
+		layout = [["king", "light", 5, 1], ["knight", "light", 3, 3], ["queen", "dark", 3, 6], ["pawn", "dark", 5, 5]]
 	for entry in layout:
 		var cx := x_start + (int(entry[2]) + 0.5) * sq
 		var cz := z_start - (int(entry[3]) + 0.5) * sq

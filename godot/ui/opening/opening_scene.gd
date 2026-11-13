@@ -38,6 +38,7 @@ var _sky: ShaderMaterial
 var _glow_material: ShaderMaterial
 var _ember_material: ShaderMaterial
 var _flame_material: ShaderMaterial
+var _bird_material: ShaderMaterial
 var _banner_material: ShaderMaterial
 var _mist_materials: Array[ShaderMaterial] = []
 var _clock := 0.0          # drift time
@@ -66,9 +67,12 @@ func build(quality_name: String = "balanced", motion: bool = true, start_blend: 
 	_build_glows(q, builder)
 	_build_flames(builder)
 	_build_embers(q, builder)
+	_build_birds(q)
 	_build_mist(builder)
 	set_motion(motion)
 	set_blend(start_blend)
+	if is_inside_tree():
+		get_viewport().size_changed.connect(_on_viewport_resized)   # the fov axis follows the window's aspect even when nothing animates
 	build_msec = float(Time.get_ticks_usec() - started) / 1000.0
 
 func set_motion(enabled: bool) -> void:
@@ -81,6 +85,11 @@ func set_motion(enabled: bool) -> void:
 		_glow_material.set_shader_parameter("speed", wind)
 	if _flame_material != null:
 		_flame_material.set_shader_parameter("speed", wind)
+	if _bird_material != null:
+		_bird_material.set_shader_parameter("speed", wind)
+		var birds := get_node_or_null("Crows") as Node3D
+		if birds != null:
+			birds.visible = enabled
 	if _ember_material != null:
 		_ember_material.set_shader_parameter("speed", wind)
 		var embers := get_node_or_null("Embers") as Node3D
@@ -155,7 +164,7 @@ func _build_lights(q: int, builder: Builder) -> void:
 	add_child(fill)
 	gate_light = _omni(builder.gate_light)
 	gate_light.name = "GateLight"
-	var pool := {Builder.Quality.LOW: 3, Builder.Quality.BALANCED: 5, Builder.Quality.HIGH: 7}[q] as int
+	var pool := {Builder.Quality.LOW: 2, Builder.Quality.BALANCED: 4, Builder.Quality.HIGH: 7}[q] as int
 	for i in mini(pool, builder.light_slots.size()):
 		var slot: Dictionary = builder.light_slots[i]
 		var light := _omni({"pos": slot.ext, "color": slot.color, "energy": slot.energy, "range": slot.range})
@@ -358,6 +367,34 @@ func _build_embers(q: int, builder: Builder) -> void:
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 
+func _build_birds(q: int) -> void:
+	var count := {Builder.Quality.LOW: 0, Builder.Quality.BALANCED: 9, Builder.Quality.HIGH: 16}[q] as int
+	if count == 0:
+		return
+	var mesh := ArrayMesh.new()
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-1.0, 0, 0.1), Vector3(0, 0, 0.3), Vector3(0, 0, -0.4), Vector3(1.0, 0, 0.1), Vector3(0, 0, -0.4), Vector3(0, 0, 0.3)])
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_bird_material = Assets.shader_material(Assets.BIRD_SHADER)
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_custom_data = true
+	multimesh.mesh = mesh
+	multimesh.instance_count = count
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1717
+	for i in count:
+		multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * rng.randf_range(1.1, 1.7)), Vector3.ZERO))
+		multimesh.set_instance_custom_data(i, Color(rng.randf(), rng.randf_range(28.0, 78.0), rng.randf_range(0.06, 0.15) * (1.0 if i % 2 == 0 else -1.0), rng.randf_range(26.0, 58.0)))
+	var instance := MultiMeshInstance3D.new()
+	instance.name = "Crows"
+	instance.multimesh = multimesh
+	instance.material_override = _bird_material
+	instance.custom_aabb = _wide_aabb()
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+
 func ember_count() -> int:
 	var embers := get_node_or_null("Embers") as MultiMeshInstance3D
 	return embers.multimesh.instance_count if embers != null else 0
@@ -431,6 +468,9 @@ func _apply_camera() -> void:
 	basis = basis * Basis(Vector3.BACK, roll)
 	camera.transform = Transform3D(basis, pos)
 	_update_projection(s)
+
+func _on_viewport_resized() -> void:
+	_apply_camera()
 
 func _update_projection(s: float) -> void:
 	var size := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(1280, 800)

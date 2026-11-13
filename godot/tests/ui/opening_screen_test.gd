@@ -308,7 +308,7 @@ func reduce_motion_checks() -> void:
 	var before: Vector3 = camera_position(shell)
 	shell.scene3d.advance(5.0)
 	expect(camera_position(shell).is_equal_approx(before), "reduce motion: the camera does not drift while waiting")
-	expect(shell.scene3d.get_node("Embers").visible == false, "reduce motion: embers (pure motion) are hidden")
+	expect(shell.scene3d.get_node("Embers").visible == false and shell.scene3d.get_node("Crows").visible == false, "reduce motion: embers and crows (pure motion) are hidden")
 	shell.intro.advance(0.5)
 	expect(is_equal_approx(shell.intro.prompt.modulate.a, 1.0), "reduce motion: the prompt does not pulse")
 	root.push_input(key_event())
@@ -316,6 +316,14 @@ func reduce_motion_checks() -> void:
 	expect(is_equal_approx(shell.scene3d.blend, 1.0) and is_equal_approx(shell.content.modulate.a, 1.0), "reduce motion: the camera is already at the menu vantage and the menu fully visible")
 	expect(camera_position(shell).distance_to(OpeningScene.CAM_B) < 0.01, "reduce motion: the camera cut lands exactly on the menu pose")
 	await drop(shell)
+	# a static scene still follows the window: landscape -> portrait switches the camera's fov axis
+	var resized: Control = await fresh_shell(Vector2i(1280, 800))
+	expect(resized.scene3d.camera.keep_aspect == Camera3D.KEEP_HEIGHT, "landscape window: the camera's fov is vertical")
+	root.size = Vector2i(390, 844)
+	await settle(2)
+	expect(resized.scene3d.camera.keep_aspect == Camera3D.KEEP_WIDTH, "resizing to a portrait window re-frames a static scene (fov becomes horizontal)")
+	await drop(resized)
+	root.size = Vector2i(1280, 800)
 	Prefs.reduce_motion = false
 
 # ---------------------------------------------------------------- quality tiers

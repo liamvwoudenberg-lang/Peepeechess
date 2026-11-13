@@ -232,7 +232,7 @@ func _pulse() -> void:
 	if Prefs.reduce_motion:
 		prompt.modulate.a = 1.0
 		return
-	prompt.modulate.a = 0.55 + 0.45 * (0.5 + 0.5 * sin(elapsed * TAU / PULSE_PERIOD))
+	prompt.modulate.a = 0.62 + 0.38 * (0.5 + 0.5 * sin(elapsed * TAU / PULSE_PERIOD))
 
 func _set_menu_alpha(alpha: float) -> void:
 	if is_instance_valid(menu_root):

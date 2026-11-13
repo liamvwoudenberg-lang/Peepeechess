@@ -187,7 +187,8 @@ void sky() {
 	float rad = length(mp);
 	float disc = smoothstep(1.0, 0.94, rad);
 	float maria = vnoise(mp * 2.6 + 3.0) * 0.6 + vnoise(mp * 7.0) * 0.4;
-	vec3 moon_col = vec3(1.0, 0.95, 0.82) * (0.78 + 0.34 * smoothstep(0.35, 0.7, maria)) * (1.0 - 0.18 * smoothstep(0.5, 1.0, rad));
+	float crater = smoothstep(0.74, 0.9, vnoise(mp * 13.0 + 7.0));
+	vec3 moon_col = vec3(1.0, 0.95, 0.82) * (0.66 + 0.46 * smoothstep(0.36, 0.62, maria)) * (1.0 - 0.16 * crater) * (1.0 - 0.2 * smoothstep(0.55, 1.0, rad));
 	float halo = pow(max(md, 0.0), 220.0) * 0.55 + pow(max(md, 0.0), 28.0) * 0.16 + pow(max(md, 0.0), 6.0) * 0.045;
 	col += vec3(0.55, 0.66, 1.0) * halo;
 	// clouds drift slowly; they catch the moonlight near the moon
@@ -340,6 +341,30 @@ void fragment() {
 }
 """
 
+## Crows circling the towers: an orbit and a wing flap evaluated in the vertex stage (one MultiMesh, no CPU per frame).
+const BIRD_SHADER := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, fog_disabled;
+uniform float speed = 1.0;
+uniform vec3 centre = vec3(0.0, 0.0, -25.0);
+void vertex() {
+	vec4 c = INSTANCE_CUSTOM;
+	float a = TIME * speed * c.z + c.x * 6.2831;
+	vec3 orbit = vec3(centre.x + cos(a) * c.y, c.w + sin(a * 2.3 + c.x * 9.0) * 2.5, centre.z + sin(a) * c.y * 0.7);
+	vec3 heading = normalize(vec3(-sin(a) * c.y, 0.0, cos(a) * c.y * 0.7));
+	vec3 side = vec3(heading.z, 0.0, -heading.x);
+	float flap = sin(TIME * speed * 6.5 + c.x * 50.0);
+	float sc = length(MODEL_MATRIX[0].xyz);
+	vec3 local = VERTEX;
+	local.y += abs(local.x) * flap * 0.55;
+	vec3 world = orbit + (side * local.x + vec3(0.0, local.y, 0.0) + heading * local.z) * sc;
+	POSITION = PROJECTION_MATRIX * VIEW_MATRIX * vec4(world, 1.0);
+}
+void fragment() {
+	ALBEDO = vec3(0.012, 0.014, 0.03);
+}
+"""
+
 ## Low mist cards: big soft quads drifting slowly through the valley (distance fog alone is flat).
 const MIST_SHADER := """
 shader_type spatial;
@@ -377,7 +402,7 @@ static func textured(texture: Texture2D, roughness: float, tint: Color = Color.W
 	material.roughness = roughness
 	material.metallic = 0.0
 	material.metallic_specular = 0.25
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC   # long walls and the bridge are seen at grazing angles
 	return material
 
 static func plain(roughness: float, emission: bool = false) -> StandardMaterial3D:
