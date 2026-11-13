@@ -97,7 +97,7 @@ func run() -> void:
 	var mine = white.client.latest_combat.fighters.filter(func(f): return f.playerId == white.client.player_id)[0]
 	expect(mine.position.z > -0.5, "virtual movement travels through network to authoritative fighter")
 	var light: Rect2 = white.touch_controls._regions.light
-	for _attack in range(12):
+	for _attack in range(90):  # duels last ~30 s now (BALANCE.md duel length): keep attacking until the fight is decided
 		if white.client.frame.state.phase != "combat":
 			break
 		touch(1, white.touch_controls.global_position + light.get_center(), true)

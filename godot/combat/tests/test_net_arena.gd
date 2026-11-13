@@ -170,7 +170,7 @@ static func _presentation(h, tree: SceneTree) -> void:
 	var visuals := arena.find_children("Visual_*", "", false, false)
 	h.eq(visuals.size(), 2, "both fighters have visuals")
 	var camera_pos: Vector3 = arena.cameras[0].camera.global_position
-	h.check(camera_pos.length() < CombatConstants.ARENA_WALL_RADIUS + 0.5, "the camera follows the predicted fighter inside the arena")
+	h.check(camera_pos.length() < CombatConstants.ARENA_WALL_RADIUS + 3.7, "the camera (its duel intro starts 3.2 m back) follows the predicted fighter inside the arena")
 	h.check(net.sim.fighters[1].global_position.distance_to(arena.sim.fighters[1].global_position) < 1.5, "the remote proxy tracks the server fighter (interpolated, %.2f m behind)" % net.sim.fighters[1].global_position.distance_to(arena.sim.fighters[1].global_position))
 	net.dispose()
 	arena.stop_battle()

@@ -10,7 +10,7 @@ const S := CombatConstants.State
 ## Pin of the shipped tuning. A balance change MUST update this on purpose: the stamp is what a server and its clients
 ## compare, so an accidental edit of balance_v1.json fails here instead of silently desynchronising a match.
 const SHIPPED_ID := "balance-v1"
-const SHIPPED_STAMP := "balance-v1:894711f5b35e3d38"   # changed on purpose 2026-11-13: attacker_edge table added (BALANCE.md)
+const SHIPPED_STAMP := "balance-v1:d4a66f727eb9d111"   # changed on purpose 2026-11-13: attacker_edge table, pacing and duel-length scales (BALANCE.md)
 
 
 static func run(h, tree: SceneTree) -> void:
@@ -51,16 +51,16 @@ static func _defaults(h) -> void:
 	var n := FighterProfile.for_role("n")
 	h.eq(n["poise"], 70.0, "knight poise")
 	h.eq(n["armor"], 0.12, "knight armour")
-	h.eq(n["parry_stagger_ticks"], 60, "knight parry stagger")
-	h.eq(n["riposte_mult"], 1.6, "knight riposte")
+	h.eq(n["parry_stagger_ticks"], 84, "knight parry stagger")
+	h.eq(n["riposte_mult"], 1.75, "knight riposte")
 	var p := FighterProfile.for_role("p")
 	h.eq([p["poise"], p["armor"], p["dodge_distance"], p["block_cost_mult"]], [30.0, 0.0, 3.8, 1.35], "pawn poise/armour/dodge/guard")
 	var r := FighterProfile.for_role("r")
 	h.eq([r["poise"], r["armor"], r["block_arc_deg"], r["radius"]], [110.0, 0.25, 150.0, 0.5], "rook")
 	var q := FighterProfile.for_role("q")
-	h.eq([q["poise"], q["sprint_mult"], q["dodge_cost"], q["riposte_mult"]], [28.0, 1.65, 16.0, 1.35], "queen")
+	h.eq([q["poise"], q["sprint_mult"], q["dodge_cost"], q["riposte_mult"]], [28.0, 1.65, 16.0, 1.5], "queen")
 	var b := FighterProfile.for_role("b")
-	h.eq([b["poise"], b["armor"], b["dodge_iframe_end"]], [35.0, 0.05, 14], "bishop")
+	h.eq([b["poise"], b["armor"], b["dodge_iframe_end"]], [35.0, 0.05, 17], "bishop")
 	h.eq(AttackLibrary.light("p", 2).damage_mult, 1.45, "pawn finisher x1.45")
 	h.eq(AttackLibrary.light("p", 2).hitstun_ticks, 22, "pawn finisher hitstun")
 	h.eq(AttackLibrary.heavy("n").poise_damage, 55.0, "knight heavy poise damage")
@@ -165,7 +165,7 @@ static func _override(h, tree: SceneTree) -> void:
 	h.eq(typeof(FighterProfile.for_role("p")["dodge_ticks"]), TYPE_INT, "floats for tick keys are re-typed to int")
 	h.eq(AttackLibrary.heavy("p").damage_mult, 3.0, "attack tables are rebuilt")
 	h.eq(AttackLibrary.heavy("p").hitstun_ticks, 31, "attack ints")
-	h.eq(AttackLibrary.heavy("p").stamina_cost, 26.0, "untouched fields keep their shipped value")
+	h.eq(AttackLibrary.heavy("p").stamina_cost, 44.2, "untouched fields keep their shipped value")
 	h.eq(AttackLibrary.light("p", 0).damage_mult, 1.0, "other attacks are untouched")
 	h.eq(FighterProfile.for_role("n")["poise"], 70.0, "other roles are untouched")
 	var rig = await Runner.make_rig(tree, "p", "n")
