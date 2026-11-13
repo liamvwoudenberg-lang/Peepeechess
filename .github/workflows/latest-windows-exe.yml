@@ -1,0 +1,74 @@
+name: Latest Windows exe
+
+# Builds the Windows exe of the pushed commit, with no human or agent needed.
+#   push to any branch that changes the game      -> artifact "Peepeechess-windows-x86_64" on the run page (Actions tab, 30 days)
+#   workflow_dispatch (Actions > Run workflow)    -> same, for any branch/commit you pick
+#   push to main (or dispatch on main)            -> additionally refreshes the rolling pre-release "latest-windows"
+#                                                    (Releases page: always the newest main build)
+# The exe is unsigned and never run on Windows by this pipeline (static check + Linux smoke test only).
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'godot/**'
+      - 'tools/package/**'
+      - '.github/workflows/latest-windows-exe.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: latest-windows-exe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Xvfb for the smoke test
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 zip
+      - name: Build, smoke-test and assemble
+        run: bash tools/package/build_release_local.sh "latest-${GITHUB_SHA::7}"
+      - name: Zip the exe (single file download)
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp artifacts/release/Peepeechess-windows-x86_64.exe out/Peepeechess.exe
+          (cd out && zip -q -9 Peepeechess-windows-x86_64.zip Peepeechess.exe && rm Peepeechess.exe)
+          cp artifacts/release/SHA256SUMS.txt out/SHA256SUMS.txt
+          cp artifacts/release/RELEASE_NOTES.md out/RELEASE_NOTES.md
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Peepeechess-windows-x86_64
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-latest:
+    needs: build
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Peepeechess-windows-x86_64
+          path: out
+      - name: Refresh the rolling pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release delete latest-windows --repo "$REPO" --cleanup-tag --yes || true
+          gh release create latest-windows --repo "$REPO" --target "$GITHUB_SHA" --prerelease \
+            --title "Latest Windows build (main @ ${GITHUB_SHA::7})" \
+            --notes-file out/RELEASE_NOTES.md \
+            out/Peepeechess-windows-x86_64.zip out/SHA256SUMS.txt

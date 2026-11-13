@@ -56,7 +56,9 @@ the game plays), the latest version must be downloadable from the GitHub reposit
    `bash tools/package/build_release_local.sh <tag>` (see `docs/application/EXPORTS.md`). Never publish a `-dirty` build.
 2. Run `tools/package/publish_download.sh <release_dir>`: it replaces `downloads/windows/` (zip of the exe, `SHA256SUMS.txt`,
    `LATEST.md` with the commit and hashes). Commit and push it with the change. Keep the zip under GitHub's 100 MB file limit.
-3. If `release-windows.yml` is dispatchable (it exists on the default branch), also publish a GitHub Release with it.
+3. `.github/workflows/latest-windows-exe.yml` also builds the exe on every push that changes the game and on demand
+   (Actions > Latest Windows exe > Run workflow); on `main` it refreshes the rolling `latest-windows` pre-release.
+   If `release-windows.yml` is dispatchable (it exists on the default branch), also publish a GitHub Release with it.
 4. Say in the report where the file is, its SHA-256, and that it was never run on a real Windows PC.
 
 Minor changes (docs, typos, small tweaks, test-only changes) do not need a new build.
