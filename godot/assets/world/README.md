@@ -128,7 +128,7 @@ Not verified: real GPU / Android / Windows rendering, mobile frame cost, how the
 
 * The climb knees reach about 0.40-0.48 m in front of the origin, i.e. they brush the rung plane at 0.42 m (a few cm of knee/rung overlap
   while a knee is raised); the feet slide up to 2 cm laterally during a hold (pelvis yaw); hands and feet are on the grid to within 0.1 mm.
-* Weapons and shields were not re-modelled for climbing; the Rook's shield and big pauldrons overlap the ladder rails.
+* Weapons and shields were not re-modelled for climbing; the Rook's shield and big pauldrons overlap the ladder rails. The pit world therefore stows the props for the climb (`CharacterModel.set_props_stowed`, see `godot/world/README.md`); the asset itself is unchanged.
 * Pieces are low-poly stylised lathe shapes: the knight is the least refined; no normal maps, no baked AO.
 * Dark pieces on dark tiles rely on the bone trim ring for contrast; if the final lighting is dim, raise `Piece_Dark_Basalt`'s albedo.
 * Tile/stone textures are procedural noise with veins/blocks, not photo-real; the plaque letters use Blender's built-in font.

@@ -438,6 +438,7 @@ static func chip(parent: Node, text: String, tint: Color = T.GOLD) -> PanelConta
 	var panel := PanelContainer.new()
 	var style := PeepeeTheme.flat(Color(tint.r, tint.g, tint.b, 0.14), tint, 1, 99, 10, 3)
 	panel.add_theme_stylebox_override("panel", style)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER   # a chip is as tall as its text: inside a taller row it must not stretch into an oval
 	parent.add_child(panel)
 	var text_label := label(panel, text, "Caption", false)
 	text_label.add_theme_color_override("font_color", tint)

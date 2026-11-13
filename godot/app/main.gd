@@ -1,7 +1,9 @@
 extends Control
+const Music = preload("res://audio/music_director.gd")
 const AppSettings = preload("res://ui/application_settings.gd")
 const AppResults = preload("res://ui/results.gd")
 const Hud = preload("res://ui/game_hud.gd")
+const Balance = preload("res://combat/data/balance_data.gd")
 const Kit = preload("res://ui/theme/ui_kit.gd")
 const Tokens = preload("res://ui/theme/ui_tokens.gd")
 const UiIcons = preload("res://ui/theme/ui_icons.gd")
@@ -37,6 +39,8 @@ var battle_return: Button
 var battle_resign: Button
 var battle_skip: Button
 var battle_bg: ColorRect
+var battle_scrim: ColorRect  # pit-world mode: dims the board and HUD behind the capture card (and blocks clicks on them)
+var battle_footer: HBoxContainer  # "Acting player resigns" / "Skip animation"; see _place_battle_footer()
 ## pit world: both chess views are the same 3D board (top-down camera = "2D"); battles are presented
 ## inside it (trapdoor, chamber, ladder). false = the original Board2D + full-screen combat overlay.
 var use_world = true
@@ -78,6 +82,7 @@ var intended_edit: LineEdit
 const TIME_CONTROLS = [["Untimed", 0, 0], ["Bullet · 1 + 0", 60000, 0], ["Blitz · 3 + 2", 180000, 2000], ["Blitz · 5 + 0", 300000, 0], ["Rapid · 10 + 0", 600000, 0], ["Rapid · 15 + 10", 900000, 10000], ["Classical · 30 + 0", 1800000, 0]]
 
 func _ready() -> void:
+	Music.go(get_tree(), "board")
 	AppSettings.load_preferences()
 	AppSettings.ensure_platform(get_tree())
 	_build_theme()
@@ -138,15 +143,19 @@ func _responsive() -> void:
 	body.vertical = narrow
 	board_panel.custom_minimum_size = Vector2(0, clampf(size.x - 50, 300, 560) if narrow else 430)
 	info_panel.custom_minimum_size = Vector2(0 if narrow else 360, 420 if narrow else 430)
+	call_deferred("_place_battle_footer")   # after the containers have settled
 
 func _build_dialogs() -> void:
 	promotion_dialog = ConfirmationDialog.new()
 	promotion_dialog.title = "Choose your promotion"
-	promotion_dialog.dialog_text = "Your pawn has reached the final rank."
 	promotion_dialog.get_ok_button().hide()
+	var promotion_box = VBoxContainer.new()  # text above the buttons: children added straight to a dialog are laid over its built-in text
+	promotion_box.add_theme_constant_override("separation", 12)
+	promotion_dialog.add_child(promotion_box)
+	Kit.label(promotion_box, "Your pawn has reached the final rank.", "", false)
 	var grid = GridContainer.new()
 	grid.columns = 2
-	promotion_dialog.add_child(grid)
+	promotion_box.add_child(grid)
 	for item in [["Queen", "q"], ["Rook", "r"], ["Bishop", "b"], ["Knight", "n"]]:
 		var role: String = item[1]
 		var button = _button(grid, item[0], func(): _choose_promotion(role))
@@ -285,8 +294,30 @@ func _claim_draw() -> void:
 	else:
 		game.claim_draw(_claims[0], intended)
 
+## Pit-world mode: the footer buttons sit in the bottom-left corner of the BOARD panel (where the battle is shown), inside the part of
+## it that is visible, so they never cover the player cards, toggles or status line around the board (in a portrait layout the player
+## panel runs to the bottom of the screen). The legacy full-screen overlay keeps them at the bottom of the screen.
+func _place_battle_footer() -> void:
+	if battle_footer == null or not is_instance_valid(battle_overlay):
+		return
+	var view = battle_overlay.get_global_rect()
+	var area = Rect2(view.position + Vector2(20, view.size.y - 80), Vector2(view.size.x - 40, 40))   # legacy overlay: bottom of the screen
+	if use_world and is_instance_valid(board_panel) and board_panel.is_visible_in_tree():
+		area = board_panel.get_global_rect()
+		var scroller = body.get_parent() as Control if body != null else null
+		if scroller != null:
+			area = area.intersection(scroller.get_global_rect())   # the board panel can be taller than what is on screen
+		if area.size.x <= 0.0 or area.size.y <= 0.0:
+			return
+		area = area.grow(-12.0)
+	battle_footer.offset_left = area.position.x - view.position.x
+	battle_footer.offset_right = area.end.x - view.end.x
+	battle_footer.offset_bottom = area.end.y - view.end.y
+	battle_footer.offset_top = battle_footer.offset_bottom - 52.0
+
 func set_world_mode(value: bool) -> void:
 	use_world = value
+	call_deferred("_place_battle_footer")
 	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if value else Control.MOUSE_FILTER_STOP
 	battle_bg.visible = not value
 	if is_instance_valid(battle_flow) and is_instance_valid(battle_adapter):
@@ -362,6 +393,7 @@ func _message(text: String) -> void:
 
 ## Rejected input (illegal move, wrong turn...): the status line AND a toast, so it is never a silent failure.
 func _reject(text: String) -> void:
+	Music.error_cue(get_tree())
 	_message(text)
 	Kit.toast(self, text, "warning")
 
@@ -383,11 +415,17 @@ func _build_battle_overlay() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	battle_overlay.add_child(bg)
 	battle_bg = bg
+	battle_scrim = ColorRect.new()
+	battle_scrim.name = "PreviewScrim"
+	battle_scrim.color = Color(Tokens.BG, 0.6)
+	battle_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	battle_scrim.visible = false
+	battle_overlay.add_child(battle_scrim)
 	combat_container = SubViewportContainer.new()
 	combat_container.stretch = true
 	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	combat_container.offset_top = 72
-	combat_container.offset_bottom = -80
+	combat_container.offset_bottom = -92   # (legacy overlay) ends above the footer buttons
 	battle_overlay.add_child(combat_container)
 	combat_host = SubViewport.new()
 	combat_host.size = Vector2i(900, 600)
@@ -423,10 +461,14 @@ func _build_battle_overlay() -> void:
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	footer.offset_left = 20
 	footer.offset_right = -20
-	footer.offset_top = -64
+	footer.offset_top = -80
+	footer.offset_bottom = -40   # above the status line at the very bottom of the screen: the buttons must not cover that text
+	battle_footer = footer
 	battle_overlay.add_child(footer)
 	battle_resign = Kit.danger(footer, "Acting player resigns", _confirm_resign, "flag")
 	battle_skip = _button(footer, "Skip animation", func(): if is_instance_valid(bridge): bridge.skip_to_board(), "Commit the result now and return to the board.")
+	for footer_button in [battle_resign, battle_skip]:
+		footer_button.size_flags_vertical = Control.SIZE_SHRINK_END   # natural height, not stretched to the footer's
 	battle_skip.hide()
 	battle_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if use_world else Control.MOUSE_FILTER_STOP
 	battle_bg.visible = not use_world
@@ -535,6 +577,9 @@ func _capture_preview(request: Dictionary) -> void:
 	var d: Dictionary = request.defender
 	Hud.show_versus(self, request)
 	battle_detail.text = "Attacker wins: captures on %s.\nDefender wins: the attacker is removed and the defender stays on %s." % [request.to, d.square]
+	var advantage := Balance.describe_edge(str(a.role), str(d.role))  # the attacker's advantage, in words (data/balance_v1.json)
+	if advantage != "":
+		battle_detail.text += "\n\n" + advantage
 	var readiness = battle_adapter.check_request(request) if battle_adapter.has_method("check_request") else {"ok": battle_adapter.available(), "error": "Combat is unavailable in this build."}
 	if not readiness.ok:
 		battle_detail.text += "\n\n" + readiness.error
@@ -564,6 +609,8 @@ func _battle_phase_world(value: String) -> void:
 	combat_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	var capture_preview = value == "preview" and not battle_flow.is_royal_duel()  # king's last stand: banner instead of the preview card
 	battle_card.visible = capture_preview
+	battle_scrim.visible = capture_preview   # the card floats over the live HUD: dim it so text does not run into the card
+	_place_battle_footer()
 	fight_button.visible = capture_preview
 	battle_cancel.visible = capture_preview
 	battle_cancel.text = "Cancel capture"
@@ -574,6 +621,7 @@ func _battle_phase_world(value: String) -> void:
 	battle_title.visible = false  # the preview card has its own heading; the combat HUD carries its own title/countdown
 
 func _battle_phase(value: String) -> void:
+	Music.go(get_tree(), {"preview": "preview", "loading": "pit", "countdown": "pit", "combat": "combat", "aftermath": "pit", "board": "board", "returning": "board"}.get(value, "board"))
 	AppSettings.set_combat_input(value in ["countdown", "combat", "aftermath"])
 	Hud.set_versus_visible(self, value == "preview")
 	if use_world:
@@ -604,6 +652,7 @@ func _cancel_battle_transition() -> void:
 		battle_flow.interrupt("Loading canceled.")
 
 func _battle_result(value: Dictionary) -> void:
+	Music.go(get_tree(), "victory")   # the fight is decided: the score resolves (stinger) while the pit shows the aftermath
 	if use_world:
 		_message("%s wins the duel · %s." % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " ")])
 	battle_detail.text = "%s wins\n%s\n\nAttacker HP: %s\nDefender HP: %s" % ["Attacker" if value.outcome == "attacker" else "Defender", value.reason.replace("_", " "), value.attackerHp, value.defenderHp]

@@ -99,6 +99,15 @@ func setup(f: FighterController) -> void:
 	_apply_pose(1.0)
 
 
+## Same contract as CharacterModel.set_props_stowed(): 1.0 = weapon and shield stowed (the pit's ladder climb), 0.0 = carried.
+func set_props_stowed(amount: float) -> void:
+	var stow := clampf(amount, 0.0, 1.0)
+	for prop in [weapon, shield]:
+		if prop != null and is_instance_valid(prop):
+			prop.scale = Vector3.ONE * maxf(0.001, 1.0 - stow)
+			prop.visible = stow < 0.999
+
+
 func _part(parent: Node3D, mesh: Mesh, pos: Vector3, color: Color, configure: Callable) -> MeshInstance3D:
 	configure.call(mesh)
 	var node := MeshInstance3D.new()

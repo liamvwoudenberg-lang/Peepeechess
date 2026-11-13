@@ -367,6 +367,21 @@ static func attack_rows(cls: String) -> Array:
 	return rows
 
 
+static var _raw_scales: Dictionary = {}
+
+
+## attack id -> ticks_scale of the documented frame data (tests/raw_pacing.json): the timing the clips were authored for. Attacks that
+## the pacing did not touch (abilities, the King) are not in it.
+static func raw_ticks_scales() -> Dictionary:
+	if _raw_scales.is_empty():
+		var patch: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://combat/tests/raw_pacing.json"))
+		for role in patch["attacks"]:
+			for light in patch["attacks"][role]["light"]:
+				_raw_scales[String(light["id"])] = float(light["ticks_scale"])
+			_raw_scales[String(patch["attacks"][role]["heavy"]["id"])] = float(patch["attacks"][role]["heavy"]["ticks_scale"])
+	return _raw_scales
+
+
 static func _row(def: AttackDefinition, index: int, stats: Dictionary) -> Dictionary:
 	var total := def.total_ticks(stats, 1.0)
 	var win := def.active_window(total)
@@ -874,7 +889,6 @@ static func _striker(rig: Rig, row: Dictionary, trajectories: Dictionary) -> Str
 static func _attack_audit(rep: Dictionary, rig: Rig, res: Dictionary) -> void:
 	var cls := rig.cls
 	var lod := rig.lod
-	var tol: int = TH["contact_tol_ticks"]
 	var idle0: Dictionary = rig.clips["idle"][0]
 	for row in attack_rows(cls):
 		var def: AttackDefinition = row["def"]
@@ -882,6 +896,13 @@ static func _attack_audit(rep: Dictionary, rig: Rig, res: Dictionary) -> void:
 		if not rig.player.has_animation(clip):
 			continue
 		var total: int = row["total"]
+		# The clips are authored for the documented frame data (ticks_scale 1.0). The data may deliberately slow an attack down
+		# (BALANCE.md "Pacing"): the clip is then stretched at runtime, so its length is compared with the UNSCALED attack and the
+		# playback-rate band below is what bounds the stretch; the contact tolerance grows with the stretch (same relative error).
+		var unscaled: AttackDefinition = def.duplicate()
+		unscaled.ticks_scale = float(raw_ticks_scales().get(def.id, def.ticks_scale))
+		var authored: int = unscaled.total_ticks(row["stats"], 1.0)
+		var tol: int = ceili(float(TH["contact_tol_ticks"]) * maxf(1.0, def.ticks_scale))
 		var anim := rig.player.get_animation(clip)
 		var frames_clip := clip_frames(rig, clip) - roundi(CharacterModel.span_start(def) * FPS)   # frames of the clip this attack actually plays
 		var out := {"id": row["id"], "clip": clip, "total_ticks": total, "clip_frames": frames_clip, "active": [row["a0"], row["a1"]], "cancel": row["cancel"],
@@ -892,10 +913,10 @@ static func _attack_audit(rep: Dictionary, rig: Rig, res: Dictionary) -> void:
 			if other["clip"] == clip and other["kind"] == AttackDefinition.Kind.LIGHT:
 				shared += 1
 		var tol_len: float = TH["length_tol_frames_loose"] if (row["kind"] == AttackDefinition.Kind.ABILITY or shared > 1) else TH["length_tol_frames"]
-		var ok_len := absf(float(frames_clip) - float(total)) <= tol_len
+		var ok_len := absf(float(frames_clip) - float(authored)) <= tol_len
 		var ratio := float(frames_clip) / float(total)
 		out["speed_ratio"] = _r(ratio, 3)
-		check(rep, "b", cls, lod, clip, "%s clip length vs sim ticks (%d f vs %d t)" % [row["id"], frames_clip, total], ok_len, float(frames_clip), float(total), "medium",
+		check(rep, "b", cls, lod, clip, "%s clip length vs sim ticks (%d f vs %d t)" % [row["id"], frames_clip, authored], ok_len, float(frames_clip), float(authored), "medium",
 				"played at %.2fx%s" % [ratio, " (clip shared by %d chain links, tolerance %.0f)" % [shared, tol_len] if shared > 1 else ""])
 		check(rep, "b", cls, lod, clip, "%s playback rate stays in band" % row["id"], ratio >= TH["speed_ratio_min"] and ratio <= TH["speed_ratio_max"], ratio,
 				"[%.2f, %.2f]" % [TH["speed_ratio_min"], TH["speed_ratio_max"]], "medium")

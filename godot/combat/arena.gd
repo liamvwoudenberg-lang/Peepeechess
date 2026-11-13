@@ -24,6 +24,7 @@ signal combat_snapshot(snapshot: Dictionary)
 signal battle_finished(result: Dictionary)
 signal battle_started(request: Dictionary)
 
+const Music := preload("res://audio/music_director.gd")
 const Codec := preload("res://contracts/codec.gd")
 const CombatVfx := preload("res://combat/presentation/vfx/combat_vfx.gd")
 const AUDIO_SCRIPT := "res://combat/audio/combat_audio.gd"
@@ -209,6 +210,12 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	if sim != null and sim.is_running() and Engine.get_process_frames() % 6 == 0 and sim.fighters.size() == 2:
+		var tree := get_tree()
+		if tree != null and tree.root.has_node("MusicDirector"):
+			var a = sim.fighters[0]
+			var b = sim.fighters[1]
+			Music.intensity(tree, Music.danger_from_health(float(a.health.current) / maxf(1.0, float(a.health.maximum)), float(b.health.current) / maxf(1.0, float(b.health.maximum))))
 	if net_client != null:
 		_refresh_net_views(float(_local_tick) + Engine.get_physics_interpolation_fraction())
 	if _visuals != null:
@@ -246,7 +253,7 @@ func _fallback_shake(event: Dictionary) -> void:
 	var shake := 0.0
 	match String(event["type"]):
 		"hit":
-			shake = 0.08 + minf(float(event["damage"]) / 120.0, 0.25)
+			shake = 0.08 + minf(float(sim.felt_damage(int(event["damage"])) if sim != null else int(event["damage"])) / 120.0, 0.25)
 		"guardbreak":
 			shake = 0.3
 		"parry":
@@ -284,8 +291,8 @@ func _build_presentation(request: Dictionary) -> void:
 		_visuals.build(CharacterModel.prefer_lod1)
 	for f in sim.fighters:
 		var visual: Node3D = null
-		if use_models and CharacterModel.available(f.role, 1 if CharacterModel.prefer_lod1 else 0):
-			var model := CharacterModel.new()
+		if use_models and (PaladinFighter.wanted(f.role) or CharacterModel.available(f.role, 1 if CharacterModel.prefer_lod1 else 0)):
+			var model: CharacterModel = PaladinFighter.new() if PaladinFighter.wanted(f.role) else CharacterModel.new()
 			add_child(model)
 			if model.setup(f):
 				visual = model
@@ -377,6 +384,7 @@ func _build_feedback_layers(viewers: Array) -> void:
 	vfx.name = "CombatVfx"
 	add_child(vfx)
 	vfx.setup(sim, CharacterModel.prefer_lod1)
+	vfx.allow_slowmo = mode == Mode.AUTHORITY and DisplayServer.get_name() != "headless"
 	for i in sim.fighters.size():
 		vfx.register_model(sim.fighters[i].player_id, _fighter_visuals[i])
 	vfx.cameras = cameras.duplicate()

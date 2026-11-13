@@ -59,6 +59,8 @@ var arc_fx: MeshInstance3D
 var _current: String = ""
 var _arc_key: String = ""
 var _sockets: Dictionary = {}
+var _stow_props: Array = []   # [{node, scale, visible}] weapon/shield props, captured on first set_props_stowed()
+var stowed := 0.0             # 0 = carried, 1 = fully stowed (pit world ladder climb)
 var _meshes: Array[MeshInstance3D] = []
 var _model_base: Transform3D = Transform3D.IDENTITY
 var _loco_speed: float = 0.0
@@ -196,6 +198,25 @@ func _tint_accent(node: Node, color: Color) -> void:
 
 func socket(bone_name: String) -> BoneAttachment3D:
 	return _sockets.get(bone_name, null)
+
+
+## Stows (1.0) or draws (0.0) the carried weapon and shield: they shrink towards their grip and disappear when fully stowed.
+## The pit world stows them for the ladder climb (they were not authored for a 1 m shaft). Original scale and visibility are
+## remembered, so drawing them again restores exactly what was there.
+func set_props_stowed(amount: float) -> void:
+	if _stow_props.is_empty():
+		for att in _sockets.values():
+			if not (String(att.name).begins_with("WeaponSocket") or String(att.name).begins_with("ShieldSocket")):
+				continue
+			for child in att.get_children():
+				if child is Node3D:
+					_stow_props.append({"node": child, "scale": child.scale, "visible": child.visible})
+	stowed = clampf(amount, 0.0, 1.0)
+	for entry in _stow_props:
+		var prop: Node3D = entry["node"]
+		if is_instance_valid(prop):
+			prop.scale = (entry["scale"] as Vector3) * maxf(0.001, 1.0 - stowed)
+			prop.visible = bool(entry["visible"]) and stowed < 0.999
 
 
 func has_clip(clip_name: String) -> bool:
@@ -452,7 +473,7 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 				clip = "walk"
 				if local.z < -0.3:
 					speed = -1.0
-			speed *= clampf(_loco_speed / float(NOMINAL_SPEED[clip]), 0.4, MAX_LOCO_SPEED_FACTOR)
+			speed *= clampf(_loco_speed / _nominal_speed(clip), 0.4, MAX_LOCO_SPEED_FACTOR)
 		S.ATTACKING:
 			if sm.attack != null:
 				total = sm.attack_total
@@ -495,10 +516,10 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 		var base_speed := (length - start_s) / (float(total) / float(CombatConstants.TICK_RATE))
 		var u := clampf((float(sm.state_ticks) + alpha) / float(total), 0.0, 1.0)
 		var wp := warp_progress(u, startup_end, warp_p)
-		var warped := wp.x
-		var rate := wp.y
+		var remap := _remap_clip_time(clip, wp.x, startup_end)
+		var rate := wp.y * remap.y
 		speed = base_speed * rate
-		expected = minf(start_s + warped * (length - start_s), length)
+		expected = minf(start_s + remap.x * (length - start_s), length)
 	if clip != _current:
 		var blend := blend_time(_current, clip)
 		if trace_enabled:
@@ -514,6 +535,18 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 		if expected >= 0.0 and clip != "defeat" and (_hold_resync or absf(player.current_animation_position - expected) > 0.05):
 			player.seek(expected, false)
 	_hold_resync = false
+
+
+## Ground speed (m/s) the locomotion clip `clip` is foot-locked at. Subclasses with another rig override it.
+func _nominal_speed(clip: String) -> float:
+	return float(NOMINAL_SPEED[clip])
+
+
+## Maps the simulation's (warped) attack progress `u` (0..1, `startup_end` = where the hit window opens) to the position inside the
+## clip, as Vector2(clip progress, d clip progress / d u). The authored clips of this class already put their strike on startup_end, so
+## the default is the identity; a rig whose strike pose is elsewhere in its clip (PaladinFighter) remaps piecewise-linearly.
+func _remap_clip_time(_clip: String, u: float, _startup_end: float) -> Vector2:
+	return Vector2(u, 1.0)
 
 
 func _update_hitbox_fx() -> void:

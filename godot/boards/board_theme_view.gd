@@ -100,6 +100,8 @@ static func apply_3d(board) -> void:
 
 ## Alternate 3D piece set, or null to use the built-in procedural pieces.
 static func build_piece(role: String, color: String) -> Node3D:
+	if BoardTheme.piece_set == "paladin":
+		return PaladinPiece.create(role, color)  # null when the models are missing: the procedural set is used
 	if BoardTheme.piece_set != "carved" or not ROLE_NAMES.has(role):
 		return null
 	var path = "%s%s_%s%s.glb" % [PIECE_DIR, ROLE_NAMES[role], "light" if color == "w" else "dark", "_lod1" if OS.has_feature("mobile") else ""]

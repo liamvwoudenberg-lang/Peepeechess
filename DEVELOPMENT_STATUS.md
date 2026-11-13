@@ -13,6 +13,74 @@ returns to its square and the camera glides back to the top-down view. One persi
 no black fade, no scene switch, board geometry never changes (only the contested tile's trapdoor leaves move).
 This supersedes the earlier "combat on the board" / "board expansion" wording.
 
+## Update 2026-11-12 (Claude Code, branch `ccr-a734e4c7-xxj6nw`, on top of `2198dc4`)
+
+This branch is the Godot line (`ccr-a4637d6e-lypbb4`, which already contained `main`, `develop` and every `codex/*` branch) plus the work below.
+PR #4 (the Godot line) was merged into `main` as `c711908` while this was in progress, so `main` is now the Godot line and this branch is
+four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for them.
+
+* **Online play against friends.** Friends by username, requests, presence, challenges with a colour choice, accepted through the ordinary
+  private join into the unchanged ticket -> ENet lobby -> dedicated server path; always unranked. Backend in `server/native/`, page in
+  `godot/ui/friends_page.gd`, HTTP in `contracts/application/v1/README.md`, how to use it in `docs/application/PLAYER_GUIDE.md`.
+  Open: blocking/reporting players, friend chat, push notifications (clients poll), real-device and Internet testing.
+* **Ladder climb passes through the environment.** Three causes, all measured with `godot/combat/tools/climb_audit.gd` on the real flow:
+  (1) the winner's weapon or shield reached 0.2-0.5 m sideways and 0.13-0.76 m front-to-back beyond the 1 m opening, through the ceiling
+  slab, the shaft wall and the ladder (the body fit; the props did not): they are now stowed for the climb; (2) the walk to the ladder foot
+  was a straight line and crosses a pillar when the duel ends in the corner behind it: it now detours; (3) the facing snapped by up to
+  180 degrees at 80% of the walk (Black winners): it now turns continuously. Suite `pit_climb` (52 checks); mutation-checked: re-introducing
+  each bug makes it fail (18, 3 and 2 failed checks). Seen only in software GL screenshots and numbers, not by a person on a real GPU.
+* **Repository.** Release checklist `docs/development/RELEASE_CHECKLIST.md`; stale README/TESTING_GUIDE claims fixed; two historical notes moved
+  to `docs/history/`.
+
+* **Attacker's advantage (Battle Chess).** Measured first: the attacker had none (49%/48% win rate with a casual/skilled bot) and the roster was
+  unbalanced (a Pawn attacking a Queen won 1 in 100). Now a data table of damage multipliers per attacker/defender pairing boosts the weaker side
+  (`attacker_edge` in `godot/combat/data/balance_v1.json`, applied in `CombatSimulation._apply_hit`); validated on independent seeds: mean 62.8%,
+  every pairing 56-72%. A per-seat stamina rule (attacker unlimited, defender limited) was built, measured and ships **neutral**: it helped only
+  casual play. Details, tables and limits in `godot/combat/BALANCE.md`; suite `attacker_edge`. Bot-measured only.
+* **2026-11-13 batch (all merged on this branch):** full screen mode (Settings, F11/Alt+Enter); controller fix (the stick pointer no longer
+  swallows Cross, so a pad can start a battle); ten UI overlaps fixed with a layout regression test (`ui_overlap_test.gd`); slower, longer,
+  more skill-based duels (pacing data, ~28 s bot duels, attacker edge recalibrated, bot-measured only; BALANCE.md "Pacing and duel length");
+  generated dynamic music and layered impact audio (`godot/audio`, docs/audio/AUDIO.md); combat VFX and cinematic camera (knockout slow motion,
+  parry shockwave, dodge afterimages, duel intro; docs/ui/CINEMATIC_COMBAT.md); mode identities on the menu (docs/ui/CINEMATIC.md).
+  Gates run on this tree: lint, contracts, royal, UI (all suites 0 failures), AI, battle, classic, `npm test`, backend, application: pass.
+  `test:multiplayer` still fails on its known timing flakes (`invalid:b-n` stale counter in the last run). Not done from the cinematic brief:
+  staggered menu entry, mouse parallax, board/pit lighting pass, UI sound set beyond the existing ones, music slider in Settings.
+  Nothing here was seen or heard by a person on real hardware.
+* **Paladin characters (2026-11-13):** the six supplied rigged models (Pawn, Knight, Bishop, Rook, Queen, King; white and black via recoloured
+  textures, gold kept) are the 3D chess pieces (they walk/run to their squares; Classic and Battle) and the duel fighters (procedurally keyed combat
+  clips on the Mixamo skeleton: docs/ui/PALADIN_BOARD.md, PALADIN_COMBAT.md). Rough: hand-keyed animation, strafe = walk, sliders walk straight over
+  squares, the pit sequence's own walk is separate. Gates: lint, contracts, royal, UI, AI, battle, classic, npm test, backend, application pass;
+  `test:multiplayer` still fails on timing flakes (last: a movement check that passes in the UI run).
+* **On-demand exe:** `.github/workflows/latest-windows-exe.yml` builds the exe on every push that changes the game and on demand (Actions tab);
+  `downloads/windows/` holds the latest build in the repo (AGENTS.md rule).
+* **3D opening screen.** `godot/ui/opening/` (merged from `claude/opening-screen`), shown once per run.
+* **Windows release pipeline.** `tools/package/build_release_local.sh`, `.github/workflows/release-windows.yml` (merged from `claude/windows-release`),
+  see `docs/application/EXPORTS.md`.
+  Built locally from `a583663` (2026-11-13, tag `v0.4.0-alpha.1` in the notes): `Peepeechess-windows-x86_64.exe`, SHA-256
+  `e362d719a92ba82de31c715a38629e8eaf21a3b66342a589613268671e535eef` (114,866,264 bytes); zip `9e69754b...fdf7`; Linux tar.gz `96188655...58f0`. Static PE/PCK
+  check ok; the Linux build of the same commit passed the Xvfb smoke (menu, local Classic and Battle); the exe was **never run on Windows**, is unsigned and not
+  byte-reproducible. **Not yet published as a GitHub Release:** dispatching `release-windows.yml` returns 404 because the workflow exists only on the
+  feature branch, not on `main`; it needs a PR/merge to `main` (owner decision), then *Actions > Release Windows build > Run workflow* with a new tag.
+
+Verification actually run on this branch (Linux sandbox, Godot 4.6.3, Node 22, 4 cores; 2026-11-13, on the attacker-advantage commit plus the
+merged opening screen and Windows pipeline): lint; contracts; royal; UI (theme 234, layout 182, opening screen 151, application 85, views 345,
+online 30, battle 31); AI; battle; classic; backend; `test:application` end to end with the real dedicated server (friends scenario included);
+Godot import and scene load with no script errors; and `npm test` (87 Node tests, the full combat harness **10,055 checks in 464 tests, 0 failures**,
+including the new `attacker_edge` suite, plus the UI suites). Two soak floors (events per fight) were relaxed in `test_soak.gd` / `test_roles.gd`
+because a boosted Pawn can legitimately end a Knight in two hits. **`test:multiplayer` is flaky and did not pass reliably** (see below).
+
+`test:multiplayer`, measured (RELEASE_CHECKLIST A1): on the unmodified commit `ae8191b` it passed 4 of 5 full runs (the failure was the reconnect
+event-overlap ratio, now fixed in `scripts/test-online-combat.mjs`: that scenario cuts one client off for 4 s on purpose, so the ratio failed 4 runs in
+10). On the attacker-advantage tree it passed only about 1 run in 10, failing on a rotating set of timing assertions that also fail on the unmodified
+tree: the 0.1 m loopback prediction check (2 of 7 direct runs with fresh Godot user directories on BOTH trees: 0.122/0.183 m vs 0.122/0.244 m), the
+`invalid:b-n@60ms+2%` stale/forbidden counters (the scenario passes 8 of 8 on both trees when run alone; it failed in 2 of 3 full runs on this tree and once in
+CI on `2198dc4`), and a DTLS `TLS handshake error -30464` line that the script's `^ERROR:` filter flags. The sample sizes cannot separate the two trees
+(prediction check about 6 of 19 vs 2 of 17 runs), so a small effect of the new default cannot be ruled out. Sending the invalid probes three times over did
+not help and was reverted. Nothing in the changed prediction code path is active when no stamina rule is configured (the multiplier is 1.0).
+
+CI note: GitHub's *Validate integration* is red on `2198dc4` (`test:multiplayer`, `invalid:b-n@60ms+2%`) and skipped the backend, application and
+Godot-import steps after it. See RELEASE_CHECKLIST A1. Not fixed here.
+
 ## Done (merged on `ccr-a4637d6e-lypbb4`; see "Verification" for what was actually run)
 
 * Combat: six fighters (King behind `allow_experimental_roles`), data-driven balance (`godot/combat/data/balance_v1.json`),
@@ -56,6 +124,9 @@ This supersedes the earlier "combat on the board" / "board expansion" wording.
 | Contract v2 handshake (tuning stamp, `actionId`, buff field) | proposed in `docs/network/ONLINE_COMBAT.md`, not implemented (v1 is immutable) |
 | Android build in the sandbox | blocked: `dl.google.com` returns 403 from the sandbox proxy; use the GitHub Actions artifact |
 | Board asset adoption (GLB chess set, trapdoor/frame assets) | pit world uses procedural versions; adoption partly pending in the chess-ai worker |
+| Friends | built and verified headless and end to end; open: blocking/reporting, friend chat, push notifications (polling only), real devices and the Internet |
+| Ladder climb | fixed and test-covered (`pit_climb`); open: a person's look on a real GPU/device, and the online pit transition above |
+| Timing-sensitive multiplayer tests | `test:multiplayer` fails intermittently (see RELEASE_CHECKLIST A1); CI is red on `2198dc4` until it is stabilised |
 | Real-device QA, performance on phones, production signing, deployment | cannot be done here |
 
 ## Next steps

@@ -580,9 +580,11 @@ static func _soak(h, tree: SceneTree) -> void:
 			var attacker := "w" if seed_value % 2 == 0 else "b"
 			var report: Dictionary = await Soak._play(tree, white, black, attacker, seed_value)
 			var label := "%s(w) vs %s(b) attacker %s" % [white, black, attacker]
+			# "> 1 event": with the attacker's advantage a Pawn can end a Knight in two hits (3 events in all), so a higher floor
+			# would call a legitimate quick knockout a failure. The invariants are what this soak is for.
 			var ok: bool = report["started"] and not report["result"].is_empty() and report["result_valid"] and report["rejected"] == 0 \
 					and report["invalid_snapshots"] == 0 and report["out_of_bounds"] == 0 and float(report["min_gap"]) >= 0.74 \
-					and float(report["max_radius"]) <= WALL_VERTEX_RADIUS - 0.37 and int(report["total_events"]) > 3
+					and float(report["max_radius"]) <= WALL_VERTEX_RADIUS - 0.37 and int(report["total_events"]) > 1
 			if not ok:
 				var detail := {}
 				for key in ["started", "rejected", "invalid_snapshots", "out_of_bounds", "min_gap", "max_radius", "total_events", "result_valid"]:

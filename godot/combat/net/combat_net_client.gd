@@ -17,6 +17,7 @@ extends RefCounted
 
 const Codec := preload("res://contracts/codec.gd")
 const Predictor := preload("res://combat/net/movement_predictor.gd")
+const Balance := preload("res://combat/data/balance_data.gd")
 const S := CombatConstants.State
 
 const INTERP_DELAY_TICKS := 8      # ~2 snapshot intervals: survives one lost snapshot
@@ -68,6 +69,7 @@ var _yaw := 0.0
 var _lock := true
 var _sprint := false
 var _block := false
+var _cost_mult := 1.0          # this seat's stamina cost multiplier (attacker's advantage); scales every cost below
 var _local_tick := 0
 var _offset_window: Array[float] = []
 var _seen_events: Dictionary = {}
@@ -96,7 +98,11 @@ func _init(p_request: Dictionary, p_local_id: String, p_send: Callable, external
 	var other: Dictionary = request["defender"] if request["attacker"]["playerId"] == local_id else request["attacker"]
 	opponent_id = other["playerId"]
 	role = me["role"]
-	params = Predictor.params_for(role, me["stats"])
+	# The attacker's advantage includes a per-seat stamina rule (data/balance_v1.json): every cost is scaled for this seat.
+	var king_involved: bool = me["role"] == "k" or other["role"] == "k"
+	var stamina_rule := Balance.stamina_edge()
+	_cost_mult = 1.0 if king_involved else float(stamina_rule["attacker_cost"] if request["attacker"]["playerId"] == local_id else stamina_rule["defender_cost"])
+	params = Predictor.params_for(role, me["stats"], _cost_mult)
 	radius = float(params["radius"])
 	opp_radius = float(FighterProfile.for_role(other["role"]).get("radius", 0.4))
 	builder = external_builder if external_builder != null else CombatInputBuilder.new(request["matchId"], request["battleId"], local_id)
@@ -353,13 +359,13 @@ func _can_predict(action: String) -> bool:
 	var profile := FighterProfile.for_role(role)
 	match action:
 		"light":
-			return stamina >= AttackLibrary.light(role, 0).stamina_cost
+			return stamina >= AttackLibrary.light(role, 0).stamina_cost * _cost_mult
 		"heavy":
-			return stamina >= AttackLibrary.heavy(role).stamina_cost
+			return stamina >= AttackLibrary.heavy(role).stamina_cost * _cost_mult
 		"dodge":
-			return stamina >= float(profile["dodge_cost"])
+			return stamina >= float(profile["dodge_cost"]) * _cost_mult
 		"parry":
-			return stamina >= float(profile["parry_cost"])
+			return stamina >= float(profile["parry_cost"]) * _cost_mult
 		"ability":
 			var ability_id: String = String((request["attacker"] if request["attacker"]["playerId"] == local_id else request["defender"])["stats"]["abilityId"])
 			var definition: Dictionary = AbilityComponent.DEFINITIONS.get(ability_id, {})
@@ -367,7 +373,7 @@ func _can_predict(action: String) -> bool:
 				return false
 			if definition.has("hp_threshold") and float(me["hp"]) > float(definition["hp_threshold"]) * _max_hp():
 				return false
-			return stamina >= float(definition.get("stamina_cost", 0.0))
+			return stamina >= float(definition.get("stamina_cost", 0.0)) * _cost_mult
 	return false
 
 

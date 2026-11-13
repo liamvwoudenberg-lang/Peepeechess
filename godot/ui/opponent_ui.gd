@@ -46,7 +46,7 @@ static func _toggle(parent: Node, text: String, pressed: bool, node_name: String
 	button.text = text
 	button.toggle_mode = true
 	button.button_pressed = pressed
-	button.custom_minimum_size.y = 44
+	button.custom_minimum_size = Vector2(44, 44)  # a one-digit level button must still be a full-size target
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	style_toggle(button)
 	# `pressed` (not `toggled`) so a click always selects, never un-selects.

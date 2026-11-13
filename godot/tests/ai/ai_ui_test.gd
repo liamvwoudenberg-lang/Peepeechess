@@ -42,6 +42,7 @@ func launch_game(launch: Dictionary) -> Control:
 func run() -> void:
 	root.size = Vector2i(1280, 800)
 	Settings.loaded = true
+	Settings.intro_seen = true   # start on a page, not on the opening screen
 	Settings.preferred_3d = false
 	Settings.token = ""
 	Settings.account.clear()

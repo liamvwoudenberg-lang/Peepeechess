@@ -46,3 +46,18 @@ GitHub is the shared source of truth for Codex and Claude Code.
   scene smoke commands in TOOLCHAIN.md. Report checks you actually ran.
 - No ranked/native crossplay, export, device validation, or deployment is implied
   by this foundation. Do not advertise unimplemented functionality.
+
+## Downloadable Windows build (after major changes)
+
+When a task finishes a **major change** (new feature, gameplay/balance change, UI overhaul, or a fix that changes how
+the game plays), the latest version must be downloadable from GitHub:
+
+1. Push the committed change. `.github/workflows/latest-windows-exe.yml` builds the exe on every push that changes the game and on
+   demand (Actions > Latest Windows exe); the exe is the artifact `Peepeechess-windows-x86_64`. On `main` the same workflow
+   refreshes the rolling `latest-windows` pre-release. Check the run succeeded (Actions) and report its link.
+2. The exe is too big (about 200 MB zipped) to commit: never add it to the repository (GitHub rejects files over 100 MB);
+   `downloads/windows/LATEST.md` explains where to get it. `tools/package/publish_download.sh` is only for builds under 95 MB.
+3. If `release-windows.yml` is dispatchable (it exists on the default branch), also publish a GitHub Release with it.
+4. Say in the report where the file is and that it was never run on a real Windows PC.
+
+Minor changes (docs, typos, small tweaks, test-only changes) do not need a new build.

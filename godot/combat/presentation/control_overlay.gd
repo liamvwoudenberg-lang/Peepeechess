@@ -425,6 +425,35 @@ func _relayout() -> void:
 			while size_fs > 10 and _hits(Rect2(panel.position, panel.size).grow(margin * 0.5), obstacles):
 				size_fs -= 1
 				_place(panel, size_fs, safe, margin, top, pause_right)
+	_layout_args = [safe, margin, top, pause_right]
+	_fit_fs = fs
+
+
+var _layout_args: Array = []
+var _fit_fs := 0
+
+static func _width_of(panel: Control) -> float:
+	return maxf(panel.size.x, panel.get_combined_minimum_size().x)
+
+
+## Two full legends side by side must not run into each other or off the screen on a narrow viewport (a phone in portrait, UI scale
+## 150 %). Their real widths are only known once the labels are laid out (and change when the rows are filled), so this runs every frame
+## and shrinks the type one step at a time (down to 10 px) while the pair does not fit between the margins.
+func _fit_step() -> void:
+	if _layout_args.is_empty() or _fit_fs <= 10:
+		return
+	var shown: Array = []
+	for panel in _panels:
+		if panel.visible:
+			shown.append(panel)
+	if shown.size() != 2:
+		return
+	var safe: Rect2 = _layout_args[0]
+	var margin: float = _layout_args[1]
+	while _fit_fs > 10 and _width_of(shown[0]) + _width_of(shown[1]) + margin * 3.0 > safe.size.x:
+		_fit_fs -= 1
+		for panel in shown:
+			_place(panel, _fit_fs, safe, margin, _layout_args[2], _layout_args[3])
 
 
 func _place(panel: SeatPanel, fs: int, safe: Rect2, margin: float, top: float, pause_right: float) -> void:
@@ -436,7 +465,8 @@ func _place(panel: SeatPanel, fs: int, safe: Rect2, margin: float, top: float, p
 		if String(panel.seat.get("scheme", "")) == "touch":
 			x = maxf(x, pause_right + margin)  # keep clear of the PAUSE button
 	else:
-		x = safe.end.x - margin - panel.size.x
+		# the title label can still be widening after reset_size(): place by the larger of the two, never past the left edge
+		x = maxf(safe.position.x + margin, safe.end.x - margin - maxf(panel.size.x, panel.get_combined_minimum_size().x))
 	panel.position = Vector2(x, maxf(top, safe.position.y))
 
 
@@ -480,6 +510,12 @@ func _process(delta: float) -> void:
 		var next := _pending
 		_pending = -1
 		_set_mode_now(next)
+	# A right-hand legend is placed by the width it had at layout time; its labels can still widen a frame later (fresh preferences:
+	# the full legend, in a narrow viewport). Pull it back inside rather than let it run off the right edge.
+	_fit_step()
+	for panel in _panels:
+		if panel.visible and panel.side == 1 and _last_view.x > 0.0 and panel.position.x + panel.size.x > _last_view.x - 1.0:
+			panel.position.x = maxf(0.0, _last_view.x - 10.0 - panel.size.x)
 	_sync_root()
 
 

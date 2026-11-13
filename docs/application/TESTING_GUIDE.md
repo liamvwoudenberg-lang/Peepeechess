@@ -153,8 +153,12 @@ Not verified on real hardware, and where you are most likely to find problems:
 - Online play across the public Internet, DTLS certificates, Windows-to-Android crossplay, behaviour on bad networks.
 - Balance and feel of Battle Chess (tuned with bots, not by human play); art is generated placeholder quality.
 
-Not implemented yet: the trapdoor/pit transition between board and arena (captures show the older arena overlay),
-a computer opponent for Classic Chess, King fights in the app (Kings never enter combat in the current C0 rules),
-Windows code signing, a Play Store release, and a store-signed Android build.
+Implemented for **local** play since this guide was first written (see `DEVELOPMENT_STATUS.md`): the trapdoor/pit transition between
+board and arena, a six-level computer opponent (untuned beyond bot self-play), and the opt-in King's last stand ruleset
+(`battle-royal-v1`; the default C0 rules still never put a King into combat).
+
+Not implemented yet: the pit transition for **online** matches (online captures still use the older arena overlay), King's last stand
+over the network (the wire contract exists, the server and client are not wired), Windows code signing, a Play Store release, and a
+store-signed Android build.
 
 Support: the Windows build runs on x86_64 only; ARM Windows relies on Windows' x64 emulation and is untested.

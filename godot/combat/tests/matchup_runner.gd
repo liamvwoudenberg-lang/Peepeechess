@@ -118,7 +118,7 @@ static func make_rig(tree: SceneTree, white_role: String, black_role: String, at
 	rig.sim = CombatSimulation.new()
 	tree.root.add_child(rig.sim)
 	var request := FighterRoster.build_request(white_role, black_role, attacker, battle_id, 7, start_tick)
-	var reply: Dictionary = rig.sim.start(request, {"allow_experimental_roles": true})
+	var reply: Dictionary = rig.sim.start(request, {"allow_experimental_roles": true, "attacker_edge": false})  # raw frame data
 	assert(reply["ok"], "rig start failed: %s" % str(reply))
 	await tree.physics_frame
 	rig.w = Support.Seat.new()

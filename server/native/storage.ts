@@ -19,6 +19,15 @@ const schema = [
   `CREATE TABLE IF NOT EXISTS native_queue (player_id TEXT PRIMARY KEY REFERENCES native_accounts(player_id), mode TEXT NOT NULL, ranked INTEGER NOT NULL, initial_ms INTEGER NOT NULL, increment_ms INTEGER NOT NULL, entered_at BIGINT NOT NULL, touched_at BIGINT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS native_invites (code TEXT PRIMARY KEY, player_id TEXT NOT NULL UNIQUE REFERENCES native_accounts(player_id), options_json TEXT NOT NULL, expires_at BIGINT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS native_tickets (token_hash TEXT PRIMARY KEY, player_id TEXT NOT NULL REFERENCES native_accounts(player_id), match_id TEXT NOT NULL REFERENCES native_matches(match_id), expires_at BIGINT NOT NULL)`,
+  // Friends. One row per pair: the requester asked, the addressee accepts (status becomes 'accepted'). Pair uniqueness across
+  // both directions is enforced by the service inside its transaction.
+  `CREATE TABLE IF NOT EXISTS native_friendships (requester_id TEXT NOT NULL REFERENCES native_accounts(player_id), addressee_id TEXT NOT NULL REFERENCES native_accounts(player_id), status TEXT NOT NULL CHECK (status IN ('pending','accepted')), created_at BIGINT NOT NULL, PRIMARY KEY(requester_id,addressee_id))`,
+  `CREATE INDEX IF NOT EXISTS native_friendships_addressee ON native_friendships(addressee_id,status)`,
+  // A friend challenge is a private invite that only one player may join. Deleting the invite (cancel, expiry, matched,
+  // sender queues elsewhere) removes the challenge with it, so no separate cleanup exists.
+  `CREATE TABLE IF NOT EXISTS native_challenges (code TEXT PRIMARY KEY REFERENCES native_invites(code) ON DELETE CASCADE, target_player_id TEXT NOT NULL REFERENCES native_accounts(player_id), side TEXT NOT NULL CHECK (side IN ('white','black','random')))`,
+  `CREATE INDEX IF NOT EXISTS native_challenges_target ON native_challenges(target_player_id)`,
+  `CREATE TABLE IF NOT EXISTS native_presence (player_id TEXT PRIMARY KEY REFERENCES native_accounts(player_id), seen_at BIGINT NOT NULL)`,
 ];
 
 /** SQL is parameterized. PostgreSQL transactions use a shared advisory lock to

@@ -80,10 +80,15 @@ static func _soak(h, tree: SceneTree) -> void:
 		h.eq(r["rejected"], 0, "the AI never had an input rejected")
 		h.eq(r["invalid_snapshots"], 0, "every sampled snapshot is schema-valid")
 		h.eq(r["out_of_bounds"], 0, "HP, stamina and positions stayed in bounds")
-		h.check(float(r["max_radius"]) <= 7.1 - 0.37, "nobody ever got through the arena wall (max radius %.2f)" % float(r["max_radius"]))
+		# The 24-sided wall's inner faces are tangent to the 7.1 m circle, so a fighter can legitimately stand in a corner up to
+		# 7.1 / cos(pi / 24) from the centre minus their radius (test_roles.gd uses the same bound). The original bound 7.1 - 0.37 was only
+		# ever met because the short duels never reached a corner; the longer duels (BALANCE.md "Duel length") do, at 6.78 m.
+		h.check(float(r["max_radius"]) <= CombatConstants.ARENA_WALL_RADIUS / 0.99144486 - 0.37, "nobody ever got through the arena wall (max radius %.2f)" % float(r["max_radius"]))
 		h.check(float(r["min_gap"]) >= 0.74, "fighters never overlapped (closest %.2f m)" % float(r["min_gap"]))
 		h.check(int(r["ticks"]) <= 180 + 5400, "ended within the time limit (%d ticks)" % int(r["ticks"]))
-		h.check(int(r["total_events"]) > 5, "the fight actually happened (%d events)" % int(r["total_events"]))
+		# More than a single event: with the attacker's advantage a Pawn can end a Knight in two hits (3 events). The invariants above
+		# (no rejected input, bounds, a valid result) are what this soak is for.
+		h.check(int(r["total_events"]) > 1, "the fight actually happened (%d events)" % int(r["total_events"]))
 		if not r["result"].is_empty():
 			wins[r["result"]["outcome"]] += 1
 			reasons[r["result"]["reason"]] = int(reasons.get(r["result"]["reason"], 0)) + 1

@@ -77,6 +77,17 @@ export async function createNativeBackend(options: BackendOptions) {
   app.get("/v1/status", wrap(async req => service.getStatus(await account(req))));
   app.post("/v1/private", wrap(async req => service.createPrivate(await account(req), req.body)));
   app.post("/v1/private/join", wrap(async req => service.joinPrivate(await account(req), req.body)));
+  // Friends. Mutations return the full snapshot so a client can redraw from one response. Accepting a challenge is POST /v1/private/join.
+  app.get("/v1/friends", wrap(async req => service.getFriends(await account(req))));
+  app.post("/v1/friends/request", wrap(async req => {
+    const player = await account(req);
+    if (!limit.allow("friend-request:" + player, 30, 3600000, now())) throw new ApiError(429, "RATE_LIMITED", "Too many friend requests. Try again later.");
+    return service.friendRequest(player, req.body);
+  }));
+  app.post("/v1/friends/accept", wrap(async req => service.friendAccept(await account(req), req.body)));
+  app.post("/v1/friends/remove", wrap(async req => service.friendRemove(await account(req), req.body)));
+  app.post("/v1/friends/challenge", wrap(async req => service.challenge(await account(req), req.body)));
+  app.post("/v1/friends/challenge/decline", wrap(async req => service.declineChallenge(await account(req), req.body)));
   app.post("/v1/tickets", wrap(async req => service.issueTicket(await account(req), req.body)));
   app.post("/internal/tickets/redeem", wrap(async req => service.redeemTicket(serverAuth(req), req.body)));
   app.post("/internal/heartbeat", wrap(async req => service.heartbeat(serverAuth(req), req.body)));

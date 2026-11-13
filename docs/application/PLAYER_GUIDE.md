@@ -13,6 +13,14 @@ offers additional controls and untimed practice. Battle uses the integrated C0
 rules: untimed chess, legal capture duels, and traditional checkmate. Kings do
 not enter combat in C0. Local combat retains the existing two-seat controls.
 
+**The attacker's advantage (Battle Chess).** As in chess, the side that attacks has the initiative. In every
+matchup the attacker is meant to win a little more often than the defender, so a Pawn attacking a Queen has a real chance,
+and a Queen attacking a Pawn does not get a free win. The weaker fighter of a pairing hits harder for that duel (the card
+before the fight says by how much: "Underdog bonus: the attacker's blows hit x2.6 harder"); nobody is ever weakened. This is
+tuned with computer-controlled fighters, not with people, so it is a starting point: if it feels wrong, tell us which
+pairing and what happened. Kings are not affected. The numbers are in `godot/combat/data/balance_v1.json`, and
+`godot/combat/BALANCE.md` explains how they were measured.
+
 Both local boards retain selection, legal move hints, promotion, move history,
 animations and their existing mouse/touch interactions. Local practice permits
 undo and FEN import. These actions are unavailable in authoritative online play.
@@ -41,6 +49,13 @@ this version; retain your credentials.
 - **Private match:** create an invite, copy its six-character code and share it
   with the other player. The other player enters the code and chooses Join.
   Private games are unranked. Codes expire after ten minutes.
+- **Friends:** open **Friends**, type a friend's username and send a request. Once they accept, you appear in each other's
+  lists with a dot that shows whether they are online or in a match, and their ratings. Choose **Challenge** on a friend to pick
+  Classic or Battle, a time control and your colour (White, Black or Random). Your friend sees it on their Friends page (the
+  Friends button shows a number when something is waiting, and a notice appears on other pages) and chooses **Accept**. From
+  there it is an ordinary online match: ready check, authoritative server, reconnect. Friend games are always unranked, and a
+  challenge lasts ten minutes. **Remove** unfriends someone, and also declines a request or cancels one you sent. There is no
+  blocking, chat or push notification yet; the page refreshes every few seconds while it is open.
 - **Ready:** after allocation, each player confirms Ready in the match lobby.
   The dedicated server owns the chess position, clocks, combat and final result.
 - **Reconnect:** the running client automatically attempts to recover its ENet
@@ -78,11 +93,19 @@ rating change or choose a competitive winner.
 - Low quality uses a 30 FPS presentation limit without antialiasing. Balanced
   targets 60 FPS with 2× antialiasing. High uses 4× antialiasing and uncapped FPS.
   These settings do not change the server's fixed simulation rate.
+- Display (Windows and Linux): Settings, Graphics offers **Windowed** and **Full screen** (a borderless window that covers the screen).
+  **F11** or **Alt+Enter** switches at any time, in menus, on the board and during a duel; Esc is not used for this. The choice is
+  saved per device and applied at start-up, so the opening screen is already full screen. Android is always full screen and shows
+  no Display choice. The control is reachable with a controller like every other setting.
 - Mouse / touch: select and move a piece by tapping or dragging. In 3D,
   right-drag or swipe orbits the board; scroll or pinch zooms.
-- Controller: d-pad and accept/back navigate focused controls. The left stick
-  enables a virtual pointer; A clicks at its position on either board. The
-  pointer yields to the existing combat controller when a duel begins.
+- Controller: d-pad and accept/back navigate focused controls. On the board the
+  d-pad or left stick moves the board cursor and A selects and moves. In menus
+  and on the capture card, A presses the focused button. The left stick also
+  works as a pointer in menus: A clicks where it rests only when it points at a
+  different button or nothing has the focus (a focused "Start battle" always
+  wins over a pointer parked elsewhere). The pointer yields to the board cursor
+  and to the combat controller when a duel begins.
 - Online combat offers keyboard / mouse, a gamepad scheme and virtual touch
   controls. Esc releases a captured combat mouse.
 

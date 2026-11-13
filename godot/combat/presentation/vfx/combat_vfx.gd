@@ -51,6 +51,13 @@ var _numbers: Array[Dictionary] = []
 var _fx: Dictionary = {}              # player_id -> per-fighter tracking {prev_state, prev_pos, trails, body_trail}
 var _hold: int = 0
 var _time: float = 0.0
+## Final-blow slow motion (presentation): Engine.time_scale briefly drops so the knockout lands. ONLY when a real window is open and
+## the fight is local (the arena enables it): online the server's clock cannot be slowed, tests run headless at fixed time.
+var allow_slowmo: bool = false
+const SLOWMO_SCALE := 0.3
+const SLOWMO_REAL_SECONDS := 0.55
+var _slowmo_end_msec: int = 0
+var _ghost_clock: float = 0.0
 
 
 static func configure_from_args() -> void:
@@ -321,6 +328,30 @@ func hold_frames() -> int:
 	return _hold
 
 
+## True while the final-blow slow motion is running.
+func slowmo_active() -> bool:
+	return _slowmo_end_msec > 0
+
+
+func request_slowmo(real_seconds: float = SLOWMO_REAL_SECONDS) -> bool:
+	if not allow_slowmo or reduce_motion or _slowmo_end_msec > 0:
+		return false
+	Engine.time_scale = SLOWMO_SCALE
+	_slowmo_end_msec = Time.get_ticks_msec() + int(real_seconds * 1000.0)
+	stats["slowmos"] = int(stats.get("slowmos", 0)) + 1
+	return true
+
+
+func _end_slowmo() -> void:
+	if _slowmo_end_msec > 0:
+		_slowmo_end_msec = 0
+		Engine.time_scale = 1.0
+
+
+func _exit_tree() -> void:
+	_end_slowmo()  # never leave the whole game slowed down
+
+
 # ---- events ----------------------------------------------------------------------------------
 func on_event(event: Dictionary) -> void:
 	if sim == null:
@@ -339,14 +370,22 @@ func on_event(event: Dictionary) -> void:
 	var ids := [actor.player_id, target.player_id]
 	match kind:
 		"hit":
-			var damage := int(event["damage"])
-			var power := clampf(float(damage) / 40.0, 0.2, 1.0)
+			var damage := int(event["damage"])   # the HP actually removed (the number shown)
+			var felt := sim.felt_damage(damage)   # the blow's strength before the duel-length scale (the feel)
+			var power := clampf(float(felt) / 40.0, 0.2, 1.0)
 			spawn_sprite(contact, 0.2 + 0.35 * power, 0.5 + 0.7 * power, Color(1.0, 0.8, 0.5, 0.75), 0.14)
 			spawn_sparks(contact, dir + Vector3(0, 0.25, 0), 5 + int(power * 7.0), Color(1.0, 0.75, 0.4, 0.9), 3.0 + 2.0 * power)
-			spawn_number(target.global_position + Vector3(0, 2.05, 0), damage, Color(1.0, 0.85, 0.6) if damage < 20 else Color(1.0, 0.55, 0.3))
-			request_hitstop(ids, 2 + damage / 18)
-			_target_react(target, "hit", damage, dir)
-			_camera_event("heavy_hit" if damage >= 20 else "hit", 0.08 + 0.2 * power, dir)
+			if damage > 0:   # a graze that only builds up the carried fraction takes no whole HP: no number
+				spawn_number(target.global_position + Vector3(0, 2.05, 0), damage, Color(1.0, 0.85, 0.6) if felt < 20 else Color(1.0, 0.55, 0.3))
+			request_hitstop(ids, 2 + felt / 18)
+			_target_react(target, "hit", felt, dir)
+			_camera_event("heavy_hit" if felt >= 20 else "hit", 0.08 + 0.2 * power, dir)
+			if not target.health.is_alive():   # the knockout blow: bigger burst, a heavy camera punch and slow motion
+				spawn_sprite(contact, 0.4, 2.2, Color(1.0, 0.95, 0.8, 0.8), 0.3, "ring")
+				spawn_sparks(contact, dir + Vector3(0, 0.4, 0), 14, Color(1.0, 0.85, 0.5, 1.0), 5.0, 1.2)
+				request_hitstop(ids, 5)
+				_camera_event("final", 0.45, dir)
+				request_slowmo()
 		"block":
 			spawn_sprite(contact, 0.2, 0.55, Color(0.6, 0.8, 1.0, 0.7), 0.12)
 			spawn_sparks(contact, -dir + Vector3(0, 0.3, 0), 7, Color(0.7, 0.85, 1.0, 0.9), 2.8, 0.9)
@@ -357,6 +396,7 @@ func on_event(event: Dictionary) -> void:
 			# actor = the attacker whose blow was parried; target = the parrier. Distinct gold, larger, then a short freeze.
 			spawn_sprite(contact, 0.3, 2.0, Color(1.0, 0.85, 0.35, 0.85), 0.3, "ring")
 			spawn_sprite(contact, 0.25, 0.9, Color(1.0, 1.0, 0.85, 0.8), 0.12)
+			spawn_sprite(target.global_position + Vector3(0, 0.08, 0), 0.5, 4.2, Color(1.0, 0.9, 0.5, 0.35), 0.4, "ring")  # ground shockwave
 			spawn_sparks(contact, -dir + Vector3(0, 0.2, 0), 12, Color(1.0, 0.88, 0.45, 0.95), 4.2, 1.0)
 			request_hitstop(ids, 5)
 			_target_flash(target, Color(1.0, 0.82, 0.3), 0.4)
@@ -365,7 +405,8 @@ func on_event(event: Dictionary) -> void:
 		"guardbreak":
 			spawn_sprite(contact, 0.3, 1.1, Color(1.0, 0.25, 0.15, 0.8), 0.22)
 			spawn_sparks(contact, dir + Vector3(0, 0.3, 0), 10, Color(1.0, 0.3, 0.2, 0.9), 3.5, 1.0)
-			spawn_number(target.global_position + Vector3(0, 2.05, 0), int(event["damage"]), Color(1.0, 0.4, 0.3))
+			if int(event["damage"]) > 0:
+				spawn_number(target.global_position + Vector3(0, 2.05, 0), int(event["damage"]), Color(1.0, 0.4, 0.3))
 			request_hitstop(ids, 4)
 			_target_flash(target, Color(1.0, 0.2, 0.12), 0.45)
 			_camera_event("guardbreak", 0.3, dir)
@@ -437,6 +478,11 @@ func on_result(result: Dictionary) -> void:
 			continue
 		m.set_outcome(f.player_id == winner_id and not double_ko)
 	var winner := sim.fighter_by_id(winner_id)
+	for f in sim.fighters:
+		if f.player_id != winner_id or double_ko:
+			var base := f.global_position
+			spawn_sprite(base + Vector3(0, 0.08, 0), 0.6, 3.4, Color(0.9, 0.35, 0.2, 0.45), 0.9, "ring")
+			spawn_sparks(base + Vector3(0, 0.9, 0), Vector3.UP, 16, Color(1.0, 0.55, 0.25, 0.9), 2.4, 1.6)
 	for cam in cameras:
 		if is_instance_valid(cam) and cam.has_method("set_finish"):
 			cam.set_finish(winner if not double_ko else null)
@@ -444,6 +490,8 @@ func on_result(result: Dictionary) -> void:
 
 # ---- per-frame -------------------------------------------------------------------------------
 func _process(delta: float) -> void:
+	if _slowmo_end_msec > 0 and Time.get_ticks_msec() >= _slowmo_end_msec:
+		_end_slowmo()
 	if sim == null or sim.fighters.size() < 2:
 		return
 	var dt := delta
@@ -546,6 +594,13 @@ func _track_fighter(f: FighterController, dt: float) -> void:
 		var back := -f.sm.dodge_dir
 		spawn_sprite(pos + Vector3(0, 0.08, 0) + back * 0.3, 0.5, 1.1, Color(0.8, 0.85, 0.9, 0.22), 0.25)
 		spawn_sparks(pos + Vector3(0, 0.1, 0), back, 3, Color(0.85, 0.85, 0.8, 0.35), 1.2, 1.0)
+	# --- dodge afterimage: faint ghosts left along the path, every ~3 frames while the roll lasts
+	if state == S.DODGING:
+		_ghost_clock += dt
+		if _ghost_clock >= 0.05:
+			_ghost_clock = 0.0
+			var tint: Color = info["trail_color"]
+			spawn_sprite(pos + Vector3(0, 1.0, 0), 0.9, 0.7, Color(tint.r, tint.g, tint.b, 0.28), 0.22)
 	# --- blink: origin + destination flashes (a position jump while casting), trail reset
 	var jumped := (pos - prev_pos).length() > 2.0 and prev_state != -1
 	if jumped and state == S.ABILITY_CASTING:
@@ -649,3 +704,4 @@ func reset_effects() -> void:
 		if _fx[pid]["body_trail"] != null:
 			_fx[pid]["body_trail"].clear()
 	_hold = 0
+	_end_slowmo()

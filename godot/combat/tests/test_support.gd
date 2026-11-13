@@ -79,14 +79,16 @@ class Rig:
 
 ## Creates a running (countdown phase) battle. A physics frame is awaited so world colliders
 ## are registered before the first tick. `attacker` is the seat that initiated the capture.
+## `options` go to CombatSimulation.start(). The default switches the attacker's advantage OFF: the suites that use this rig assert
+## raw frame data (damage, stagger, costs); the advantage itself is tested in test_attacker_edge.gd.
 static func make_rig(tree: SceneTree, white_role: String, black_role: String, attacker: String = "w",
-		start_tick: int = 0, battle_id: String = "t-1") -> Rig:
+		start_tick: int = 0, battle_id: String = "t-1", options: Dictionary = {"attacker_edge": false}) -> Rig:
 	var rig := Rig.new()
 	rig.tree = tree
 	rig.sim = CombatSimulation.new()
 	tree.root.add_child(rig.sim)
 	var request := FighterRoster.build_request(white_role, black_role, attacker, battle_id, 7, start_tick)
-	var reply: Dictionary = rig.sim.start(request)
+	var reply: Dictionary = rig.sim.start(request, options)
 	assert(reply["ok"], "rig start failed: %s" % str(reply))
 	await tree.physics_frame
 	rig.w = Seat.new()

@@ -54,6 +54,14 @@ const RESOLVE_DEFEAT_TIME := 1.3     # loser plays its defeat, then dissolves
 const RESOLVE_DISSOLVE_TIME := 0.5
 const LADDER_DEPLOY_TIME := 0.6
 const CLIMB_WALK_SPEED := 2.2
+## The winner stows its weapon and shield over the last STOW_TIME seconds of the walk to the ladder foot, so they are gone as the
+## climb starts. The props were not authored for a 1 m shaft: unstowed, a spear/staff/sword or a tower shield reaches 0.2-0.5 m
+## sideways and up to 0.76 m front-to-back beyond the opening and passes through the ceiling slab, the shaft wall and the ladder.
+const STOW_TIME := 0.35
+## The winner walks to the ladder foot around the arena's pillars, keeping pillar radius + WALK_BODY_RADIUS + WALK_MARGIN from each
+## pillar centre (a straight line crosses a pillar when the duel ended in the corner behind it).
+const WALK_BODY_RADIUS := 0.45
+const WALK_MARGIN := 0.1
 const CLIMB_SPEED := 1.6             # metres per second up the ladder
 const CLIMB_EXIT_TIME := 0.5         # step from the ladder onto the tile
 const RETURN_MORPH_TIME := 0.45

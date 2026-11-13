@@ -30,7 +30,7 @@ const SCHEMA := 1
 const PROFILE_STR_KEYS := ["display", "weapon"]
 const PROFILE_INT_KEYS := [
 	"poise_regen_delay", "stagger_immunity_ticks", "stamina_regen_delay", "guardbreak_stun",
-	"parry_recovery_ticks", "parry_cooldown_ticks", "parry_stagger_ticks", "riposte_ticks",
+	"parry_recovery_ticks", "parry_cooldown_ticks", "parry_stagger_ticks", "parry_window_bonus", "riposte_ticks",
 	"dodge_ticks", "dodge_iframe_start", "dodge_iframe_end", "dodge_cooldown_ticks", "hit_react_ticks",
 ]
 const PROFILE_FLOAT_KEYS := [
@@ -133,6 +133,70 @@ static func has_ability(id: String) -> bool:
 	return _active["abilities"].has(id)
 
 
+## The duel-length scale (BALANCE.md "Duel length") for one pairing: the multiplier on every blow's HP damage in that duel. 1.0 = the
+## raw frame data; < 1.0 makes the duel last longer without touching HP (the contract's units), stamina, timings or the attacker's
+## edge. A pairing without an entry (a King on either side, for instance) gets the section's default, 1.0 when the data has none.
+static func damage_scale(attacker_role: String = "", defender_role: String = "") -> float:
+	_ensure()
+	var section: Dictionary = _active.get("duel_length", {})
+	var pairs: Dictionary = section.get("pairs", {})
+	if pairs.has(attacker_role + defender_role):
+		return float(pairs[attacker_role + defender_role])
+	return float(section.get("damage_scale", 1.0))
+
+
+## The fight length the per-pairing scales were calibrated for, in seconds (0 when the data has none). Informational.
+static func duel_target_seconds() -> float:
+	_ensure()
+	return float(_active.get("duel_length", {}).get("target_seconds", 0.0))
+
+
+## The stamina rule of the attacker's advantage: {"attacker_cost": 0..1, "defender_cost": 1..4, "defender_regen": 0.1..1}. The attacker's
+## costs are multiplied by attacker_cost (0 = unlimited stamina), the defender's by defender_cost and its regeneration by
+## defender_regen. Neutral (all 1.0) when the data has none.
+static func stamina_edge() -> Dictionary:
+	_ensure()
+	var rule: Dictionary = _active.get("attacker_edge", {}).get("stamina", {})
+	return {"attacker_cost": float(rule.get("attacker_cost", 1.0)), "defender_cost": float(rule.get("defender_cost", 1.0)), "defender_regen": float(rule.get("defender_regen", 1.0))}
+
+
+## Plain-language description of the attacker's advantage for a pairing, for the pre-duel card ("" when there is none, for example
+## when a King is involved). The numbers are the shipped data, so the card can never disagree with the fight.
+static func describe_edge(attacker_role: String, defender_role: String) -> String:
+	if attacker_role == "k" or defender_role == "k":
+		return ""
+	var parts: Array[String] = []
+	var rule := stamina_edge()
+	if rule["attacker_cost"] <= 0.0:
+		parts.append("The attacker has unlimited stamina.")
+	elif rule["attacker_cost"] < 0.999:
+		parts.append("The attacker's stamina costs x%s." % String.num(rule["attacker_cost"], 2))
+	if rule["defender_cost"] > 1.001 or rule["defender_regen"] < 0.999:
+		var text := "The defender's stamina costs x%s" % String.num(rule["defender_cost"], 2)
+		if rule["defender_regen"] < 0.999:
+			text += " and recovers %d%% slower" % roundi((1.0 - rule["defender_regen"]) * 100.0)
+		parts.append(text + ".")
+	var pair := attacker_edge(attacker_role, defender_role)
+	if pair[0] > 1.001:
+		parts.append("Underdog bonus: the attacker's blows hit x%s harder." % String.num(pair[0], 2))
+	if pair[1] > 1.001:
+		parts.append("Underdog bonus: the defender's blows hit x%s harder." % String.num(pair[1], 2))
+	return " ".join(parts)
+
+
+## The attacker's advantage for one pairing: [attacker_damage_mult, defender_damage_mult]. A duel is decided between the side that
+## chose to attack and the side that has to hold, so the attacker is given the initiative (see BALANCE.md "Attacker advantage").
+## Neutral [1.0, 1.0] when the pairing has no entry (a King on either side is deliberately neutral). Never below 1.0: nobody's
+## damage is reduced; the weaker side of the pairing is the one that is boosted.
+static func attacker_edge(attacker_role: String, defender_role: String) -> Array:
+	_ensure()
+	var pairs: Dictionary = _active.get("attacker_edge", {}).get("pairs", {})
+	var entry = pairs.get(attacker_role + defender_role, null)
+	if entry is Array and entry.size() == 2:
+		return [float(entry[0]), float(entry[1])]
+	return [1.0, 1.0]
+
+
 ## Attack tables for a role: {"light": Array[AttackDefinition], "heavy": AttackDefinition, "abilities": {id: def}}.
 ## The definitions are shared and cached until the data revision changes; treat them as read-only.
 static func attack_tables(role: String) -> Dictionary:
@@ -206,6 +270,10 @@ static func validate(data: Dictionary) -> Array:
 			errors.append("attacks.%s has no profile" % role)
 			continue
 		_validate_attacks(String(role), data["attacks"][role], data["abilities"], errors)
+	if data.has("duel_length"):
+		_validate_duel_length(data["duel_length"], data["profiles"], errors)
+	if data.has("attacker_edge"):
+		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
 	for id in data["abilities"]:
 		var def = data["abilities"][id]
 		if typeof(def) == TYPE_DICTIONARY and def.has("role"):
@@ -248,6 +316,65 @@ static func _merge(into: Dictionary, patch: Dictionary) -> Dictionary:
 		else:
 			into[key] = patch[key]
 	return into
+
+
+## attacker_edge = {"target": 0..1 (documentation: the attacker win rate it was calibrated for), "pairs": {"<attacker><defender>":
+## [attacker_damage_mult, defender_damage_mult]}}. Multipliers are 1..8 and at most one of the two is above 1 (the weaker side is
+## boosted, nobody is nerfed); keys are two role letters that have profiles; the King is not part of the table.
+static func _validate_duel_length(length, profiles: Dictionary, errors: Array) -> void:
+	if typeof(length) != TYPE_DICTIONARY:
+		errors.append("duel_length must be an object")
+		return
+	if not _is_number(length.get("damage_scale", null)) or float(length["damage_scale"]) < 0.02 or float(length["damage_scale"]) > 1.0:
+		errors.append("duel_length.damage_scale must be a number within 0.02..1")
+	if length.has("target_seconds") and (not _is_number(length["target_seconds"]) or float(length["target_seconds"]) < 0.0):
+		errors.append("duel_length.target_seconds must be a number >= 0")
+	var pairs = length.get("pairs", {})
+	if typeof(pairs) != TYPE_DICTIONARY:
+		errors.append("duel_length.pairs must be an object")
+		return
+	for key in pairs:
+		var name := String(key)
+		if name.length() != 2 or not profiles.has(name.substr(0, 1)) or not profiles.has(name.substr(1, 1)):
+			errors.append("duel_length.pairs.%s: the key must be attacker role + defender role" % name)
+		elif not _is_number(pairs[key]) or float(pairs[key]) < 0.02 or float(pairs[key]) > 1.0:
+			errors.append("duel_length.pairs.%s must be a number within 0.02..1" % name)
+
+
+static func _validate_attacker_edge(edge, profiles: Dictionary, errors: Array) -> void:
+	if typeof(edge) != TYPE_DICTIONARY or typeof(edge.get("pairs", null)) != TYPE_DICTIONARY:
+		errors.append("attacker_edge must be an object with a pairs object")
+		return
+	if edge.has("stamina"):
+		var rule = edge["stamina"]
+		if typeof(rule) != TYPE_DICTIONARY:
+			errors.append("attacker_edge.stamina must be an object")
+		else:
+			var attacker_cost := float(rule.get("attacker_cost", 1.0))
+			var defender_cost := float(rule.get("defender_cost", 1.0))
+			var defender_regen := float(rule.get("defender_regen", 1.0))
+			if attacker_cost < 0.0 or attacker_cost > 1.0:
+				errors.append("attacker_edge.stamina.attacker_cost must be within 0..1 (got %s)" % attacker_cost)
+			if defender_cost < 1.0 or defender_cost > 4.0:
+				errors.append("attacker_edge.stamina.defender_cost must be within 1..4 (got %s)" % defender_cost)
+			if defender_regen < 0.1 or defender_regen > 1.0:
+				errors.append("attacker_edge.stamina.defender_regen must be within 0.1..1 (got %s)" % defender_regen)
+	for key in edge["pairs"]:
+		var text := String(key)
+		var entry = edge["pairs"][key]
+		if text.length() != 2 or not profiles.has(text.substr(0, 1)) or not profiles.has(text.substr(1, 1)):
+			errors.append("attacker_edge.pairs.%s: the key must be two roles that have profiles" % text)
+		elif text.contains("k"):
+			errors.append("attacker_edge.pairs.%s: the King is deliberately not part of the table" % text)
+		if not (entry is Array) or entry.size() != 2:
+			errors.append("attacker_edge.pairs.%s must be [attacker_mult, defender_mult]" % text)
+			continue
+		var a := float(entry[0])
+		var d := float(entry[1])
+		if a < 1.0 or d < 1.0 or a > 8.0 or d > 8.0:
+			errors.append("attacker_edge.pairs.%s: multipliers must be within 1..8 (got %s, %s)" % [text, a, d])
+		elif a > 1.0001 and d > 1.0001:
+			errors.append("attacker_edge.pairs.%s: only the weaker side is boosted (got %s and %s)" % [text, a, d])
 
 
 static func _validate_profile(role: String, p, errors: Array) -> void:
@@ -400,6 +527,20 @@ static func _normalise(raw: Dictionary) -> Dictionary:
 		for id in t["abilities"]:
 			abilities[id] = _normalise_attack(t["abilities"][id])
 		out["attacks"][role] = {"light": lights, "heavy": _normalise_attack(t["heavy"]), "abilities": abilities}
+	if raw.has("duel_length"):
+		var length := {"damage_scale": float(raw["duel_length"]["damage_scale"]), "target_seconds": float(raw["duel_length"].get("target_seconds", 0.0)), "pairs": {}}
+		for key in raw["duel_length"].get("pairs", {}):
+			length["pairs"][String(key)] = float(raw["duel_length"]["pairs"][key])
+		out["duel_length"] = length
+	if raw.has("attacker_edge"):
+		var edge := {"target": float(raw["attacker_edge"].get("target", 0.0)), "pairs": {}}
+		if raw["attacker_edge"].has("stamina"):
+			var rule: Dictionary = raw["attacker_edge"]["stamina"]
+			edge["stamina"] = {"attacker_cost": float(rule.get("attacker_cost", 1.0)), "defender_cost": float(rule.get("defender_cost", 1.0)), "defender_regen": float(rule.get("defender_regen", 1.0))}
+		for key in raw["attacker_edge"]["pairs"]:
+			var pair: Array = raw["attacker_edge"]["pairs"][key]
+			edge["pairs"][key] = [float(pair[0]), float(pair[1])]
+		out["attacker_edge"] = edge
 	return out
 
 

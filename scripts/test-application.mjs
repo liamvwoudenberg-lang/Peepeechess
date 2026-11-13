@@ -288,6 +288,53 @@ try {
     const leaders = await success('/v1/leaderboard?mode=classic&limit=20', { token: accounts[0].token });
     assert.ok(leaders.players[0].classic.rating >= leaders.players[1].classic.rating);
     console.log('PASS application persistence: ratings, accounts, bearer sessions, history and leaderboard survive backend restart');
+    // Friends. One friend is the real Godot application (its Friends page, over real HTTP); the other is this harness over plain HTTP.
+    // They become friends, one challenges the other, the challenge is accepted, and the match that results is played to completion
+    // on the real dedicated server by two independent Godot clients.
+    {
+      const people = ['carol', 'dave'].map(username => ({ username, password: `Test-only-${randomBytes(16).toString('hex')}`, displayName: username === 'carol' ? 'Carol Native' : 'Dave Native' }));
+      const [carol, dave] = await Promise.all(people.map(body => success('/v1/auth/register', { method: 'POST', body })));
+      const strangers = await api('/v1/friends/challenge', { token: carol.token, method: 'POST', body: { playerId: dave.profile.playerId, mode: 'classic', initialMs: 180000, incrementMs: 2000, side: 'white' } });
+      assert.equal(strangers.status, 403, 'a stranger cannot be challenged');
+      await success('/v1/friends/request', { token: dave.token, method: 'POST', body: { username: 'carol' } });
+      const credentialsFile = join(directory, 'friends-ui-credentials.json');
+      writeFileSync(credentialsFile, JSON.stringify(people[0]), { mode: 0o600 });
+      const reportFile = join(directory, 'friends-ui.json');
+      const ui = start('friends-ui', godot, ['--headless', '--path', 'godot', '--script', 'res://tests/application_bot.gd', '--',
+        '--smoke_friends=true', `--api_url=${base}`, `--credentials_file=${credentialsFile}`, '--other_username=dave', `--other_id=${dave.profile.playerId}`, `--report=${reportFile}`]);
+      await waitFor(() => ui.log().includes('FRIENDS_UI_CHALLENGED') || diagnostics.test(ui.log()), 'the friends UI sent its challenge', 60000);
+      assert.doesNotMatch(ui.log(), diagnostics);
+      const waiting = (await success('/v1/friends', { token: dave.token })).challenges.incoming;
+      assert.equal(waiting.length, 1, 'the challenge reached the friend');
+      assert.equal(waiting[0].player.playerId, carol.profile.playerId);
+      assert.equal(waiting[0].side, 'black', 'the challenger chose White, so the friend is Black');
+      const joined = await success('/v1/private/join', { token: dave.token, method: 'POST', body: { code: waiting[0].code } });
+      const uiResult = await ui.done;
+      assert.equal(uiResult.code, 0, uiResult.log);
+      assert.doesNotMatch(uiResult.log, diagnostics);
+      const uiReport = JSON.parse(readFileSync(reportFile, 'utf8'));
+      assert.equal(uiReport.ok, true, JSON.stringify(uiReport));
+      assert.deepEqual(uiReport.errors, []);
+      assert.deepEqual(uiReport.friendsUi, ['request visible with badge', 'accepted through the UI', 'challenge sent', 'allocation received after the friend accepted']);
+      const friendAllocation = joined.status.allocation;
+      assert.deepEqual(uiReport.allocation, friendAllocation, "the challenger's UI received the very allocation the accepted challenge created");
+      assert.equal(friendAllocation.whitePlayerId, carol.profile.playerId);
+      assert.equal(friendAllocation.ranked, false, 'friend games are unranked');
+      assert.equal(friendAllocation.initialMs, 180000);
+      const friendRecord = await play([carol, dave], friendAllocation, 'classic', 'friend-challenge');
+      assert.equal(friendRecord.ranked, false);
+      for (const account of [carol, dave]) {
+        const profile = (await success('/v1/me', { token: account.token })).profile;
+        assert.equal(profile.classic.rating, 1200, 'a friend game never changes a rating');
+        assert.equal(profile.classic.games, 1);
+      }
+      assert.equal((await success('/v1/friends', { token: dave.token })).friends.find(friend => friend.playerId === carol.profile.playerId).inMatch, false, 'finished friends show as free again');
+      await stop(backend);
+      backend = startBackend('backend-friends-reopened');
+      await ready();
+      assert.deepEqual((await success('/v1/friends', { token: carol.token })).friends.map(friend => friend.playerId), [dave.profile.playerId], 'friendship survives a backend restart');
+      console.log('PASS application friends: real Godot Friends page accepted a request and sent a challenge, the friend accepted over HTTP, the dedicated server played the match, it stayed unranked, and the friendship persisted');
+    }
     console.log('PASS application integration: no physical Windows or Android device testing implied');
   }
 } catch (error) {

@@ -15,6 +15,16 @@ export type ResultReport = { matchId: string; result: MatchResult; reason: strin
 /** Additive ENet account handshake, reliable channel 0; distinct from anonymous Hello. */
 export type AccountHello = { schemaVersion: 1; protocol: "peepeechess-enet-v1"; ticket: string };
 
+/** Friends (additive; no existing type or endpoint changed). A challenge is a private invite only the chosen friend may join:
+ *  the friend accepts with the existing POST /v1/private/join, after which the normal allocation/ticket flow applies. */
+export type PlayerRef = { playerId: string; username: string; displayName: string };
+export type Friend = PlayerRef & { online: boolean; inMatch: boolean; classicRating: number; battleRating: number };
+/** The viewer's own colour in a challenged game. */
+export type Side = "white" | "black" | "random";
+export type Challenge = { code: string; player: PlayerRef; mode: Mode; initialMs: number; incrementMs: number; side: Side; expiresAt: number };
+/** challenges.incoming: sent to you (player = the challenger). challenges.outgoing: your own pending challenge (player = the friend). */
+export type FriendsSnapshot = { friends: Friend[]; incoming: PlayerRef[]; outgoing: PlayerRef[]; challenges: { incoming: Challenge[]; outgoing: Challenge | null } };
+
 /** Bounded history pages omit move arrays; /v1/history retains full record compatibility. */
 export type MatchSummary = Omit<MatchRecord, "history"> & { plies: number };
 export type HistoryPage = { matches: MatchSummary[]; nextOffset: number | null };

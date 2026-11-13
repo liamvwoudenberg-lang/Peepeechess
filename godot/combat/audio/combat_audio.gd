@@ -381,6 +381,14 @@ func on_event(event: Dictionary) -> void:
 	if type == "hit" and sound.ends_with("heavy"):
 		pitch = 0.96
 	_play(sound, where, pitch)
+	# Layering (same sample library, different pitch): a heavy blow and a guard break get a low body thud under the
+	# impact, a parry gets a high, short ring over it. Rate limits and voice caps still apply per sound.
+	if type == "hit" and sound.ends_with("heavy") and has_sound("stagger"):
+		_play("stagger", where, 0.78)
+	elif type == "guardbreak" and has_sound("stagger"):
+		_play("stagger", where, 0.7)
+	elif type == "parry" and has_sound("block"):
+		_play("block", where, 1.7)
 
 
 func _on_finished(result: Dictionary) -> void:

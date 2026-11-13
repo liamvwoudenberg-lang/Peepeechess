@@ -18,6 +18,9 @@ var _result_label: Label
 var _help_label: Label
 var _names: Dictionary = {}
 var _messages: Array = []
+var _intro_label: Label
+var _intro_age: float = 0.0
+const INTRO_SECONDS := 3.0
 
 
 func setup(p_sim: CombatSimulation, human_hint: String) -> void:
@@ -36,6 +39,12 @@ func setup(p_sim: CombatSimulation, human_hint: String) -> void:
 	_timer_label = _label(34, Control.PRESET_CENTER_TOP)
 	_timer_label.position.y = 10
 	_center_label = _label(72, Control.PRESET_CENTER)
+	# Duel introduction: "QUEEN  vs  PAWN" with the attacker named first, fading in over the countdown.
+	_intro_label = _label(34, Control.PRESET_CENTER_TOP)
+	_intro_label.position.y = 230  # below the two fighter panels
+	_intro_label.modulate.a = 0.0
+	_intro_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_intro_label.add_theme_constant_override("outline_size", 8)
 	_message_box = VBoxContainer.new()
 	_message_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message_box.position = Vector2(-120, 110)
@@ -46,6 +55,10 @@ func setup(p_sim: CombatSimulation, human_hint: String) -> void:
 	_help_label.text = human_hint
 	_help_label.position = Vector2(14, -92)
 	_help_label.modulate = Color(1, 1, 1, 0.75)
+	# This one-line hint was positioned at y = -92 from the TOP of the viewport (off screen) and the controls cheat sheet
+	# (control_overlay.gd, F1) shows the same information, so it stays hidden: visible it would run across the window and
+	# over the cheat sheet. The text is kept for tests and tools.
+	_help_label.visible = false
 
 	_result_panel = PanelContainer.new()
 	_result_panel.visible = false
@@ -62,16 +75,22 @@ func setup(p_sim: CombatSimulation, human_hint: String) -> void:
 	box.add_child(row)
 	var again := Button.new()
 	again.text = "Rematch  [Enter / F5]"
+	again.custom_minimum_size.y = 44   # a full-size touch target
 	again.pressed.connect(func(): rematch_requested.emit())
 	row.add_child(again)
 	var menu := Button.new()
 	menu.text = "Menu  [Esc]"
+	menu.custom_minimum_size.y = 44
 	menu.pressed.connect(func(): menu_requested.emit())
 	row.add_child(menu)
-	add_child(_result_panel)
-	_result_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
-	_result_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_result_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	# A CenterContainer keeps the panel centred whatever its size: the text wraps and the panel grows once it is shown (anchors set at
+	# build time centred the empty panel, so the grown one hung below the middle of a small screen and ran off its bottom edge).
+	var result_center := CenterContainer.new()
+	result_center.name = "ResultCenter"
+	result_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	result_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(result_center)
+	result_center.add_child(_result_panel)
 
 
 func _label(size: int, preset: int) -> Label:
@@ -145,7 +164,7 @@ func on_event(event: Dictionary) -> void:
 		"ability":
 			post("%s uses %s" % [actor, _ability_name(event["actorPlayerId"])], Color(1.0, 0.6, 0.9))
 		"hit":
-			if int(event["damage"]) >= 20:
+			if sim != null and sim.felt_damage(int(event["damage"])) >= 20:   # a big blow (judged before the duel-length scale)
 				post("%s hit for %d" % [actor, int(event["damage"])], Color(1.0, 0.6, 0.4))
 
 
@@ -156,11 +175,38 @@ func _ability_name(player_id: String) -> String:
 
 func show_result(text: String) -> void:
 	_result_label.text = text
+	# Wrap and shrink on a narrow screen (a phone, UI scale 150 %): a 30 px headline is wider than the whole viewport there.
+	var width := _view_width()
+	_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_result_label.custom_minimum_size.x = clampf(width - 80.0, 180.0, 460.0)
+	_result_label.add_theme_font_size_override("font_size", 30 if width >= 640.0 else (24 if width >= 420.0 else 19))
 	_result_panel.visible = true
+
+
+## Width of one fighter's bar panel (the title, health and stamina bars) on a screen `view_width` wide: 360 px, narrower when the two panels
+## plus a 90 px gap for the round timer and 24 px margins would not fit. Unit-tested (tests/ui/ui_overlap_test.gd).
+static func panel_width(view_width: float) -> float:
+	return clampf((view_width - 48.0 - 90.0) * 0.5, 120.0, 360.0)
+
+
+## Width of the viewport this HUD is drawn into (the board's own viewport inside the pit world, the window in the test arena).
+func _view_width() -> float:
+	var view := get_viewport()
+	return view.get_visible_rect().size.x if view != null else 1280.0
 
 
 func hide_result() -> void:
 	_result_panel.visible = false
+
+
+## "ATTACKER vs DEFENDER" text for the duel introduction ("" when the request has no roles).
+func intro_text() -> String:
+	if sim == null or sim.request.is_empty():
+		return ""
+	var a: String = str(sim.request["attacker"].get("role", "")).to_upper()
+	var d: String = str(sim.request["defender"].get("role", "")).to_upper()
+	var names := {"P": "PAWN", "N": "KNIGHT", "B": "BISHOP", "R": "ROOK", "Q": "QUEEN", "K": "KING"}
+	return "%s  vs  %s\nthe attacker strikes first" % [names.get(a, a), names.get(d, d)]
 
 
 func _process(delta: float) -> void:
@@ -173,6 +219,15 @@ func _process(delta: float) -> void:
 			_messages.erase(entry)
 	if sim == null or sim.request.is_empty():
 		return
+	if _intro_label != null:
+		if sim.phase == CombatSimulation.Phase.COUNTDOWN:
+			_intro_age += delta
+			if _intro_label.text.is_empty():
+				_intro_label.text = intro_text()
+			_intro_label.modulate.a = clampf(minf(_intro_age / 0.6, (INTRO_SECONDS - _intro_age) / 0.6), 0.0, 1.0) if _intro_age < INTRO_SECONDS else 0.0
+		else:
+			_intro_label.modulate.a = maxf(0.0, _intro_label.modulate.a - delta * 2.0)
+		_intro_label.visible = _intro_label.modulate.a > 0.02  # a faded-out card must not count as (or stay) a layout element
 	if sim.phase == CombatSimulation.Phase.COUNTDOWN:
 		var seconds := ceili(float(sim.countdown_remaining) / 60.0)
 		_center_label.text = str(seconds) if seconds > 0 else "FIGHT"
@@ -196,6 +251,10 @@ class _BarPanel extends Control:
 	var _flash: float = 0.0
 	var _last_hp: int = -1
 	var _time: float = 0.0
+	var k: float = 1.0   # text scale of the current draw: 1 at full width, down to 0.62 on a narrow screen
+
+	func _fs(px: int) -> int:
+		return maxi(9, roundi(float(px) * k))
 
 	func step(delta: float) -> void:
 		_time += delta
@@ -222,20 +281,23 @@ class _BarPanel extends Control:
 		if sim == null or sim.fighters.size() < 2 or sim.fighters[side] == null:
 			return
 		var f: FighterController = sim.fighters[side]
-		var w := 360.0
+		# 360 px per fighter; on a narrow screen (online combat in a small window, UI scale 150%) the two panels shrink so that at
+		# least 90 px stay free in the middle for the round timer instead of running into each other.
+		var w := CombatHud.panel_width(size.x)
+		k = clampf(w / 360.0, 0.62, 1.0)   # type shrinks with the panel so "Knight (White)" still fits
 		var x := 24.0 if side == 0 else size.x - w - 24.0
 		var font := ThemeDB.fallback_font
 		var title := "%s  (%s)" % [FighterRoster.display_name(f.role), "White" if f.color == "w" else "Black"]
 		var tag: String = hud._names.get(f.player_id, "")
-		draw_string(font, Vector2(x, 24), title + ("   " + tag if tag != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, w, 20, Color(1, 1, 1))
+		draw_string(font, Vector2(x, 24), title + ("   " + tag if tag != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, w, _fs(20), Color(1, 1, 1))
 		_hp_bar(Vector2(x, 34), Vector2(w, 20), f, font)
 		var pulse := 0.5 + 0.5 * sin(_time * 10.0)
 		var stam_color := Color(0.95, 0.75, 0.2) if not f.stamina.exhausted else Color(0.55, 0.3 + 0.1 * pulse, 0.1)
 		_bar(Vector2(x, 60), Vector2(w * 0.8, 12), f.stamina.ratio(), stam_color, "", font)
 		if f.stamina.exhausted:
-			draw_string(font, Vector2(x + 6, 70), "EXHAUSTED", HORIZONTAL_ALIGNMENT_LEFT, w * 0.8, 11, Color(1, 0.8, 0.6, 0.6 + 0.4 * pulse))
+			draw_string(font, Vector2(x + 6, 70), "EXHAUSTED", HORIZONTAL_ALIGNMENT_LEFT, w * 0.8, _fs(11), Color(1, 0.8, 0.6, 0.6 + 0.4 * pulse))
 		if f.sm.parry_window_open():
-			draw_string(font, Vector2(x + w - 70, 24), "PARRY", HORIZONTAL_ALIGNMENT_RIGHT, 70, 18, Color(1.0, 0.85, 0.3))
+			draw_string(font, Vector2(x + w - 70, 24), "PARRY", HORIZONTAL_ALIGNMENT_RIGHT, 70, _fs(18), Color(1.0, 0.85, 0.3))
 		var cd := f.ability.cooldown_remaining
 		var total := maxi(1, f.ability.cooldown_total)
 		var ready := cd == 0
@@ -244,9 +306,9 @@ class _BarPanel extends Control:
 			label = "ACTIVE"
 		var ability_name := FighterRoster.ability_name(f.role)
 		_bar(Vector2(x, 80), Vector2(w * 0.8, 12), 1.0 - float(cd) / float(total), Color(0.5, 0.35, 0.9) if not ready else Color(0.35, 0.85, 0.5), "", font)
-		draw_string(font, Vector2(x, 106), "%s: %s" % [ability_name, label], HORIZONTAL_ALIGNMENT_LEFT, w, 14, Color(0.9, 0.9, 0.9))
+		draw_string(font, Vector2(x, 106), "%s: %s" % [ability_name, label], HORIZONTAL_ALIGNMENT_LEFT, w, _fs(14), Color(0.9, 0.9, 0.9))
 		if f.sm.last_denied != "" and f.local_tick - f.sm.last_denied_tick < 45:
-			draw_string(font, Vector2(x + w * 0.82, 72), "no %s" % f.sm.last_denied, HORIZONTAL_ALIGNMENT_LEFT, 120, 14, Color(1, 0.5, 0.4))
+			draw_string(font, Vector2(x + w * 0.82, 72), "no %s" % f.sm.last_denied, HORIZONTAL_ALIGNMENT_LEFT, 120, _fs(14), Color(1, 0.5, 0.4))
 
 	func _hp_bar(pos: Vector2, dim: Vector2, f: FighterController, font: Font) -> void:
 		var ratio := clampf(f.health.ratio(), 0.0, 1.0)
@@ -255,7 +317,7 @@ class _BarPanel extends Control:
 			draw_rect(Rect2(pos + Vector2(dim.x * ratio, 0), Vector2(dim.x * (clampf(ghost, 0.0, 1.0) - ratio), dim.y)), Color(0.95, 0.85, 0.7, 0.85))
 		draw_rect(Rect2(pos, Vector2(dim.x * ratio, dim.y)), Color(0.8, 0.14, 0.14).lerp(Color(1, 1, 1), _flash * 0.7))
 		draw_rect(Rect2(pos, dim), Color(1, 1, 1, 0.5), false, 1.5)
-		draw_string(font, pos + Vector2(8, dim.y - 5), "%d / %d" % [f.health.current, f.health.maximum], HORIZONTAL_ALIGNMENT_LEFT, dim.x, 14, Color(1, 1, 1))
+		draw_string(font, pos + Vector2(8, dim.y - 5), "%d / %d" % [f.health.current, f.health.maximum], HORIZONTAL_ALIGNMENT_LEFT, dim.x, _fs(14), Color(1, 1, 1))
 
 	func _bar(pos: Vector2, dim: Vector2, ratio: float, color: Color, text: String, font: Font) -> void:
 		draw_rect(Rect2(pos, dim), Color(0, 0, 0, 0.6))
