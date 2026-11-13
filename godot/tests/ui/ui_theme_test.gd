@@ -243,6 +243,7 @@ func hud_checks() -> void:
 	expect(promoted.w.get("q", 0) == 0 and promoted.balance > 0, "promotion never yields negative captured counts")
 
 func settings_checks() -> void:
+	Settings.intro_seen = true   # these checks start on a page, not on the opening screen
 	Prefs.reset_defaults()
 	Settings.quality = "balanced"
 	Settings.animations = true

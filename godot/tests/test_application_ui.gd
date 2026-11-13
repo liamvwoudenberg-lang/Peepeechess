@@ -65,6 +65,7 @@ func screenshot(name: String) -> void:
 func run() -> void:
 	root.size = Vector2i(1280, 800)
 	Settings.loaded = true
+	Settings.reset_intro()   # a fresh process: the 3D opening screen is due
 	Settings.preferred_3d = false
 	Settings.token = ""
 	Settings.account.clear()
@@ -73,7 +74,16 @@ func run() -> void:
 	root.add_child(shell)
 	await process_frame
 	await process_frame
-	expect(shell.page == "home" and shell.content.find_child("ClassicButton", true, false) != null, "application opens on the title screen with the main menu")
+	expect(shell.page == "home" and shell.intro != null and shell.scene3d != null, "application opens on the 3D opening screen")
+	expect(shell.content.find_child("ClassicButton", true, false) == null, "the main menu is not shown before a button is pressed")
+	var press := InputEventKey.new()
+	press.pressed = true
+	press.keycode = KEY_ENTER
+	root.push_input(press)
+	for i in 4:
+		if shell.intro != null:
+			shell.intro.advance(1.0)   # explicit steps: the glide is 2.4 s
+	expect(shell.page == "home" and shell.intro == null and shell.content.find_child("ClassicButton", true, false) != null, "a button press leads from the opening screen to the main menu")
 	shell.navigate("play")
 	await process_frame
 	expect(root.get_node_or_null("PlatformInput") != null, "application installs persistent controller adapter")

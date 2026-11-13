@@ -28,9 +28,10 @@ class Emblem:
 static func version_text() -> String:
 	return "v" + str(ProjectSettings.get_setting("application/config/version", "dev"))
 
+## `over_scene` adds a dark text outline for use on top of the 3D opening scene.
 ## `app` provides: navigate(String), selected_mode, online, account_badge handling (via add_account_chip).
 ## Returns {menu: VBoxContainer, buttons: Dictionary(name -> Button)}.
-static func build(app: Control, parent: Container, quit_visible: bool) -> Dictionary:
+static func build(app: Control, parent: Container, quit_visible: bool, over_scene: bool = false) -> Dictionary:
 	var root := VBoxContainer.new()
 	root.name = "Home"
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -106,4 +107,12 @@ static func build(app: Control, parent: Container, quit_visible: bool) -> Dictio
 	version.name = "Version"
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	version.add_theme_color_override("font_color", T.TEXT_MUTED)
+	if over_scene:
+		# text on top of the lit 3D castle: a dark outline keeps the wordmark, tagline and version readable on any frame
+		for label: Label in [wordmark, tagline, version]:
+			label.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.08, 0.92))
+		wordmark.add_theme_constant_override("outline_size", 12)
+		tagline.add_theme_constant_override("outline_size", 7)
+		tagline.add_theme_color_override("font_color", T.TEXT)
+		version.add_theme_constant_override("outline_size", 5)
 	return {"root": root, "menu": menu, "buttons": buttons, "wordmark": wordmark}

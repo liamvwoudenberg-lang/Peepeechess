@@ -8,6 +8,8 @@ const Tokens = preload("res://ui/theme/ui_tokens.gd")
 const Motion = preload("res://ui/theme/ui_motion.gd")
 const Backdrop = preload("res://ui/theme/backdrop.gd")
 const Title = preload("res://ui/theme/title_screen.gd")
+const OpeningScene = preload("res://ui/opening/opening_scene.gd")
+const OpeningScreen = preload("res://ui/opening/opening_screen.gd")
 const Icons = preload("res://ui/theme/ui_icons.gd")
 const SettingsPage = preload("res://ui/settings_page.gd")
 const FriendsPage = preload("res://ui/friends_page.gd")
@@ -49,6 +51,10 @@ var _topbar_holder: Control
 var _page_width: MarginContainer
 var _topbar_badge: Button
 var _backdrop: Control
+## The 3D castle behind the home page (built lazily when "home" is shown, freed when another page replaces it) and the
+## opening-screen overlay that drives its camera while the first-launch intro plays (null otherwise).
+var scene3d: Node3D
+var intro: Control
 var _last_toast = ""
 var _toast_clock = 0.0
 var _history_loading = false
@@ -67,12 +73,15 @@ func _ready() -> void:
 		var context = Settings.take_launch()
 		online = true
 		selected_mode = "battle" if context.get("mode", "classic") == "battle" else "classic"
+		Settings.intro_seen = true   # the player did not come through the title: no opening screen later in this run
 	api = Api.new()
 	add_child(api)
 	_build_theme()
 	_build_frame()
 	navigate("play" if online else "home")
 	PadUi.install(self, {"prefer": "content", "back": Callable(self, "_pad_back")})  # controller / keyboard focus (claude/pads-input)
+	if is_instance_valid(intro):
+		move_child(intro, -1)   # the opening screen sees input before the pad focus helper does
 	if not Settings.token.is_empty():
 		_refresh_account()
 	if not Settings.result.is_empty():
@@ -171,6 +180,9 @@ func _pad_back() -> void:
 
 func navigate(target: String) -> void:
 	page = target if target in ["home", "play", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
+	if is_instance_valid(intro):
+		intro.cancel()   # any explicit navigation ends a running opening screen (the player has seen enough)
+	intro = null
 	_refresh_generation += 1
 	for child in content.get_children():
 		content.remove_child(child)
@@ -180,7 +192,9 @@ func navigate(target: String) -> void:
 	account_badge = _topbar_badge
 	_topbar_holder.visible = page != "home"
 	notice.visible = page != "home"
-	_backdrop.mode = "home" if page == "home" else "page"
+	if page != "home":
+		_release_scene3d()
+	_backdrop.mode = "scene" if page == "home" else "page"
 	_page_width.max_width = 4000.0 if page == "home" else 1120.0
 	_page_width.call("_fit")
 	page_scroll.scroll_vertical = 0
@@ -189,7 +203,7 @@ func navigate(target: String) -> void:
 	_history_loading = false
 	_history_more_button = null
 	match page:
-		"home": Title.build(self, content, not OS.has_feature("mobile") and not OS.has_feature("web"))
+		"home": _home_page()
 		"play": _play_page()
 		"friends": FriendsPage.build(self)
 		"account": _account_page()
@@ -199,6 +213,46 @@ func navigate(target: String) -> void:
 		"leaderboard": _leaderboard_page()
 	_update_badge()
 	Motion.fade_in(content, Motion.DURATION, 1.0)
+
+## The title page. The very first time in a run it is the opening screen (title + "press any button", then the camera glides
+## through the gate and the menu fades in); afterwards the menu simply shows over the 3D castle.
+func _home_page() -> void:
+	var quit_visible: bool = not OS.has_feature("mobile") and not OS.has_feature("web")
+	if Settings.wants_intro():
+		Settings.intro_seen = true
+		_ensure_scene3d(0.0)
+		_backdrop.center_dim = 0.0
+		var screen = OpeningScreen.new()
+		intro = screen
+		add_child(screen)
+		screen.setup(scene3d, content, func(): Title.build(self, content, quit_visible, true), _backdrop)
+		screen.finished.connect(_on_intro_finished.bind(screen))
+		return
+	_ensure_scene3d(1.0)
+	_backdrop.center_dim = 1.0
+	Title.build(self, content, quit_visible, true)
+
+func _on_intro_finished(screen: Control) -> void:
+	if intro == screen:
+		intro = null
+	Motion.settle(content)
+
+func _ensure_scene3d(blend: float) -> void:
+	if is_instance_valid(scene3d):
+		scene3d.call("set_blend", blend)
+		return
+	scene3d = OpeningScene.new()
+	add_child(scene3d)
+	move_child(scene3d, 0)
+	scene3d.call("build", Settings.quality, Motion.enabled(), blend)
+
+## Frees the castle (it renders nothing and costs nothing while another page is open; the next visit to home rebuilds it).
+func _release_scene3d() -> void:
+	if is_instance_valid(scene3d):
+		if scene3d.get_parent() != null:
+			scene3d.get_parent().remove_child(scene3d)
+		scene3d.queue_free()
+	scene3d = null
 
 func _heading(title: String, detail: String) -> void:
 	var labels = Kit.heading(content, title, detail)
