@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2] / "godot/assets/paladins"
-ROLES = ["pawn", "knight", "bishop", "rook", "king"]
+ROLES = ["pawn", "knight", "bishop", "rook", "queen", "king"]
 
 
 def base_color_image(glb: Path) -> Image.Image:

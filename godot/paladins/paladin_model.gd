@@ -10,10 +10,9 @@ extends Node3D
 ## and every piece is a duplicate of it (shared meshes, textures and animations).
 ## Textures: the GLB carries one silver-and-gold atlas; the white and black versions are albedo overrides built by
 ## tools/paladins/build_textures.py (the gold trim stays gold in both).
-## The Queen has no model of her own yet (only a King file was supplied): she uses the King's and `placeholder(role)` says so.
 
 const ROOT := "res://assets/paladins"
-const FILES := {"p": "pawn", "n": "knight", "b": "bishop", "r": "rook", "q": "king", "k": "king"}
+const FILES := {"p": "pawn", "n": "knight", "b": "bishop", "r": "rook", "q": "queen", "k": "king"}
 const SOURCE_HEIGHT := 1.7           # every supplied model is 1.7 m tall (bounding box)
 ## Names of the clips inside the supplied GLBs.
 const GLB_CLIPS := {"walk": "Walking", "run": "Running", "slash": "Charged_Slash", "climb": "Fast_Ladder_Climb", "casual_walk": "Casual_Walk"}
@@ -32,8 +31,8 @@ var meshes: Array[MeshInstance3D] = []
 var current: String = ""
 
 
-static func placeholder(role_code: String) -> bool:
-	return role_code == "q"
+static func placeholder(_role_code: String) -> bool:
+	return false   # every role has its own model now
 
 
 static func path_for(role_code: String) -> String:
