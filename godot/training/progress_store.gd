@@ -1,15 +1,15 @@
 class_name ProgressStore
 extends RefCounted
 ## Saved training progress: per lesson the best rating, best time, attempts and whether it was ever completed, plus the difficulty
-## settings. Stored in a ConfigFile (default user://training_progress.cfg), versioned, written atomically, and tolerant of a missing or
-## corrupt file (it starts empty instead of failing). Headless-safe. Holds no secrets.
+## settings. Stored as JSON (default user://training_progress.json), versioned, written atomically, and tolerant of a missing, corrupt
+## or foreign file (it starts empty instead of failing, and prints no engine error). Headless-safe. Holds no secrets.
 ##
 ##   var progress := ProgressStore.new()      # loads the default file
 ##   progress.record_attempt("b03_first_strike", true, "silver", 41.5)
 ##   progress.save()
 
 const VERSION := 1
-const DEFAULT_PATH := "user://training_progress.cfg"
+const DEFAULT_PATH := "user://training_progress.json"
 const RATINGS := ["", "bronze", "silver", "gold"]
 
 var path: String
@@ -30,55 +30,53 @@ func load_file() -> void:
 	adaptive = true
 	fixed_level = "normal"
 	last_error = ""
-	var config := ConfigFile.new()
-	var err := config.load(path)
-	if err != OK:
-		if err != ERR_FILE_NOT_FOUND:
-			last_error = "unreadable progress file (%d): starting empty" % err
+	if not FileAccess.file_exists(path):
 		return
-	if int(config.get_value("meta", "version", 0)) != VERSION:
+	var json := JSON.new()   # (an instance reports a parse error silently; JSON.parse_string would print an engine error)
+	var parsed = json.data if json.parse(FileAccess.get_file_as_string(path)) == OK else null
+	if not (parsed is Dictionary):
+		last_error = "unreadable progress file: starting empty"
+		return
+	if int(parsed.get("version", 0)) != VERSION:
 		last_error = "progress file version not supported: starting empty"
 		return
-	adaptive = bool(config.get_value("settings", "adaptive", true))
-	var level := String(config.get_value("settings", "fixed_level", "normal"))
-	fixed_level = level if level in AIDifficulty.LEVELS else "normal"
-	for section in config.get_sections():
-		if not section.begins_with("lesson:"):
+	var settings = parsed.get("settings", {})
+	if settings is Dictionary:
+		adaptive = bool(settings.get("adaptive", true))
+		var level := String(settings.get("fixed_level", "normal"))
+		fixed_level = level if level in AIDifficulty.LEVELS else "normal"
+	var stored = parsed.get("lessons", {})
+	if not (stored is Dictionary):
+		return
+	for id in stored:
+		var entry = stored[id]
+		if not (entry is Dictionary):
 			continue
-		var id := section.trim_prefix("lesson:")
-		var rating := String(config.get_value(section, "best_rating", ""))
-		lessons[id] = {
-			"completed": bool(config.get_value(section, "completed", false)),
+		var rating := String(entry.get("best_rating", ""))
+		lessons[String(id)] = {
+			"completed": bool(entry.get("completed", false)),
 			"best_rating": rating if rating in RATINGS else "",
-			"best_seconds": maxf(0.0, float(config.get_value(section, "best_seconds", 0.0))),
-			"attempts": maxi(0, int(config.get_value(section, "attempts", 0))),
+			"best_seconds": maxf(0.0, float(entry.get("best_seconds", 0.0))),
+			"attempts": maxi(0, int(entry.get("attempts", 0))),
 		}
 
 
 func save() -> int:
-	var config := ConfigFile.new()
-	config.set_value("meta", "version", VERSION)
-	config.set_value("settings", "adaptive", adaptive)
-	config.set_value("settings", "fixed_level", fixed_level)
-	for id in lessons:
-		var entry: Dictionary = lessons[id]
-		var section := "lesson:%s" % id
-		config.set_value(section, "completed", entry["completed"])
-		config.set_value(section, "best_rating", entry["best_rating"])
-		config.set_value(section, "best_seconds", entry["best_seconds"])
-		config.set_value(section, "attempts", entry["attempts"])
+	var data := {"version": VERSION, "settings": {"adaptive": adaptive, "fixed_level": fixed_level}, "lessons": lessons}
 	var tmp := path + ".tmp"
-	var err := config.save(tmp)
-	if err != OK:
-		last_error = "could not write %s (%d)" % [tmp, err]
-		return err
+	var file := FileAccess.open(tmp, FileAccess.WRITE)
+	if file == null:
+		last_error = "could not write %s (%d)" % [tmp, FileAccess.get_open_error()]
+		return FileAccess.get_open_error()
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
 	var dir := DirAccess.open(path.get_base_dir())
 	if dir == null:
 		last_error = "cannot open folder of %s" % path
 		return ERR_FILE_CANT_OPEN
 	if dir.file_exists(path.get_file()):
 		dir.remove(path.get_file())
-	err = dir.rename(tmp.get_file(), path.get_file())
+	var err := dir.rename(tmp.get_file(), path.get_file())
 	if err != OK:
 		last_error = "could not replace %s (%d)" % [path, err]
 	return err

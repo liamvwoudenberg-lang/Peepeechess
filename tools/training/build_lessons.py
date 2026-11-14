@@ -70,6 +70,9 @@ lesson("i04_block_punish", "intermediate", 4, "Block and punish", "Block the att
 lesson("i05_distance", "intermediate", 5, "Managing distance", "Hold a safe gap to the Rook for 6 seconds without being hit more than twice.", "b", "r", "attack_only", "normal",
        [o("gap", "hold_distance", "Stay 2.2-3.6 m away for 6 s", min=2.2, max=3.6, seconds=6)], fail=[{"type": "hits_taken", "count": 2}],
        hints=["The Rook is slow: circle and keep out of reach."], requires=["b01_movement"])
+lesson("i07_hit_stun", "intermediate", 7, "Hit stun and follow-ups", "A solid hit can stun the opponent: follow up before the stun ends.", "n", "p", "idle", "normal",
+       [o("stun", "stun", "Stun the dummy 2 times", count=2), o("follow", "stun_followup", "Land a follow-up hit while it is stunned", count=1)],
+       hints=["Heavy hits stun longest. Hit again as soon as they stagger: they cannot defend while stunned."], requires=["b08_first_combo"])
 lesson("i06_moving_opponent", "intermediate", 6, "Moving opponents", "Land 4 hits on an opponent who fights back.", "n", "b", "normal", "easy",
        [o("hits", "hit_count", "Land 4 hits", count=4)], fail=[{"type": "time_limit", "seconds": 80}], requires=["i02_dodge_counter"])
 

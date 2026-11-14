@@ -5,13 +5,13 @@ extends RefCounted
 
 const CATEGORIES := ["beginner", "intermediate", "advanced", "expert"]
 const OBJECTIVE_TYPES := ["move_distance", "hit_count", "hit_at_range", "combo", "block_n", "parry_n", "dodge_n", "counter_after", "punish",
-		"ability_use", "cancel", "stamina_cycle", "hold_distance", "survive", "win", "win_clean"]
+		"ability_use", "cancel", "stamina_cycle", "hold_distance", "survive", "win", "win_clean", "stun", "stun_followup"]
 const FAIL_TYPES := ["time_limit", "hits_taken", "damage_fraction"]
 const RATING_KEYS := ["max_seconds", "max_hits_taken", "min_combo", "min_parries", "max_damage_fraction"]
 ## Objective type -> the parameter that must be present.
 const REQUIRED_PARAM := {"move_distance": "meters", "hit_count": "count", "hit_at_range": "count", "combo": "count", "block_n": "count",
 		"parry_n": "count", "dodge_n": "count", "counter_after": "count", "punish": "count", "ability_use": "count", "cancel": "count",
-		"hold_distance": "seconds", "survive": "seconds"}
+		"hold_distance": "seconds", "survive": "seconds", "stun": "count", "stun_followup": "count"}
 
 
 static func validate(lesson: Dictionary) -> Array:

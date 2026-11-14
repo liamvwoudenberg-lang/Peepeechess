@@ -1,0 +1,35 @@
+{
+ "id": "i07_hit_stun",
+ "category": "intermediate",
+ "order": 7,
+ "title": "Hit stun and follow-ups",
+ "summary": "A solid hit can stun the opponent: follow up before the stun ends.",
+ "player_role": "n",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "stun",
+   "type": "stun",
+   "text": "Stun the dummy 2 times",
+   "count": 2
+  },
+  {
+   "id": "follow",
+   "type": "stun_followup",
+   "text": "Land a follow-up hit while it is stunned",
+   "count": 1
+  }
+ ],
+ "fail": [],
+ "rating": {},
+ "hints": [
+  "Heavy hits stun longest. Hit again as soon as they stagger: they cannot defend while stunned."
+ ],
+ "requires": [
+  "b08_first_combo"
+ ]
+}

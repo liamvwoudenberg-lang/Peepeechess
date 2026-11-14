@@ -18,6 +18,7 @@ extends RefCounted
 ##   move_distance{meters}  hit_count{count}  hit_at_range{count,min_distance}  combo{count}  block_n{count}  parry_n{count}
 ##   dodge_n{count}  counter_after{after:"block"|"parry"|"dodge",count,window_ticks}  punish{count}  ability_use{count}
 ##   cancel{count}  stamina_cycle{drain_below,recover_above}  hold_distance{min,max,seconds}  survive{seconds}
+##   stun{count}  stun_followup{count}  (hit stun: a hit that leaves the opponent staggered; a follow-up hit while they are still stunned)
 ##   win{}  win_clean{max_hits_taken}
 
 signal objective_progress(id: String, current: float, target: float)
@@ -41,7 +42,7 @@ var player_id: String = ""
 var opponent_id: String = ""
 var objectives: Array = []          # [{def, value, target, done}]
 var stats := {"hits": 0, "hits_taken": 0, "damage_taken": 0, "blocks": 0, "parries": 0, "dodges": 0, "abilities": 0, "punishes": 0,
-		"cancels": 0, "best_combo": 0, "distance": 0.0, "active_ticks": 0}
+		"cancels": 0, "stuns": 0, "followups": 0, "best_combo": 0, "distance": 0.0, "active_ticks": 0}
 var combo: int = 0
 var finished: bool = false
 var failed: bool = false
@@ -50,6 +51,7 @@ var _combo_last_tick := -9999
 var _last_defence := {"block": -9999, "parry": -9999, "dodge": -9999}
 var _opp_whiff_tick := -9999
 var _prev_opp_recovering := false
+var _prev_opp_hit_stunned := false
 var _prev_player_state := -1
 var _prev_pos := Vector3.ZERO
 var _have_prev_pos := false
@@ -170,12 +172,12 @@ func _player_hit(tick: int) -> void:
 	# combo objectives track the best chain
 	for o in objectives:
 		if not o["done"] and String(o["def"]["type"]) == "combo":
-			_set(o, float(stats["best_combo"]))
+			_put(o, float(stats["best_combo"]))
 	# hit from range
 	var distance := _distance()
 	for o in objectives:
 		if not o["done"] and String(o["def"]["type"]) == "hit_at_range" and distance >= float(o["def"].get("min_distance", 0.0)):
-			_set(o, o["value"] + 1.0)
+			_put(o, o["value"] + 1.0)
 	# counter after a defence
 	for o in objectives:
 		if not o["done"] and String(o["def"]["type"]) == "counter_after":
@@ -183,8 +185,13 @@ func _player_hit(tick: int) -> void:
 			var window := int(o["def"].get("window_ticks", DEFAULT_COUNTER_WINDOW))
 			if tick - int(_last_defence.get(after, -9999)) <= window:
 				_last_defence[after] = -9999   # one counter per defence
-				_set(o, o["value"] + 1.0)
+				_put(o, o["value"] + 1.0)
 				feedback.emit("counter", "Counter-attack!")
+	# follow-up: another hit while the previous hit's stun is still running
+	if _prev_opp_hit_stunned:
+		stats["followups"] += 1
+		_bump("stun_followup", 1.0)
+		feedback.emit("followup", "Follow-up while they are stunned!")
 	# punish: the opponent was recovering from a swing / staggered, or whiffed a moment ago
 	if _prev_opp_recovering or tick - _opp_whiff_tick <= WHIFF_PUNISH_WINDOW:
 		stats["punishes"] += 1
@@ -240,17 +247,24 @@ func update() -> void:
 					var frac := me.stamina.current / maxf(me.stamina.maximum, 1.0)
 					if not _drained and frac <= float(o["def"].get("drain_below", 0.3)):
 						_drained = true
-						_set(o, 0.5)
+						_put(o, 0.5)
 						feedback.emit("stamina", "Stamina is low: back off and let it recover.")
 					elif _drained and frac >= float(o["def"].get("recover_above", 0.9)):
-						_set(o, 1.0)
+						_put(o, 1.0)
 				"hold_distance":
 					if distance >= float(o["def"].get("min", 0.0)) and distance <= float(o["def"].get("max", 99.0)):
 						_hold_ticks += 1
-						_set(o, float(_hold_ticks) / 60.0)
+						_put(o, float(_hold_ticks) / 60.0)
 				"survive":
 					if me.health.is_alive():
-						_set(o, float(stats["active_ticks"]) / 60.0)
+						_put(o, float(stats["active_ticks"]) / 60.0)
+		# hit stun: the opponent has just entered a stagger caused by a hit
+		var stunned_now := int(opp.sm.state) == S.STAGGERED and opp.sm.stun_kind == "hit"
+		if stunned_now and not _prev_opp_hit_stunned and sim.server_tick - _combo_last_tick <= 2:
+			stats["stuns"] += 1
+			_bump("stun", 1.0)
+			feedback.emit("stun", "Stunned them!")
+		_prev_opp_hit_stunned = stunned_now
 		# opponent recovering? (read for the NEXT tick's hits)
 		_prev_opp_recovering = _is_recovering(opp)
 	_check_failures(me)
@@ -283,9 +297,9 @@ func _on_finished(me: FighterController) -> void:
 			continue
 		var type := String(o["def"]["type"])
 		if type == "win" and won:
-			_set(o, 1.0)
+			_put(o, 1.0)
 		elif type == "win_clean" and won and int(stats["hits_taken"]) <= int(o["def"].get("max_hits_taken", 0)):
-			_set(o, 1.0)
+			_put(o, 1.0)
 	_check_complete()
 	if not finished:
 		_fail("defeated" if not won else "objectives_incomplete")
@@ -368,10 +382,10 @@ static func rate(lesson_data: Dictionary, result: Dictionary) -> String:
 func _bump(type: String, amount: float) -> void:
 	for o in objectives:
 		if not o["done"] and String(o["def"]["type"]) == type:
-			_set(o, o["value"] + amount)
+			_put(o, o["value"] + amount)
 
 
-func _set(o: Dictionary, value: float) -> void:
+func _put(o: Dictionary, value: float) -> void:
 	var id := String(o["def"].get("id", o["def"]["type"]))
 	var previous: float = o["value"]
 	o["value"] = minf(value, o["target"]) if o["target"] > 0 else value
