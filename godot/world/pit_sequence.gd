@@ -334,6 +334,9 @@ func _begin_climb() -> void:
 	_set_arena_overlays(false)
 	var visual := _winner_visual
 	if visual != null and is_instance_valid(visual):
+		if visual.has_method("ladder_fit"):
+			var fit: Vector3 = visual.call("ladder_fit")
+			world.chamber.configure_ladder(fit.x, fit.y, fit.z)
 		visual.set_process(false)
 		if visual.get_parent() != world.chamber:
 			visual.reparent(world.chamber, true)
