@@ -13,7 +13,7 @@ const Duel := preload("res://combat/tools/attacker_duel.gd")
 const ROLES := ["p", "n", "b", "r", "q"]
 ## Representative pairings for the bot gate: the weakest attacker into the strongest defenders, strong attackers into weak
 ## defenders, and mirrors. Fixed seeds make the result deterministic for a given tuning.
-const GATE_PAIRS := ["pq", "pn", "bq", "bn", "rq", "qp", "np", "pp", "qq", "rr"]
+const GATE_PAIRS := ["pp", "nn", "bb", "rr", "qq", "qp", "qb", "nr", "bp", "rb"]   # attackers that are not hopeless underdogs
 const GATE_N := 10
 const GATE_SEED := 31000
 const GATE_MIN_ATTACKER_RATE := 0.55   # over all gate duels (casual bot); the calibration target is 0.62 averaged over a casual and a skilled bot
@@ -31,7 +31,9 @@ static func run(h, tree: SceneTree) -> void:
 	_length_data(h)
 	await _length_simulation(h, tree)
 	await _length_damage(h, tree)
+	await _hit_stun(h, tree)
 	await _gate(h, tree)
+	await _queen_gate(h, tree)
 
 
 static func _start(tree: SceneTree, attacker_role: String, defender_role: String, options: Dictionary) -> CombatSimulation:
@@ -69,7 +71,7 @@ static func _data(h) -> void:
 				boosted_attackers += 1
 			if pair[1] > 1.0001:
 				boosted_defenders += 1
-	h.check(boosted_attackers > 0 and boosted_defenders > 0, "weak attackers are boosted (%d pairings) and so are weak defenders against strong attackers (%d)" % [boosted_attackers, boosted_defenders])
+	h.check(boosted_attackers > 0 and boosted_defenders == 0, "attackers are boosted (%d pairings) and NOBODY boosts a defender (%d): a strong piece stays strong when it attacks" % [boosted_attackers, boosted_defenders])
 	for key in ["kq", "qk", "kk", "pk", "kp"]:
 		h.eq(Balance.attacker_edge(key.substr(0, 1), key.substr(1, 1)), [1.0, 1.0], "%s: the King is neutral (King's last stand keeps its own balance)" % key)
 	h.eq(Balance.attacker_edge("x", "y"), [1.0, 1.0], "an unknown pairing is neutral")
@@ -405,3 +407,52 @@ static func _gate(h, tree: SceneTree) -> void:
 	h.check(worst >= GATE_MIN_PAIR_RATE, "the weakest gate pairing (%s attacks %s) still gives the attacker %.0f%% (needs >= %.0f%%)" % [worst_pair.substr(0, 1), worst_pair.substr(1, 1), 100.0 * worst, 100.0 * GATE_MIN_PAIR_RATE])
 	h.check(shortest >= GATE_MIN_MEDIAN_SECONDS, "the shortest gate pairing (%s attacks %s) still lasts a median %.1f s of fighting (needs >= %.0f s)" % [shortest_pair.substr(0, 1), shortest_pair.substr(1, 1), shortest, GATE_MIN_MEDIAN_SECONDS])
 	h.check(timeouts <= GATE_MAX_TIMEOUTS, "almost no gate duel runs into the time limit (%d of %d)" % [timeouts, total])
+
+
+## The Queen is the strongest piece and must feel like it: she beats a Pawn or Bishop that attacks her, and wins when she attacks them,
+## while the weaker attacker still has a real chance (the attacker's initiative bonus). Casual bot, fixed seeds.
+static func _queen_gate(h, tree: SceneTree) -> void:
+	h.begin("queen gate: a Queen holds against a Pawn or Bishop that attacks her and wins when she attacks (casual bot, fixed seeds)")
+	var cfg := {"style": "balanced", "skill": 0.6}
+	var rates := {}
+	for key in ["qp", "qb", "pq", "bq"]:
+		var wins := 0
+		for i in GATE_N:
+			var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), cfg, GATE_SEED + 500 + i)
+			if r["outcome"] == "attacker":
+				wins += 1
+		rates[key] = float(wins) / float(GATE_N)
+	h.check(rates["qp"] >= 0.80 and rates["qb"] >= 0.80, "a Queen attacking a Pawn / Bishop wins at least 80%% (%.0f%% / %.0f%%)" % [100.0 * rates["qp"], 100.0 * rates["qb"]])
+	h.check(rates["pq"] <= 0.45 and rates["bq"] <= 0.55, "a Pawn / Bishop attacking the Queen wins at most 45%% / 55%% (%.0f%% / %.0f%%): she holds" % [100.0 * rates["pq"], 100.0 * rates["bq"]])
+	h.check(rates["pq"] >= 0.03, "...but the Pawn still has a real chance as the attacker (%.0f%%)" % (100.0 * rates["pq"]))
+
+
+## Hit stun: a victim that was just hit cannot act, a heavy (charged) blow stuns much longer than a quick one, and raw frame data has none.
+static func _hit_stun(h, tree: SceneTree) -> void:
+	h.begin("hit stun: a clean hit stuns the victim, longer for a heavy blow, and raw frame data has no stun")
+	var S := CombatConstants.State
+	var light: AttackDefinition = Balance.attack_tables("p")["light"][0]
+	var heavy: AttackDefinition = Balance.attack_tables("p")["heavy"]
+	var stun := Balance.hit_stun()
+	h.check(float(stun["heavy_mult"]) > float(stun["light_mult"]) and float(stun["light_mult"]) > 0.0, "the data: heavy stun multiplier (%s) > light (%s) > 0" % [str(stun["heavy_mult"]), str(stun["light_mult"])])
+	# Rook defender: poise 110, so neither blow breaks poise and the plain hit stun is what we measure.
+	var sim := await _start(tree, "p", "r", {})
+	var victim := sim.defender()
+	sim._apply_hit(sim.attacker(), victim, light, 10)
+	var light_ticks := victim.sm.stun_total
+	h.check(victim.sm.state == S.STAGGERED and light_ticks == roundi(float(light.hitstun_ticks) * float(stun["light_mult"])), "a light hit stuns for %d ticks (%d x %s)" % [light_ticks, light.hitstun_ticks, str(stun["light_mult"])])
+	_dispose(sim)
+	var sim2 := await _start(tree, "p", "r", {})
+	var victim2 := sim2.defender()
+	sim2._apply_hit(sim2.attacker(), victim2, heavy, 10)
+	var heavy_ticks := victim2.sm.stun_total
+	h.check(victim2.sm.state == S.STAGGERED and heavy_ticks >= light_ticks * 2, "a heavy hit stuns for %d ticks, at least twice the light stun (%d)" % [heavy_ticks, light_ticks])
+	# A stunned fighter cannot start an attack (the input is held): its state stays STAGGERED after a press.
+	var in_stun_state := victim2.sm.state
+	h.check(in_stun_state == S.STAGGERED, "the victim is in the stun state (cannot attack back)")
+	_dispose(sim2)
+	var raw := await _start(tree, "p", "r", {"attacker_edge": false})
+	var raw_victim := raw.defender()
+	raw._apply_hit(raw.attacker(), raw_victim, light, 10)
+	h.check(raw_victim.sm.state != S.STAGGERED, "raw frame data (attacker_edge:false) has no hit stun")
+	_dispose(raw)

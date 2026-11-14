@@ -1,5 +1,5 @@
 extends RefCounted
-## Full screen support for the desktop build: "windowed" or "fullscreen" (Window.MODE_FULLSCREEN, a borderless window
+## Full screen support for desktop and browser builds: "windowed" or "fullscreen" (Window.MODE_FULLSCREEN, a borderless window
 ## that covers the screen; it behaves well with the Compatibility renderer and alt-tab, unlike exclusive full screen).
 ##
 ## Nothing here touches the simulation. The stored choice lives in ApplicationSettings (user://preferences.cfg, key
@@ -7,7 +7,8 @@ extends RefCounted
 ##   * F11 or Alt+Enter toggle it anywhere (menus, board, duels). Esc is never used, F1 stays the controls overlay;
 ##     F11 is also listed in combat/input/control_bindings.gd RESERVED_KEYS so it cannot be bound as a combat key.
 ##   * It is a no-op where a window cannot change mode: headless runs (tests, the dedicated server), Android/iOS
-##     (always full screen) and the web export. `available()` says so, and the Settings page hides the control then.
+##     (always full screen). On Web the browser must allow fullscreen and entry must happen in a user gesture.
+##     `available()` says so, and the Settings page hides the control otherwise.
 ##
 ## Test hooks (production leaves them untouched): `backend_set` / `backend_get` replace the DisplayServer calls and
 ## `available_override` forces availability, so the whole flow is testable without a window.
@@ -26,7 +27,12 @@ static var _watchers: Array[Callable] = []
 static func available() -> bool:
 	if available_override >= 0:
 		return available_override == 1
-	return OS.has_feature("pc") and DisplayServer.get_name() != "headless"
+	if DisplayServer.get_name() == "headless":
+		return false
+	if OS.has_feature("web"):
+		# Fullscreen can be disabled by the host iframe's allowfullscreen policy. Do not advertise a dead button.
+		return bool(JavaScriptBridge.eval("!!(document.fullscreenEnabled || document.webkitFullscreenEnabled)", true))
+	return OS.has_feature("pc")
 
 
 ## Strict: anything that is not exactly a known mode (wrong case, a number, "exclusive"...) is windowed.
@@ -45,7 +51,9 @@ static func current() -> String:
 	return FULLSCREEN if mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN else WINDOWED
 
 
-## Puts the window into `mode`. Returns false (and does nothing) where that is not possible.
+## Puts the window into `mode`. On Web call directly from a button/key callback so browser user activation is retained.
+## Godot's Web DisplayServer requests fullscreen on its canvas; the same getter follows browser Esc / fullscreen changes.
+## Returns false (and does nothing) where that is not possible.
 static func apply(mode: String) -> bool:
 	if not available():
 		return false

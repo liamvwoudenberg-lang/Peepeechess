@@ -365,7 +365,36 @@ func _clamp_to_shaft(p: Vector3) -> Vector3:
 	return Vector3(h.x + clampf(p.x - h.x, -limit, limit), p.y, h.z + clampf(p.z - h.z, -limit, limit))
 
 
+## Camera collision for the chamber below the board: whatever the pose (drop, combat, victory, climb), the camera stays inside the stone wall,
+## clear of the four pillars and above the floor, so it never passes through scenery. (The shaft band has its own clamp, above.)
+func _clamp_to_chamber(p: Vector3) -> Vector3:
+	if p.y >= W.CEILING_BOTTOM - 0.05:
+		return p   # up in the shaft / above the ceiling slab: _clamp_to_shaft and the board camera own that
+	var max_radius := CombatConstants.ARENA_WALL_RADIUS - 0.5
+	var flat := Vector2(p.x, p.z)
+	if flat.length() > max_radius:
+		flat = flat.normalized() * max_radius
+		p.x = flat.x
+		p.z = flat.y
+	var min_d: float = StoneArena.PILLAR_RADIUS + 0.9
+	for c in StoneArena.PILLAR_POSITIONS:
+		var dx := p.x - c.x
+		var dz := p.z - c.z
+		var d := sqrt(dx * dx + dz * dz)
+		if d < min_d and p.y < 3.2:
+			if d < 0.001:
+				dx = 1.0
+				dz = 0.0
+				d = 1.0
+			p.x = c.x + dx / d * min_d
+			p.z = c.z + dz / d * min_d
+	p.y = maxf(p.y, 0.35)
+	return p
+
+
 func _apply(pose: Dictionary) -> void:
+	pose = pose.duplicate()
+	pose["p"] = _clamp_to_chamber(pose["p"])
 	camera.position = pose["p"]
 	camera.basis = Basis(pose["q"])
 	camera.fov = pose["fov"]

@@ -325,6 +325,7 @@ func _build_presentation(request: Dictionary) -> void:
 	hud.rematch_requested.connect(func(): rematch_requested.emit())
 	hud.menu_requested.connect(func(): menu_requested.emit())
 	_build_control_overlay(humans)  # control-overlay edit
+	CombatDebug.attach(self)  # developer overlay (F3 / --combat-debug): hurt circles, live hit sector, state panel; invisible by default
 
 	cameras.clear()
 	var viewers := humans.duplicate()

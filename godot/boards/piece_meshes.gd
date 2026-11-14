@@ -84,4 +84,5 @@ static func build(role: String, color: String) -> Node3D:
 			cylinder(root, 0.18, 0.18, 0.18, 0.99, body)
 			box(root, Vector3(0.10, 0.40, 0.10), Vector3(0, 1.26, 0), trim)
 			box(root, Vector3(0.32, 0.09, 0.10), Vector3(0, 1.31, 0), trim)
+	PieceCrest.attach(root, role, color)
 	return BoardThemeView.finish_piece(root)

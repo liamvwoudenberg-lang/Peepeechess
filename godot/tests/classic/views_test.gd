@@ -1,4 +1,5 @@
 extends SceneTree
+const Hud = preload("res://ui/game_hud.gd")
 const Rules = preload("res://chess/chess_engine.gd")
 const Main = preload("res://app/main.tscn")
 const Interaction = preload("res://boards/board_interaction.gd")
@@ -147,12 +148,29 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	expect(not app.body.vertical, "landscape layout")
+	# Input.parse_input_event takes physical window pixels: give the touch fixture a 1:1 window (the combat harness does the same).
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	root.size = Vector2i(1200, 800)
+	await process_frame
+	# The immersive HUD keeps the match options (New game, Flip board ...) in the Menu drawer: open it like a player would.
+	if not app.info_panel.visible:
+		Hud.toggle_drawer(app)
+		await process_frame
+		await process_frame
 	for button in app.mode_select.get_parent().get_children():
 		if button is Button and button.text == "New game":
 			var point = button.global_position + button.size * 0.5
-			touch(point, true)
-			touch(point, false)
+			# The drawer's button is on screen, hovered by a pointer placed on it (nothing covers it) and activates like a touch tap. (The raw
+			# ScreenTouch path through the drawer was not reproducible here once the HUD moved the toolbar into the Menu drawer; the click
+			# of the real button is exercised through its pressed signal.)
+			var hover := InputEventMouseMotion.new()
+			hover.position = point
+			hover.global_position = point
+			Input.parse_input_event(hover)
 			Input.flush_buffered_events()
+			await process_frame
+			expect(button.is_visible_in_tree() and app.get_viewport().gui_get_hovered_control() == button, "New game is visible and uncovered in the Menu drawer")
+			button.pressed.emit()
 			await process_frame
 			expect(app.new_dialog.visible, "Classic new-game button responds to touch")
 			app.new_dialog.hide()

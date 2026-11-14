@@ -11,6 +11,12 @@ static func run(h, tree: SceneTree) -> void:
 	_models(h, tree)
 	_remap(h)
 	await _arena(h, tree)
+	_config(h, tree)
+	_hitbox_rules(h)
+	_hit_geometry(h)
+	await _smooth(h, tree)
+	await _lunge(h, tree)
+	await _debug_overlay(h, tree)
 
 
 static func _models(h, tree: SceneTree) -> void:
@@ -98,4 +104,185 @@ static func _arena(h, tree: SceneTree) -> void:
 		h.check(white_texture != black_texture, "the two seats are the white and the black version")
 	PaladinFighter.prefer_paladins = false
 	arena.queue_free()
+	await tree.process_frame
+
+
+## Per-role configuration: heights agree with the fighter, the measured bodies are plausible, the models have no root motion (no sliding).
+static func _config(h, tree: SceneTree) -> void:
+	h.begin("paladins: per-role config (heights, measured bodies), the audit numbers and no root motion in the locomotion clips")
+	h.eq(PaladinConfig.roles().size(), 6, "a config entry for every role")
+	for role in ROLES:
+		h.eq(PaladinConfig.height(role), float(PaladinFighter.HEIGHTS[role]), "%s: config height equals the fighter's height" % role)
+		var r := PaladinConfig.body_radius(role)
+		h.check(r > 0.10 and r < 0.30, "%s: measured body radius %.3f m is plausible" % [role, r])
+		var audit := PaladinConfig.audit(role)
+		h.check(float(audit["sim_radius"]) > 0.0 and float(audit["sim_reach"]) > 0.0, "%s: audit reads the simulation's radius %.2f and reach %.2f" % [role, audit["sim_radius"], audit["sim_reach"]])
+		var model := PaladinModel.create(role, "w", PaladinConfig.height(role))
+		tree.root.add_child(model)
+		for clip in ["Walking", "Running"]:
+			var anim := model.player.get_animation(clip)
+			var drift := Vector2.ZERO
+			for track in anim.get_track_count():
+				if anim.track_get_type(track) == Animation.TYPE_POSITION_3D and String(anim.track_get_path(track)).ends_with(":mixamorig_Hips"):
+					var a: Vector3 = anim.track_get_key_value(track, 0)
+					var b: Vector3 = anim.track_get_key_value(track, anim.track_get_key_count(track) - 1)
+					drift = Vector2(b.x - a.x, b.z - a.z)
+			h.check(drift.length() < 0.05, "%s: %s has no root motion (hips drift %.3f)" % [role, clip, drift.length()])
+		model.queue_free()
+
+
+## Hit detection rules of the simulation: only in the ACTIVE frames, once per swing per target, never against oneself.
+static func _hitbox_rules(h) -> void:
+	h.begin("combat audit: hit sector only while ACTIVE, one hit per swing and target, no self-hit, facing")
+	var near := Vector3(1.0, 0.0, 0.0)
+	h.check(HitboxController.in_sector(Vector3.ZERO, PI * 0.5, 1.6, 100.0, near, 0.4), "a target straight ahead inside reach is hit")
+	h.check(not HitboxController.in_sector(Vector3.ZERO, -PI * 0.5, 1.6, 100.0, near, 0.4), "a target behind the attacker is not hit")
+	h.check(not HitboxController.in_sector(Vector3.ZERO, PI * 0.5, 1.6, 100.0, Vector3(4.0, 0, 0), 0.4), "a target beyond reach is not hit")
+	var sim := CombatSimulation.new()
+	var request := FighterRoster.build_request("p", "n", "w", "audit", 11, 0)
+	h.check(sim.start(request, {"attacker_edge": false}).get("ok", false), "a bare simulation starts")
+	var a: FighterController = sim.attacker()
+	var d: FighterController = sim.defender()
+	a.teleport(Vector3(0, 0, 0), PI * 0.5)
+	d.teleport(Vector3(1.2, 0, 0), -PI * 0.5)
+	h.check(not a.hitbox.try_hit(a, d), "no hit while the attacker is not in an ACTIVE attack state")
+	h.check(not a.hitbox.shape(a).get("active", false), "the live hit shape is inactive outside the active frames")
+	sim.free()
+
+
+## The developer overlay: off by default, switchable, describes the combat state, draws the live hit sector only on active frames.
+static func _debug_overlay(h, tree: SceneTree) -> void:
+	h.begin("combat debug: overlay is off by default, toggles, describes state and shows the live hit sector only on active frames")
+	CombatDebug.set_enabled(false)
+	PaladinFighter.prefer_paladins = true
+	var arena: CombatArena = (load(ARENA) as PackedScene).instantiate()
+	tree.root.add_child(arena)
+	arena.configure_seats({"player-white": {"type": "ai", "skill": 0.9}, "player-black": {"type": "ai", "skill": 0.9}})
+	arena.start_battle(FighterRoster.build_request("n", "p", "w", "debug-1", 5, 0))
+	var overlay: CombatDebug = arena.get_node_or_null("CombatDebug")
+	if not h.check(overlay != null, "the arena carries a CombatDebug node"):
+		arena.queue_free()
+		return
+	await tree.physics_frame
+	await tree.process_frame
+	h.check(not CombatDebug.enabled and not overlay._lines.visible and not overlay._layer.visible, "off by default: nothing is drawn")
+	CombatDebug.set_enabled(true)
+	var saw_active := false
+	var saw_inactive := false
+	var consistent := true
+	for _i in 900:
+		await tree.physics_frame
+		await tree.process_frame
+		var f: FighterController = arena.sim.fighters[0]
+		var active: bool = f.hitbox.shape(f).get("active", false)
+		saw_active = saw_active or active
+		saw_inactive = saw_inactive or not active
+		# the overlay's text reports ACTIVE exactly when the simulation's attack is active
+		var text := CombatDebug.describe(f, "x")
+		if (" ACTIVE" in text) != f.sm.attack_active():
+			consistent = false
+		if not arena.sim.is_running():
+			break
+	h.check(overlay._lines.visible and overlay._layer.visible and overlay._label.text.length() > 20, "on: lines and the state panel are shown")
+	h.check(saw_active and saw_inactive, "the fight had both active and inactive swing frames")
+	h.check(consistent, "the panel marks ACTIVE exactly on the simulation's active attack frames")
+	var line: String = CombatDebug.describe(arena.sim.fighters[0], "idle")
+	for needle in ["hp ", "stam ", "combo ", "swing #", "clip idle"]:
+		h.check(needle in line, "the panel shows '%s'" % needle)
+	CombatDebug.set_enabled(false)
+	PaladinFighter.prefer_paladins = false
+	arena.queue_free()
+	await tree.process_frame
+
+
+## The hit circle is the drawn body, but the calibrated centre-to-centre range of every attack is unchanged; the drawn sword tip meets it.
+static func _hit_geometry(h) -> void:
+	h.begin("hitbox: hit radius = drawn body, centre range unchanged for every pairing, the drawn tip reaches the hit range")
+	for a in ROLES:
+		var stats := FighterRoster.stats_for(a)
+		var reach := float(stats["reachM"])
+		for d in ROLES:
+			var sep := float(FighterProfile.for_role(d)["radius"])
+			var hit := minf(sep, PaladinConfig.hit_radius(d, sep))
+			var bonus := sep - hit
+			h.check(hit < sep and hit > 0.1, "%s: hit radius %.2f m is the drawn body, inside the %.2f m separation circle" % [d, hit, sep])
+			# on-axis: the old test (reach vs the separation circle) and the new one (reach + bonus vs the hit circle) agree at the edge
+			for offset in [-0.02, 0.02]:
+				var distance: float = reach + sep + offset
+				var old_hit := HitboxController.in_sector(Vector3.ZERO, PI * 0.5, reach, 100.0, Vector3(distance, 0, 0), sep)
+				var new_hit := HitboxController.in_sector(Vector3.ZERO, PI * 0.5, reach + bonus, 100.0, Vector3(distance, 0, 0), hit)
+				if old_hit != new_hit:
+					h.check(false, "%s->%s: on-axis range changed at %+.2f m" % [a, d, offset])
+			# a defender 25 degrees off the facing, well inside reach, is still hit with the 100 degree arcs
+			var off_axis := HitboxController.in_sector(Vector3.ZERO, PI * 0.5, reach + bonus, 100.0, Vector3(cos(deg_to_rad(25)), 0, sin(deg_to_rad(25))) * (reach * 0.6), hit)
+			if not off_axis:
+				h.check(false, "%s->%s: a target 25 degrees off-axis at 60%% reach is missed" % [a, d])
+	for role in ROLES:
+		var sep := float(FighterProfile.for_role(role)["radius"])
+		var front := float(FighterRoster.stats_for(role)["reachM"]) + (sep - minf(sep, PaladinConfig.hit_radius(role, sep)))
+		for heavy in [false, true]:
+			var attack: AttackDefinition = AttackLibrary.heavy(role) if heavy else AttackLibrary.light(role, 0)
+			var covered := PaladinConfig.tip_forward(role, heavy) + PaladinConfig.lunge(role, heavy) + attack.forward_motion_m
+			h.check(covered >= front - 0.12, "%s %s: tip %.2f + lunge %.2f + motion %.2f = %.2f m reaches the hit range %.2f m (drawn reach matches the simulation)" % [
+					role, "heavy" if heavy else "light", PaladinConfig.tip_forward(role, heavy), PaladinConfig.lunge(role, heavy), attack.forward_motion_m, covered, front])
+
+
+## The strike lunge exists only while a strike is going, and the simulation never sees it.
+static func _lunge(h, tree: SceneTree) -> void:
+	h.begin("paladins: the strike lunge happens during attacks only and leaves the simulation untouched")
+	PaladinFighter.prefer_paladins = true
+	var arena: CombatArena = (load(ARENA) as PackedScene).instantiate()
+	tree.root.add_child(arena)
+	arena.configure_seats({"player-white": {"type": "ai", "skill": 0.9}, "player-black": {"type": "ai", "skill": 0.9}})
+	arena.start_battle(FighterRoster.build_request("p", "n", "w", "lunge-1", 3, 0))
+	var peak := 0.0
+	var outside_attack_max := 0.0
+	for _i in 900:
+		await tree.physics_frame
+		for v in arena._fighter_visuals:
+			var visual := v as PaladinFighter
+			if visual == null or visual.fighter == null:
+				continue
+			var offset: float = visual._lunge_offset()
+			if visual.fighter.sm.state == CombatConstants.State.ATTACKING:
+				peak = maxf(peak, offset)
+			else:
+				outside_attack_max = maxf(outside_attack_max, offset)
+		if not arena.sim.is_running():
+			break
+	h.check(peak > 0.1, "a strike lunged the model forward (peak %.2f m)" % peak)
+	h.check(outside_attack_max == 0.0, "no lunge outside attacks (%.3f m)" % outside_attack_max)
+	PaladinFighter.prefer_paladins = false
+	arena.queue_free()
+	await tree.process_frame
+
+
+## Cross-fades and loops: soft fades of 0.1-0.2 s, loops that close exactly, cubic curves on loops, strike timing untouched.
+static func _smooth(h, tree: SceneTree) -> void:
+	h.begin("paladins: cross-fades are 0.1-0.2 s, looping clips close exactly and use cubic curves")
+	var fighter := PaladinFighter.new()
+	tree.root.add_child(fighter)
+	h.check(fighter.setup_free("n", 0, "w"), "a paladin sets up")
+	for pair in [["idle", "walk"], ["walk", "run"], ["run", "idle"], ["idle", "block"], ["block", "idle"], ["idle", "light_1"], ["walk", "heavy"],
+			["light_1", "idle"], ["idle", "dodge"], ["idle", "parry"], ["stagger", "idle"], ["hit_react_light", "idle"]]:
+		var b := fighter._blend(pair[0], pair[1])
+		h.check(b >= 0.1 - 0.0001 and b <= 0.2 + 0.0001, "%s -> %s cross-fades over %.2f s (0.1-0.2)" % [pair[0], pair[1], b])
+	h.eq(fighter._blend("idle", "idle"), 0.0, "no fade into the same clip")
+	for clip in ["idle", "block", "ladder_idle", "drop_fall"]:   # (climb is built by the pit's own code path: not touched here)
+		if not fighter.has_clip(clip):
+			continue
+		var anim: Animation = fighter.player.get_animation(clip)
+		var closed := true
+		var cubic := true
+		for track in anim.get_track_count():
+			var n := anim.track_get_key_count(track)
+			if n > 1:
+				closed = closed and anim.track_get_key_value(track, 0) == anim.track_get_key_value(track, n - 1)
+			cubic = cubic and anim.track_get_interpolation_type(track) == Animation.INTERPOLATION_CUBIC
+		h.check(closed, "%s: the last key repeats the first (the loop cannot pop)" % clip)
+		h.check(cubic, "%s: tracks interpolate cubically" % clip)
+	for clip in ["light_1", "heavy"]:
+		var anim: Animation = fighter.player.get_animation(clip)
+		h.check(anim.track_get_interpolation_type(0) == Animation.INTERPOLATION_LINEAR, "%s: strikes stay linear (the strike pose lands on time)" % clip)
+	fighter.queue_free()
 	await tree.process_frame

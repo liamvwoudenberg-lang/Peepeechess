@@ -147,6 +147,7 @@ func _stone_material(uv_scale: float, tint: Color) -> StandardMaterial3D:
 	m.albedo_texture = stone_texture(7, tint)
 	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
 	m.roughness = 0.95
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED   # walls and pillars are solid from every side: no see-through from inside a wall or outside the ring
 	return m
 
 
