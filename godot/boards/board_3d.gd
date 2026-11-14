@@ -173,7 +173,7 @@ func set_sync_hold(value: bool) -> void:
 		sync_state()
 
 func sync_state() -> void:
-	if not is_visible_in_tree():
+	if not is_visible_in_tree() and not _pieces_needed_while_hidden():
 		_sync_pending = true
 		return
 	if scene == null:
@@ -397,3 +397,10 @@ func _input(event: InputEvent) -> void:
 			_touch_moved = true
 			_orbit(event.relative)
 		get_viewport().set_input_as_handled()
+
+
+## A hidden board normally defers building its pieces (Codex: no hidden 3D pieces, Classic 2D saves the memory), but Battle Chess needs
+## them on the board even while the board is hidden: the pit sequence descends from their squares and the combat views hide the board on
+## purpose.
+func _pieces_needed_while_hidden() -> bool:
+	return game is BattleChessMatch

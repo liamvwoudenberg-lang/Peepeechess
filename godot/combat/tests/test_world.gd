@@ -436,11 +436,16 @@ static func _top_down_view(h, tree: SceneTree) -> void:
 	var board: ChessBoard3D = app.board_3d
 	var world: BattleWorld = board.world
 	world.auto_advance = false
-	h.begin("world views: the 2D button is a top-down camera on the same 3D board")
+	h.begin("world views: the 2D button shows the real 2D board; the 3D board has an overhead (top-down) camera on the same 3D world")
 	h.check(app.use_world, "world mode is the default")
 	app.set_view(false)
 	await tree.process_frame
-	h.check(board.visible and not app.board_2d.visible, "the 3D board is shown for the 2D view")
+	h.check(app.board_2d.visible and not board.visible, "the 2D view shows the classic 2D board (Classic 2D is preserved)")
+	app.set_view(true)
+	app._overhead = true   # the toolbar's Top/Angle toggle
+	board.set_top_down(true)
+	await tree.process_frame
+	h.check(board.visible and not app.board_2d.visible, "the 3D view shows the 3D board")
 	h.eq(world.rig.state, CameraRig.State.CHESS_TOP_DOWN, "top-down camera")
 	await tree.physics_frame
 	await tree.physics_frame
@@ -476,7 +481,9 @@ static func _top_down_view(h, tree: SceneTree) -> void:
 	var before := board.camera.position
 	board._orbit(Vector2(60, 30))
 	h.check(board.camera.position == before, "orbit is ignored in the top-down view")
+	app._overhead = false   # back to the angled camera
 	app.set_view(true)
+	board.set_top_down(false)
 	await tree.process_frame
 	h.eq(world.rig.state, CameraRig.State.CHESS_PERSPECTIVE, "3D button = perspective camera")
 	var persp := board.camera.position

@@ -178,9 +178,9 @@ static func describe_edge(attacker_role: String, defender_role: String) -> Strin
 		parts.append(text + ".")
 	var pair := attacker_edge(attacker_role, defender_role)
 	if pair[0] > 1.001:
-		parts.append("Underdog bonus: the attacker's blows hit x%s harder." % String.num(pair[0], 2))
+		parts.append("Attacker initiative: the attacker's blows hit x%s harder." % String.num(pair[0], 2))
 	if pair[1] > 1.001:
-		parts.append("Underdog bonus: the defender's blows hit x%s harder." % String.num(pair[1], 2))
+		parts.append("Defender bonus: the defender's blows hit x%s harder." % String.num(pair[1], 2))
 	return " ".join(parts)
 
 
