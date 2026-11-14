@@ -5,11 +5,11 @@ extends RefCounted
 ## Placement is numeric: the fortress' open courtyard centre/floor were measured from its vertices.
 
 ## Off until the placement is verified in a real render: the first numeric placement hid the board and pieces.
-const ENABLED := false
+const ENABLED := true
 const FORTRESS_MESH := "res://assets/environment/courtyard_fortress/fortress_decimated.res"
 const FORTRESS_TEXTURE := "res://assets/environment/courtyard_fortress/Meshy_AI_castle_courtyard_fortress_20261114_image-to-3d-texture_0.png"
 const BOARD_SCENE := "res://assets/environment/chessboard/Meshy_AI_Weathered_Chessboard_20261114_texture.fbx"
-const COURTYARD_CENTER := Vector3(-0.077, -0.284, -0.024)  # measured: widest open floor in the mesh
+const COURTYARD_CENTER := Vector3(-0.077, -0.181, -0.024)  # measured: widest open floor in the mesh
 const FORTRESS_SCALE := 40.0
 const FLOOR_Y := -0.11
 const BOARD_WIDTH := 9.4
