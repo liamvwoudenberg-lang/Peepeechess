@@ -109,7 +109,7 @@ const MESHY_FILES := {
 }
 ## Wall slots: angle in degrees (0 = +Z, the wall's outward normal is (sin a, cos a)).
 const MESHY_ARCH_COUNT := 14               # archways side by side form the whole wall ring (3.0 m each)
-const MESHY_FRONT_JUT := 1.0              # props that hang in front of the archways: their back stands this far inside the wall
+const MESHY_FRONT_JUT := 0.45              # props that hang in front of the archways: their back stands this far inside the wall
 const MESHY_SCONCE_ANGLES := [45.0, 135.0, 225.0, 315.0]
 const MESHY_BANNER_ANGLES := [67.5, 247.5]
 const MESHY_LADDER_ANGLE := 157.5
@@ -128,6 +128,19 @@ func _meshy_prop(name: String, scale_xyz: Vector3) -> Node3D:
 	var instance := scene.instantiate() as Node3D
 	var box := _local_aabb(instance, Transform3D.IDENTITY)
 	instance.position = -Vector3(box.position.x + box.size.x * 0.5, box.position.y, box.position.z + box.size.z * 0.5)
+	if name in ["archway", "banner"]:   # thin panels: visible from both sides; the banner also glows so it reads in the dark arena
+		for mi in instance.find_children("*", "MeshInstance3D", true, false):
+			var src := (mi as MeshInstance3D).mesh.surface_get_material(0)
+			if src is StandardMaterial3D:
+				var m := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
+				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				if name == "banner":
+					m.albedo_color = Color(1.2, 1.1, 1.05)
+					m.emission_enabled = true
+					m.emission_texture = m.albedo_texture
+					m.emission = Color(1, 1, 1)
+					m.emission_energy_multiplier = 0.3
+				(mi as MeshInstance3D).material_override = m
 	var holder := Node3D.new()
 	holder.name = name.capitalize().replace(" ", "")
 	holder.add_child(instance)
@@ -228,7 +241,7 @@ func _build_meshy() -> bool:
 				_pillar_mats.append(faded as StandardMaterial3D if faded is StandardMaterial3D else fade_plinth)
 	# (3) archways in the wall ring: a curved niche panel, 3 m high, its back face on the wall
 	for i in MESHY_ARCH_COUNT:
-		_meshy_wall_slot(_meshy_prop("archway", Vector3.ONE * 3.2), 360.0 * float(i) / float(MESHY_ARCH_COUNT), wall_radius, 0.0, 0.2)
+		_meshy_wall_slot(_meshy_prop("archway", Vector3(3.2, 3.2, 0.35)), 360.0 * float(i) / float(MESHY_ARCH_COUNT), wall_radius, 0.0, 0.3)
 	# (4) torch sconces with a flame and a light each (four lights, as before)
 	for a in MESHY_SCONCE_ANGLES:
 		var sconce := _meshy_prop("torch_sconce", Vector3.ONE * 1.0)
