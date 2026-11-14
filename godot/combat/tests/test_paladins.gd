@@ -13,6 +13,8 @@ static func run(h, tree: SceneTree) -> void:
 	await _arena(h, tree)
 	_config(h, tree)
 	_hitbox_rules(h)
+	_hit_geometry(h)
+	await _lunge(h, tree)
 	await _debug_overlay(h, tree)
 
 
@@ -187,6 +189,68 @@ static func _debug_overlay(h, tree: SceneTree) -> void:
 	for needle in ["hp ", "stam ", "combo ", "swing #", "clip idle"]:
 		h.check(needle in line, "the panel shows '%s'" % needle)
 	CombatDebug.set_enabled(false)
+	PaladinFighter.prefer_paladins = false
+	arena.queue_free()
+	await tree.process_frame
+
+
+## The hit circle is the drawn body, but the calibrated centre-to-centre range of every attack is unchanged; the drawn sword tip meets it.
+static func _hit_geometry(h) -> void:
+	h.begin("hitbox: hit radius = drawn body, centre range unchanged for every pairing, the drawn tip reaches the hit range")
+	for a in ROLES:
+		var stats := FighterRoster.stats_for(a)
+		var reach := float(stats["reachM"])
+		for d in ROLES:
+			var sep := float(FighterProfile.for_role(d)["radius"])
+			var hit := minf(sep, PaladinConfig.hit_radius(d, sep))
+			var bonus := sep - hit
+			h.check(hit < sep and hit > 0.1, "%s: hit radius %.2f m is the drawn body, inside the %.2f m separation circle" % [d, hit, sep])
+			# on-axis: the old test (reach vs the separation circle) and the new one (reach + bonus vs the hit circle) agree at the edge
+			for offset in [-0.02, 0.02]:
+				var distance: float = reach + sep + offset
+				var old_hit := HitboxController.in_sector(Vector3.ZERO, PI * 0.5, reach, 100.0, Vector3(distance, 0, 0), sep)
+				var new_hit := HitboxController.in_sector(Vector3.ZERO, PI * 0.5, reach + bonus, 100.0, Vector3(distance, 0, 0), hit)
+				if old_hit != new_hit:
+					h.check(false, "%s->%s: on-axis range changed at %+.2f m" % [a, d, offset])
+			# a defender 25 degrees off the facing, well inside reach, is still hit with the 100 degree arcs
+			var off_axis := HitboxController.in_sector(Vector3.ZERO, PI * 0.5, reach + bonus, 100.0, Vector3(cos(deg_to_rad(25)), 0, sin(deg_to_rad(25))) * (reach * 0.6), hit)
+			if not off_axis:
+				h.check(false, "%s->%s: a target 25 degrees off-axis at 60%% reach is missed" % [a, d])
+	for role in ROLES:
+		var sep := float(FighterProfile.for_role(role)["radius"])
+		var front := float(FighterRoster.stats_for(role)["reachM"]) + (sep - minf(sep, PaladinConfig.hit_radius(role, sep)))
+		for heavy in [false, true]:
+			var attack: AttackDefinition = AttackLibrary.heavy(role) if heavy else AttackLibrary.light(role, 0)
+			var covered := PaladinConfig.tip_forward(role, heavy) + PaladinConfig.lunge(role, heavy) + attack.forward_motion_m
+			h.check(covered >= front - 0.12, "%s %s: tip %.2f + lunge %.2f + motion %.2f = %.2f m reaches the hit range %.2f m (drawn reach matches the simulation)" % [
+					role, "heavy" if heavy else "light", PaladinConfig.tip_forward(role, heavy), PaladinConfig.lunge(role, heavy), attack.forward_motion_m, covered, front])
+
+
+## The strike lunge exists only while a strike is going, and the simulation never sees it.
+static func _lunge(h, tree: SceneTree) -> void:
+	h.begin("paladins: the strike lunge happens during attacks only and leaves the simulation untouched")
+	PaladinFighter.prefer_paladins = true
+	var arena: CombatArena = (load(ARENA) as PackedScene).instantiate()
+	tree.root.add_child(arena)
+	arena.configure_seats({"player-white": {"type": "ai", "skill": 0.9}, "player-black": {"type": "ai", "skill": 0.9}})
+	arena.start_battle(FighterRoster.build_request("p", "n", "w", "lunge-1", 3, 0))
+	var peak := 0.0
+	var outside_attack_max := 0.0
+	for _i in 900:
+		await tree.physics_frame
+		for v in arena._fighter_visuals:
+			var visual := v as PaladinFighter
+			if visual == null or visual.fighter == null:
+				continue
+			var offset: float = visual._lunge_offset()
+			if visual.fighter.sm.state == CombatConstants.State.ATTACKING:
+				peak = maxf(peak, offset)
+			else:
+				outside_attack_max = maxf(outside_attack_max, offset)
+		if not arena.sim.is_running():
+			break
+	h.check(peak > 0.1, "a strike lunged the model forward (peak %.2f m)" % peak)
+	h.check(outside_attack_max == 0.0, "no lunge outside attacks (%.3f m)" % outside_attack_max)
 	PaladinFighter.prefer_paladins = false
 	arena.queue_free()
 	await tree.process_frame
