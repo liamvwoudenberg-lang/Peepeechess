@@ -136,6 +136,8 @@ func think(snapshot: Dictionary) -> Dictionary:
 	var to_opp := _pos(opp) - my_pos
 	var dist := to_opp.length()
 	var yaw_to := CombatConstants.yaw_of(to_opp) if dist > 0.01 else float(me["yawRadians"])
+	# Attacks have a narrow cone now (about 45-60 degrees): the computer aims before it swings, like a player has to.
+	var aimed: bool = absf(CombatConstants.angle_diff(float(me["yawRadians"]), yaw_to)) < deg_to_rad(16.0)
 
 	var live := int(snapshot["countdownTicksRemaining"]) == 0 and snapshot["result"] == null
 	if not live:
@@ -245,14 +247,14 @@ func think(snapshot: Dictionary) -> Dictionary:
 	if free and _block_ticks == 0 and _scheduled_in == 0 and not low_stamina and not threatened:
 		if _follow_up_in > 0:
 			_follow_up_in -= 1
-		elif _follow_up_in == 0 and _follow_ups_left > 0 and dist <= reach + 0.5:
+		elif _follow_up_in == 0 and _follow_ups_left > 0 and dist <= reach + 0.5 and aimed:
 			if float(_p["follow_chance"]) >= 1.0 or rng.randf() < float(_p["follow_chance"]):
 				builder.press("light")
 			else:
 				_follow_ups_left = 0
 			_follow_ups_left -= 1
 			_follow_up_in = int(round(float(_my_stats["lightTicks"]) * 0.78)) if _follow_ups_left > 0 else -1
-		elif dist <= reach + 0.15 and my_state != "Blocking" and (_attack_cooldown <= 0 or opp_vulnerable and _attack_cooldown <= 10):
+		elif dist <= reach + 0.15 and aimed and my_state != "Blocking" and (_attack_cooldown <= 0 or opp_vulnerable and _attack_cooldown <= 10):
 			var want := opp_vulnerable or float(_p["poke"]) >= 1.0 or rng.randf() < float(_p["poke"])
 			if bool(_p["no_attack"]) or (float(_p["error_rate"]) > 0.0 and rng.randf() < float(_p["error_rate"]) * 0.5):
 				want = false

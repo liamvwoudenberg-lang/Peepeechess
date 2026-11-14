@@ -118,6 +118,7 @@ static func build_piece(role: String, color: String) -> Node3D:
 	instance.rotation.y = PI
 	var root = Node3D.new()
 	root.add_child(instance)
+	PieceCrest.attach(root, role, color)
 	return root
 
 ## Shadow quality for one piece (called for every piece the builder returns and again on a setting change).

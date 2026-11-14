@@ -735,7 +735,7 @@ static func _main_scene(h, tree: SceneTree) -> void:
 ## was visible it swallowed every Cross press into a mouse click at the pointer's position (on the 3D board, which also took the
 ## focus): the capture card's focused "Start battle" never fired, however often Cross was pressed.
 static func _capture_with_stick_pointer(h, tree: SceneTree) -> void:
-	h.begin("main scene: with the stick pointer active Cross still presses the focused Start battle (and a pointed-at button wins)")
+	h.begin("main scene: with the stick pointer active Cross still presses the focused Start battle (and the cursor hides in pad mode)")
 	tree.root.size = Vector2i(1200, 800)
 	Settings.loaded = true
 	Settings.launch.clear()
@@ -781,29 +781,20 @@ static func _capture_with_stick_pointer(h, tree: SceneTree) -> void:
 	h.check(app.battle_flow.phase != "preview", "Cross started the battle although the stick pointer was visible elsewhere (phase %s)" % app.battle_flow.phase)
 	app.battle_flow.interrupt("test interrupt")
 	await frames(tree, 5)
-	# 3. Pointing at ANOTHER button is an explicit choice: Cross clicks that one (Cancel capture), not the focused Start battle.
-	app.game.new_game(0, 0, CAPTURE_FEN)
-	await frames(tree, 3)
-	ui.cursor.set_cursor(27)
-	await press(0, JOY_BUTTON_A, tree)
-	ui.cursor.set_cursor(36)
-	await press(0, JOY_BUTTON_A, tree)
-	await frames(tree, 3)
-	h.eq(app.battle_flow.phase, "preview", "second capture: preview card up")
-	var target: Vector2 = app.battle_cancel.get_global_rect().get_center()
+	# 3. With the application's PadUi present the stick pointer is not drawn at all, and the OS mouse cursor is hidden while the pad is in use
+	# (a real mouse move brings it back).
 	platform._cursor_visible = true
-	platform.cursor_position = target
+	platform._process(0.016)
+	h.check(not platform._cursor_visible, "no pointer marker while PadUi is present (the pad has no mouse to show)")
+	await press(0, JOY_BUTTON_DPAD_DOWN, tree)
+	h.check(Input.mouse_mode == Input.MOUSE_MODE_HIDDEN or DisplayServer.get_name() == "headless", "the mouse cursor is hidden while the pad is in use")
 	var motion := InputEventMouseMotion.new()
-	motion.device = platform.VIRTUAL_POINTER_DEVICE
-	motion.position = target
-	motion.global_position = target
-	motion.relative = Vector2(5, 5)
+	motion.relative = Vector2(20, 20)
+	motion.position = Vector2(300, 300)
 	Input.parse_input_event(motion)
 	Input.flush_buffered_events()
-	await frames(tree, 3)
-	await press(0, JOY_BUTTON_A, tree)
-	await frames(tree, 3)
-	h.eq(app.battle_flow.phase, "board", "the pointer rested on Cancel capture: Cross clicked it (back on the board)")
+	await frames(tree, 2)
+	h.check(Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "...and a real mouse move shows it again")
 	platform._cursor_visible = false
 	app.queue_free()
 	await frames(tree, 3)

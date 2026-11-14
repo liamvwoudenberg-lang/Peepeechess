@@ -157,6 +157,7 @@ func _input(event: InputEvent) -> void:
 		nav_mode = true
 	elif event is InputEventMouseButton or event is InputEventScreenTouch or (event is InputEventMouseMotion and event.relative.length() > 3.0 and event.device != InputEvent.DEVICE_ID_EMULATION):
 		nav_mode = false
+	_apply_pointer_hidden(nav_mode and not _combat_active())
 	if not nav_mode or _combat_active() or _board_owns_pad():
 		return
 	# A navigation press with nothing focused only reveals the focus (it is not also applied).
@@ -374,3 +375,40 @@ func _square_rect(at: int) -> Rect2:
 		var pitch: float = float(board_2d.call("board_rect").size.x) / 8.0
 		return Rect2(board_2d.call("square_center", at) - Vector2.ONE * pitch * 0.5, Vector2.ONE * pitch)
 	return Rect2()
+
+
+# ---- the mouse stays out of the way while a pad / keys are in use -------------------------------------------------------------------
+var _pointer_hidden := false
+var _hid_cursor := false
+var _saved_tooltip_delay: Variant = null
+
+## While the player navigates with a pad or keys, the OS mouse cursor is hidden and no tooltip may linger (a tooltip belongs to the
+## mouse); a real mouse move or click brings both back. A combat that captures the mouse is left alone.
+func _apply_pointer_hidden(hidden: bool) -> void:
+	if hidden == _pointer_hidden:
+		return
+	_pointer_hidden = hidden
+	if hidden:
+		if Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
+			Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+			_hid_cursor = true
+		if _saved_tooltip_delay == null and ProjectSettings.has_setting("gui/timers/tooltip_delay_sec"):
+			_saved_tooltip_delay = ProjectSettings.get_setting("gui/timers/tooltip_delay_sec")
+			ProjectSettings.set_setting("gui/timers/tooltip_delay_sec", 3600.0)
+		# Tell the GUI the pointer left every control (hides a tooltip that is already up and clears hover states).
+		var away := InputEventMouseMotion.new()
+		away.device = InputEvent.DEVICE_ID_EMULATION
+		away.position = Vector2(-100.0, -100.0)
+		away.global_position = away.position
+		Input.parse_input_event(away)
+	else:
+		if _hid_cursor and Input.mouse_mode == Input.MOUSE_MODE_HIDDEN:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_hid_cursor = false
+		if _saved_tooltip_delay != null:
+			ProjectSettings.set_setting("gui/timers/tooltip_delay_sec", _saved_tooltip_delay)
+			_saved_tooltip_delay = null
+
+
+func _exit_tree() -> void:
+	_apply_pointer_hidden(false)

@@ -28,6 +28,8 @@ const BANNER_NAVY := Color("233a78")
 const BANNER_IVORY := Color("d9cfb3")
 
 const GATE_Z := 4.0
+## Test hook only: true rebuilds the pier tops that used to z-fight with the bridge tiles (proves the stability check can see the bug).
+static var debug_pier_tops := false
 const WALL_H := 11.0
 const KEEP_Z := -42.0
 const BASE_Y := -12.0   # walls and towers are buried this deep so they always meet the crag
@@ -355,7 +357,8 @@ func _bridge() -> void:
 	# piers vanish into the mist below
 	var z_pier := GATE_Z + 16.0
 	while z_pier < z_far:
-		stone.box(Transform3D(Basis.IDENTITY, Vector3(0, -22.0, z_pier)), Vector3(9.4, 44.0, 5.0), stone.jitter(STONE_DARK, 0.03), "b")
+		# top face skipped: it would sit at exactly y = 0, coplanar with the chequer tiles (z-fighting, visible as flicker)
+		stone.box(Transform3D(Basis.IDENTITY, Vector3(0, -22.0, z_pier)), Vector3(9.4, 44.0, 5.0), stone.jitter(STONE_DARK, 0.03), "b" if debug_pier_tops else "bt")
 		z_pier += 26.0
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -435,8 +438,9 @@ func _gatehouse() -> void:
 		plain.box(Transform3D(Basis.IDENTITY, Vector3(x, y_top - 0.8, depth * 0.5 - 0.9)), Vector3(0.11, 1.6, 0.11), IRON, "b")
 		plain.box(Transform3D(Basis(Vector3(0, 0, 1), PI), Vector3(x, y_top - 1.7, depth * 0.5 - 0.9)), Vector3(0.18, 0.3, 0.18), IRON, "b")
 	plain.box(Transform3D(Basis.IDENTITY, Vector3(0, spring + 1.0, depth * 0.5 - 0.9)), Vector3(2.0 * half, 0.1, 0.1), IRON, "b")
-	# floor of the passage continues the chequer
-	for r in 4:
+	# floor of the passage continues the chequer (three rows, z = +4 .. -2: the court's ground quad starts at z = -2, a fourth row
+	# would lie coplanar under it)
+	for r in 3:
 		for c in 3:
 			var col: Color = Color("c2bdaf") if (r + c) % 2 == 0 else SQUARE_DARK
 			var x0 := -half + c * 2.0

@@ -5,8 +5,10 @@ extends Node3D
 ## sits under `facer`, which turns it to face its walking direction and back to the resting direction afterwards.
 ## Models face +Z; the board rests white facing -Z (see BoardThemeView.build_piece), so the resting `facer.rotation.y` is PI for both sides.
 
-## Standing height (m) per role: fits a 1 m tile and still reads from the straight-down camera.
-const HEIGHTS := {"p": 1.1, "n": 1.3, "b": 1.36, "r": 1.24, "q": 1.44, "k": 1.52}
+## 30% taller than the original board characters. Only the model grows: the root, square centres
+## and picking geometry stay unchanged. Its horizontal footprint is fitted separately below.
+const HEIGHTS := {"p": 1.43, "n": 1.69, "b": 1.768, "r": 1.612, "q": 1.872, "k": 1.976}
+const FOOTPRINT_RADIUS := 0.435
 const WALK_SPEED := 1.5        # m/s for a one-square step
 const RUN_SPEED := 3.0         # m/s for longer moves
 const MAX_SECONDS := 2.5       # a whole move never takes longer (at normal animation speed)
@@ -53,8 +55,33 @@ static func create(role_code: String, color_code: String) -> PaladinPiece:
 	piece.facer.rotation.y = REST_YAW
 	piece.add_child(piece.facer)
 	piece.facer.add_child(m)
+	_fit_footprint(m)
+	m.position.y = PieceCrest.TOP
+	PieceCrest.attach(piece, role_code, color_code)
+	PieceCrest.crown(m, role_code, color_code)
 	m.play("idle")
 	return piece
+
+
+## The Meshy bind pose includes spread arms and weapons. Bound every source AABB corner radially
+## so orbiting a piece can never turn a diagonal silhouette into a neighbouring square. Nonuniform
+## XZ fitting preserves the requested height increase and leaves the original skin and clips intact.
+static func _fit_footprint(m: PaladinModel) -> void:
+	var radius := 0.0
+	for part in m.meshes:
+		var transform := part.transform
+		var parent := part.get_parent() as Node3D
+		while parent != null and parent != m:
+			transform = parent.transform * transform
+			parent = parent.get_parent() as Node3D
+		var bounds := part.get_aabb()
+		for i in 8:
+			var point := transform * bounds.get_endpoint(i)
+			radius = maxf(radius, Vector2(point.x, point.z).length())
+	if radius > FOOTPRINT_RADIUS:
+		var fit := FOOTPRINT_RADIUS / radius
+		m.scale = Vector3(fit, 1.0, fit)
+	m.set_meta("board_footprint_radius", minf(radius, FOOTPRINT_RADIUS))
 
 
 ## The corner of the L for a knight (the long leg first); every other move is one straight leg.
@@ -85,7 +112,8 @@ func walk_along(points: Array[Vector3], time_scale: float = 1.0, done: Callable 
 	speed = maxf(speed, total / MAX_SECONDS)
 	speed /= maxf(time_scale, 0.05)
 	var clip := "run" if run else "walk"
-	model.play(clip, model.locomotion_speed(clip, speed))
+	# Horizontal fitting also shortens the authored stride; compensate playback so feet keep pace.
+	model.play(clip, model.locomotion_speed(clip, speed / maxf(model.scale.z, 0.01)))
 	walking = true
 	_walk = create_tween()
 	last = position

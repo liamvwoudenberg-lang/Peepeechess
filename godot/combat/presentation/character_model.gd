@@ -260,6 +260,11 @@ static func blend_time(from_clip: String, to_clip: String) -> float:
 	return BLEND
 
 
+## Cross-fade length from one clip to another. The default is the static table above; rigs with softer clips override it.
+func _blend(from_clip: String, to_clip: String) -> float:
+	return blend_time(from_clip, to_clip)
+
+
 func play_clip(clip_name: String, speed: float = 1.0, blend: float = BLEND) -> void:
 	if player == null or not player.has_animation(clip_name):
 		return
@@ -445,7 +450,7 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 			fallback_counts["%s:%s->idle" % [class_name_str, clip_out]] = int(fallback_counts.get("%s:%s->idle" % [class_name_str, clip_out], 0)) + 1
 			clip_out = "idle"
 		if clip_out != _current:
-			var blend_out := blend_time(_current, clip_out)
+			var blend_out := _blend(_current, clip_out)
 			if trace_enabled:
 				trace.append({"state": sm.state, "ticks": sm.state_ticks, "from": _current, "to": clip_out, "blend": blend_out, "speed": 1.0})
 			_current = clip_out
@@ -521,7 +526,7 @@ func _drive(alpha: float, delta: float = 1.0 / 60.0) -> void:
 		speed = base_speed * rate
 		expected = minf(start_s + remap.x * (length - start_s), length)
 	if clip != _current:
-		var blend := blend_time(_current, clip)
+		var blend := _blend(_current, clip)
 		if trace_enabled:
 			trace.append({"state": sm.state, "ticks": sm.state_ticks, "from": _current, "to": clip, "blend": blend, "speed": speed})
 		_current = clip
