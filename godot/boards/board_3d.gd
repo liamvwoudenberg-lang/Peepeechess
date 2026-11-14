@@ -82,7 +82,7 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	var plinth = Models.material(Color("263b42"), 0.3)
 	var plinth_node = Models.box(scene, WorldConstants.PLINTH_SIZE, WorldConstants.PLINTH_CENTER, plinth)
 	var frame_node = Models.box(scene, WorldConstants.FRAME_SIZE, WorldConstants.FRAME_CENTER, Models.material(Color("c39c5d"), 0.7))
-	var meshy_base := MeshyCourtyard.board_base()
+	var meshy_base: Node3D = null  # the Meshy tray has tall rims that swallow the tiles; keep the plain plinth
 	if meshy_base != null:
 		scene.add_child(meshy_base)
 	var light = Models.material(Color("b7b9a5"))
