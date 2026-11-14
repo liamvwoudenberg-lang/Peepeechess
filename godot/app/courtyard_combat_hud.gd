@@ -11,6 +11,8 @@ const ACTION_NAMES := ["Light", "Heavy", "Guard", "Special"]
 var view_camera: Camera3D
 ## Optional mapping when a host supplies a separate presentation transform.
 var fighter_position: Callable
+## A split-screen host may project into its first player viewport rather than the hidden world camera.
+var damage_projection: Callable
 var local_player_id := ""
 var _surface: Control
 var _damage: Array[Dictionary] = []
@@ -128,6 +130,13 @@ func _update_damage(delta: float) -> void:
 			_damage.remove_at(index)
 			continue
 		var f := sim.fighter_by_id(entry.target)
+		if f != null and damage_projection.is_valid():
+			var projected: Dictionary = damage_projection.call(f)
+			entry.label.visible = bool(projected.get("visible", false))
+			if entry.label.visible:
+				entry.label.position = Vector2(projected.position) + Vector2(entry.offset - 16, -12 - float(entry.age) * 52)
+				entry.label.modulate.a = clampf((DAMAGE_SECONDS - float(entry.age)) * 3.5, 0.0, 1.0)
+			continue
 		if f == null or camera == null:
 			entry.label.visible = false
 			continue

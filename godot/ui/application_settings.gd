@@ -20,17 +20,23 @@ static var loaded = false
 ## It is marked as seen the moment it starts. Tests reset it with reset_intro(); `--no-intro` on the command line skips it.
 static var intro_seen = false
 
+## First-run mobile graphics stay inside the small light/shadow/render-target budget. An explicit
+## saved preference always wins; desktop keeps the existing balanced default.
+static func default_quality(mobile: bool) -> String:
+	return "low" if mobile else "balanced"
+
 static func load_preferences() -> void:
 	if loaded:
 		return
 	loaded = true
 	touch_controls = DisplayServer.is_touchscreen_available()
+	quality = default_quality(OS.has_feature("mobile"))
 	var config = ConfigFile.new()
 	if config.load("user://preferences.cfg") == OK:
 		preferred_3d = bool(config.get_value("presentation", "view3d", false))
 		animations = bool(config.get_value("presentation", "animations", true))
-		var saved_quality = str(config.get_value("presentation", "quality", "balanced"))
-		quality = saved_quality if saved_quality in ["low", "balanced", "high"] else "balanced"
+		var saved_quality = str(config.get_value("presentation", "quality", quality))
+		quality = saved_quality if saved_quality in ["low", "balanced", "high"] else default_quality(OS.has_feature("mobile"))
 		volume = clampf(float(config.get_value("presentation", "volume", 0.8)), 0.0, 1.0)
 		touch_controls = bool(config.get_value("presentation", "touch", touch_controls))
 		display_mode = ScreenMode.normalise(config.get_value("presentation", "display", ScreenMode.WINDOWED))
