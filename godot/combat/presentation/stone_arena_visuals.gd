@@ -32,6 +32,8 @@ const EMBEDDED_LIGHT_MASK := 1 | 4
 # --- END pit-world edit ---------------------------------------------------------------------
 
 
+var uses_meshy_arena_build := false   # the procedural wall behind the Meshy props gets a finer stone texture
+
 func build(mobile_lod: bool = false) -> void:
 	uses_meshy_arena = false
 	if _meshy_wanted(mobile_lod):
@@ -106,7 +108,8 @@ const MESHY_FILES := {
 	"banner": "Meshy_AI_Tattered_Heraldic_Banner_20261114_texture.fbx", "ascent": "Meshy_AI_Weathered_Ascent_20261114_texture.fbx",
 }
 ## Wall slots: angle in degrees (0 = +Z, the wall's outward normal is (sin a, cos a)).
-const MESHY_ARCH_ANGLES := [0.0, 90.0, 180.0, 270.0]
+const MESHY_ARCH_COUNT := 14               # archways side by side form the whole wall ring (3.0 m each)
+const MESHY_FRONT_JUT := 1.0              # props that hang in front of the archways: their back stands this far inside the wall
 const MESHY_SCONCE_ANGLES := [45.0, 135.0, 225.0, 315.0]
 const MESHY_BANNER_ANGLES := [67.5, 247.5]
 const MESHY_LADDER_ANGLE := 157.5
@@ -174,6 +177,7 @@ func _meshy_wall_slot(prop: Node3D, angle_deg: float, wall_radius: float, height
 
 
 func _build_meshy() -> bool:
+	uses_meshy_arena_build = true
 	meshy_triangles = 0
 	meshy_props.clear()
 	_environment()
@@ -223,12 +227,12 @@ func _build_meshy() -> bool:
 				_pillar_meshes.append(mesh_instance)
 				_pillar_mats.append(faded as StandardMaterial3D if faded is StandardMaterial3D else fade_plinth)
 	# (3) archways in the wall ring: a curved niche panel, 3 m high, its back face on the wall
-	for a in MESHY_ARCH_ANGLES:
-		_meshy_wall_slot(_meshy_prop("archway", Vector3.ONE * 3.2), a, wall_radius, 0.0, 0.2)
+	for i in MESHY_ARCH_COUNT:
+		_meshy_wall_slot(_meshy_prop("archway", Vector3.ONE * 3.2), 360.0 * float(i) / float(MESHY_ARCH_COUNT), wall_radius, 0.0, 0.2)
 	# (4) torch sconces with a flame and a light each (four lights, as before)
 	for a in MESHY_SCONCE_ANGLES:
 		var sconce := _meshy_prop("torch_sconce", Vector3.ONE * 1.0)
-		_meshy_wall_slot(sconce, a, wall_radius, 1.5, 0.45)
+		_meshy_wall_slot(sconce, a, wall_radius, 1.5, MESHY_FRONT_JUT)
 		var flame_at := sconce.position + Vector3(sin(deg_to_rad(a)), 0.0, cos(deg_to_rad(a))) * -0.15 + Vector3(0.0, 0.8, 0.0)
 		var flame := MeshInstance3D.new()
 		var drop := SphereMesh.new()
@@ -251,10 +255,10 @@ func _build_meshy() -> bool:
 		_torches.append(light)
 	# (5) banners between the archways
 	for a in MESHY_BANNER_ANGLES:
-		_meshy_wall_slot(_meshy_prop("banner", Vector3.ONE * 2.6), a, wall_radius, 0.45, 0.08)
+		_meshy_wall_slot(_meshy_prop("banner", Vector3.ONE * 2.6), a, wall_radius, 0.45, MESHY_FRONT_JUT)
 	# (6) the Weathered Ascent: a wooden ladder leaning on the wall (dressing; the climb ladder of the pit is the shaft's own)
 	var ladder := _meshy_prop("ascent", Vector3.ONE * 2.2)
-	_meshy_wall_slot(ladder, MESHY_LADDER_ANGLE, wall_radius, 0.0, 0.12)
+	_meshy_wall_slot(ladder, MESHY_LADDER_ANGLE, wall_radius, 0.0, MESHY_FRONT_JUT)
 	ladder.rotation.x = deg_to_rad(-6.0)
 	return true
 
@@ -358,6 +362,12 @@ func _floor() -> void:
 
 func _wall() -> void:
 	var material := _stone_material(1.6, Color(0.42, 0.4, 0.42))
+	if uses_meshy_arena_build:   # the wall behind the Meshy props wears the Ancient Stone Circle's weathered stone
+		var tex := load("res://assets/environment/stone_circle/Meshy_AI_Ancient_Stone_Circle_20261114_texture_0.png") as Texture2D
+		if tex != null:
+			material.albedo_texture = tex
+			material.albedo_color = Color(0.8, 0.78, 0.76)
+			material.uv1_scale = Vector3(2.0, 1.0, 1.0)
 	var segments := StoneArena.WALL_SEGMENTS
 	var apothem := CombatConstants.ARENA_WALL_RADIUS
 	var length := 2.0 * apothem * tan(PI / float(segments)) * 1.1
