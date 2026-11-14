@@ -14,6 +14,8 @@ var _layer: CanvasLayer
 var _marker: Control
 var _pressed := false
 static var quality := "balanced"
+## Explicit opt-in for decorative presentation nodes. Gameplay/simulation nodes are never quality targets.
+const QUALITY_GROUP := "courtyard_quality"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -48,17 +50,33 @@ static func set_quality(level: String) -> void:
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree:
 		_apply_viewports(tree.root)
+		for node in tree.get_nodes_in_group(QUALITY_GROUP):
+			_apply_quality_target(node)
+
+static func _apply_quality_target(node: Node) -> void:
+	if is_instance_valid(node) and node.is_in_group(QUALITY_GROUP) and node.has_method("set_quality"):
+		node.call("set_quality", quality)
 
 static func _apply_viewports(node: Node) -> void:
 	if node is Viewport:
 		node.msaa_3d = Viewport.MSAA_DISABLED if quality == "low" else (Viewport.MSAA_2X if quality == "balanced" else Viewport.MSAA_4X)
-		node.positional_shadow_atlas_size = 1024 if quality == "low" else (2048 if quality == "balanced" else 4096)
+		# This scales only the 3D render target; text, controls, coordinates and touch targets stay at native resolution.
+		node.scaling_3d_scale = 0.75 if quality == "low" else 1.0
+		node.positional_shadow_atlas_size = 0 if quality == "low" else (2048 if quality == "balanced" else 4096)
 	for child in node.get_children():
 		_apply_viewports(child)
 
 func _quality_node_added(node: Node) -> void:
+	# node_added runs before some _ready methods: defer opt-in targets until they have joined the group and built their lights.
+	_apply_new_node.call_deferred(weakref(node))
+
+func _apply_new_node(reference: WeakRef) -> void:
+	var node := reference.get_ref() as Node
+	if not is_instance_valid(node):
+		return
 	if node is Viewport:
 		_apply_viewports(node)
+	_apply_quality_target(node)
 
 func set_cursor_enabled(value: bool) -> void:
 	if not value and _pressed:

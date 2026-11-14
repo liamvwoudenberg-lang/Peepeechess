@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://vipdrsugy8hd"
-path="res://.godot/imported/knight_Image_2.jpg-4d126f620b20a4a3bc68a1987369bcac.ctex"
+path.s3tc="res://.godot/imported/knight_Image_2.jpg-4d126f620b20a4a3bc68a1987369bcac.s3tc.ctex"
+path.etc2="res://.godot/imported/knight_Image_2.jpg-4d126f620b20a4a3bc68a1987369bcac.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "b71ae51583ddd1ad6a700509fa91d4d0"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/paladins/knight_Image_2.jpg"
-dest_files=["res://.godot/imported/knight_Image_2.jpg-4d126f620b20a4a3bc68a1987369bcac.ctex"]
+dest_files=["res://.godot/imported/knight_Image_2.jpg-4d126f620b20a4a3bc68a1987369bcac.s3tc.ctex", "res://.godot/imported/knight_Image_2.jpg-4d126f620b20a4a3bc68a1987369bcac.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=1024
 detect_3d/compress_to=1
