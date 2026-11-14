@@ -62,6 +62,30 @@ func _lunge_offset() -> float:
 	return amount * rise * fall
 
 
+const SOFT := ["idle", "walk", "run", "strafe_left", "strafe_right", "block", "ladder_idle"]
+
+
+## Smoother cross-fades than the old characters (their clips were authored with matching poses; these are procedural): 0.16-0.2 s
+## between locomotion / idle / block, 0.1-0.14 s into strikes, dodges and parries, 0.1 s out of hits. Never longer than 0.2 s.
+func _blend(from_clip: String, to_clip: String) -> float:
+	var base := CharacterModel.blend_time(from_clip, to_clip)
+	if base <= 0.0:
+		return 0.0
+	if to_clip in ["defeat", "victory"]:
+		return base
+	var soft_from := from_clip in SOFT
+	var soft_to := to_clip in SOFT
+	if soft_from and soft_to:
+		return clampf(maxf(base, 0.18 if (from_clip == "idle" or to_clip == "idle") else 0.16), 0.1, 0.2)
+	if to_clip.begins_with("light") or to_clip == "heavy" or to_clip == "ability":
+		return clampf(maxf(base, 0.12), 0.1, 0.2)
+	if to_clip in ["dodge", "parry"]:
+		return clampf(maxf(base, 0.1), 0.1, 0.2)
+	if from_clip == "stagger" or from_clip.begins_with("hit_react") or from_clip.begins_with("light") or from_clip == "heavy":
+		return clampf(maxf(base, 0.12), 0.1, 0.2)
+	return clampf(maxf(base, 0.1), 0.1, 0.2)
+
+
 func _nominal_speed(clip: String) -> float:
 	var base: float = float(PaladinModel.NOMINAL_SPEED["run" if clip == "run" else "walk"])
 	return base * float(HEIGHTS.get(fighter.role if fighter != null else "p", 1.7)) / PaladinModel.SOURCE_HEIGHT

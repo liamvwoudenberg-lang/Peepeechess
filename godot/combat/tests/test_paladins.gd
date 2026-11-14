@@ -14,6 +14,7 @@ static func run(h, tree: SceneTree) -> void:
 	_config(h, tree)
 	_hitbox_rules(h)
 	_hit_geometry(h)
+	await _smooth(h, tree)
 	await _lunge(h, tree)
 	await _debug_overlay(h, tree)
 
@@ -253,4 +254,35 @@ static func _lunge(h, tree: SceneTree) -> void:
 	h.check(outside_attack_max == 0.0, "no lunge outside attacks (%.3f m)" % outside_attack_max)
 	PaladinFighter.prefer_paladins = false
 	arena.queue_free()
+	await tree.process_frame
+
+
+## Cross-fades and loops: soft fades of 0.1-0.2 s, loops that close exactly, cubic curves on loops, strike timing untouched.
+static func _smooth(h, tree: SceneTree) -> void:
+	h.begin("paladins: cross-fades are 0.1-0.2 s, looping clips close exactly and use cubic curves")
+	var fighter := PaladinFighter.new()
+	tree.root.add_child(fighter)
+	h.check(fighter.setup_free("n", 0, "w"), "a paladin sets up")
+	for pair in [["idle", "walk"], ["walk", "run"], ["run", "idle"], ["idle", "block"], ["block", "idle"], ["idle", "light_1"], ["walk", "heavy"],
+			["light_1", "idle"], ["idle", "dodge"], ["idle", "parry"], ["stagger", "idle"], ["hit_react_light", "idle"]]:
+		var b := fighter._blend(pair[0], pair[1])
+		h.check(b >= 0.1 - 0.0001 and b <= 0.2 + 0.0001, "%s -> %s cross-fades over %.2f s (0.1-0.2)" % [pair[0], pair[1], b])
+	h.eq(fighter._blend("idle", "idle"), 0.0, "no fade into the same clip")
+	for clip in ["idle", "block", "ladder_idle", "drop_fall"]:   # (climb is built by the pit's own code path: not touched here)
+		if not fighter.has_clip(clip):
+			continue
+		var anim: Animation = fighter.player.get_animation(clip)
+		var closed := true
+		var cubic := true
+		for track in anim.get_track_count():
+			var n := anim.track_get_key_count(track)
+			if n > 1:
+				closed = closed and anim.track_get_key_value(track, 0) == anim.track_get_key_value(track, n - 1)
+			cubic = cubic and anim.track_get_interpolation_type(track) == Animation.INTERPOLATION_CUBIC
+		h.check(closed, "%s: the last key repeats the first (the loop cannot pop)" % clip)
+		h.check(cubic, "%s: tracks interpolate cubically" % clip)
+	for clip in ["light_1", "heavy"]:
+		var anim: Animation = fighter.player.get_animation(clip)
+		h.check(anim.track_get_interpolation_type(0) == Animation.INTERPOLATION_LINEAR, "%s: strikes stay linear (the strike pose lands on time)" % clip)
+	fighter.queue_free()
 	await tree.process_frame
