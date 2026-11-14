@@ -37,7 +37,7 @@ func _rate(a: String, d: String, x: float, n: int, seed_value: int) -> Dictionar
 
 func _initialize() -> void:
 	await process_frame
-	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0"}
+	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0", "rule": ""}
 	for token in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = String(token).split("=", true, 1)
 		if kv.size() == 2:
@@ -97,9 +97,15 @@ func _initialize() -> void:
 				x = (lo + hi) / 2.0
 			capped += (" " if capped != "" else "") + "[raw %.0f%% want %.0f%%]" % [100.0 * float(raw["mean"]), 100.0 * want]
 		else:
+			var pair_target := target
+			if String(args["rule"]) == "initiative":
+				# Strength order q > n > r > b > p: the stronger piece attacking wins ~70%, a mirror match ~60%, the weaker piece attacking ~50%
+				# (so the stronger piece defending is a coin flip: the attacker's initiative is worth 20 points).
+				var rank := {"q": 5, "n": 4, "r": 3, "b": 2, "p": 1}
+				pair_target = 0.70 if rank[a] > rank[d] else (0.60 if rank[a] == rank[d] else 0.50)
 			var at_lo: Dictionary = await _rate(a, d, lo, n, base_seed)
 			var at_hi: Dictionary = await _rate(a, d, hi, n, base_seed)
-			x = await _search_both(at_lo, at_hi, a, d, lo, hi, target, iterations, n, base_seed)
+			x = await _search_both(at_lo, at_hi, a, d, lo, hi, pair_target, iterations, n, base_seed)
 			capped = String(_last_capped)
 		var final: Dictionary = await _rate(a, d, x, n, base_seed)
 		var attacker_mult := exp(x) if x > 0.0 else 1.0

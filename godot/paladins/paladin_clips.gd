@@ -42,7 +42,6 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
 	_alias(library, "run", "Running")
 	_alias(library, "strafe_left", "Walking")
 	_alias(library, "strafe_right", "Walking")
-	# (the Pawn's own Fast_Ladder_Climb is wider than the 1 m shaft: every role climbs with the compact procedural clip below)
 	var specs := _specs()
 	for clip_name in specs:
 		if library.has_animation(clip_name):
@@ -50,6 +49,13 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
 		var spec: Dictionary = specs[clip_name]
 		var anim := _build(ctx, spec["keys"], float(spec["len"]), clip_name in LOOPING)
 		library.add_animation(clip_name, anim)
+	# The ladder climb is the Pawn GLB's own Fast_Ladder_Climb for EVERY role (the Mixamo skeletons share bone names; the other models
+	# only lack the finger bones, whose tracks simply find no bone). The body is slimmed a little while climbing to fit the 1 m shaft.
+	var glb_climb := _glb_climb(player)
+	if glb_climb != null:
+		if library.has_animation("climb"):
+			library.remove_animation("climb")
+		library.add_animation("climb", glb_climb)
 	for clip_name in ["walk", "run", "strafe_left", "strafe_right", "climb"]:
 		if library.has_animation(clip_name):
 			library.get_animation(clip_name).loop_mode = Animation.LOOP_LINEAR
@@ -69,6 +75,41 @@ static func _alias(library: AnimationLibrary, to: String, source: String) -> voi
 	if library.has_animation(to) or not library.has_animation(source):
 		return
 	library.add_animation(to, library.get_animation(source).duplicate())
+
+
+## The Pawn model's Fast_Ladder_Climb, re-pathed onto `player`'s skeleton (null when the Pawn model is not available).
+static func _glb_climb(player: AnimationPlayer) -> Animation:
+	var source: Animation = null
+	if player.has_animation("Fast_Ladder_Climb"):
+		source = player.get_animation("Fast_Ladder_Climb")
+	else:
+		var pawn := PaladinModel._template("p", "w")
+		var pawn_player := PaladinModel._first(pawn, "AnimationPlayer") as AnimationPlayer if pawn != null else null
+		if pawn_player != null and pawn_player.has_animation("Fast_Ladder_Climb"):
+			source = pawn_player.get_animation("Fast_Ladder_Climb")
+	if source == null:
+		return null
+	var anim: Animation = source.duplicate()
+	var prefix := _track_prefix(player)
+	for i in anim.get_track_count():
+		var path := String(anim.track_get_path(i))
+		var colon := path.find(":")
+		if colon >= 0:
+			anim.track_set_path(i, NodePath(prefix + path.substr(colon + 1)))
+	# The authored clip climbs the hips up the ladder (0.33 units per cycle): looped, the body would snap back down every cycle, and the pit
+	# sequence already moves the climber up the shaft. Remove the linear drift of the hips so the loop is seamless and in place.
+	for i in anim.get_track_count():
+		if anim.track_get_type(i) == Animation.TYPE_POSITION_3D and String(anim.track_get_path(i)).ends_with("Hips"):
+			var count := anim.track_get_key_count(i)
+			if count > 1:
+				var first: Vector3 = anim.track_get_key_value(i, 0)
+				var drift: Vector3 = (anim.track_get_key_value(i, count - 1) as Vector3) - first
+				var length := maxf(anim.length, 0.001)
+				for k in count:
+					var value: Vector3 = anim.track_get_key_value(i, k)
+					anim.track_set_key_value(i, k, value - drift * (anim.track_get_key_time(i, k) / length))
+	anim.loop_mode = Animation.LOOP_LINEAR
+	return anim
 
 
 static func _track_prefix(player: AnimationPlayer) -> String:
