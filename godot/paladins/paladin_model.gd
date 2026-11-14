@@ -71,7 +71,7 @@ static func create(role_code: String, side_code: String = "w", standing_height: 
 	for node in body.find_children("*", "MeshInstance3D", true, false):
 		instance.meshes.append(node)
 	instance._prepare_clips()
-	PaladinClips.ensure(instance.player, instance.skeleton)   # real idle and the combat clips (shared per template)
+	PaladinClips.ensure(instance.player, instance.skeleton, role_code)   # combat clips shared per template
 	return instance
 
 

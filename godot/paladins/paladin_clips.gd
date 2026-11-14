@@ -1,8 +1,8 @@
 class_name PaladinClips
 extends RefCounted
 ## Procedural combat clips for the supplied paladin models (Mixamo skeleton, bones `mixamorig_<Name>`, A-pose, facing +Z).
-## The GLBs only carry Walking / Running (the Pawn also Charged_Slash and Fast_Ladder_Climb), so every other clip of the
-## CharacterModel contract is authored here as rotation keyframes and added to the model's AnimationPlayer once.
+## The GLBs carry Walking / Running (the Pawn also Charged_Slash and Fast_Ladder_Climb). Most remaining clips are authored
+## here; selected sword, defence and reaction clips use role-specific retargeted CC0 motion when available.
 ##
 ## Authoring space: every key lists rotation deltas in DEGREES in SKELETON space (x = the character's left, y = up, z = forward;
 ## about x: +ve tips "up" towards "forward", so a hanging arm raised forward is NEGATIVE x; about z: +ve lifts a LEFT arm outwards and
@@ -26,7 +26,7 @@ const LOOPING := ["idle", "walk", "run", "strafe_left", "strafe_right", "block",
 
 
 ## Adds every missing clip to `player` (shared by all instances of the same template). Safe to call repeatedly.
-static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
+static func ensure(player: AnimationPlayer, skeleton: Skeleton3D, role: String = "") -> void:
 	if player == null or skeleton == null:
 		return
 	var library: AnimationLibrary = player.get_animation_library("")
@@ -49,6 +49,30 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
 		var spec: Dictionary = specs[clip_name]
 		var anim := _build(ctx, spec["keys"], float(spec["len"]), clip_name in LOOPING)
 		library.add_animation(clip_name, anim)
+	# Retargeted motion is built for each role. Keep procedural tracks for bones
+	# the source does not animate, so transitions cannot leave a limb in its old pose.
+	var file_name: String = PaladinModel.FILES.get(role, "")
+	for clip_name in ["light_1", "idle", "block", "dodge", "hit_react_light", "hit_react_heavy", "defeat"]:
+		var path := "res://assets/paladins/animations/%s_%s.res" % [file_name, clip_name]
+		if file_name == "" or not ResourceLoader.exists(path):
+			continue
+		var source := load(path) as Animation
+		if source != null:
+			var motion: Animation = source.duplicate(true)
+			for i in motion.get_track_count():
+				var original := String(motion.track_get_path(i))
+				var colon := original.find(":")
+				if colon >= 0:
+					motion.track_set_path(i, NodePath(prefix + original.substr(colon + 1)))
+			var fallback := library.get_animation(clip_name)
+			for i in fallback.get_track_count():
+				if motion.find_track(fallback.track_get_path(i), fallback.track_get_type(i)) < 0:
+					fallback.copy_track(i, motion)
+			if clip_name in ["idle", "block"]:
+				for i in motion.get_track_count():
+					motion.track_set_interpolation_type(i, Animation.INTERPOLATION_CUBIC)
+			library.remove_animation(clip_name)
+			library.add_animation(clip_name, motion)
 	# The ladder climb is the Pawn GLB's own Fast_Ladder_Climb for EVERY role (the Mixamo skeletons share bone names; the other models
 	# only lack the finger bones, whose tracks simply find no bone). The body is slimmed a little while climbing to fit the 1 m shaft.
 	var glb_climb := _glb_climb(player)
