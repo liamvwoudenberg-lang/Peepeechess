@@ -17,13 +17,13 @@ const S := CombatConstants.State
 ## the profile too (FighterProfile.for_role(role)) to predict Bishop/Rook/Queen/King exactly.
 const TURN_FREE := 0.30           # rad per tick (~1000 deg/s)
 const TURN_LOCKED := 0.45
-const TURN_ATTACK_STARTUP := 0.07
-const TURN_ATTACK_STARTUP_LOCKED := 0.12
+const TURN_ATTACK_STARTUP := 0.03
+const TURN_ATTACK_STARTUP_LOCKED := 0.035
 const ACCEL := 45.0               # m/s^2
 const DECEL := 70.0
 const KNOCK_DECAY := 0.8
-const ATTACK_STEER_STARTUP := 0.35
-const ATTACK_STEER_OTHER := 0.12
+const ATTACK_STEER_STARTUP := 0.14
+const ATTACK_STEER_OTHER := 0.04
 const PARRY_STEER := 0.25
 
 

@@ -47,9 +47,9 @@ func try_hit(attacker: FighterController, defender: FighterController) -> bool:
 		return false
 	if not defender.health.is_alive():
 		return false
-	var reach: float = float(attacker.stats["reachM"]) * sm.attack.reach_mult
+	var reach: float = float(attacker.stats["reachM"]) * sm.attack.reach_mult + defender.reach_bonus()
 	if not in_sector(attacker.global_position, attacker.yaw, reach, sm.attack.arc_degrees,
-			defender.global_position, defender.hurt_radius()):
+			defender.global_position, defender.hit_radius()):
 		return false
 	_already_hit[defender.player_id] = true
 	hit_anything = true

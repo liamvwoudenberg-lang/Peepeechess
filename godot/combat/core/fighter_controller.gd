@@ -89,8 +89,21 @@ func setup(combatant: Dictionary, spawn_position: Vector3, spawn_yaw: float) -> 
 	return ""
 
 
+## Radius of the body circle that keeps fighters apart (movement, spawning, prediction). Balance data: unchanged.
 func hurt_radius() -> float:
 	return float(profile["radius"])
+
+
+## Radius of the circle ATTACKS test against: the drawn body (godot/paladins/paladin_configs.json, measured from the models), never larger
+## than the separation circle. Blows used to land on the 0.38-0.50 m separation circle although the drawn bodies are 0.13-0.22 m wide.
+func hit_radius() -> float:
+	return minf(hurt_radius(), PaladinConfig.hit_radius(role, hurt_radius()))
+
+
+## Distance a blow's reach is extended by, so that shrinking the circle from the separation radius to the hit radius leaves the
+## centre-to-centre range of every attack exactly as calibrated (centre distance <= reach + separation radius).
+func reach_bonus() -> float:
+	return hurt_radius() - hit_radius()
 
 
 ## Moves the fighter instantly (spawning, tests). Not used during normal play.

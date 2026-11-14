@@ -40,6 +40,52 @@ func set_props_stowed(amount: float) -> void:
 		_model_base.basis = Basis.from_scale(model.scale)   # the hit flinch restores the base transform: keep it slim too
 
 
+## Presentation-only strike lunge: the model steps forward (along its own +Z) while a strike goes from wind-up to the end of its active
+## window and back, by PaladinConfig.lunge() metres, so the drawn blade reaches the body that the simulation says was hit. The simulation
+## (positions, hit tests) never sees it.
+func _process(delta: float) -> void:
+	super._process(delta)
+	if model == null or fighter == null or not is_instance_valid(fighter) or _flinch > 0.001:
+		return
+	model.position = _model_base.origin + Vector3(0.0, 0.0, _lunge_offset())
+
+
+func _lunge_offset() -> float:
+	var sm := fighter.sm
+	if sm.attack == null or sm.state != CombatConstants.State.ATTACKING:
+		return 0.0
+	var heavy: bool = sm.attack.kind == AttackDefinition.Kind.HEAVY
+	var amount := PaladinConfig.lunge(fighter.role, heavy)
+	var u := sm.attack_progress()
+	var rise := smoothstep(0.0, maxf(sm.attack.startup_end, 0.05), u)
+	var fall := 1.0 - smoothstep(sm.attack.active_end, 1.0, u)
+	return amount * rise * fall
+
+
+const SOFT := ["idle", "walk", "run", "strafe_left", "strafe_right", "block", "ladder_idle"]
+
+
+## Smoother cross-fades than the old characters (their clips were authored with matching poses; these are procedural): 0.16-0.2 s
+## between locomotion / idle / block, 0.1-0.14 s into strikes, dodges and parries, 0.1 s out of hits. Never longer than 0.2 s.
+func _blend(from_clip: String, to_clip: String) -> float:
+	var base := CharacterModel.blend_time(from_clip, to_clip)
+	if base <= 0.0:
+		return 0.0
+	if to_clip in ["defeat", "victory"]:
+		return base
+	var soft_from := from_clip in SOFT
+	var soft_to := to_clip in SOFT
+	if soft_from and soft_to:
+		return clampf(maxf(base, 0.18 if (from_clip == "idle" or to_clip == "idle") else 0.16), 0.1, 0.2)
+	if to_clip.begins_with("light") or to_clip == "heavy" or to_clip == "ability":
+		return clampf(maxf(base, 0.12), 0.1, 0.2)
+	if to_clip in ["dodge", "parry"]:
+		return clampf(maxf(base, 0.1), 0.1, 0.2)
+	if from_clip == "stagger" or from_clip.begins_with("hit_react") or from_clip.begins_with("light") or from_clip == "heavy":
+		return clampf(maxf(base, 0.12), 0.1, 0.2)
+	return clampf(maxf(base, 0.1), 0.1, 0.2)
+
+
 func _nominal_speed(clip: String) -> float:
 	var base: float = float(PaladinModel.NOMINAL_SPEED["run" if clip == "run" else "walk"])
 	return base * float(HEIGHTS.get(fighter.role if fighter != null else "p", 1.7)) / PaladinModel.SOURCE_HEIGHT
@@ -87,7 +133,9 @@ func _add_sword(body: PaladinModel, team: String) -> void:
 	gold.albedo_color = Color(0.86, 0.68, 0.24)
 	gold.metallic = 0.8
 	gold.roughness = 0.35
-	_part(sword, "Blade", Vector3(0.085, 0.022, 0.88), Vector3(0, 0, 0.51), steel)   # first mesh: weapon_segments() measures it
+	# the blade is BLADE_SCALE times longer than a plain sword so that the drawn tip reaches where the simulation lets a blow land
+	var blade_length := 0.88 * PaladinConfig.BLADE_SCALE
+	_part(sword, "Blade", Vector3(0.085, 0.022, blade_length), Vector3(0, 0, 0.07 + blade_length * 0.5), steel)   # first mesh: weapon_segments() measures it
 	_part(sword, "Guard", Vector3(0.30, 0.04, 0.045), Vector3(0, 0, 0.065), gold)
 	_part(sword, "Grip", Vector3(0.04, 0.04, 0.18), Vector3(0, 0, -0.04), gold)
 	_part(sword, "Pommel", Vector3(0.065, 0.065, 0.065), Vector3(0, 0, -0.14), gold)

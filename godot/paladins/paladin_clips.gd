@@ -152,7 +152,8 @@ static func _build(ctx: Dictionary, keys: Array, length: float, loop: bool) -> A
 		var entry: Dictionary = rest[i]
 		var track := anim.add_track(Animation.TYPE_ROTATION_3D)
 		anim.track_set_path(track, NodePath(String(ctx["prefix"]) + String(entry["name"])))
-		anim.track_set_interpolation_type(track, Animation.INTERPOLATION_LINEAR)
+		# cubic on loops (few keys: smooth curves, no corners at the keys); strikes stay linear so the strike pose lands exactly on time
+		anim.track_set_interpolation_type(track, Animation.INTERPOLATION_CUBIC if loop else Animation.INTERPOLATION_LINEAR)
 		var short: String = index_of.get(i, "")
 		if short == "":
 			anim.rotation_track_insert_key(track, 0.0, entry["lq"])
@@ -167,9 +168,16 @@ static func _build(ctx: Dictionary, keys: Array, length: float, loop: bool) -> A
 		var hips_index: int = bones["Hips"]
 		var track := anim.add_track(Animation.TYPE_POSITION_3D)
 		anim.track_set_path(track, NodePath(String(ctx["prefix"]) + String(rest[hips_index]["name"])))
+		anim.track_set_interpolation_type(track, Animation.INTERPOLATION_CUBIC if loop else Animation.INTERPOLATION_LINEAR)
 		var origin: Vector3 = (rest[hips_index]["local"] as Transform3D).origin
 		for key in keys:
 			anim.position_track_insert_key(track, float(key[0]), origin + (key[1] as Vector3))
+	if loop:
+		# exact loop closure: the last key repeats the first one, so the loop point cannot pop
+		for i in anim.get_track_count():
+			var n := anim.track_get_key_count(i)
+			if n > 1 and absf(anim.track_get_key_time(i, n - 1) - length) < 0.001:
+				anim.track_set_key_value(i, n - 1, anim.track_get_key_value(i, 0))
 	return anim
 
 
