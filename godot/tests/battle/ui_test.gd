@@ -67,7 +67,10 @@ func run() -> void:
 		app.battle_flow.advance(1)
 		expect(app._view_3d == use_3d and app.board_2d.flipped and app._flipped, "view and perspective preserved")
 		expect(app.interaction.enabled and app.game.revision == 1, "return re-enables board once")
-		expect(app.board_2d._current.size() == 3 and app.board_3d.pieces.size() == 3, "both boards show same surviving pieces")
+		# Hidden 3D boards synchronise on demand to keep illustrated play lightweight on Android.
+		app.set_view(true)
+		expect(app.board_2d._current.size() == 3 and app.board_3d.pieces.size() == 3, "both boards show same surviving pieces after on-demand 3D sync")
+		app.set_view(use_3d)
 		app._switch_mode(0)
 		await process_frame
 		expect(not app.game is BattleChessMatch and app.game.play("e2", "e4").ok, "Classic remains playable after mode switch")

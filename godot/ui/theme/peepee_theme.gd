@@ -129,7 +129,13 @@ static func _build_text(theme: Theme, bold: Font, display: Font) -> void:
 	theme.set_stylebox("normal", "RichTextLabel", StyleBoxEmpty.new())
 
 static func _button_style(bg: Color, border: Color, border_width: int = 1, radius: int = T.R_MD, h: int = 18, v: int = 11) -> StyleBoxFlat:
-	return flat(bg, border, border_width, radius, h, v)
+	var style := flat(bg, border, border_width, radius, h, v)
+	style.border_color = border.lightened(0.12)
+	style.border_blend = true
+	style.shadow_size = 4
+	style.shadow_offset = Vector2(0, 2)
+	style.shadow_color = Color(0, 0, 0, 0.35)
+	return style
 
 static func _set_button_states(theme: Theme, type_name: String, normal: StyleBox, hover: StyleBox, pressed: StyleBox, disabled: StyleBox, focus_radius: int = T.R_MD) -> void:
 	theme.set_stylebox("normal", type_name, normal)

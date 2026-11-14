@@ -67,6 +67,8 @@ static func _apply_viewports(node: Node) -> void:
 		_apply_viewports(child)
 
 func _quality_node_added(node: Node) -> void:
+	if node is Viewport:
+		_apply_viewports(node)
 	# node_added runs before some _ready methods: defer opt-in targets until they have joined the group and built their lights.
 	_apply_new_node.call_deferred(weakref(node))
 
