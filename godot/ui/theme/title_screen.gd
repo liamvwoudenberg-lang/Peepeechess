@@ -5,6 +5,7 @@ const T = preload("res://ui/theme/ui_tokens.gd")
 const Kit = preload("res://ui/theme/ui_kit.gd")
 const Icons = preload("res://ui/theme/ui_icons.gd")
 const Motion = preload("res://ui/theme/ui_motion.gd")
+const MenuPlaques = preload("res://ui/opening/menu_plaques.gd")
 
 ## Draws the emblem (a control so the title can size it).
 class Emblem:
@@ -106,6 +107,9 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_font_size_override("font_size", T.FS_LEAD)
 		buttons[entry[0]] = button
+	if over_scene and is_instance_valid(app.get("scene3d")) and app.scene3d.camera != null:
+		var plaques = MenuPlaques.new()
+		plaques.setup(app.scene3d.camera, buttons)
 	# mode identity: caption + scene tint follow hover / focus, and the buttons slide in one after another
 	var caption := Kit.label(menu, " ", "Caption", false)
 	caption.name = "ModeCaption"
