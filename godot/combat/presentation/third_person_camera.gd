@@ -279,8 +279,15 @@ func _keep_inside_arena(pos: Vector3) -> Vector3:
 	var max_radius := CombatConstants.ARENA_WALL_RADIUS - 0.5
 	var flat := Vector2(pos.x, pos.z)
 	if flat.length() > max_radius:
+		var lost := flat.length() - max_radius
 		flat = flat.normalized() * max_radius
 		pos.x = flat.x
 		pos.z = flat.y
+		pos.y += lost * 1.1   # what the wall takes from the distance is returned as height: the view tilts down on the fighter instead of crowding the head
 	pos.y = clampf(pos.y, 0.45, StoneArena.WALL_HEIGHT - 0.3)
+	# never closer to the pivot than a close-up (the fighter at the wall must not fill the screen)
+	var to_pivot := pos - _pivot
+	if to_pivot.length() < 2.0:
+		pos = _pivot + to_pivot.normalized() * 2.0 if to_pivot.length() > 0.01 else pos
+		pos.y = clampf(pos.y, 0.45, StoneArena.WALL_HEIGHT - 0.3)
 	return pos

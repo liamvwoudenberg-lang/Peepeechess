@@ -13,7 +13,7 @@ const Duel := preload("res://combat/tools/attacker_duel.gd")
 const ROLES := ["p", "n", "b", "r", "q"]
 ## Representative pairings for the bot gate: the weakest attacker into the strongest defenders, strong attackers into weak
 ## defenders, and mirrors. Fixed seeds make the result deterministic for a given tuning.
-const GATE_PAIRS := ["pq", "pn", "bq", "bn", "rq", "qp", "np", "pp", "qq", "rr"]
+const GATE_PAIRS := ["pp", "nn", "bb", "rr", "qq", "qp", "qb", "nr", "bp", "rb"]   # attackers that are not hopeless underdogs
 const GATE_N := 10
 const GATE_SEED := 31000
 const GATE_MIN_ATTACKER_RATE := 0.55   # over all gate duels (casual bot); the calibration target is 0.62 averaged over a casual and a skilled bot
@@ -32,6 +32,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _length_simulation(h, tree)
 	await _length_damage(h, tree)
 	await _gate(h, tree)
+	await _queen_gate(h, tree)
 
 
 static func _start(tree: SceneTree, attacker_role: String, defender_role: String, options: Dictionary) -> CombatSimulation:
@@ -69,7 +70,7 @@ static func _data(h) -> void:
 				boosted_attackers += 1
 			if pair[1] > 1.0001:
 				boosted_defenders += 1
-	h.check(boosted_attackers > 0 and boosted_defenders > 0, "weak attackers are boosted (%d pairings) and so are weak defenders against strong attackers (%d)" % [boosted_attackers, boosted_defenders])
+	h.check(boosted_attackers > 0 and boosted_defenders == 0, "attackers are boosted (%d pairings) and NOBODY boosts a defender (%d): a strong piece stays strong when it attacks" % [boosted_attackers, boosted_defenders])
 	for key in ["kq", "qk", "kk", "pk", "kp"]:
 		h.eq(Balance.attacker_edge(key.substr(0, 1), key.substr(1, 1)), [1.0, 1.0], "%s: the King is neutral (King's last stand keeps its own balance)" % key)
 	h.eq(Balance.attacker_edge("x", "y"), [1.0, 1.0], "an unknown pairing is neutral")
@@ -405,3 +406,21 @@ static func _gate(h, tree: SceneTree) -> void:
 	h.check(worst >= GATE_MIN_PAIR_RATE, "the weakest gate pairing (%s attacks %s) still gives the attacker %.0f%% (needs >= %.0f%%)" % [worst_pair.substr(0, 1), worst_pair.substr(1, 1), 100.0 * worst, 100.0 * GATE_MIN_PAIR_RATE])
 	h.check(shortest >= GATE_MIN_MEDIAN_SECONDS, "the shortest gate pairing (%s attacks %s) still lasts a median %.1f s of fighting (needs >= %.0f s)" % [shortest_pair.substr(0, 1), shortest_pair.substr(1, 1), shortest, GATE_MIN_MEDIAN_SECONDS])
 	h.check(timeouts <= GATE_MAX_TIMEOUTS, "almost no gate duel runs into the time limit (%d of %d)" % [timeouts, total])
+
+
+## The Queen is the strongest piece and must feel like it: she beats a Pawn or Bishop that attacks her, and wins when she attacks them,
+## while the weaker attacker still has a real chance (the attacker's initiative bonus). Casual bot, fixed seeds.
+static func _queen_gate(h, tree: SceneTree) -> void:
+	h.begin("queen gate: a Queen holds against a Pawn or Bishop that attacks her and wins when she attacks (casual bot, fixed seeds)")
+	var cfg := {"style": "balanced", "skill": 0.6}
+	var rates := {}
+	for key in ["qp", "qb", "pq", "bq"]:
+		var wins := 0
+		for i in GATE_N:
+			var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), cfg, GATE_SEED + 500 + i)
+			if r["outcome"] == "attacker":
+				wins += 1
+		rates[key] = float(wins) / float(GATE_N)
+	h.check(rates["qp"] >= 0.80 and rates["qb"] >= 0.80, "a Queen attacking a Pawn / Bishop wins at least 80%% (%.0f%% / %.0f%%)" % [100.0 * rates["qp"], 100.0 * rates["qb"]])
+	h.check(rates["pq"] <= 0.45 and rates["bq"] <= 0.55, "a Pawn / Bishop attacking the Queen wins at most 45%% / 55%% (%.0f%% / %.0f%%): she holds" % [100.0 * rates["pq"], 100.0 * rates["bq"]])
+	h.check(rates["pq"] >= 0.03, "...but the Pawn still has a real chance as the attacker (%.0f%%)" % (100.0 * rates["pq"]))
