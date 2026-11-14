@@ -45,3 +45,5 @@ Everything below was only tested headless or in software rendering; nothing has 
 - [ ] The exe is built by GitHub Actions (artifact `Peepeechess-windows-x86_64`, workflow "Latest Windows exe"); never commit it (over GitHub's 100 MB file limit).
 - [ ] `newmodels/` (user's zips, 234 MB) and `godot/assets/environment/` (unpacked copies, ~228 MB) both live in git now; decide whether to keep both.
 - [ ] Remove stale worktrees/branches under `.claude/worktrees/` once their work is merged or abandoned (non-forced).
+
+- [x] Board + courtyard from the Meshy models (godot/boards/meshy_courtyard.gd): placed numerically, NOT visually checked. Verify scale/orientation of the fortress and board base in a screenshot (constants at the top of the file).

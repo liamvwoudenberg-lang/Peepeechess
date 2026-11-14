@@ -65,6 +65,12 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	courtyard.name = "Courtyard"
 	world.add_child(courtyard)
 	courtyard.setup(camera, PlatformInput.quality)
+	var meshy_fortress: MeshInstance3D = null
+	if PlatformInput.quality != "low":
+		meshy_fortress = MeshyCourtyard.fortress()
+	if meshy_fortress != null:
+		courtyard.visible = false  # the Meshy fortress replaces the procedural courtyard
+		world.add_child(meshy_fortress)
 	world.environment.background_color = Color("8a9aa0")
 	world.environment.ambient_light_color = Color("d3d4c9")
 	world.environment.ambient_light_energy = 0.5
@@ -76,6 +82,9 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	var plinth = Models.material(Color("263b42"), 0.3)
 	var plinth_node = Models.box(scene, WorldConstants.PLINTH_SIZE, WorldConstants.PLINTH_CENTER, plinth)
 	var frame_node = Models.box(scene, WorldConstants.FRAME_SIZE, WorldConstants.FRAME_CENTER, Models.material(Color("c39c5d"), 0.7))
+	var meshy_base := MeshyCourtyard.board_base()
+	if meshy_base != null:
+		scene.add_child(meshy_base)
 	var light = Models.material(Color("b7b9a5"))
 	var dark = Models.material(Color("496e70"))
 	for at in range(64):
@@ -114,6 +123,8 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	scene.add_child(marks)
 	BattleWorld.tag_board(scene)
 	world.bind_board(self, tiles, [plinth_node, frame_node])
+	if meshy_base != null:  # solid stone base: out of the way whenever the trapdoor opens the pit
+		world.trapdoor.changed.connect(func(openness: float): meshy_base.visible = openness <= 0.001)
 	visibility_changed.connect(func():
 		if is_visible_in_tree() and _sync_pending:
 			_sync_pending = false
