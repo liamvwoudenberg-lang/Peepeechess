@@ -352,7 +352,7 @@ static func _progress(h) -> void:
 	h.check(not again.adaptive and again.fixed_level == "hard", "...and the difficulty settings")
 	# corrupt and foreign files
 	var file := FileAccess.open(path, FileAccess.WRITE)
-	file.store_string("this is [not] a config\n\x00\x01 garbage = = =")
+	file.store_string("this is [not] a config\n[[[ garbage = = = ]]")
 	file.close()
 	var broken := ProgressStore.new(path)
 	h.check(broken.lessons.is_empty() and broken.last_error != "", "a corrupt file starts empty and reports it")
