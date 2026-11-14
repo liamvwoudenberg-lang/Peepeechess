@@ -20,6 +20,8 @@ concurrency:
 jobs:
   export:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # A cold Android SDK + Gradle dependency download plus two exports needs more than the original 30 minutes.
     timeout-minutes: 60
     steps:
@@ -73,6 +75,19 @@ jobs:
           name: native-export-logs
           path: artifacts/native/*.log
           retention-days: 14
+      # Publish the Android test builds (debug apk + test-signed aab) as the rolling pre-release "latest-android" (release assets may be up to 2 GB).
+      - name: Publish the Android builds as a pre-release
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release delete latest-android --repo "$REPO" --cleanup-tag --yes || true
+          gh release create latest-android --repo "$REPO" --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "Latest Android test build (${GITHUB_SHA::7})" \
+            --notes "Debug-signed apk and test-signed aab built from commit $GITHUB_SHA. Test artifacts, not a store release; never installed on a real phone by the developers." \
+            artifacts/native/*.apk artifacts/native/*.aab
 
   # Windows x86_64 + Linux x86_64 playable packages (tools/package/build_pc.sh): the repository's own Windows Desktop
   # preset, reproducible zip/tar.gz with SHA256SUMS, plus a Linux smoke test under Xvfb (menu starts; local Classic and

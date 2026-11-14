@@ -51,7 +51,7 @@ jobs:
 
   publish-latest:
     needs: build
-    if: ${{ github.ref == 'refs/heads/main' }}
+    # Any branch: the pre-release is replaced by the newest build (assets may be up to 2 GB, unlike files in the repository).
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -68,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release delete latest-windows --repo "$REPO" --cleanup-tag --yes || true
-          gh release create latest-windows --repo "$REPO" --target "$GITHUB_SHA" --prerelease \
+          gh release create latest-windows --repo "$REPO" --target "$GITHUB_SHA" --prerelease --latest=false \
             --title "Latest Windows build (main @ ${GITHUB_SHA::7})" \
             --notes-file out/RELEASE_NOTES.md \
             out/Peepeechess-windows-x86_64.zip out/SHA256SUMS.txt
