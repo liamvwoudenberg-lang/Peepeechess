@@ -6,7 +6,7 @@ var _arena: CombatArena
 var _frame := 0
 var _out := "/tmp/arena_shots"
 var _pair := "qp"
-const CLIPS := [["idle", 0.0], ["light_1", 0.36], ["light_2", 0.36], ["heavy", 0.36], ["block", 0.5], ["parry", 0.4], ["dodge", 0.4], ["defeat", 0.9]]
+const CLIPS := [["idle", 0.0], ["climb", 0.3], ["light_1", 0.36], ["light_2", 0.36], ["heavy", 0.36], ["block", 0.5], ["parry", 0.4], ["dodge", 0.4], ["defeat", 0.9]]
 var _cam: Camera3D
 var _steps := [
 	{"at": 260, "w": Vector3(0, 0, -1.2), "b": Vector3(0, 0, 1.2), "name": "center"},

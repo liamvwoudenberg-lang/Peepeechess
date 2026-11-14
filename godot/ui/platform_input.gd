@@ -95,7 +95,7 @@ func _process(delta: float) -> void:
 	if not cursor_enabled or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_marker.hide()
 		return
-	if _pad_cursor_in_charge():
+	if _pad_cursor_in_charge() or _pad_ui_present():
 		# The board's pad cursor already uses the left stick; a second pointer flying over the board would only fight it
 		# (and, while visible, used to swallow every Cross press).
 		_cursor_visible = false
@@ -151,6 +151,12 @@ func _input(event: InputEvent) -> void:
 			return  # the matching press was not ours
 		_emit_click(true)
 		get_viewport().set_input_as_handled()
+
+## The application's screens have PadUi (focus navigation + board cursor), which covers everything the stick pointer did: with it present
+## no pointer marker is drawn at all (the pad has no mouse to show).
+func _pad_ui_present() -> bool:
+	return get_tree().get_nodes_in_group("pad_ui").size() > 0
+
 
 ## True while the application's board cursor (PadUi) is what the pad steers: the stick then moves that cursor, not a pointer.
 func _pad_cursor_in_charge() -> bool:
