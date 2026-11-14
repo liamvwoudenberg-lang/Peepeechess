@@ -14,6 +14,9 @@ extends Node3D
 const ROOT := "res://assets/paladins"
 const FILES := {"p": "pawn", "n": "knight", "b": "bishop", "r": "rook", "q": "queen", "k": "king"}
 const SOURCE_HEIGHT := 1.7           # every supplied model is 1.7 m tall (bounding box)
+## Import settings apply this cap to every source/side atlas, including normal/metallic maps that
+## remain referenced by the shared mesh. A raw-checkout fallback must obey the same budget.
+const TEXTURE_MAX_SIZE := 1024
 ## Names of the clips inside the supplied GLBs.
 const GLB_CLIPS := {"walk": "Walking", "run": "Running", "slash": "Charged_Slash", "climb": "Fast_Ladder_Climb", "casual_walk": "Casual_Walk"}
 ## Ground speed (m/s at SOURCE_HEIGHT) the walk and run clips are foot-locked at; scaled by height / SOURCE_HEIGHT.
@@ -29,6 +32,13 @@ var skeleton: Skeleton3D
 var player: AnimationPlayer
 var meshes: Array[MeshInstance3D] = []
 var current: String = ""
+
+
+func _ready() -> void:
+	# Pieces are assembled off-tree; their initial play("idle") cannot seek until AnimationPlayer
+	# enters the tree. Apply and pause that pose now; standing board pieces need no animation tick.
+	if current == "" or current == "idle":
+		play("idle")
 
 
 static func placeholder(_role_code: String) -> bool:
@@ -97,7 +107,12 @@ static func _template(role_code: String, side_code: String) -> Node3D:
 		return null
 	var path := path_for(role_code)
 	var root: Node3D = null
-	if ResourceLoader.exists(path):
+	# The second team uses the same rig, mesh and animation resources. Reuse them directly rather
+	# than loading/parsing the GLB again (which also decodes embedded images in the raw fallback).
+	var other_key := role_code + ("_b" if side_code == "w" else "_w")
+	if _templates.has(other_key):
+		root = _templates[other_key].duplicate()
+	elif ResourceLoader.exists(path):
 		var scene = load(path)
 		if scene is PackedScene:
 			root = scene.instantiate()
@@ -125,6 +140,10 @@ static func _texture(role_code: String, side_code: String) -> Texture2D:
 	elif FileAccess.file_exists(path):
 		var image := Image.load_from_file(ProjectSettings.globalize_path(path))
 		if image != null:
+			var longest := maxi(image.get_width(), image.get_height())
+			if longest > TEXTURE_MAX_SIZE:
+				var ratio := float(TEXTURE_MAX_SIZE) / float(longest)
+				image.resize(maxi(1, roundi(image.get_width() * ratio)), maxi(1, roundi(image.get_height() * ratio)), Image.INTERPOLATE_LANCZOS)
 			image.generate_mipmaps()
 			texture = ImageTexture.create_from_image(image)
 	_textures[name_] = texture
@@ -142,6 +161,7 @@ static func _apply_side(root: Node, role_code: String, side_code: String) -> voi
 			var material: StandardMaterial3D = base.duplicate() if base is StandardMaterial3D else StandardMaterial3D.new()
 			material.albedo_texture = texture
 			material.albedo_color = Color.WHITE
+			material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 			mesh_instance.set_surface_override_material(surface, material)
 
 

@@ -257,3 +257,28 @@ Reproduce: `edge_calibrate.gd`, `length_calibrate.gd`, `merge_edge.py` and `merg
 
 Limits: bot-measured only. The bots do not feel "Dark Souls": real people will find the timing windows and stamina pressure either right
 or wrong. Playtest, then re-run the calibration tools.
+
+
+## Attacker initiative, without boosting defenders (2026-11-14)
+
+Problem: the first edge table boosted whichever side was weaker, including the DEFENDER (a defending Pawn dealt up to x4 damage to an
+attacking Queen). Raw, with no boosts, the Queen wins 100/70/100/95 percent attacking Pawn/Knight/Bishop/Rook (casual bot), so the table
+turned the strongest piece into a glass cannon: an idle Queen died to a Pawn within seconds. Players rightly said she felt too weak.
+
+New rule (`attacker_edge` in `balance_v1.json`, calibrated with `edge_calibrate.gd mode=attacker`, n=24, 6 bisection steps, two bots):
+- **Nobody boosts a defender.** `defender_mult` is 1.0 in all 25 pairings (a test asserts it).
+- The attacker always gets an initiative bonus of at least x1.12 damage; when the raw matchup favours the defender it gets more, only as
+  much as it takes to lift its win rate 10 points above the raw rate (never below 30% where reachable), capped at x3.0.
+- A stronger piece therefore stays stronger. The attacker's benefit is real in every pairing: attacker rate is always above the raw
+  rate, and a piece wins more often attacking than defending the same matchup.
+
+Result (mean of casual / skilled bot, attacker's win rate): Queen attacking Pawn 100%, Knight 92%, Bishop 100%, Rook 96%; the same pieces
+attacking the Queen: Pawn 12% (capped at x3.0), Knight 29%, Bishop 31%, Rook 33%, so she holds 88/71/69/67% as a defender.
+Other examples: Knight->Pawn 100%, Pawn->Knight 35%, Pawn->Bishop 25%, mirror matches 52-71%. Gates: `attacker_edge` suite (`_gate`, `_queen_gate`).
+Limits: bot-measured only, n=24 per probe so about +-10 points of noise per pairing; Pawn->Queen reaches only 12% at the x3.0 cap.
+Reproduce: `edge_calibrate.gd -- mode=attacker n=24 iterations=6 shard=i/4 out=...` then `merge_edge.py ... --write`.
+
+## Presentation fixes (2026-11-14)
+- The combat camera stays inside the arena (a margin short of the wall, below the wall top) and rises to a higher angle when a fighter is
+  against the wall; stone walls and pillars are double-sided (no see-through from inside a wall or outside the ring).
+- The paladin sword is thicker, re-aimed in a ready guard (point forward-down) and held by the grip; screenshots: `combat/tools/arena_shots.gd`.

@@ -37,7 +37,7 @@ func _rate(a: String, d: String, x: float, n: int, seed_value: int) -> Dictionar
 
 func _initialize() -> void:
 	await process_frame
-	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": ""}
+	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0"}
 	for token in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = String(token).split("=", true, 1)
 		if kv.size() == 2:
@@ -70,24 +70,37 @@ func _initialize() -> void:
 		var lo := -X_MAX
 		var hi := X_MAX
 		var capped := ""
-		var at_lo: Dictionary = await _rate(a, d, lo, n, base_seed)
-		var at_hi: Dictionary = await _rate(a, d, hi, n, base_seed)
 		var x := 0.0
-		if float(at_lo["mean"]) >= target:
-			x = lo  # even the strongest defender boost leaves the attacker at or above the target
-			capped = "attacker already ahead at the maximum defender boost"
-		elif float(at_hi["mean"]) <= target:
-			x = hi
-			capped = "attacker still behind at the maximum attacker boost"
+		if String(args["mode"]) == "attacker":
+			# Attacker-initiative mode: NOBODY boosts the defender. The attacker gets at least `min_mult` damage (the initiative) and, when
+			# the raw matchup favours the defender, as much more as it takes to lift the attacker's rate `lift` above its raw rate (never
+			# below `floor` where reachable, capped at `max_mult`). A stronger piece therefore stays stronger, as a Queen should.
+			var raw: Dictionary = await _rate(a, d, 0.0, n, base_seed)
+			var want := clampf(float(raw["mean"]) + float(args["lift"]), float(args["floor"]), 0.92)
+			lo = log(float(args["min_mult"]))
+			hi = log(float(args["max_mult"]))
+			var at_min: Dictionary = await _rate(a, d, lo, n, base_seed)
+			var at_max: Dictionary = await _rate(a, d, hi, n, base_seed)
+			if float(at_min["mean"]) >= want:
+				x = lo
+			elif float(at_max["mean"]) <= want:
+				x = hi
+				capped = "attacker still behind at the maximum attacker boost (raw %.0f%%)" % (100.0 * float(raw["mean"]))
+			else:
+				for _it in iterations:
+					var mid2 := (lo + hi) / 2.0
+					var at_mid2: Dictionary = await _rate(a, d, mid2, n, base_seed)
+					if float(at_mid2["mean"]) < want:
+						lo = mid2
+					else:
+						hi = mid2
+				x = (lo + hi) / 2.0
+			capped += (" " if capped != "" else "") + "[raw %.0f%% want %.0f%%]" % [100.0 * float(raw["mean"]), 100.0 * want]
 		else:
-			for _it in iterations:
-				var mid := (lo + hi) / 2.0
-				var at_mid: Dictionary = await _rate(a, d, mid, n, base_seed)
-				if float(at_mid["mean"]) < target:
-					lo = mid
-				else:
-					hi = mid
-			x = (lo + hi) / 2.0
+			var at_lo: Dictionary = await _rate(a, d, lo, n, base_seed)
+			var at_hi: Dictionary = await _rate(a, d, hi, n, base_seed)
+			x = await _search_both(at_lo, at_hi, a, d, lo, hi, target, iterations, n, base_seed)
+			capped = String(_last_capped)
 		var final: Dictionary = await _rate(a, d, x, n, base_seed)
 		var attacker_mult := exp(x) if x > 0.0 else 1.0
 		var defender_mult := exp(-x) if x < 0.0 else 1.0
@@ -99,3 +112,24 @@ func _initialize() -> void:
 			var file := FileAccess.open(String(args["out"]), FileAccess.WRITE)
 			file.store_string(JSON.stringify(out, "\t", true))
 	quit(0)
+
+
+var _last_capped := ""
+
+## The original two-sided search (the weaker side gets the boost): returns x, sets _last_capped.
+func _search_both(at_lo: Dictionary, at_hi: Dictionary, a: String, d: String, lo: float, hi: float, target: float, iterations: int, n: int, base_seed: int) -> float:
+	_last_capped = ""
+	if float(at_lo["mean"]) >= target:
+		_last_capped = "attacker already ahead at the maximum defender boost"
+		return lo
+	if float(at_hi["mean"]) <= target:
+		_last_capped = "attacker still behind at the maximum attacker boost"
+		return hi
+	for _it in iterations:
+		var mid := (lo + hi) / 2.0
+		var at_mid: Dictionary = await _rate(a, d, mid, n, base_seed)
+		if float(at_mid["mean"]) < target:
+			lo = mid
+		else:
+			hi = mid
+	return (lo + hi) / 2.0

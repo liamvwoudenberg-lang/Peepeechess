@@ -64,6 +64,11 @@ static func _play(tree: SceneTree, white: String, black: String, attacker: Strin
 	sim.stop()
 	sim.get_parent().remove_child(sim)
 	sim.queue_free()
+	# Let the freed fighters (CharacterBody3D in the shared physics space) really disappear: for a frame they would still push the NEXT fight's
+	# fighters, which made two identical fights differ after a long earlier one.
+	await tree.physics_frame
+	await tree.physics_frame
+	await tree.process_frame
 	return report
 
 
