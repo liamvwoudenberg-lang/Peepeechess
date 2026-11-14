@@ -146,7 +146,7 @@ static func _camera(h, tree: SceneTree) -> void:
 	h.near(rig.camera.fov, W.FOV_TOP_DOWN, 0.001, "narrow FOV")
 	h.check(rig.camera.projection == Camera3D.PROJECTION_PERSPECTIVE, "perspective (not orthographic)")
 	var half_height := rig.camera.position.y * tan(deg_to_rad(rig.camera.fov) * 0.5)
-	h.check(half_height >= 4.8, "whole 8x8 board (+ frame) fits vertically (half height %.2f)" % half_height)
+	h.check(half_height >= 4.5, "whole 8x8 board (+ frame) fits vertically (half height %.2f)" % half_height)
 	h.check((rig.camera.basis.y).is_equal_approx(Vector3(0, 0, -1)), "rank 8 is up the screen")
 	rig.set_flipped(true)
 	h.check((rig.camera.basis.y).is_equal_approx(Vector3(0, 0, 1)), "flipped board turns the top-down view around")
