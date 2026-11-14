@@ -5,6 +5,8 @@ const Kit = preload("res://ui/theme/ui_kit.gd")
 const Tokens = preload("res://ui/theme/ui_tokens.gd")
 var _result_key = ""
 var _provisioned = false
+var _chess_chrome: Control
+var _fullscreen_combat = false
 var _connection_row: Control
 var _lobby_row: Control
 const Client = preload("res://network/client/network_client.gd")
@@ -111,6 +113,7 @@ func _build_ui() -> void:
 	background.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(background)
 	var margin = Kit.safe_frame(self, 12)
+	_chess_chrome = margin
 	var column = VBoxContainer.new()
 	margin.add_child(column)
 	_label(column, "PEEPEECHESS · Online native crossplay")
@@ -181,6 +184,7 @@ func _build_ui() -> void:
 	board_host.add_child(board_2d)
 	board_2d.setup(game, interaction)
 	board_3d = Board3D.new()
+	board_3d.hide()
 	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board_host.add_child(board_3d)
 	board_3d.setup(game, interaction)
@@ -248,6 +252,7 @@ func _frame(value: Dictionary) -> void:
 	board_2d.set_process_input(not in_combat)
 	board_3d.set_process_input(not in_combat)
 	interaction.enabled = not in_combat and client.authenticated
+	_set_combat_presentation(in_combat)
 	combat_container.visible = in_combat
 	set_view(_view_3d)
 	combat_host.render_target_update_mode = SubViewport.UPDATE_ALWAYS if in_combat else SubViewport.UPDATE_DISABLED
@@ -266,6 +271,26 @@ func _frame(value: Dictionary) -> void:
 	if not _capture.is_empty() and (_capture.revision != game.revision or _capture.matchId != game.match_id or phase != "board"):
 		capture_dialog.hide()
 		_capture.clear()
+
+## Reparent only the presentation containers into the full window. Their SubViewport, network prediction,
+## inputs and cameras stay intact; hiding one parent removes every chess control, history item and tooltip.
+func _set_combat_presentation(active: bool) -> void:
+	if active == _fullscreen_combat:
+		return
+	_fullscreen_combat = active
+	if active:
+		capture_dialog.hide()
+		promotion_dialog.hide()
+		get_viewport().gui_release_focus()
+		combat_container.reparent(self, false)
+		touch_controls.reparent(self, false)
+		_chess_chrome.hide()
+	else:
+		_chess_chrome.show()
+		combat_container.reparent(board_host, false)
+		touch_controls.reparent(board_host, false)
+	for control in [combat_container, touch_controls]:
+		control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _clocks(sync: Dictionary) -> void:
 	if sync.serverTick < _last_clock_tick or client.frame.is_empty():

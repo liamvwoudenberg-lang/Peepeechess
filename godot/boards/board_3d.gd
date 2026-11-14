@@ -13,7 +13,7 @@ var _piece_roles: Dictionary = {}
 var marks: Node3D
 var yaw = 0.0
 var elevation = 1.13
-var distance = 13.5
+var distance = 12.7
 var animation_enabled = true:
 	set(value):
 		animation_enabled = value
@@ -141,7 +141,7 @@ func set_flipped(value: bool) -> void:
 func reset_camera() -> void:
 	yaw = 0.0
 	elevation = 1.13
-	distance = 13.5
+	distance = 12.7
 	_update_camera()
 
 ## Switches between the straight-down "2D" view and the orbiting perspective view (glides).

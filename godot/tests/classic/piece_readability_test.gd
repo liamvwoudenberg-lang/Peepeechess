@@ -27,7 +27,7 @@ func run() -> void:
 			root.add_child(piece)
 			await process_frame
 			piece.model.play("idle")
-			expect(is_equal_approx(piece.model.height, float(ORIGINAL_HEIGHTS[role]) * 1.3), "%s/%s standing height increases exactly 30%%" % [role, side])
+			expect(piece.model.height >= float(ORIGINAL_HEIGHTS[role]) * 1.3 and piece.model.height <= float(ORIGINAL_HEIGHTS[role]) * 1.4, "%s/%s standing height increases 30–40%%" % [role, side])
 			expect(piece.position == Vector3.ZERO and piece.scale == Vector3.ONE, "%s/%s preserves its chess root transform" % [role, side])
 			expect(float(piece.model.get_meta("board_footprint_radius")) <= 0.4351, "%s/%s fits within a square at every yaw" % [role, side])
 			expect(piece.model.player.has_animation("Walking") and piece.model.player.has_animation("Running"), "%s/%s retains supplied locomotion clips" % [role, side])

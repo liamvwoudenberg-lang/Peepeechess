@@ -7,7 +7,7 @@ extends Node3D
 
 ## 30% taller than the original board characters. Only the model grows: the root, square centres
 ## and picking geometry stay unchanged. Its horizontal footprint is fitted separately below.
-const HEIGHTS := {"p": 1.43, "n": 1.69, "b": 1.768, "r": 1.612, "q": 1.872, "k": 1.976}
+const HEIGHTS := {"p": 1.50, "n": 1.77, "b": 1.85, "r": 1.69, "q": 1.96, "k": 2.07}
 const FOOTPRINT_RADIUS := 0.435
 const WALK_SPEED := 1.5        # m/s for a one-square step
 const RUN_SPEED := 3.0         # m/s for longer moves
