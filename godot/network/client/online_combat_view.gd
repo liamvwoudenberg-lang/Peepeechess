@@ -57,6 +57,7 @@ func sync(frame: Dictionary) -> void:
 			client.protocol_error.emit(client._error("INTERNAL", "The local combat presentation could not initialize."))
 			stop()
 			return
+		preload("res://app/combat_hud_installer.gd").install(arena, client.player_id)
 		battle_id = request.battleId
 		source = Source.new()
 		source.scheme = input_scheme

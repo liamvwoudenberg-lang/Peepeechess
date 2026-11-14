@@ -12,7 +12,7 @@ var pieces: Dictionary = {}
 var _piece_roles: Dictionary = {}
 var marks: Node3D
 var yaw = 0.0
-var elevation = 0.88
+var elevation = 1.13
 var distance = 13.5
 var animation_enabled = true:
 	set(value):
@@ -61,6 +61,16 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	viewport_3d.add_child(world)
 	scene = world.board_root
 	camera = world.rig.camera
+	var courtyard = CourtyardEnvironment.new()
+	courtyard.name = "Courtyard"
+	world.add_child(courtyard)
+	courtyard.setup(camera, PlatformInput.quality)
+	world.environment.background_color = Color("8a9aa0")
+	world.environment.ambient_light_color = Color("d3d4c9")
+	world.environment.ambient_light_energy = 0.5
+	world.key_light.rotation_degrees = Vector3(-68, -25, 0)
+	world.key_light.light_energy = 0.75
+	world.fill_light.light_energy = 0.35
 	world.rig.snap_to(CameraRig.State.CHESS_PERSPECTIVE)
 	world.set_animate(animation_enabled)
 	var plinth = Models.material(Color("263b42"), 0.3)
@@ -93,7 +103,7 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 			label.modulate = Color("f1d69e")
 			scene.add_child(label)
 			var rank_label = Label3D.new()
-			rank_label.text = str(8 - i)
+			rank_label.text = str(i + 1)
 			rank_label.font_size = 32
 			rank_label.pixel_size = 0.009
 			rank_label.position = Vector3(edge * 4.2, 0.02, i - 3.5)
@@ -104,6 +114,10 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	scene.add_child(marks)
 	BattleWorld.tag_board(scene)
 	world.bind_board(self, tiles, [plinth_node, frame_node])
+	visibility_changed.connect(func():
+		if is_visible_in_tree() and _sync_pending:
+			_sync_pending = false
+			sync_state())
 	interaction.selection_changed.connect(update_marks)
 	game.changed.connect(sync_state)
 	resized.connect(_update_camera)
@@ -126,7 +140,7 @@ func set_flipped(value: bool) -> void:
 
 func reset_camera() -> void:
 	yaw = 0.0
-	elevation = 0.88
+	elevation = 1.13
 	distance = 13.5
 	_update_camera()
 
@@ -159,6 +173,9 @@ func set_sync_hold(value: bool) -> void:
 		sync_state()
 
 func sync_state() -> void:
+	if not is_visible_in_tree():
+		_sync_pending = true
+		return
 	if scene == null:
 		return
 	if sync_hold:

@@ -147,6 +147,10 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	expect(not app.body.vertical, "landscape layout")
+	# Match actions now live in the optional Menu drawer. Open it before sending a real touch.
+	preload("res://ui/game_hud.gd").toggle_drawer(app)
+	await process_frame
+	await process_frame
 	for button in app.mode_select.get_parent().get_children():
 		if button is Button and button.text == "New game":
 			var point = button.global_position + button.size * 0.5

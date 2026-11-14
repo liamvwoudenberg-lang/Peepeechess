@@ -41,8 +41,8 @@ var battle_skip: Button
 var battle_bg: ColorRect
 var battle_scrim: ColorRect  # pit-world mode: dims the board and HUD behind the capture card (and blocks clicks on them)
 var battle_footer: HBoxContainer  # "Acting player resigns" / "Skip animation"; see _place_battle_footer()
-## pit world: both chess views are the same 3D board (top-down camera = "2D"); battles are presented
-## inside it (trapdoor, chamber, ladder). false = the original Board2D + full-screen combat overlay.
+## Pit battles retain their trapdoor, chamber and ladder presentation. Illustrated 2D and castle 3D
+## remain separate chess projections; 2D temporarily reveals the world only for the capture sequence.
 var use_world = true
 var bridge: WorldBattleBridge
 var royal_presenter: RoyalPresenter  # king's last stand: banner / HUD context / result note (null unless the match is a BattleRoyalMatch)
@@ -75,6 +75,7 @@ var _promotion: Dictionary = {}
 var _fen_revision = -1
 var _fen_match_id = ""
 var _view_3d = false
+var _overhead = false
 var _flipped = false
 var _claims: Array = []
 var draw_dialog: ConfirmationDialog
@@ -130,20 +131,27 @@ func _build_ui() -> void:
 	host.add_child(board_2d)
 	board_2d.setup(game, interaction)
 	board_3d = Board3D.new()
+	board_3d.hide()  # Hidden boards initialise on demand, avoiding 32 model allocations on Android.
 	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	host.add_child(board_3d)
 	board_3d.setup(game, interaction)
+	board_2d.tooltip_text = ""
+	board_3d.tooltip_text = ""
 	board_3d.hide()
 	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func _responsive() -> void:
 	if body == null:
 		return
-	var narrow = size.x < 850
-	body.vertical = narrow
-	board_panel.custom_minimum_size = Vector2(0, clampf(size.x - 50, 300, 560) if narrow else 430)
-	info_panel.custom_minimum_size = Vector2(0 if narrow else 360, 420 if narrow else 430)
-	call_deferred("_place_battle_footer")   # after the containers have settled
+	# Keep orientation as a public presentation property; the board never shares its width with a sidebar.
+	body.vertical = size.x < 850
+	board_panel.custom_minimum_size = Vector2.ZERO
+	info_panel.custom_minimum_size = Vector2.ZERO
+	Hud.layout(self)
+	if is_instance_valid(board_2d):
+		# The illustrated board gets clear space for the floating controls. The 3D world is edge to edge.
+		board_2d.offset_top = 60
+		board_2d.offset_bottom = -120
 
 func _build_dialogs() -> void:
 	promotion_dialog = ConfirmationDialog.new()
@@ -328,13 +336,37 @@ func set_view(use_3d: bool) -> void:
 	_view_3d = use_3d
 	AppSettings.preferred_3d = use_3d
 	AppSettings.save_preferences()
-	# World mode: the 3D board is always the board; "2D" is its straight-down camera.
-	board_2d.visible = not use_3d and not use_world
-	board_3d.visible = use_3d or use_world
-	board_3d.set_top_down(use_world and not use_3d)
-	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if board_3d.visible else SubViewport.UPDATE_DISABLED
-	view_button.text = "2D board" if use_3d else "3D board"
-	_message("3D · Right-drag to orbit, scroll to zoom. Touch: swipe / pinch." if use_3d else "2D · Click or drag to move. Touch: tap or drag.")
+	# Illustrated 2D remains the original board projection, sharing the exact same match and interaction.
+	# True overhead is an independent option on the 3D view, rather than silently replacing Classic 2D.
+	board_2d.visible = not use_3d
+	board_3d.visible = use_3d
+	board_3d.set_top_down(_overhead)
+	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS if use_3d else SubViewport.UPDATE_DISABLED
+	view_button.text = "2D" if use_3d else "3D"
+	_responsive()
+
+func _toggle_overhead() -> void:
+	_overhead = not _overhead
+	if not _view_3d:
+		set_view(true)
+	else:
+		board_3d.set_top_down(_overhead)
+	if hud.has("overhead"):
+		hud.overhead.text = "Angle" if _overhead else "Top"
+
+func _toggle_fullscreen() -> void:
+	preload("res://ui/screen_mode.gd").toggle()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if hud.get("combat", false) or not event is InputEventKey or not event.pressed or event.echo:
+		return  # the combat input source and its existing F1 overlay own these keys during duels
+	var code: int = event.keycode if event.keycode != KEY_NONE else event.physical_keycode
+	if code == KEY_F1:
+		Hud.toggle_help(self)
+		get_viewport().set_input_as_handled()
+	elif code == KEY_ESCAPE:
+		Hud.toggle_drawer(self)
+		get_viewport().set_input_as_handled()
 
 func set_flipped(value: bool) -> void:
 	_flipped = value
@@ -424,8 +456,8 @@ func _build_battle_overlay() -> void:
 	combat_container = SubViewportContainer.new()
 	combat_container.stretch = true
 	combat_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	combat_container.offset_top = 72
-	combat_container.offset_bottom = -92   # (legacy overlay) ends above the footer buttons
+	combat_container.offset_top = 0
+	combat_container.offset_bottom = 0   # the combat viewport fills the available display
 	battle_overlay.add_child(combat_container)
 	combat_host = SubViewport.new()
 	combat_host.size = Vector2i(900, 600)
@@ -513,6 +545,7 @@ func _switch_mode(index: int, royal: bool = false) -> void:
 	board_host.add_child(board_2d)
 	board_2d.setup(game, interaction)
 	board_3d = Board3D.new()
+	board_3d.hide()  # Hidden boards initialise on demand, avoiding 32 model allocations on Android.
 	board_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board_host.add_child(board_3d)
 	board_3d.setup(game, interaction)
@@ -589,21 +622,39 @@ func _capture_preview(request: Dictionary) -> void:
 
 func _start_battle_pressed() -> void:
 	if use_world and is_instance_valid(bridge):
+		_prepare_world_capture()
 		var response = bridge.start_battle()
 		if not response.get("ok", false):
+			set_view(_view_3d)
 			_message(str(response.get("error", "The battle could not start.")))
 		return
 	battle_flow.confirm_capture()
 
+## A hidden 3D board has no character instances on Android. Materialise it before PitSequence.begin looks up
+## its participants; do not change the saved board choice or move either fighter outside the existing pit sequence.
+func _prepare_world_capture() -> void:
+	board_2d.hide()
+	board_3d.show()
+	board_3d.sync_state()
+	board_3d.set_top_down(not _view_3d or _overhead)
+	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
 func _world_presenting_changed(presenting: bool) -> void:
+	Hud.set_combat(self, presenting)
+	if not presenting:
+		set_view(_view_3d)
 	if is_instance_valid(battle_flow):
 		interaction.enabled = battle_flow.phase == "board" and not presenting
+		board_2d.set_process_input(not presenting and battle_flow.phase == "board")
 
 func _battle_phase_world(value: String) -> void:
 	var presenting = is_instance_valid(bridge) and bridge.is_presenting()
+	Hud.set_combat(self, presenting or value in ["loading", "countdown", "combat", "aftermath", "returning"])
+	if value == "preview" and battle_flow.is_royal_duel() and not presenting:
+		_prepare_world_capture()
 	interaction.enabled = value == "board" and not presenting
-	board_2d.set_process_input(false)
-	board_3d.set_process_input(value == "board")
+	board_2d.set_process_input(value == "board" and not presenting and not _view_3d)
+	board_3d.set_process_input(value == "board" and not presenting and _view_3d)
 	battle_overlay.visible = value not in ["board", "returning"]
 	combat_container.visible = false
 	combat_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -615,19 +666,20 @@ func _battle_phase_world(value: String) -> void:
 	battle_cancel.visible = capture_preview
 	battle_cancel.text = "Cancel capture"
 	battle_return.visible = false
-	battle_resign.visible = value in ["countdown", "combat", "loading"]
-	battle_skip.visible = value == "aftermath"
+	battle_resign.visible = false
+	battle_skip.visible = false
 	battle_title.text = {"preview": "Capture preview", "loading": "The board opens…", "countdown": "Get ready", "combat": "Battle Chess · capture duel", "aftermath": "Battle result"}.get(value, "Battle Chess")
 	battle_title.visible = false  # the preview card has its own heading; the combat HUD carries its own title/countdown
 
 func _battle_phase(value: String) -> void:
 	Music.go(get_tree(), {"preview": "preview", "loading": "pit", "countdown": "pit", "combat": "combat", "aftermath": "pit", "board": "board", "returning": "board"}.get(value, "board"))
 	AppSettings.set_combat_input(value in ["countdown", "combat", "aftermath"])
+	Hud.set_combat(self, value in ["loading", "countdown", "combat", "aftermath", "returning"])
 	Hud.set_versus_visible(self, value == "preview")
 	if use_world:
 		_battle_phase_world(value)
 		return
-	battle_title.visible = true
+	battle_title.visible = value not in ["countdown", "combat"]
 	interaction.enabled = value == "board"
 	board_2d.set_process_input(value == "board")
 	board_3d.set_process_input(value == "board")
@@ -640,7 +692,7 @@ func _battle_phase(value: String) -> void:
 	battle_cancel.visible = value in ["preview", "loading"] and not (battle_flow.is_royal_duel() and value == "preview")
 	battle_cancel.text = "Cancel capture" if value == "preview" else "Cancel loading"
 	battle_return.visible = value == "aftermath"
-	battle_resign.visible = value in ["countdown", "combat"]
+	battle_resign.visible = false
 	battle_title.text = {"preview": "Capture preview", "loading": "Loading arena…", "countdown": "Get ready", "combat": "Battle Chess · capture duel", "aftermath": "Battle result"}.get(value, "Battle Chess")
 	if value == "loading":
 		battle_detail.text = "Preparing the arena and two fighters…\nThe chess position is frozen."
