@@ -66,7 +66,7 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	world.add_child(courtyard)
 	courtyard.setup(camera, PlatformInput.quality)
 	var meshy_fortress: MeshInstance3D = null
-	if PlatformInput.quality != "low":
+	if MeshyCourtyard.ENABLED and PlatformInput.quality != "low":
 		meshy_fortress = MeshyCourtyard.fortress()
 	if meshy_fortress != null:
 		courtyard.visible = false  # the Meshy fortress replaces the procedural courtyard
