@@ -77,6 +77,8 @@ func run() -> void:
 		return
 	for app in [white, black]:
 		var arena = app.combat_view.arena
+		expect(arena.hud is CourtyardCombatHud, "online view installs compact read-only HUD")
+		expect(not app._chess_chrome.visible and app.combat_container.get_parent() == app, "online fight hides all chess chrome and fills the window")
 		expect(arena.mode == CombatArena.Mode.PRESENTATION and arena._ais.is_empty() and arena._inputs.is_empty(), "online arena cannot simulate authoritative attacks or install AI")
 		var before = arena.sim.server_tick
 		arena._physics_process(1.0 / 60.0)

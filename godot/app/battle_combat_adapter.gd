@@ -111,6 +111,8 @@ func start(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 	_request = request.duplicate(true)
 	var response = arena.call("start_battle", request.duplicate(true)) if options.is_empty() else arena.call("start_battle", request.duplicate(true), options.duplicate(true))
 	var outcome = _response(response)
+	if outcome.ok and arena is CombatArena and presentation_enabled:
+		preload("res://app/combat_hud_installer.gd").install(arena)
 	if outcome.ok and arena.has_method("configure_seats"):
 		PadHold.attach(arena)  # pauses the fight if a seat's controller disconnects; resumes on reconnect
 	return outcome
