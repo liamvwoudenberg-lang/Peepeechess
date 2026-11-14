@@ -44,6 +44,8 @@ func setup(view: Camera3D, buttons: Dictionary) -> void:
 		if button.theme_type_variation == "PrimaryButton":
 			for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 				button.add_theme_color_override(state, Tokens.TEXT)
+			for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+				button.add_theme_color_override(state, Tokens.TEXT)
 	_sync()
 
 func _material(color: Color) -> StandardMaterial3D:
