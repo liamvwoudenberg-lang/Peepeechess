@@ -620,8 +620,13 @@ func _capture_preview(request: Dictionary) -> void:
 	if not readiness.ok:
 		fight_button.tooltip_text = str(readiness.error)
 
+var _restore_2d_after_battle := false
+
 func _start_battle_pressed() -> void:
 	if use_world and is_instance_valid(bridge):
+		if not _view_3d:   # the duel plays in the 3D pit world, which does not render behind the illustrated 2D board
+			_restore_2d_after_battle = true
+			set_view(true)
 		_prepare_world_capture()
 		var response = bridge.start_battle()
 		if not response.get("ok", false):
@@ -640,6 +645,9 @@ func _prepare_world_capture() -> void:
 	board_3d.viewport_3d.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 
 func _world_presenting_changed(presenting: bool) -> void:
+	if not presenting and _restore_2d_after_battle:
+		_restore_2d_after_battle = false
+		set_view(false)
 	Hud.set_combat(self, presenting)
 	if not presenting:
 		set_view(_view_3d)

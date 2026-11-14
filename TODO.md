@@ -47,3 +47,15 @@ Everything below was only tested headless or in software rendering; nothing has 
 - [ ] Remove stale worktrees/branches under `.claude/worktrees/` once their work is merged or abandoned (non-forced).
 
 - [x] Board + courtyard from the Meshy models (godot/boards/meshy_courtyard.gd): placed numerically, NOT visually checked. Verify scale/orientation of the fortress and board base in a screenshot (constants at the top of the file).
+
+## Open at the end of the 2026-11-14 session (read this first when continuing)
+- [ ] **Trapdoor / pit-fall animation is not adjusted to the new Meshy arena** (user report; needs a specific look: hole size, leaf swing, light shaft, or the drop point).
+- [ ] Verify the new fortress courtyard and the arena walls in a real build (walls of the fortress were never rendered); the Meshy chessboard tray is OFF (rims cover the tiles) - rework or drop it.
+- [ ] Battle Chess in the 2D view crashed on "start battle": fix in app/main.gd forces the 3D view during a duel and restores 2D afterwards. Check it in the build.
+- [ ] Menu contrast: Classic/Battle buttons had dark text on a dark plaque; light text override added in ui/theme/title_screen.gd. Check other PrimaryButton uses over dark panels.
+- [ ] Rendering quality: MSAA 4x + 16x anisotropic added; consider high-quality texture compression and a higher-poly fortress if it still looks soft; measure phone performance.
+- [ ] Attacker-edge table recalibration to the user's targets (Queen attacking ~70%, defending ~50%) after hit stun and aiming; update SHIPPED_STAMP in test_balance.gd and the Queen gate in test_attacker_edge.gd.
+- [ ] Training mode + 4 AI difficulty levels with adaptive option and lessons (branch worktree-agent-af3743e8cc9cc7d36, unmerged).
+- [ ] Oracle Always Free deployment (branch deploy/oracle-always-free): server exports, systemd, deploy workflow with rollback, hourly A1 provisioning; ask before creating any infrastructure.
+- [ ] Multiplayer test flakes; Android crash investigation (suspected texture memory); Kinemiq animations (needs the user to download the dataset).
+- [ ] Builds: confirm the latest Windows exe (`latest-windows` release) and Android apk (`latest-android`) were produced from the newest commit; never run on real devices.

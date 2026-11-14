@@ -106,6 +106,9 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 		button.custom_minimum_size.y = maxi(Kit.target_height(), 54)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_font_size_override("font_size", T.FS_LEAD)
+		if entry[3] == "PrimaryButton":   # the primary style's dark text sits on the dark plaque here: light text in every state
+			for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+				button.add_theme_color_override(key, Color("f6e3b0"))
 		buttons[entry[0]] = button
 	if over_scene and is_instance_valid(app.get("scene3d")) and app.scene3d.camera != null:
 		var plaques = MenuPlaques.new()
