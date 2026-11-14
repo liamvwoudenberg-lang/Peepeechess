@@ -22,7 +22,10 @@ const run = (name, args) => {
 };
 const children = [];
 function start(name, args) {
-  const child = spawn(godot, ['--headless', '--path', 'godot', ...args], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] });
+  // SERVER_BIN: run the dedicated server from an EXPORTED binary (tools/deploy/build_server.sh) instead of the project, same arguments.
+  // (stdbuf: the release export fully buffers stdout when it is not a terminal, so its log lines would only appear at exit.)
+  const exported = process.env.SERVER_BIN && args[0] === '--script' && String(args[1]).includes('server_main.gd');
+  const child = exported ? spawn('stdbuf', ['-oL', '-eL', process.env.SERVER_BIN, '--headless', ...args.slice(2)], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] }) : spawn(godot, ['--headless', '--path', 'godot', ...args], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] });
   const timeout = setTimeout(() => child.kill('SIGTERM'), 175000);
   children.push(child);
   let log = '';
@@ -36,10 +39,11 @@ function start(name, args) {
       resolve({ code, signal, log });
     });
   });
-  return { child, done, log: () => log };
+  const mutexNoise = /ERROR: Parameter "p_mutex->mutex" is null\.\n\s+at: godot_mbedtls_mutex_free[^\n]*\n?/g;
+  return { child, done, log: () => (exported ? log.replace(mutexNoise, '') : log) };
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-async function waitFor(test, timeout = 10000) {
+async function waitFor(test, timeout = process.env.SERVER_BIN ? 30000 : 10000) {
   const deadline = Date.now() + timeout;
   while (!test()) {
     if (Date.now() >= deadline) throw Error('Timed out waiting for server/client readiness');

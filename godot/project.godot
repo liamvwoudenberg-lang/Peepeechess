@@ -6,6 +6,7 @@ config/name="Peepeechess"
 config/icon="res://ui/app_icon.svg"
 config/version="0.3.0-multiplayer"
 run/main_scene="res://ui/application.tscn"
+run/main_scene.peepeechess_server="res://network/server/server_entry.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [display]

@@ -29,19 +29,23 @@ const envFor = name => {
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const children = new Set();
 function start(name, args, timeoutMs) {
-  const child = spawn(godot, ['--headless', '--path', 'godot', ...args], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] });
+  // SERVER_BIN: run the dedicated server from an EXPORTED binary (tools/deploy/build_server.sh) instead of the project, same arguments.
+  // (stdbuf: the release export fully buffers stdout when it is not a terminal, so its log lines would only appear at exit.)
+  const exported = process.env.SERVER_BIN && args[0] === '--script' && String(args[1]).includes('server_main.gd');
+  const child = exported ? spawn('stdbuf', ['-oL', '-eL', process.env.SERVER_BIN, '--headless', ...args.slice(2)], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] }) : spawn(godot, ['--headless', '--path', 'godot', ...args], { env: envFor(name), stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
   const timeout = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
   let log = '';
   child.stdout.on('data', d => { log += d; });
   child.stderr.on('data', d => { log += d; });
+  const mutexNoise = /ERROR: Parameter "p_mutex->mutex" is null\.\n\s+at: godot_mbedtls_mutex_free[^\n]*\n?/g; // harmless notice of the release export templates
   const done = new Promise((resolve, reject) => {
     child.on('error', reject);
-    child.on('exit', (code, signal) => { clearTimeout(timeout); children.delete(child); resolve({ code, signal, log }); });
+    child.on('exit', (code, signal) => { clearTimeout(timeout); children.delete(child); resolve({ code, signal, log: exported ? log.replace(mutexNoise, '') : log }); });
   });
-  return { child, done, log: () => log };
+  return { child, done, log: () => (exported ? log.replace(mutexNoise, '') : log) };
 }
-async function waitFor(test, timeout = 15000) {
+async function waitFor(test, timeout = process.env.SERVER_BIN ? 40000 : 15000) {
   const deadline = Date.now() + timeout;
   while (!test()) { if (Date.now() >= deadline) throw Error('Timed out waiting for readiness'); await pause(30); }
 }
