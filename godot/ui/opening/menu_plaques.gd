@@ -2,6 +2,7 @@ extends Node3D
 ## Physical menu plaques stay in the castle camera while ordinary Buttons provide accessible input/text.
 ## Project each button's current rectangle into the camera plane so scaling and phone safe areas remain correct.
 const Prefs = preload("res://ui/theme/ui_prefs.gd")
+const Tokens = preload("res://ui/theme/ui_tokens.gd")
 const DEPTH := 4.0
 var camera: Camera3D
 var entries: Array[Dictionary] = []
@@ -38,6 +39,11 @@ func setup(view: Camera3D, buttons: Dictionary) -> void:
 		transparent.content_margin_bottom = 11
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
 			button.add_theme_stylebox_override(state, transparent)
+		# Primary buttons normally use dark ink on a gold 2D background. Here
+		# the background is a dark physical plaque, so use light lettering.
+		if button.theme_type_variation == "PrimaryButton":
+			for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+				button.add_theme_color_override(state, Tokens.TEXT)
 	_sync()
 
 func _material(color: Color) -> StandardMaterial3D:

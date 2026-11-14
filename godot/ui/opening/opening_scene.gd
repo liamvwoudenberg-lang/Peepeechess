@@ -2,8 +2,8 @@ extends Node3D
 ## The 3D backdrop of the home screen: a moonlit chess castle at the end of a chequered bridge.
 ##
 ## Cost model (Compatibility renderer, phones included):
-##   * all static geometry is merged into a handful of MeshInstances (one draw call per material), the giant chess pieces are
-##     merged by material too, halos and embers are single MultiMeshes, banners / embers / halos are animated in vertex shaders,
+##   * castle geometry and exterior statues are merged by material; the board uses lightweight static paladin meshes.
+##     Halos and embers are single MultiMeshes, banners / embers / halos are animated in vertex shaders,
 ##     so the per-frame CPU work is: one camera transform, a few light energies, three uniform writes;
 ##   * the real light budget is small and fixed per quality (the pool relocates while the camera passes the gate);
 ##   * quality "low" drops the extra lights, clouds, trees, pieces and mist; reduce-motion freezes drift, wind, flicker and embers.
@@ -13,6 +13,8 @@ const Builder = preload("res://ui/opening/castle_builder.gd")
 const Assets = preload("res://ui/opening/opening_assets.gd")
 const Batch = preload("res://ui/opening/mesh_batch.gd")
 const PIECES := "res://assets/world/pieces/"
+const PALADIN_STATUES := "res://assets/paladins/opening/"
+const PALADIN_TEXTURES := "res://assets/paladins/textures/"
 const MOON_DIR := Vector3(0.342, 0.407, -0.847)
 
 const CAM_A := Vector3(0.0, 4.6, 74.0)
@@ -229,13 +231,51 @@ func _build_meshes(_q: int, builder: Builder) -> void:
 	_banner_material = Assets.shader_material(Assets.BANNER_SHADER)
 	_mesh_instance(builder.banners, _banner_material, "Banners")
 
+## Lightweight, posed versions of the actual board characters. They contain no
+## skeletons and use the same team textures as the in-game paladins.
+func _build_paladin_piece(spec: Dictionary, role: String, side: String) -> bool:
+	var path := PALADIN_STATUES + role + ".glb"
+	var texture_path := PALADIN_TEXTURES + role + ("_w.jpg" if side == "light" else "_b.jpg")
+	if not ResourceLoader.exists(path) or not ResourceLoader.exists(texture_path):
+		return false
+	var scene := load(path) as PackedScene
+	var texture := load(texture_path) as Texture2D
+	if scene == null or texture == null:
+		return false
+	var piece := scene.instantiate() as Node3D
+	if piece == null:
+		return false
+	piece.name = "BoardPaladin_%s_%s_%d" % [role, side, get_child_count()]
+	add_child(piece)
+	# The board squares are 4 m wide. A one-unit paladin, scaled by the
+	# layout's existing 4.2 multiplier, fits the opening-screen board.
+	var placement: Transform3D = spec.xf
+	piece.transform = placement * Transform3D(Basis.from_scale(Vector3.ONE / PaladinModel.SOURCE_HEIGHT), Vector3.ZERO)
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = texture
+	material.metallic = 0.25
+	material.roughness = 0.65
+	for node in piece.find_children("*", "MeshInstance3D", true, false):
+		var mesh_node := node as MeshInstance3D
+		mesh_node.material_override = material
+		if mesh_node.mesh != null:
+			for surface in mesh_node.mesh.get_surface_count():
+				var arrays := mesh_node.mesh.surface_get_arrays(surface)
+				var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+				if not indices.is_empty():
+					triangle_count += indices.size() / 3
+	return true
+
+
 func _build_statues(q: int, builder: Builder) -> void:
-	# The six pieces share two materials sets (light / dark); merge every statue into one mesh per material.
+	# The board uses paladin pieces; the exterior's stone statues are batched by material.
 	var buckets := {}
 	var cache := {}
 	for spec in builder.statues:
 		var role: String = spec.role
 		var side: String = spec.side
+		if spec.get("board_piece", false) and _build_paladin_piece(spec, role, side):
+			continue
 		var lod := "_lod1" if int(spec.lod) == 1 and q != Builder.Quality.HIGH or q == Builder.Quality.LOW else ""
 		var key := role + "_" + side + lod
 		if not cache.has(key):
