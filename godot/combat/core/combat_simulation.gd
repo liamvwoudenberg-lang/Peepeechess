@@ -48,6 +48,8 @@ var edge_attacker: float = 1.0
 var edge_defender: float = 1.0
 ## Duel length (BALANCE.md "Duel length"): every blow's HP damage is multiplied by this (< 1 = longer fights). 1.0 = raw frame data.
 var damage_scale: float = 1.0
+## Hit stun on (the game's rule); off for raw frame data (option attacker_edge:false) or option hit_stun:false.
+var hit_stun_on: bool = true
 
 var _inputs: Dictionary = {}
 var _grace: Dictionary = {}
@@ -147,6 +149,7 @@ func _apply_attacker_edge(options: Dictionary, attacker_role: String, defender_r
 	edge_attacker = 1.0
 	edge_defender = 1.0
 	damage_scale = 1.0
+	hit_stun_on = true
 	var attacker_fighter := attacker()
 	var defender_fighter := defender()
 	var rule := {"attacker_cost": 1.0, "defender_cost": 1.0, "defender_regen": 1.0}
@@ -154,6 +157,8 @@ func _apply_attacker_edge(options: Dictionary, attacker_role: String, defender_r
 	var damage_option = options.get("attacker_edge", null)
 	var stamina_option = options.get("stamina_edge", null)
 	var all_off: bool = damage_option is bool and not damage_option   # attacker_edge: false = raw frame data, both rules off
+	var stun_option = options.get("hit_stun", null)
+	hit_stun_on = not all_off and not (stun_option is bool and not stun_option)
 	if not neutral_pair:
 		if damage_option is Dictionary:
 			edge_attacker = maxf(0.01, float(damage_option.get("attacker", 1.0)))
@@ -241,6 +246,7 @@ func _reset() -> void:
 	edge_attacker = 1.0
 	edge_defender = 1.0
 	damage_scale = 1.0
+	hit_stun_on = true
 	server_tick = 0
 	countdown_remaining = 0
 	duration_remaining = 0
@@ -494,6 +500,14 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	if d.poise <= 0.0:
 		d.poise = float(d.profile["poise"])
 		d.sm.enter_staggered(atk.hitstun_ticks, "hit")
+	elif hit_stun_on:
+		# Hit stun: a blow that did not break poise still stuns the victim (it cannot act, so it cannot instantly hit back). A charged
+		# / heavy blow stuns much longer than a quick one; the stagger immunity that follows prevents stun-locking.
+		var stun := Balance.hit_stun()
+		var mult := float(stun["heavy_mult"]) if atk.kind == AttackDefinition.Kind.HEAVY else (float(stun["ability_mult"]) if atk.kind == AttackDefinition.Kind.ABILITY else float(stun["light_mult"]))
+		var ticks := roundi(float(atk.hitstun_ticks) * mult)
+		if ticks > 0:
+			d.sm.enter_staggered(ticks, "hit")
 
 
 ## The strength of a blow as the presentation should feel it: the HP it removed, scaled back by the duel-length scale, so the hit

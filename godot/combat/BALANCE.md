@@ -282,3 +282,10 @@ Reproduce: `edge_calibrate.gd -- mode=attacker n=24 iterations=6 shard=i/4 out=.
 - The combat camera stays inside the arena (a margin short of the wall, below the wall top) and rises to a higher angle when a fighter is
   against the wall; stone walls and pillars are double-sided (no see-through from inside a wall or outside the ring).
 - The paladin sword is thicker, re-aimed in a ready guard (point forward-down) and held by the grip; screenshots: `combat/tools/arena_shots.gd`.
+
+## Hit stun (2026-11-14)
+A clean hit that does not break poise now stuns the victim for `hitstun_ticks x mult` ticks (`hit_stun` in `balance_v1.json`: light x1.3,
+heavy x2.0, ability x1.5), so a fighter who was just hit cannot hit back at once, and a charged/heavy blow stuns much longer (about 0.7-1 s)
+than a quick one (about 0.27 s). The stagger immunity that follows prevents stun-locking. Raw frame data (`attacker_edge:false`) has no
+stun, so the exact-trade tests are unchanged. Because stun shifts every matchup toward the attacker, the attacker table must be
+recalibrated (`edge_calibrate.gd rule=initiative`); the queen gate in `test_attacker_edge.gd` fails until that is done.

@@ -145,6 +145,14 @@ static func damage_scale(attacker_role: String = "", defender_role: String = "")
 	return float(section.get("damage_scale", 1.0))
 
 
+## Hit stun (BALANCE.md "Hit stun"): a clean blow that does not break poise still stuns the victim for `hitstun_ticks * mult` ticks, so a
+## fighter who was just hit cannot attack back at once. The multiplier is bigger for a heavy (charged) blow than for a quick one.
+## {"light_mult", "heavy_mult", "ability_mult"}; all 0 = no hit stun.
+static func hit_stun() -> Dictionary:
+	_ensure()
+	return _active.get("hit_stun", {"light_mult": 0.0, "heavy_mult": 0.0, "ability_mult": 0.0})
+
+
 ## The fight length the per-pairing scales were calibrated for, in seconds (0 when the data has none). Informational.
 static func duel_target_seconds() -> float:
 	_ensure()
@@ -272,6 +280,14 @@ static func validate(data: Dictionary) -> Array:
 		_validate_attacks(String(role), data["attacks"][role], data["abilities"], errors)
 	if data.has("duel_length"):
 		_validate_duel_length(data["duel_length"], data["profiles"], errors)
+	if data.has("hit_stun"):
+		var stun_data = data["hit_stun"]
+		if typeof(stun_data) != TYPE_DICTIONARY:
+			errors.append("hit_stun must be an object")
+		else:
+			for key in ["light_mult", "heavy_mult", "ability_mult"]:
+				if not _is_number(stun_data.get(key, 0.0)) or float(stun_data.get(key, 0.0)) < 0.0 or float(stun_data.get(key, 0.0)) > 5.0:
+					errors.append("hit_stun.%s must be a number in 0..5" % key)
 	if data.has("attacker_edge"):
 		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
 	for id in data["abilities"]:
@@ -532,6 +548,9 @@ static func _normalise(raw: Dictionary) -> Dictionary:
 		for key in raw["duel_length"].get("pairs", {}):
 			length["pairs"][String(key)] = float(raw["duel_length"]["pairs"][key])
 		out["duel_length"] = length
+	if raw.has("hit_stun"):
+		var stun_raw: Dictionary = raw["hit_stun"]
+		out["hit_stun"] = {"light_mult": float(stun_raw.get("light_mult", 0.0)), "heavy_mult": float(stun_raw.get("heavy_mult", 0.0)), "ability_mult": float(stun_raw.get("ability_mult", 0.0))}
 	if raw.has("attacker_edge"):
 		var edge := {"target": float(raw["attacker_edge"].get("target", 0.0)), "pairs": {}}
 		if raw["attacker_edge"].has("stamina"):

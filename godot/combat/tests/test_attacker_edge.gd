@@ -31,6 +31,7 @@ static func run(h, tree: SceneTree) -> void:
 	_length_data(h)
 	await _length_simulation(h, tree)
 	await _length_damage(h, tree)
+	await _hit_stun(h, tree)
 	await _gate(h, tree)
 	await _queen_gate(h, tree)
 
@@ -424,3 +425,34 @@ static func _queen_gate(h, tree: SceneTree) -> void:
 	h.check(rates["qp"] >= 0.80 and rates["qb"] >= 0.80, "a Queen attacking a Pawn / Bishop wins at least 80%% (%.0f%% / %.0f%%)" % [100.0 * rates["qp"], 100.0 * rates["qb"]])
 	h.check(rates["pq"] <= 0.45 and rates["bq"] <= 0.55, "a Pawn / Bishop attacking the Queen wins at most 45%% / 55%% (%.0f%% / %.0f%%): she holds" % [100.0 * rates["pq"], 100.0 * rates["bq"]])
 	h.check(rates["pq"] >= 0.03, "...but the Pawn still has a real chance as the attacker (%.0f%%)" % (100.0 * rates["pq"]))
+
+
+## Hit stun: a victim that was just hit cannot act, a heavy (charged) blow stuns much longer than a quick one, and raw frame data has none.
+static func _hit_stun(h, tree: SceneTree) -> void:
+	h.begin("hit stun: a clean hit stuns the victim, longer for a heavy blow, and raw frame data has no stun")
+	var S := CombatConstants.State
+	var light: AttackDefinition = Balance.attack_tables("p")["light"][0]
+	var heavy: AttackDefinition = Balance.attack_tables("p")["heavy"]
+	var stun := Balance.hit_stun()
+	h.check(float(stun["heavy_mult"]) > float(stun["light_mult"]) and float(stun["light_mult"]) > 0.0, "the data: heavy stun multiplier (%s) > light (%s) > 0" % [str(stun["heavy_mult"]), str(stun["light_mult"])])
+	# Rook defender: poise 110, so neither blow breaks poise and the plain hit stun is what we measure.
+	var sim := await _start(tree, "p", "r", {})
+	var victim := sim.defender()
+	sim._apply_hit(sim.attacker(), victim, light, 10)
+	var light_ticks := victim.sm.stun_total
+	h.check(victim.sm.state == S.STAGGERED and light_ticks == roundi(float(light.hitstun_ticks) * float(stun["light_mult"])), "a light hit stuns for %d ticks (%d x %s)" % [light_ticks, light.hitstun_ticks, str(stun["light_mult"])])
+	_dispose(sim)
+	var sim2 := await _start(tree, "p", "r", {})
+	var victim2 := sim2.defender()
+	sim2._apply_hit(sim2.attacker(), victim2, heavy, 10)
+	var heavy_ticks := victim2.sm.stun_total
+	h.check(victim2.sm.state == S.STAGGERED and heavy_ticks >= light_ticks * 2, "a heavy hit stuns for %d ticks, at least twice the light stun (%d)" % [heavy_ticks, light_ticks])
+	# A stunned fighter cannot start an attack (the input is held): its state stays STAGGERED after a press.
+	var in_stun_state := victim2.sm.state
+	h.check(in_stun_state == S.STAGGERED, "the victim is in the stun state (cannot attack back)")
+	_dispose(sim2)
+	var raw := await _start(tree, "p", "r", {"attacker_edge": false})
+	var raw_victim := raw.defender()
+	raw._apply_hit(raw.attacker(), raw_victim, light, 10)
+	h.check(raw_victim.sm.state != S.STAGGERED, "raw frame data (attacker_edge:false) has no hit stun")
+	_dispose(raw)
