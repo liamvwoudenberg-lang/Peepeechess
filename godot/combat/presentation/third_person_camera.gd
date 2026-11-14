@@ -245,6 +245,7 @@ func _process(delta: float) -> void:
 	var pos := _pivot + (wanted - _pivot).normalized() * minf(_spring, full)
 
 	pos = _clear_of_pillars(pos)
+	pos = _keep_inside_arena(pos)
 
 	# Impact punch (decays in ~0.1 s) and noise-based trauma shake: offset ~ trauma^2 (small hits stay subtle).
 	_punch *= exp(-18.0 * delta)
@@ -269,3 +270,17 @@ func _process(delta: float) -> void:
 		_fov_kick_target = 0.0
 		_fov_kick = lerpf(_fov_kick, 0.0, 1.0 - exp(-9.0 * delta))
 	camera.fov = BASE_FOV + _fov_kick
+
+
+## The camera never leaves the arena: horizontally it stays inside the wall (a margin short of it) and vertically below the wall top, so
+## the intro pull-back, the victory orbit and a fighter standing against the wall can never show the outside of the arena or the
+## back of the wall (see through it).
+func _keep_inside_arena(pos: Vector3) -> Vector3:
+	var max_radius := CombatConstants.ARENA_WALL_RADIUS - 0.5
+	var flat := Vector2(pos.x, pos.z)
+	if flat.length() > max_radius:
+		flat = flat.normalized() * max_radius
+		pos.x = flat.x
+		pos.z = flat.y
+	pos.y = clampf(pos.y, 0.45, StoneArena.WALL_HEIGHT - 0.3)
+	return pos

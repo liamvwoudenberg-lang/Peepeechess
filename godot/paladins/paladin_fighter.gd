@@ -66,7 +66,7 @@ func _add_sword(body: PaladinModel, team: String) -> void:
 	# In the A-pose the hand hangs with its fingers pointing down. The blade is aimed in SKELETON space (down and a little forward: it then points forward when the arm is thrust forward; held
 	# at the ready) and converted into the hand's own frame, so it does not depend on how the rig's bone axes happen to point.
 	var to_local := sk.get_bone_global_rest(hand).basis.orthonormalized().inverse()
-	var z_dir: Vector3 = to_local * Vector3(0.0, -0.82, 0.57).normalized()
+	var z_dir: Vector3 = to_local * Vector3(0.0, -0.58, 0.81).normalized()   # at rest the point trails forward-down (a ready guard), not straight down the leg
 	var x_dir: Vector3 = to_local * Vector3(1.0, 0.0, 0.0)
 	var y_dir := z_dir.cross(x_dir).normalized()
 	x_dir = y_dir.cross(z_dir).normalized()
@@ -87,10 +87,10 @@ func _add_sword(body: PaladinModel, team: String) -> void:
 	gold.albedo_color = Color(0.86, 0.68, 0.24)
 	gold.metallic = 0.8
 	gold.roughness = 0.35
-	_part(sword, "Blade", Vector3(0.06, 0.016, 0.86), Vector3(0, 0, 0.50), steel)   # first mesh: weapon_segments() measures it
-	_part(sword, "Guard", Vector3(0.24, 0.03, 0.035), Vector3(0, 0, 0.065), gold)
-	_part(sword, "Grip", Vector3(0.032, 0.032, 0.17), Vector3(0, 0, -0.035), gold)
-	_part(sword, "Pommel", Vector3(0.05, 0.05, 0.05), Vector3(0, 0, -0.13), gold)
+	_part(sword, "Blade", Vector3(0.085, 0.022, 0.88), Vector3(0, 0, 0.51), steel)   # first mesh: weapon_segments() measures it
+	_part(sword, "Guard", Vector3(0.30, 0.04, 0.045), Vector3(0, 0, 0.065), gold)
+	_part(sword, "Grip", Vector3(0.04, 0.04, 0.18), Vector3(0, 0, -0.04), gold)
+	_part(sword, "Pommel", Vector3(0.065, 0.065, 0.065), Vector3(0, 0, -0.14), gold)
 	_sockets["WeaponSocket_R"] = attachment
 
 
