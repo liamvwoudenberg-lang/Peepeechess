@@ -17,6 +17,10 @@ const LIGHTS := "res://assets/combat/arena/stone_arena_lights.json"
 
 ## True when the Blender-generated arena (tools/blender/.../arena.py) was loaded.
 var uses_generated_arena: bool = false
+## True when the arena was composed from the Meshy models in assets/environment (docs/ui/ARENA.md).
+var uses_meshy_arena: bool = false
+var meshy_triangles: int = 0   # full-resolution triangles of every Meshy instance (the budget test reads it)
+var meshy_props: Dictionary = {}   # model name -> number of instances
 
 # --- BEGIN pit-world edit: `embedded` -------------------------------------------------------
 ## Set by the pit world (godot/world/) BEFORE build(): the arena shares a World3D with the chess
@@ -29,7 +33,10 @@ const EMBEDDED_LIGHT_MASK := 1 | 4
 
 
 func build(mobile_lod: bool = false) -> void:
-	var generated := _build_generated(mobile_lod)
+	uses_meshy_arena = false
+	if _meshy_wanted(mobile_lod):
+		uses_meshy_arena = _build_meshy()
+	var generated := uses_meshy_arena or _build_generated(mobile_lod)
 	if not generated:
 		_environment()
 		_floor()
@@ -49,6 +56,11 @@ func build(mobile_lod: bool = false) -> void:
 		sun.light_cull_mask = EMBEDDED_SUN_MASK
 		for torch in _torches:
 			torch.light_cull_mask = EMBEDDED_LIGHT_MASK
+
+
+## The Meshy arena is used on every tier except "low" (and the mobile LOD): there the generated / procedural arena stays (fewer triangles).
+func _meshy_wanted(mobile_lod: bool) -> bool:
+	return not mobile_lod and PlatformInput.quality != "low" and MESHY_FILES.keys().all(func(name): return ResourceLoader.exists(_meshy_path(name)))
 
 
 ## Generated arena + its light/fog sidecar. Falls back to the procedural arena when absent.
@@ -83,6 +95,167 @@ func _build_generated(mobile_lod: bool) -> bool:
 		light.omni_range = float(entry["range"])
 		add_child(light)
 		_torches.append(light)
+	return true
+
+
+# ---- the Meshy arena: floor circle, four pillars, archways, sconces, banners, a ladder (assets/environment, docs/ui/ARENA.md) ----------------
+const MESHY_ROOT := "res://assets/environment"
+const MESHY_FILES := {
+	"stone_circle": "Meshy_AI_Ancient_Stone_Circle_20261114_texture.fbx", "pillar": "Meshy_AI_Moss_Crowned_Pillar_20261114_texture.fbx",
+	"archway": "Meshy_AI_Mossbound_Ancient_Archway_20261114_texture.fbx", "torch_sconce": "Meshy_AI_Rustbound_Torch_Sconce_20261114_texture.fbx",
+	"banner": "Meshy_AI_Tattered_Heraldic_Banner_20261114_texture.fbx", "ascent": "Meshy_AI_Weathered_Ascent_20261114_texture.fbx",
+}
+## Wall slots: angle in degrees (0 = +Z, the wall's outward normal is (sin a, cos a)).
+const MESHY_ARCH_ANGLES := [0.0, 90.0, 180.0, 270.0]
+const MESHY_SCONCE_ANGLES := [45.0, 135.0, 225.0, 315.0]
+const MESHY_BANNER_ANGLES := [67.5, 247.5]
+const MESHY_LADDER_ANGLE := 157.5
+const MESHY_PILLAR_HEIGHT := 3.5          # the collider height
+const MESHY_PILLAR_SCALE := 3.6           # uniform: the capital spreads ~0.9 m at the top, the shaft is slim
+const MESHY_PLINTH_RADIUS := 0.5          # visible stone base: tells the player where the (radius 0.55) collider is
+
+
+static func _meshy_path(name: String) -> String:
+	return "%s/%s/%s" % [MESHY_ROOT, name, MESHY_FILES[name]]
+
+
+## A model fitted by scale, with its origin at the bottom centre of its bounding box. Counts its triangles.
+func _meshy_prop(name: String, scale_xyz: Vector3) -> Node3D:
+	var scene := load(_meshy_path(name)) as PackedScene
+	var instance := scene.instantiate() as Node3D
+	var box := _local_aabb(instance, Transform3D.IDENTITY)
+	instance.position = -Vector3(box.position.x + box.size.x * 0.5, box.position.y, box.position.z + box.size.z * 0.5)
+	var holder := Node3D.new()
+	holder.name = name.capitalize().replace(" ", "")
+	holder.add_child(instance)
+	holder.scale = scale_xyz
+	holder.set_meta("size", box.size * scale_xyz)
+	meshy_props[name] = int(meshy_props.get(name, 0)) + 1
+	meshy_triangles += _triangles(instance)
+	return holder
+
+
+func _local_aabb(node: Node, to_parent: Transform3D) -> AABB:
+	var result := AABB()
+	var first := true
+	var here := to_parent
+	if node is Node3D:
+		here = to_parent * (node as Node3D).transform
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		result = here * (node as MeshInstance3D).get_aabb()
+		first = false
+	for child in node.get_children():
+		var sub := _local_aabb(child, here)
+		if sub.size != Vector3.ZERO:
+			result = sub if first else result.merge(sub)
+			first = false
+	return result
+
+
+static func _triangles(node: Node) -> int:
+	var count := 0
+	for mesh_instance in node.find_children("*", "MeshInstance3D", true, false):
+		var mesh := (mesh_instance as MeshInstance3D).mesh
+		for s in mesh.get_surface_count():
+			var arrays := mesh.surface_get_arrays(s)
+			var index = arrays[Mesh.ARRAY_INDEX]
+			count += (index.size() if index != null else arrays[Mesh.ARRAY_VERTEX].size()) / 3
+	return count
+
+
+## Places a prop against the wall: its back stands `protrude` metres inside the wall's face, the rest sticks out toward the arena.
+func _meshy_wall_slot(prop: Node3D, angle_deg: float, wall_radius: float, height: float, jut: float) -> void:
+	var angle := deg_to_rad(angle_deg)
+	var depth: float = (prop.get_meta("size") as Vector3).z
+	var radius := wall_radius - jut + depth * 0.5
+	prop.position = Vector3(sin(angle), 0.0, cos(angle)) * radius + Vector3(0.0, height, 0.0)
+	prop.rotation.y = angle + PI   # the models face +Z: turn their front toward the arena centre
+	add_child(prop)
+
+
+func _build_meshy() -> bool:
+	meshy_triangles = 0
+	meshy_props.clear()
+	_environment()
+	var wall_radius := CombatConstants.ARENA_WALL_RADIUS
+	# Procedural base below the props: the wall ring (so there is never a gap to see through) and a thin disc under the floor circle.
+	_wall()
+	var base := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = wall_radius + 0.4
+	disc.bottom_radius = disc.top_radius
+	disc.height = 0.4
+	disc.radial_segments = 48
+	base.mesh = disc
+	base.material_override = _stone_material(7.0, Color(0.3, 0.29, 0.28))
+	base.position = Vector3(0.0, -0.23, 0.0)   # top at -0.03: below the circle, so nothing is coplanar with it
+	add_child(base)
+	# (1) floor: the Ancient Stone Circle, 0.16 m thick, top face just above y = 0 (fighters stand on the simulation's y = 0 plane)
+	var circle := _meshy_prop("stone_circle", Vector3((wall_radius + 0.3) * 2.0 / 0.95, 0.16 / 0.075, (wall_radius + 0.3) * 2.0 / 0.95))
+	circle.position = Vector3(0.0, 0.006 - 0.16, 0.0)
+	add_child(circle)
+	# (2) the four pillars on the colliders' positions: slim Moss Crowned Pillar on a stone plinth of the collider's size
+	var plinth_material := _stone_material(1.2, Color(0.36, 0.35, 0.34))
+	for pos in StoneArena.PILLAR_POSITIONS:
+		var pillar := _meshy_prop("pillar", Vector3.ONE * MESHY_PILLAR_SCALE)
+		pillar.position = pos
+		add_child(pillar)
+		var plinth := MeshInstance3D.new()
+		var cylinder := CylinderMesh.new()
+		cylinder.top_radius = MESHY_PLINTH_RADIUS - 0.04
+		cylinder.bottom_radius = MESHY_PLINTH_RADIUS
+		cylinder.height = 0.55
+		plinth.mesh = cylinder
+		var fade_plinth := plinth_material.duplicate() as StandardMaterial3D
+		fade_plinth.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		plinth.material_override = fade_plinth
+		plinth.position = pos + Vector3(0.0, 0.275, 0.0)
+		add_child(plinth)
+		_pillar_meshes.append(plinth)
+		_pillar_mats.append(fade_plinth)
+		# the pillar itself fades with its plinth when it stands between the camera and the fighter
+		for mesh_instance in pillar.find_children("*", "MeshInstance3D", true, false):
+			var source := (mesh_instance as MeshInstance3D).mesh.surface_get_material(0)
+			if source is BaseMaterial3D:
+				var faded := (source as BaseMaterial3D).duplicate() as BaseMaterial3D
+				faded.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				(mesh_instance as MeshInstance3D).material_override = faded
+				_pillar_meshes.append(mesh_instance)
+				_pillar_mats.append(faded as StandardMaterial3D if faded is StandardMaterial3D else fade_plinth)
+	# (3) archways in the wall ring: a curved niche panel, 3 m high, its back face on the wall
+	for a in MESHY_ARCH_ANGLES:
+		_meshy_wall_slot(_meshy_prop("archway", Vector3.ONE * 3.2), a, wall_radius, 0.0, 0.2)
+	# (4) torch sconces with a flame and a light each (four lights, as before)
+	for a in MESHY_SCONCE_ANGLES:
+		var sconce := _meshy_prop("torch_sconce", Vector3.ONE * 1.0)
+		_meshy_wall_slot(sconce, a, wall_radius, 1.5, 0.45)
+		var flame_at := sconce.position + Vector3(sin(deg_to_rad(a)), 0.0, cos(deg_to_rad(a))) * -0.15 + Vector3(0.0, 0.8, 0.0)
+		var flame := MeshInstance3D.new()
+		var drop := SphereMesh.new()
+		drop.radius = 0.1
+		drop.height = 0.26
+		flame.mesh = drop
+		var fire := StandardMaterial3D.new()
+		fire.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fire.albedo_color = Color(1.0, 0.62, 0.2)
+		flame.material_override = fire
+		flame.position = flame_at
+		add_child(flame)
+		_flames.append(flame)
+		var light := OmniLight3D.new()
+		light.light_color = Color(1.0, 0.66, 0.34)
+		light.light_energy = 1.9
+		light.omni_range = 9.0
+		light.position = flame_at + Vector3(0.0, 0.3, 0.0)
+		add_child(light)
+		_torches.append(light)
+	# (5) banners between the archways
+	for a in MESHY_BANNER_ANGLES:
+		_meshy_wall_slot(_meshy_prop("banner", Vector3.ONE * 2.6), a, wall_radius, 0.45, 0.08)
+	# (6) the Weathered Ascent: a wooden ladder leaning on the wall (dressing; the climb ladder of the pit is the shaft's own)
+	var ladder := _meshy_prop("ascent", Vector3.ONE * 2.2)
+	_meshy_wall_slot(ladder, MESHY_LADDER_ANGLE, wall_radius, 0.0, 0.12)
+	ladder.rotation.x = deg_to_rad(-6.0)
 	return true
 
 
