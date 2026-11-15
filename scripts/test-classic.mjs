@@ -68,6 +68,7 @@ try {
   writeFileSync(corpus, JSON.stringify(cases));
   run(['--script', 'res://tests/classic/differential_test.gd', '--', corpus]);
   run(['--script', 'res://tests/classic/views_test.gd']);
+  run(['--script', 'res://tests/classic/accessibility_test.gd']);
   run(['--quit-after', '3']);
   console.log('PASS: native Classic engine, authority, views, schemas and scene smoke');
 } finally { rmSync(temporary, { recursive: true, force: true }); }

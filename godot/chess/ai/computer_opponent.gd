@@ -9,7 +9,7 @@ extends Node
 ##
 ## Behaviour
 ## - Moves after a short, seeded "natural" delay that shortens with the animation-speed setting and waits for
-##   `animation_busy` (optional Callable returning true while the board animates).
+##   `animation_busy` in untimed games (optional Callable returning true while the board animates).
 ## - Clock: spends about 1/30 of the remaining time (+ half the increment), at most the level's time budget.
 ## - Promotion: the search picks it; knight under-promotion only if it clearly beats the queen.
 ## - Draw offers: accepts when it is clearly worse (<= -90 cp) or in a long, level position; declines otherwise.
@@ -149,8 +149,11 @@ func _consider() -> void:
 	_turn_started_ms = Time.get_ticks_msec()
 	var scale = BoardTheme.anim_scale()
 	_delay_ms = int(base_delay_ms * (0.2 if scale == 0.0 else (0.6 if scale < 1.0 else 1.0)) * rng.randf_range(0.75, 1.3))
+	var budget = _time_budget_ms()
+	if game.timed and game.started:
+		_delay_ms = mini(_delay_ms, budget)
 	_job = ChessAIJob.new()
-	_job.start(game.engine, ai, {"time_ms": _time_budget_ms()}, force_slice)
+	_job.start(game.engine, ai, {"time_ms": budget}, force_slice)
 	set_process(true)
 	thinking_changed.emit(true)
 
@@ -161,7 +164,7 @@ func _time_budget_ms() -> int:
 		var allowance = int(left / 30.0 + game.increment_ms * 0.5)
 		if left < 5000:
 			allowance = mini(allowance, 120)
-		budget = clampi(allowance, 40, budget)
+		budget = mini(budget, maxi(1, mini(maxi(20, allowance), int(left / 10))))
 	return budget
 
 func _process(_delta: float) -> void:
@@ -181,9 +184,14 @@ func _process(_delta: float) -> void:
 		_try_play()
 
 func _try_play() -> void:
+	# The clock can expire while the search or animation runs. Poll first so a
+	# ready result never keeps a flagged match alive behind presentation work.
+	game.poll_clock()
+	if _ready_move.is_empty():
+		return  # flag fall emits changed, which cancels this search synchronously
 	if Time.get_ticks_msec() - _turn_started_ms < _delay_ms:
 		return
-	if animation_busy.is_valid() and animation_busy.call():
+	if not game.timed and animation_busy.is_valid() and animation_busy.call():
 		return
 	var result = _ready_move
 	_ready_move = {}

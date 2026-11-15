@@ -31,6 +31,6 @@ try {
   const jobs = [];
   for (let shard = 0; shard < shards; shard++) jobs.push(run(`rules shard ${shard}/${shards}`, ['--script', 'res://tests/ai/ai_rules_test.gd', '--', `shard=${shard}`, `shards=${shards}`]));
   await Promise.all(jobs);
-  for (const name of ['ai_tactics_test', 'ai_strength_test', 'ai_battle_test', 'ai_combat_test', 'ai_ui_test']) await run(name, ['--script', `res://tests/ai/${name}.gd`]);
+  for (const name of ['opponent_clock_test', 'ai_tactics_test', 'ai_strength_test', 'ai_battle_test', 'ai_combat_test', 'ai_ui_test']) await run(name, ['--script', `res://tests/ai/${name}.gd`]);
   console.log('PASS: computer opponent (legality, determinism, tactics, budget, cancellation, strength, Battle, combat seat) and board settings');
 } finally { rmSync(temporary, { recursive: true, force: true }); }

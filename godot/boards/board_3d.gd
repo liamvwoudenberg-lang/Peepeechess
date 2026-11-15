@@ -3,6 +3,7 @@ extends SubViewportContainer
 const Rules = preload("res://chess/chess_engine.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
 const Models = preload("res://boards/piece_meshes.gd")
+const UiPrefs = preload("res://ui/theme/ui_prefs.gd")
 var game: ClassicMatch
 var interaction: BoardInteraction
 var viewport_3d: SubViewport
@@ -288,7 +289,7 @@ func update_marks() -> void:
 		BoardThemeView.destination_3d(self, m.to, not game.engine.board[m.to].is_empty() or m.flag == "ep")  # highlight style (board settings)
 	if game.engine.in_check():
 		var at = game.engine.board.find("K" if game.engine.turn == "w" else "k")
-		_mark(at, Color(1, 0.2, 0.2, 0.85), 0.48)
+		_mark(at, Color(UiPrefs.capture_highlight(Color(1, 0.2, 0.2)), 0.85), 0.48)
 
 func square_at(point: Vector2) -> int:
 	if camera == null or viewport_3d.size.x < 1:

@@ -1,5 +1,8 @@
 # Peepeechess
 
+Current implementation gaps and verified fixes are tracked in
+[the implementation TODO](IMPLEMENTATION_TODO.md).
+
 ## Native Godot application
 
 Open `godot/project.godot` with pinned Godot **4.6.3**. The native application starts with Classic/Battle selection, local play, account sign-in, ranked/unranked quick match, private invite codes and online games against friends (add by username, then challenge). Each player independently chooses 2D or 3D. Settings, profiles, mode-specific statistics, match history, leaderboards and result screens wrap the existing authoritative gameplay. The legacy web game below remains available.

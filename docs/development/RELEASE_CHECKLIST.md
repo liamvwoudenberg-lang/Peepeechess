@@ -64,10 +64,13 @@ certificates or decisions that cannot be produced from a development sandbox.
 
 - [ ] **B1. Play page polish.** It still uses the old toggle buttons ("Local ✓ / 2D board ✓"); the online queue needs a spinner; the
   reason a button is disabled is shown on only a few buttons (`DEVELOPMENT_STATUS.md`).
-- [ ] **B2. Colour-blind option** reaches the 2D board and themed 2D highlights but not the 3D / pit board highlights.
+- [x] **B2. Colour-blind option** reaches 2D and now the 3D/pit board (2026-11-15 implementation audit):
+  all three legal-move styles, capture/check colours, live changes and listener teardown; 30 new headless checks in
+  `godot/tests/classic/accessibility_test.gd`, run by `test:classic`. Real-device visibility still belongs to A2/B7.
 - [ ] **B3. Computer opponent in Battle.** No undo in Battle; the human must press *Start battle* when the computer captures; the AI never
   resigns in Battle; the AI searches with C0 (checkmate) semantics, so it treats a mate as a win and does not know a King may survive under
-  King's last stand; a reactive-style computer King never attacks, so low-level computer Kings are weak. Add `npm run test:ai` to the CI gate (it is not in `npm test`).
+  King's last stand; a reactive-style computer King never attacks, so low-level computer Kings are weak. `npm run test:ai` and
+  `test:royal` are now explicit CI steps (2026-11-15); they remain separate from `npm test`.
 - [ ] **B4. King's last stand online.** Rules, contract, local flow and presentation are done. The wire contract
   (`peepeechess-enet-royal-v1`) exists, but the codec, per-connection selection in `dedicated_server.gd`, an optional `ruleset` field in the
   backend allocation, lobby/client handling and a two-client loopback test are missing (`docs/architecture/BATTLE_ROYAL_V1.md`, "Remaining").

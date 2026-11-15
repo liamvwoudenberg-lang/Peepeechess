@@ -1,7 +1,25 @@
 # Peepeechess — development status
 
-Updated by Claude Code. Branch of record for combat/integration work: `ccr-a4637d6e-lypbb4` (PR #4). Codex branches
-(`codex/*`) are merged in through GitHub only; never edit another agent's worktree.
+## Implementation audit — 2026-11-15 (Codex)
+
+Current audit baseline is integrated `main` at `ab7b118`; `develop` still points
+to `b4c6dab`. Work is isolated on `codex/implementation-audit`. The newer visual
+work in draft PR #12 (`b4ec83c`) was inspected and preserved separately.
+[IMPLEMENTATION_TODO.md](IMPLEMENTATION_TODO.md) records 20 findings, completion
+criteria, ownership/deployment dependencies and current validation.
+
+Fixed 3D/pit board colour-blind highlights (all three styles, check markers,
+live preference/style changes and listener teardown) and computer clock handling
+(bounded cosmetic delay/search, no animation wait in timed play, flag-fall
+admission before presentation). Added 30 board accessibility checks and eight
+asynchronous computer-clock checks. CI now runs the existing AI and royal gates.
+Full verification results are recorded in the implementation TODO after the run.
+No combat mechanics/assets changed. Hardware, public online services and the
+remaining TODO items are not claimed complete.
+
+The dated updates below are historical records. The former combat/integration
+branch of record was `ccr-a4637d6e-lypbb4` (PR #4, since merged). Integrate Codex
+branches through GitHub; never edit another agent's worktree.
 
 ## Design decision of record (project owner, 2026-11-11)
 
