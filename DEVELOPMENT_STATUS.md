@@ -14,6 +14,13 @@ live preference/style changes and listener teardown) and computer clock handling
 admission before presentation). Added 30 board accessibility checks and eight
 asynchronous computer-clock checks. CI now runs the existing AI and royal gates.
 Full verification results are recorded in the implementation TODO after the run.
+The extended multiplayer run also exposed a validation bug: the hard-snap total
+includes catchups when prediction resumes after an action, but the test treated
+all of them as continuous prediction errors. The harness now measures those
+categories separately, retains the existing error limits and rejects genuine
+prediction failures in a Node regression. This does not close the separate
+lossy-input/timing investigations. The real account/application integration
+passed, including persistence, outages and friend challenges.
 No combat mechanics/assets changed. Hardware, public online services and the
 remaining TODO items are not claimed complete.
 

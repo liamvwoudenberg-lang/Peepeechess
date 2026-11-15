@@ -47,6 +47,15 @@ Combat-owned mechanics/assets require the handoff in `docs/development/OWNERSHIP
   admission scenario while retaining impaired gameplay tests. Investigate the
   timing-dependent correction bound in `online_prediction_test.gd` with tick-level
   evidence; do not just raise the tolerance. Repeat the full multiplayer gate.
+  **Partial fix in this audit:** the extended run reproduced
+  `invalid:b-n@60ms+2%: hard snaps 1 (stalled=false)`. Continuous error was only
+  0.834 m maximum / 0.021 m mean; a separate 2.517 m catchup on resuming prediction
+  was counted by the same hard-snap total. The harness now records resume hard
+  snaps separately and checks continuous prediction errors with the unchanged
+  limits. A Node regression rejects genuine snaps, excess error, rejected
+  snapshots and inconsistent counters. The focused real-socket invalid-input
+  scenario passed after the change (all admission counters exercised). The
+  lossy-probe and loopback timing investigations above remain open.
 - [ ] **I05 — Refresh the Battle chess AI's duel model.**
   `godot/chess/ai/battle_model.gd` consumes `balance_matrix_v1.json`, whose tuning
   stamp predates the shipped attacker advantage and pacing changes in
@@ -150,7 +159,8 @@ Local checks on this audit branch (Godot 4.6.3, Node 24.22.1, Linux):
 | `npm run test:contracts` | Passed: shared wire and royal fixtures and Node/Godot round trips |
 | `npm run test:royal` | Passed: rules, flow, session, 133 simulation checks and 899 playable-flow checks |
 | `npm run test:ai` | Passed: 42 self-play games, determinism, tactics, strength, combat/UI and eight new clock checks |
-| Account/application and full multiplayer | In progress; one passing run will not by itself close the documented timing-flake investigation |
+| `npm run test:application` | Passed: real Godot account UI/API, ranked/private/friend games, real combat, backend/dedicated-server restart and persistence |
+| Full multiplayer | First run passed authority/DTLS/prediction and five combat scenarios, then exposed the action-resume metric bug described in I04; corrected focused scenario passed; complete rerun pending |
 
 Current integrated main already has a successful
 [validation run on ab7b118](https://github.com/liamvwoudenberg-lang/Peepeechess/actions/runs/43612281443).

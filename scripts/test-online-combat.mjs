@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { startProxy, freeUdpPort } from './lib/latency-proxy.mjs';
+import { assertPredictionMetrics } from './lib/prediction-metrics.mjs';
 
 const godot = process.env.GODOT_BIN || 'godot';
 const profile = (process.argv.find(a => a.startsWith('--profile=')) || '--profile=quick').split('=')[1];
@@ -149,6 +150,7 @@ async function runFight(fight, index) {
   row.errP95 = stats.map(s => r(s.corrections.p95));
   row.errMax = stats.map(s => r(s.corrections.max));
   row.hardSnaps = stats.map(s => s.stats.hard_snaps);
+  row.resumeHardSnaps = stats.map(s => s.resumeHardSnaps);
   row.catchups = stats.map(s => `${s.catchups.n}/${r(s.catchups.max, 3)}m`);
   row.clientSent = stats.map(s => s.stats.sent);
   row.rejectedSnapshots = stats.map(s => s.stats.rejected);
@@ -167,19 +169,13 @@ async function runFight(fight, index) {
   row.events = [ew.size, eb.size, common];
   row.protocolCodes = reports.map(rep => rep.protocolCodes);
   // --- thresholds (loose; the numbers above are the evidence)
-  // Real-time melee (strafing, contact, 1:1 input assumption broken by tick-phase jitter and loss) is looser than the lockstep suites;
-  // the hard-snap threshold is 1.5 m, so 1.2 m worst correction still means "never teleported".
-  const limit = 1.2;
+  // Continuous prediction errors keep the existing bounds. Action-resume
+  // catchups (e.g. Bishop Blink) are measured separately, as in the client.
   // A seat the server stopped hearing from for >= 15 ticks (INPUT_NEUTRAL_AFTER_TICKS: link blackout, or this shared machine stalling a
   // process) is neutralised by the server while the client keeps predicting, so a large correction / hard snap is then CORRECT behaviour.
   const stalled = seats.some(s => s.max_gap_ticks >= 15);
   row.stalledSeat = stalled;
-  for (const s of stats) {
-    assert.ok(s.stats.hard_snaps <= (stalled ? 4 : 0), `${fight.id}: hard snaps ${s.stats.hard_snaps} (stalled=${stalled})`);
-    assert.equal(s.stats.rejected, 0, `${fight.id}: no snapshot rejected by the client`);
-    assert.ok(s.corrections.mean < (stalled ? 0.4 : 0.15), `${fight.id}: mean prediction error ${s.corrections.mean}`);
-    assert.ok(s.corrections.max < (stalled ? 7 : limit), `${fight.id}: worst correction ${s.corrections.max}`);
-  }
+  for (const s of stats) assertPredictionMetrics(s, stalled, fight.id);
   for (const [i, rep] of reports.entries()) {
     if (rep.pressVisualMs.length >= 3) assert.ok(pct(rep.pressVisualMs, 0.5) < 60, `${fight.id}: predicted press visible within ~3 frames (median ${pct(rep.pressVisualMs, 0.5)} ms)`);
   }
