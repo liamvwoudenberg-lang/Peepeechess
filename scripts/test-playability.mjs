@@ -24,6 +24,7 @@ try {
     ['--editor', '--import'],
     ['--script', 'res://tests/battle/mobile_controls_test.gd'],
     ['--script', 'res://tests/ai/computer_capture_test.gd'],
+    ['--script', 'res://tests/ui/music_loop_test.gd'],
     ['--', '--playability-smoke'],
   ]) {
     // The full app owns real-time loading/countdowns; keep its normal clock.
