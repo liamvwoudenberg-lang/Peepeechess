@@ -53,6 +53,9 @@ jobs:
       - run: npm run test:contracts
       - run: npm run test:classic
       - run: npm run test:battle
+      - name: Complete play session and Android verifier
+        timeout-minutes: 10
+        run: npm run test:playability
       - name: Computer opponent and board settings
         timeout-minutes: 15
         run: npm run test:ai

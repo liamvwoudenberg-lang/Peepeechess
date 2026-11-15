@@ -15,6 +15,32 @@ This is a bounded audit, not proof that every possible defect has been found.
 Unchecked items distinguish confirmed gaps from validation still required.
 Combat-owned mechanics/assets require the handoff in `docs/development/OWNERSHIP.md`.
 
+## Work order: playable and fun (2026-11-15)
+
+The first milestone is a complete session: open the game, choose an opponent,
+make moves, play a real capture duel, return to the correct board, finish, and
+start another game. The same APK must install and exercise those flows on
+Android. A successful export or a headless desktop run is not Android runtime
+evidence. Human combat feel still needs playtests; automated bots cannot certify
+that the game is fun.
+
+| Order | Priority | Outcome and acceptance | Findings |
+| --- | --- | --- | --- |
+| 1 | P0 — complete a session | Startup, menu, Classic/Battle, capture/result/return, rematch and exit work repeatedly without crashes. Human fighters must have usable controls. Review the newer arena/menu/animation branch as one candidate; keep a runnable baseline while its failing checks are repaired. Install the actual debug APK on an Android emulator/device and retain runtime logs, screenshots and a machine-readable result. Physical phone QA remains a separate gate. | I21, I13, I14, I16, I18 |
+| 2 | P0 — keep human matches alive | Reconnect safely through loss, preserve seats and input counters, settle each duel once, and show an honest failure if recovery is impossible. Local impairment tests and public-device crossplay are separate evidence. | I04, I15 |
+| 3 | P1 — smooth solo play | Computer captures proceed through a short readable preview into real combat without a manual Start battle click. Replacement/cancel/pause must never start a stale duel. Verify the full fight and board return. | I07 |
+| 4 | P1 — understandable, interesting decisions | Recalibrate the computer's capture model against the shipped balance; preserve the selected royal rules in search. Keep attack telegraphs, role silhouettes, camera clearance and result feedback readable while verifying the visual candidate in order 1. | I05, I06 |
+| 5 | P2 — finish online mode parity | Bring online play into the pit presentation, then complete the opt-in royal allocation/wire/client path without changing legacy rules. | I09, I08 |
+| 6 | P2 — comfort and accessibility | Extend reduced motion through gameplay transitions and verify no blocked input or missing settlement. | I10 |
+| 7 | P2 — prepare public distribution | Finish account recovery/deletion, release identity/signing and store requirements before public/store release. These do not block an explicitly labelled offline test build. | I11, I17 |
+| 8 | P3 — expand only after the core loop | Additional friend features, legacy browser/device verification and deciding the fate of unused prototypes. | I12, I19, I20 |
+
+Active work in this pass: smooth computer captures and a repeatable Android
+runtime verification path, with real battle/return checks. The network failure
+remains a P0 investigation; one green CI run does not close it. Existing completed
+items below remain completed. The detailed IDs are stable references, not a
+second priority ranking.
+
 ## Fixes started in this audit
 
 - [x] **I01 — Colour-blind settings reach the actual 3D/pit board.**
@@ -37,7 +63,7 @@ Combat-owned mechanics/assets require the handoff in `docs/development/OWNERSHIP
   from `npm test`. Repository branch protection is an administrator setting,
   not something a workflow file can silently configure.
 
-## Confirmed implementation gaps, in priority order
+## Detailed implementation gaps (follow the work order above)
 
 - [ ] **I04 — Stabilize online combat admission/prediction tests.**
   `godot/tests/network/combat_bot.gd:_invalid` sends rejection probes on the lossy
@@ -81,11 +107,23 @@ Combat-owned mechanics/assets require the handoff in `docs/development/OWNERSHIP
   King's last stand, but search does not value surviving the gauntlet. Preserve
   the selected ruleset and model its terminal outcomes; test a royal survival
   position beside an unchanged C0 mate.
-- [ ] **I07 — Make computer-initiated captures flow without manual assistance.**
-  `main_opponent.gd` supplies the AI combat seat but a normal capture still waits
-  for the human's Start battle confirmation. Decide a clear preview/countdown
-  interaction, automatically advance computer captures through the existing
-  bridge, and test cancellation/new game/pause without starting a stale duel.
+- [x] **I07 — Computer-initiated captures flow without manual assistance.**
+  A two-second matchup preview now enters real combat through the existing bridge.
+  The player can choose Fight now; an opponent's move is not offered as a
+  cancellable player move. Human-initiated/local two-player previews remain
+  manual. Regression checks cover pause, cancellation, new game and unavailable
+  combat. The full session smoke passed real combat, touch attack, exactly-once
+  settlement, pit return, continued chess, result and rematch (33 local checks).
+- [ ] **I21 — Android human fighters need actual touch controls and runtime evidence.**
+  Found in this pass: `BattleCombatAdapter.start` always assigned keyboard/pad
+  schemes, so a mobile human with no controller never received a TouchControls
+  node. The adapter now selects touch on mobile/touchscreens while retaining
+  assigned gamepads. Two local humans require two assigned controllers; Play
+  explains the unsupported shared-touch case before starting. Eleven routing
+  checks and the full local touch/combat loop passed. The Android runtime CI job
+  now installs the actual debug APK, sends real OS taps and retains screenshots,
+  logs, hash and JSON result; its installed-APK result must still be verified.
+  See [the Android runtime guide](docs/application/ANDROID_RUNTIME.md).
 - [ ] **I08 — Wire King's last stand into online allocations and clients.**
   Local rules and additive royal schemas exist, but allocation options, wire
   selection, lobby/client flow and two-client tests are incomplete. See

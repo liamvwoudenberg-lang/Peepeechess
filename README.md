@@ -2,6 +2,8 @@
 
 Current implementation gaps and verified fixes are tracked in
 [the implementation TODO](IMPLEMENTATION_TODO.md).
+Installed-APK verification is documented in
+[the Android runtime guide](docs/application/ANDROID_RUNTIME.md).
 
 ## Native Godot application
 

@@ -6,6 +6,9 @@ on:
     paths:
       - 'godot/**'
       - 'scripts/*native*.sh'
+      - 'scripts/verify-android.py'
+      - 'scripts/test-playability.mjs'
+      - 'tests/android_verifier_test.py'
       - 'tools/package/**'
       - '.godot-version'
       - '.github/workflows/native-exports.yml'
@@ -73,6 +76,38 @@ jobs:
           name: native-export-logs
           path: artifacts/native/*.log
           retention-days: 14
+
+  android-runtime:
+    needs: export
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Peepeechess-native-test-builds
+          path: artifacts/native
+      - name: Verify the Android smoke checker
+        run: python3 -m unittest discover -s tests -p android_verifier_test.py
+      - name: Enable KVM for the current runner
+        run: sudo chown "$(id -un)" /dev/kvm
+      - name: Install and play the actual APK on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096
+          script: python3 scripts/verify-android.py --apk artifacts/native/Peepeechess-android-debug.apk --output artifacts/android-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Peepeechess-android-runtime-evidence
+          path: artifacts/android-smoke/
+          if-no-files-found: warn
+          retention-days: 30
 
   # Windows x86_64 + Linux x86_64 playable packages (tools/package/build_pc.sh): the repository's own Windows Desktop
   # preset, reproducible zip/tar.gz with SHA256SUMS, plus a Linux smoke test under Xvfb (menu starts; local Classic and

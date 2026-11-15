@@ -1,5 +1,26 @@
 # Peepeechess — development status
 
+## Playability-first milestone — 2026-11-15 (Codex, in progress)
+
+The [ordered TODO](IMPLEMENTATION_TODO.md) now puts a complete stable session and
+installed-APK evidence ahead of extra modes/social features. This pass starts
+from audit commit `45ae066` and preserves the separate visual draft PR #12.
+
+Computer-initiated captures now show a short preview and enter real combat
+automatically. Mobile human seats now use touch controls when no gamepad is
+assigned; unsupported two-human shared-touch setups are explained before Play.
+The local full-session smoke passed 33 checks across real menu/input, Classic,
+3D board, capture/combat/touch attack, validated settlement, pit return,
+continued chess, result and rematch. Routing/interruption and checker regressions
+also passed. Full regression and installed-APK CI are in progress; neither a
+desktop smoke nor an export is being reported as a working Android runtime.
+
+The new `android-runtime` job uses the normal exported debug APK on Android 15,
+real OS taps, per-stage screenshots, logs and the APK checksum. Physical-phone
+verification remains open. See [the Android guide](docs/application/ANDROID_RUNTIME.md).
+No combat-owned mechanics/assets changed; the newer arena/animation branch and
+the packet-loss recovery investigation remain separate open work.
+
 ## Implementation audit — 2026-11-15 (Codex)
 
 Current audit baseline is integrated `main` at `ab7b118`; `develop` still points

@@ -26,7 +26,8 @@
     "test:backend": "node --import tsx --test tests/native-backend*.test.ts",
     "test:application": "node scripts/test-application.mjs",
     "test:ui": "node scripts/test-ui.mjs",
-    "test:ai": "node scripts/test-ai.mjs"
+    "test:ai": "node scripts/test-ai.mjs",
+    "test:playability": "node scripts/test-playability.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.10",
