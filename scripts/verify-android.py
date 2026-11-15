@@ -47,10 +47,11 @@ def validate_result(result):
 def fullscreen_hint_tap(xml):
     """Only dismiss Android's known first-launch immersive-mode tutorial."""
     nodes = list(ET.fromstring(xml).iter("node"))
-    if not any(node.get("package") == "com.android.systemui" and node.get("text") == "Viewing full screen" for node in nodes):
+    system_packages = {"android", "com.android.systemui"}
+    if not any(node.get("package") in system_packages and node.get("text") == "Viewing full screen" for node in nodes):
         return None
     for node in nodes:
-        if node.get("package") == "com.android.systemui" and node.get("text") == "Got it" and node.get("clickable") == "true":
+        if node.get("package") in system_packages and node.get("text") == "Got it" and node.get("clickable") == "true":
             bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.get("bounds", ""))
             if bounds:
                 left, top, right, bottom = map(int, bounds.groups())
