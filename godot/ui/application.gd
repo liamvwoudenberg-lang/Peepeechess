@@ -399,7 +399,9 @@ func start_local() -> void:
 		_message(CombatAdapter.SHARED_TOUCH_NOTICE)
 		return
 	Settings.launch = launch_data()
-	get_tree().change_scene_to_file("res://app/main.tscn")
+	# A real Button press is still being dispatched by the viewport here. Keep
+	# its controls in the tree until that input traversal has finished.
+	get_tree().change_scene_to_file.call_deferred("res://app/main.tscn")
 
 func _account_page() -> void:
 	_heading("One account. Every board.", "Use the same sign-in on Windows and Android. Your online profile, match history and ratings stay together.")

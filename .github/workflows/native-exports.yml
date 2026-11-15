@@ -99,7 +99,9 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096
+          # The deprecated swiftshader_indirect backend miscompiles Godot GLES
+          # shaders (godotengine/godot#109550). ANGLE translates GLES to Vulkan.
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -memory 4096 -no-snapshot-save -no-metrics
           script: python3 scripts/verify-android.py --apk artifacts/native/Peepeechess-android-debug.apk --output artifacts/android-smoke
       - uses: actions/upload-artifact@v4
         if: always()
