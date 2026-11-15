@@ -21,6 +21,22 @@ categories separately, retains the existing error limits and rejects genuine
 prediction failures in a Node regression. This does not close the separate
 lossy-input/timing investigations. The real account/application integration
 passed, including persistence, outages and friend challenges.
+Final verification: lint, `npm test` (88 Node cases passed, one local PostgreSQL
+case skipped; all native combat/UI suites passed), build, contracts, Classic,
+Battle, royal, AI and application passed. The standalone online-combat quick
+profile passed all six fights. The complete `test:multiplayer` gate remains red:
+the final run lost White's connection recovery during duel two under 10% loss
+and ended at ply 5 with disconnect timeout. This stays open as I04; no recovery
+threshold was relaxed. The draft PR is not a claim of release readiness.
+
+[Draft PR #13](https://github.com/liamvwoudenberg-lang/Peepeechess/pull/13)
+publishes the audit and fixes. The
+[Windows prerelease](https://github.com/liamvwoudenberg-lang/Peepeechess/releases/tag/audit-2026-11-15-a8c6ea4)
+contains the gameplay fixes from `a8c6ea4` (subsequent changes are validation/docs).
+Linux package, static PE/PCK and headless Windows-runner smoke passed in
+[the release run](https://github.com/liamvwoudenberg-lang/Peepeechess/actions/runs/43658895149).
+The executable was not committed and was never tested on a physical Windows PC.
+See `downloads/windows/LATEST.md` for exact hashes/downloads.
 No combat mechanics/assets changed. Hardware, public online services and the
 remaining TODO items are not claimed complete.
 

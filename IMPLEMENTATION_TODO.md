@@ -56,6 +56,17 @@ Combat-owned mechanics/assets require the handoff in `docs/development/OWNERSHIP
   snapshots and inconsistent counters. The focused real-socket invalid-input
   scenario passed after the change (all admission counters exercised). The
   lossy-probe and loopback timing investigations above remain open.
+  The complete standalone quick profile subsequently passed all six fights
+  (normal combat at 0/60/120 ms RTT, reconnect, parry and invalid inputs).
+  **Fresh additional failure:** a complete rerun passed the 40-check prediction
+  test and Classic/clock socket scenarios, then White lost recovery during duel
+  two under 40 ms one-way delay / 10% loss. The client reported
+  `UNAUTHENTICATED: Connection recovery timed out`; the authority ended at ply 5
+  with `Disconnect timeout` instead of completing all four duels. Logs were
+  retained at `/tmp/peepeechess-enet-Vqe5Na` in this workspace. This is separate
+  from the corrected measurement bug; no disconnect/error threshold was relaxed
+  and the full multiplayer gate is **not green**. Reproduce transport recovery
+  with per-connection DTLS/ENet traces before declaring the online path stable.
 - [ ] **I05 — Refresh the Battle chess AI's duel model.**
   `godot/chess/ai/battle_model.gd` consumes `balance_matrix_v1.json`, whose tuning
   stamp predates the shipped attacker advantage and pacing changes in
@@ -153,18 +164,35 @@ Local checks on this audit branch (Godot 4.6.3, Node 24.22.1, Linux):
 | Check | Result |
 | --- | --- |
 | `npm run lint`, `npm run build` | Passed; Vite retains its existing large-chunk advisory |
-| `npm test` | Passed: 87 Node tests, one PostgreSQL test skipped without a database; native combat 10,583 checks / 482 tests; all UI suites passed |
+| `npm test` | Passed again after the metrics correction: 88 Node tests, one PostgreSQL test skipped without a database; native combat 10,583 checks / 482 tests; all UI suites passed |
 | `npm run test:classic` | Passed: engine/match/views, 72 reference positions / 1,962 legal moves, 30 new accessibility checks and scene smoke |
 | `npm run test:battle` | Passed: frozen transactions, real combat and 106 differential positions / 747 outcomes |
 | `npm run test:contracts` | Passed: shared wire and royal fixtures and Node/Godot round trips |
 | `npm run test:royal` | Passed: rules, flow, session, 133 simulation checks and 899 playable-flow checks |
 | `npm run test:ai` | Passed: 42 self-play games, determinism, tactics, strength, combat/UI and eight new clock checks |
 | `npm run test:application` | Passed: real Godot account UI/API, ranked/private/friend games, real combat, backend/dedicated-server restart and persistence |
-| Full multiplayer | First run passed authority/DTLS/prediction and five combat scenarios, then exposed the action-resume metric bug described in I04; corrected focused scenario passed; complete rerun pending |
+| `npm run test:multiplayer` | Not green: first run exposed the corrected action-resume metric bug; full rerun passed authority/roster/UI/prediction and Classic/clock sockets but failed impaired Battle reconnection at ply 5. See I04 |
+| `node scripts/test-online-combat.mjs` | Passed all six standalone quick-profile fights after the correction: normal 0/60/120 ms RTT, reconnect, parry and invalid inputs. Focused invalid-input scenario also passed |
 
 Current integrated main already has a successful
 [validation run on ab7b118](https://github.com/liamvwoudenberg-lang/Peepeechess/actions/runs/43612281443).
 Older release-checklist failures are historical evidence of flakes, not a claim
-that the latest main CI is red. New branch CI/build links will be recorded after
-publication. Production deployment, physical devices and human playtests are not
-available in this task.
+that the latest main CI is red.
+
+Published [draft PR #13](https://github.com/liamvwoudenberg-lang/Peepeechess/pull/13)
+contains game changes in `a8c6ea4` and the metrics correction in `ca142c1`.
+[Integration CI for ca142c1](https://github.com/liamvwoudenberg-lang/Peepeechess/actions/runs/43659261911)
+was started; local results above are not a claim that this remote run has finished.
+The earlier game-commit CI's PostgreSQL job passed against its real database.
+
+[Windows prerelease](https://github.com/liamvwoudenberg-lang/Peepeechess/releases/tag/audit-2026-11-15-a8c6ea4)
+for the gameplay commit `a8c6ea4` was published successfully by
+[the release workflow](https://github.com/liamvwoudenberg-lang/Peepeechess/actions/runs/43658895149).
+Linux package smoke, static PE/PCK checks and headless Windows runner startup
+passed; no physical Windows PC was tested and the executable is unsigned.
+Exact downloads and checksums are in [downloads/windows/LATEST.md](downloads/windows/LATEST.md).
+No executable was committed. Later changes affect validation/documentation only.
+The first publishing attempt used a shortened commit ID that checkout interpreted
+as a branch; retrying with the full SHA succeeded.
+
+Production deployment, physical devices and human playtests remain open.
