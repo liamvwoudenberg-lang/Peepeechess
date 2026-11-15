@@ -26,6 +26,13 @@ class AndroidVerifierTests(unittest.TestCase):
         record = {"runId": "new", "event": "result"}
         self.assertEqual(verifier.parse_record("I/godot: " + verifier.MARKER + json.dumps(record), "new"), record)
 
+    def test_only_known_system_fullscreen_tutorial_is_dismissed(self):
+        xml = '<hierarchy><node package="com.android.systemui" text="Viewing full screen"/><node package="com.android.systemui" text="Got it" clickable="true" bounds="[100,200][300,260]"/></hierarchy>'
+        self.assertEqual(verifier.fullscreen_hint_tap(xml), (200, 230))
+        self.assertIsNone(verifier.fullscreen_hint_tap(xml.replace('Viewing full screen', 'Grant a permission')))
+        self.assertIsNone(verifier.fullscreen_hint_tap(xml.replace('com.android.systemui', 'another.app')))
+        self.assertIsNone(verifier.fullscreen_hint_tap(xml.replace('[100,200][300,260]', 'invalid')))
+
     def png(self, varied):
         def chunk(kind, data):
             return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))

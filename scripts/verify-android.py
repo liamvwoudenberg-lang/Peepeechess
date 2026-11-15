@@ -20,6 +20,7 @@ import time
 import uuid
 import zipfile
 import zlib
+import xml.etree.ElementTree as ET
 
 PACKAGE = "com.peepeechess.game"
 MARKER = "PEEPEECHESS_SMOKE "
@@ -41,6 +42,21 @@ def validate_result(result):
         raise ValueError("A rendered Android runtime result is required, not an export or desktop result.")
     if not isinstance(result.get("checks"), int) or result["checks"] < 20 or not STAGES.issubset(set(result.get("stages", []))):
         raise ValueError("The complete session was not verified.")
+
+
+def fullscreen_hint_tap(xml):
+    """Only dismiss Android's known first-launch immersive-mode tutorial."""
+    nodes = list(ET.fromstring(xml).iter("node"))
+    if not any(node.get("package") == "com.android.systemui" and node.get("text") == "Viewing full screen" for node in nodes):
+        return None
+    for node in nodes:
+        if node.get("package") == "com.android.systemui" and node.get("text") == "Got it" and node.get("clickable") == "true":
+            bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.get("bounds", ""))
+            if bounds:
+                left, top, right, bottom = map(int, bounds.groups())
+                if left < right <= 20000 and top < bottom <= 20000:
+                    return ((left + right) // 2, (top + bottom) // 2)
+    return None
 
 
 def inspect_png(data):
@@ -202,6 +218,16 @@ def verify(args):
                     name = record["name"]
                     if name not in STAGES:
                         raise ValueError("Unexpected smoke stage.")
+                    if name == "opening":
+                        # A fresh Android install shows this system tutorial
+                        # above the game and consumes the first app tap.
+                        hierarchy_path = "/data/local/tmp/peepeechess-smoke-window.xml"
+                        adb.run("shell", "uiautomator", "dump", hierarchy_path, timeout=20)
+                        point = fullscreen_hint_tap(adb.run("exec-out", "cat", hierarchy_path))
+                        if point:
+                            adb.run("shell", "input", "tap", str(point[0]), str(point[1]))
+                            summary["systemPromptsDismissed"] = ["fullscreen-hint"]
+                            time.sleep(0.3)
                     data = adb.run("exec-out", "screencap", "-p", binary=True)
                     image_info = inspect_png(data)
                     path = output / (name + ".png")
