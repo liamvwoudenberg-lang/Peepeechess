@@ -85,7 +85,17 @@ func start_match(shell, mode: String, computer: bool):
 	shell.opponent = {"kind": "computer" if computer else "local", "level": 6, "color": "w"}
 	Settings.preferred_3d = mode == "battle"
 	var old_id = shell.get_instance_id()
-	shell.start_local()
+	shell.navigate("play")
+	await settle(6)
+	var start = null
+	for button in shell.find_children("*", "Button", true, false):
+		if button.text.begins_with("Play the computer · ") or button.text.begins_with("Start local "):
+			start = button
+	if not check(start != null and not start.disabled, mode + " start button is available"):
+		return null
+	shell.page_scroll.ensure_control_visible(start)
+	await settle(6)
+	await tap_button(start, "start-" + mode)
 	if not await until(func(): return get_tree().current_scene != null and get_tree().current_scene.get_instance_id() != old_id, mode + " scene opens"):
 		return null
 	await settle(8)

@@ -227,6 +227,17 @@ def verify(args):
         summary["error"] = str(error)
         print("FAIL Android verification: " + str(error), flush=True)
     finally:
+        # Keep the rest of a multiline shader/crash diagnostic, not just the
+        # first matching error line. Do not clear the device's shared log.
+        if not summary["passed"] and summary.get("pid"):
+            try:
+                time.sleep(1)
+                diagnostic = adb.run("logcat", "-d", "--pid=" + summary["pid"], "-v", "raw", "-T", since)
+                (output / "failure-logcat.txt").write_text(diagnostic, encoding="utf-8")
+                (output / "failure-screen.png").write_bytes(adb.run("exec-out", "screencap", "-p", binary=True))
+                print(diagnostic[-20000:], flush=True)
+            except Exception as diagnostic_error:
+                summary["diagnosticError"] = str(diagnostic_error)
         if logcat is not None:
             logcat.terminate()
             try:
