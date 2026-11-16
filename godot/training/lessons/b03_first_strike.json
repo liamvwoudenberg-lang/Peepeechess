@@ -1,0 +1,33 @@
+{
+ "id": "b03_first_strike",
+ "category": "beginner",
+ "order": 3,
+ "title": "Basic attacks",
+ "summary": "Land three clean light attacks on the training dummy.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "hits",
+   "type": "hit_count",
+   "text": "Hit the dummy 3 times",
+   "count": 3
+  }
+ ],
+ "fail": [],
+ "rating": {
+  "silver": {
+   "max_seconds": 20
+  },
+  "gold": {
+   "max_seconds": 12
+  }
+ },
+ "hints": [
+  "Stand inside the sword's reach and press the light attack."
+ ]
+}

@@ -15,6 +15,7 @@ const Icons = preload("res://ui/theme/ui_icons.gd")
 const SettingsPage = preload("res://ui/settings_page.gd")
 const FriendsPage = preload("res://ui/friends_page.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
+const TrainingPageScript = preload("res://ui/training_page.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
 const INK = Tokens.BG
 const PAPER = Tokens.TEXT
@@ -71,6 +72,11 @@ var _friend_alerts: Dictionary = {}  # requests/challenges already announced wit
 func _ready() -> void:
 	Settings.load_preferences()
 	Settings.ensure_platform(get_tree())
+	var start_page := ""
+	if Settings.launch.get("menu", "") == "training":   # back from a training fight (training/training_scene.gd)
+		Settings.take_launch()
+		start_page = "training"
+		Settings.intro_seen = true
 	if Settings.launch.get("menu", "") == "online":
 		var context = Settings.take_launch()
 		online = true
@@ -80,7 +86,7 @@ func _ready() -> void:
 	add_child(api)
 	_build_theme()
 	_build_frame()
-	navigate("play" if online else "home")
+	navigate("training" if start_page == "training" else ("play" if online else "home"))
 	PadUi.install(self, {"prefer": "content", "back": Callable(self, "_pad_back")})  # controller / keyboard focus (claude/pads-input)
 	if is_instance_valid(intro):
 		move_child(intro, -1)   # the opening screen sees input before the pad focus helper does
@@ -163,7 +169,7 @@ func _build_frame() -> void:
 	account_badge = Kit.button(brand_row, "Sign in", func(): navigate("account"), "", "user")
 	_topbar_badge = account_badge
 	var nav = _flow(_topbar)
-	for item in [["play", "Play", "crown"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
+	for item in [["play", "Play", "crown"], ["training", "Training", "sword"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
 		var target: String = item[0]
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
 	page_scroll = ScrollContainer.new()
@@ -194,7 +200,7 @@ func _pad_back() -> void:
 		navigate("home")
 
 func navigate(target: String) -> void:
-	page = target if target in ["home", "play", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
+	page = target if target in ["home", "play", "training", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
 	if is_instance_valid(intro):
 		intro.cancel()   # any explicit navigation ends a running opening screen (the player has seen enough)
 	intro = null
@@ -225,6 +231,7 @@ func navigate(target: String) -> void:
 		"home": _home_page()
 		"play": _play_page()
 		"friends": FriendsPage.build(self)
+		"training": TrainingPageScript.build(self)
 		"account": _account_page()
 		"settings": _settings_page()
 		"profile": _profile_page()

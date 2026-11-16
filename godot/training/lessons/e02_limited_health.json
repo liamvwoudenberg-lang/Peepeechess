@@ -1,0 +1,34 @@
+{
+ "id": "e02_limited_health",
+ "category": "expert",
+ "order": 2,
+ "title": "Limited health",
+ "summary": "Win while starting with only half your health.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "normal",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win with half health"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "constraints": {
+  "player_hp_fraction": 0.5
+ },
+ "requires": [
+  "a06_cancel"
+ ]
+}

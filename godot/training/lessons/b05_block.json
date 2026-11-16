@@ -1,0 +1,31 @@
+{
+ "id": "b05_block",
+ "category": "beginner",
+ "order": 5,
+ "title": "Blocking",
+ "summary": "Hold block while the opponent attacks and absorb 3 blows.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "attack_only",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "blocks",
+   "type": "block_n",
+   "text": "Block 3 attacks",
+   "count": 3
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [
+  "Hold the block button facing the attacker. Blocking costs stamina."
+ ]
+}

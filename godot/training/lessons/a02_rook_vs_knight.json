@@ -1,0 +1,43 @@
+{
+ "id": "a02_rook_vs_knight",
+ "category": "advanced",
+ "order": 2,
+ "title": "Rook vs Knight: defensive timing",
+ "summary": "Parry or block the fast Knight and punish its recovery.",
+ "player_role": "r",
+ "opponent_role": "n",
+ "behaviour": "normal",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "parry",
+   "type": "parry_n",
+   "text": "Parry 2 attacks",
+   "count": 2
+  },
+  {
+   "id": "punish",
+   "type": "punish",
+   "text": "Punish 2 recoveries",
+   "count": 2
+  },
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "i04_block_punish"
+ ]
+}

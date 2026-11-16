@@ -1,0 +1,32 @@
+{
+ "id": "i06_moving_opponent",
+ "category": "intermediate",
+ "order": 6,
+ "title": "Moving opponents",
+ "summary": "Land 4 hits on an opponent who fights back.",
+ "player_role": "n",
+ "opponent_role": "b",
+ "behaviour": "normal",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "hits",
+   "type": "hit_count",
+   "text": "Land 4 hits",
+   "count": 4
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 80
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "i02_dodge_counter"
+ ]
+}
