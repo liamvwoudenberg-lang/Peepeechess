@@ -1,6 +1,6 @@
 # Combat Training: framework, lessons and AI difficulty
 
-Logic only (no UI yet). Everything runs on the SAME combat engine as a Battle Chess duel (`CombatSimulation` / `CombatArena`): same
+Everything runs on the SAME combat engine as a Battle Chess duel (`CombatSimulation` / `CombatArena`): same
 frame data, stamina, parry window, dodge i-frames, hit stun and balance data. Nothing here changes a rule.
 
 ## API (all in `godot/training/` unless noted)
@@ -96,3 +96,15 @@ Adaptive mode: an exponential moving average of per-fight performance (win 0.5 +
 ## Tests
 
 `godot --headless --fixed-fps 60 --path godot --script res://tests/run_combat_tests.gd -- training ai_difficulty`
+
+## UI (godot/ui/training_page.gd, godot/training/training_scene.gd, training_view.gd, duel_ai.gd)
+
+- **Training** is on the title menu and in the top navigation. The page lists the four categories with medals, saved progress and locked lessons,
+  a "Continue" shortcut, **Free Practice** (both roles, opponent behaviour, AI level; nothing scored, restart on end) and the **Battle Chess AI** choice.
+- A lesson runs full screen in `training_scene.tscn`: the real `CombatArena` (the opponent seat is `"driven"`, played by `TrainingOpponent`), an
+  `ObjectiveTracker` watching real combat events, a dark-plaque HUD (objectives with progress, combo counter, feedback toasts, hints), a pause menu
+  (Esc / Circle) and a result card (Next lesson / Try again / Back). Results are saved in `user://training_progress.json`.
+- **Duel AI** (`DuelAi`): Battle Chess setup (Computer options) and the Training page offer Match chess level / Easy / Normal / Hard / Expert / Adaptive.
+  The choice becomes `seat.level` of the computer's duel seat (`CombatArena` builds it with `AIDifficulty.make_ai`); Adaptive records every duel
+  against the computer (`BattleCombatAdapter._record_adaptive`) and saves the level it has reached. Online duels are unaffected.
+- Tests: `training_ui` suite (28 checks): persistence, adaptive up/down, arena seat level, the fight view, saving, the page, menu entries.

@@ -100,6 +100,12 @@ static func build_computer_options(parent: Node, state: Dictionary, on_change: C
 		_caption(box, "Level %d · %s" % [state.level, ChessAI.level_name(state.level)]).autowrap_mode = TextServer.AUTOWRAP_OFF
 	else:
 		_caption(box, "Level %d · %s — %s" % [state.level, ChessAI.level_name(state.level), describe_level(state.level)])
+	_caption(box, "DUEL OPPONENT (Battle Chess)", 13, Color("e5c586"))
+	var duel = _flow(box, 3 if compact else 0)
+	for choice in DuelAi.CHOICES:
+		var picked: String = choice
+		_toggle(duel, DuelAi.LABELS[choice], DuelAi.choice() == choice, "Duel_" + choice, func(): DuelAi.set_choice(picked); on_change.call())
+	_caption(box, DuelAi.describe(DuelAi.choice()))
 	_caption(box, "YOU PLAY", 13, Color("e5c586"))
 	var colors = _flow(box, 3 if compact else 0)
 	for entry in COLORS:

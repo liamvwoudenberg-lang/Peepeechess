@@ -105,6 +105,9 @@ func _sync_combat_seat() -> void:
 	if active and game is BattleChessMatch:
 		var profile = ChessAI.combat_profile(level)
 		adapter.computer_seat = {"color": ai_color, "seat": {"type": "ai", "skill": profile.skill, "style": profile.style, "attacker_style": profile.attack_style}}
+		var duel_level := DuelAi.seat_level()   # Battle duel AI setting (training/duel_ai.gd): "" keeps the chess level's profile
+		if duel_level != "":
+			adapter.computer_seat.seat["level"] = duel_level
 	else:
 		adapter.computer_seat = {}
 

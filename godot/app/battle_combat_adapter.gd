@@ -155,7 +155,18 @@ func _snapshot(value: Variant, generation: int) -> void:
 
 func _result(value: Variant, generation: int) -> void:
 	if generation == _generation and value is Dictionary:
+		_record_adaptive(value)
 		result_received.emit(value.duplicate(true))
+
+## Adaptive duel AI (training/duel_ai.gd): tells it how the human did against the computer in this duel.
+func _record_adaptive(result: Dictionary) -> void:
+	if computer_seat.is_empty() or _request.is_empty() or not result.has("winnerPlayerId"):
+		return
+	var human = _request.defender if _request.attacker.color == computer_seat.color else _request.attacker
+	var hp_left = float(result.get("defenderHp", 0)) if human.playerId == _request.defender.playerId else float(result.get("attackerHp", 0))
+	var fighter = arena.sim.fighter_by_id(human.playerId) if is_instance_valid(arena) and arena.get("sim") != null else null
+	var maximum = float(fighter.health.maximum) if fighter != null else maxf(hp_left, 1.0)
+	DuelAi.record_duel(result.winnerPlayerId == human.playerId, 1.0 - hp_left / maxf(maximum, 1.0))
 
 func stop() -> void:
 	InputAssignment.shared().unlock()

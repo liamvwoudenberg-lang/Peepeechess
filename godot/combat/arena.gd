@@ -369,9 +369,13 @@ func _build_presentation(request: Dictionary) -> void:
 			if source.mouse_look:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 				_mouse_captured = true
-		elif mode == Mode.AUTHORITY:
+		elif mode == Mode.AUTHORITY and seat.get("type", "ai") != "driven":   # "driven": an outside driver (Training) submits this seat's inputs
 			var opp := sim.opponent_of(f)
-			_ais.append(CombatAI.new(builder, f.stats, opp.stats, int(request["seed"]) + (7 if f.color == "w" else 13), float(seat.get("skill", 0.6)), String(seat.get("style", "balanced"))))
+			var ai_seed := int(request["seed"]) + (7 if f.color == "w" else 13)
+			if seat.has("level") and String(seat["level"]) in AIDifficulty.LEVELS:   # an AI difficulty preset (Easy..Expert), see AIDifficulty
+				_ais.append(AIDifficulty.make_ai(String(seat["level"]), builder, f.stats, opp.stats, ai_seed))
+			else:
+				_ais.append(CombatAI.new(builder, f.stats, opp.stats, ai_seed, float(seat.get("skill", 0.6)), String(seat.get("style", "balanced"))))
 
 
 signal rematch_requested

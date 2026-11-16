@@ -15,7 +15,8 @@ const RATINGS := ["", "bronze", "silver", "gold"]
 var path: String
 var lessons: Dictionary = {}    # id -> {completed, best_rating, best_seconds, attempts}
 var adaptive: bool = true
-var fixed_level: String = "normal"
+var fixed_level: String = "normal"   # the fixed duel level, or the level adaptive difficulty has reached
+var duel_ai: String = "auto"         # Battle Chess duel opponent: auto (follows the chess level) | easy..expert | adaptive
 var last_error: String = ""
 
 
@@ -29,6 +30,7 @@ func load_file() -> void:
 	lessons.clear()
 	adaptive = true
 	fixed_level = "normal"
+	duel_ai = "auto"
 	last_error = ""
 	if not FileAccess.file_exists(path):
 		return
@@ -45,6 +47,8 @@ func load_file() -> void:
 		adaptive = bool(settings.get("adaptive", true))
 		var level := String(settings.get("fixed_level", "normal"))
 		fixed_level = level if level in AIDifficulty.LEVELS else "normal"
+		var duel := String(settings.get("duel_ai", "auto"))
+		duel_ai = duel if duel == "auto" or duel == "adaptive" or duel in AIDifficulty.LEVELS else "auto"
 	var stored = parsed.get("lessons", {})
 	if not (stored is Dictionary):
 		return
@@ -62,7 +66,7 @@ func load_file() -> void:
 
 
 func save() -> int:
-	var data := {"version": VERSION, "settings": {"adaptive": adaptive, "fixed_level": fixed_level}, "lessons": lessons}
+	var data := {"version": VERSION, "settings": {"adaptive": adaptive, "fixed_level": fixed_level, "duel_ai": duel_ai}, "lessons": lessons}
 	var tmp := path + ".tmp"
 	var file := FileAccess.open(tmp, FileAccess.WRITE)
 	if file == null:
