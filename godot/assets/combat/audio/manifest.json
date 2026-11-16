@@ -149,8 +149,8 @@
         "footstep_stone_3.wav"
       ],
       "loop": false,
-      "peak_db": -17.0,
-      "rms_db": -29.07,
+      "peak_db": -12.0,
+      "rms_db": -24.07,
       "variants": 3
     },
     "guard_break": {
@@ -193,7 +193,7 @@
     },
     "hit_leather_heavy": {
       "category": "hit",
-      "crest_db": 14.55,
+      "crest_db": 10.41,
       "duration_s": 0.22,
       "files": [
         "hit_leather_heavy_1.wav",
@@ -201,12 +201,12 @@
       ],
       "loop": false,
       "peak_db": -2.5,
-      "rms_db": -17.05,
+      "rms_db": -12.91,
       "variants": 2
     },
     "hit_leather_light": {
       "category": "hit",
-      "crest_db": 14.45,
+      "crest_db": 10.46,
       "duration_s": 0.14,
       "files": [
         "hit_leather_light_1.wav",
@@ -214,7 +214,7 @@
       ],
       "loop": false,
       "peak_db": -3.0,
-      "rms_db": -17.48,
+      "rms_db": -13.47,
       "variants": 2
     },
     "hit_plate_heavy": {
@@ -245,7 +245,7 @@
     },
     "hit_steel_heavy": {
       "category": "hit",
-      "crest_db": 15.12,
+      "crest_db": 9.47,
       "duration_s": 0.22,
       "files": [
         "hit_steel_heavy_1.wav",
@@ -253,20 +253,20 @@
       ],
       "loop": false,
       "peak_db": -2.5,
-      "rms_db": -18.25,
+      "rms_db": -12.11,
       "variants": 2
     },
     "hit_steel_light": {
       "category": "hit",
-      "crest_db": 15.42,
+      "crest_db": 10.3,
       "duration_s": 0.14,
       "files": [
         "hit_steel_light_1.wav",
         "hit_steel_light_2.wav"
       ],
       "loop": false,
-      "peak_db": -3.8,
-      "rms_db": -19.69,
+      "peak_db": -3.08,
+      "rms_db": -13.44,
       "variants": 2
     },
     "parry": {
@@ -417,8 +417,8 @@
         "ui_hover.wav"
       ],
       "loop": false,
-      "peak_db": -16.75,
-      "rms_db": -29.06,
+      "peak_db": -13.75,
+      "rms_db": -26.06,
       "variants": 1
     },
     "victory": {

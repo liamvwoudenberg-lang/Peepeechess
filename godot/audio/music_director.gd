@@ -41,6 +41,9 @@ static var _gen_thread: Thread = null
 
 var state: String = "silent"
 var combat_intensity: float = 0.0
+var duck_db: float = 0.0           # music dips by this much while a big impact rings (recovers by itself)
+var _duck_hold: float = 0.0
+var _duck_target: float = 0.0
 var music_volume: float = 1.0
 var gains: Dictionary = {}     # layer -> current linear gain
 var targets: Dictionary = {}   # layer -> target linear gain
@@ -142,11 +145,16 @@ func _apply_state_targets() -> void:
 
 ## Moves every gain toward its target (called from _process; tests call it with fixed deltas).
 func step(delta: float) -> void:
+	# ducking: dip fast (about 25 ms), hold, recover slowly (about 0.35 s), so impacts stay on top of the score
+	_duck_hold = maxf(_duck_hold - delta, 0.0)
+	if _duck_hold <= 0.0:
+		_duck_target = 0.0
+	duck_db = move_toward(duck_db, _duck_target, (120.0 if _duck_hold > 0.0 else 18.0) * delta)
 	for layer in LAYERS:
 		gains[layer] = move_toward(float(gains.get(layer, 0.0)), float(targets.get(layer, 0.0)), FADE_PER_SECOND * delta)
 		var player: AudioStreamPlayer = _players.get(layer)
 		if player != null:
-			var linear := float(gains[layer]) * music_volume
+			var linear := float(gains[layer]) * music_volume * db_to_linear(duck_db)
 			player.volume_db = linear_to_db(maxf(linear, 0.00001))
 
 
@@ -166,18 +174,35 @@ func play_stinger(stinger_name: String) -> void:
 	_stinger_player.play()
 
 
+## Dips the score by `db` (negative) for `seconds`, then it recovers. Called by the combat audio on heavy impacts.
+static func duck(tree: SceneTree, db: float = -6.0, seconds: float = 0.25) -> void:
+	var node := instance(tree)
+	if node != null and node.has_method("apply_duck"):
+		node.apply_duck(db, seconds)
+
+
+func apply_duck(db: float, seconds: float) -> void:
+	_duck_target = minf(_duck_target, db) if _duck_hold > 0.0 else db
+	_duck_hold = maxf(_duck_hold, seconds)
+
+
 func set_music_volume(value: float) -> void:
 	music_volume = clampf(value, 0.0, 1.0)
 
 
 # ---- bus and players -----------------------------------------------------------------------------------------
-func _build_bus() -> void:
+## The Music bus exists as soon as anything asks for it (Settings shows the slider before the first track ever plays).
+static func ensure_bus() -> void:
 	if AudioServer.get_bus_index(BUS) == -1:
 		AudioServer.add_bus()
 		var index := AudioServer.bus_count - 1
 		AudioServer.set_bus_name(index, BUS)
 		AudioServer.set_bus_send(index, "Master")
 		AudioServer.add_bus_effect(index, AudioEffectLimiter.new())
+
+
+func _build_bus() -> void:
+	ensure_bus()
 	for layer in LAYERS:
 		var p := AudioStreamPlayer.new()
 		p.bus = BUS
