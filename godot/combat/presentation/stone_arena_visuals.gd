@@ -276,9 +276,10 @@ func _build_meshy() -> bool:
 	for a in MESHY_BANNER_ANGLES:
 		_meshy_wall_slot(_meshy_prop("banner", Vector3.ONE * 2.6), a, wall_radius, 0.45, MESHY_FRONT_JUT)
 	# (6) the Weathered Ascent: a wooden ladder leaning on the wall (dressing; the climb ladder of the pit is the shaft's own)
-	var ladder := _meshy_prop("ascent", Vector3.ONE * 2.2)
-	_meshy_wall_slot(ladder, MESHY_LADDER_ANGLE, wall_radius, 0.0, MESHY_FRONT_JUT)
-	ladder.rotation.x = deg_to_rad(-6.0)
+	if not embedded:   # in the pit world the only ladder is the real one the winner climbs: a second, decorative one read as "climbing next to the ladder"
+		var ladder := _meshy_prop("ascent", Vector3.ONE * 2.2)
+		_meshy_wall_slot(ladder, MESHY_LADDER_ANGLE, wall_radius, 0.0, MESHY_FRONT_JUT)
+		ladder.rotation.x = deg_to_rad(-6.0)
 	return true
 
 

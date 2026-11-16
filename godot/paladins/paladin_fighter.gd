@@ -12,8 +12,11 @@ static var prefer_paladins: bool = true
 ## Standing height per role (m); every supplied model is 1.7 m tall, so these only scale them.
 const HEIGHTS := {"p": 1.5, "n": 1.7, "b": 1.75, "r": 1.65, "q": 1.8, "k": 1.9}
 ## Forward offset and rung-grid phase, fitted against the hands and feet of
-## the in-place Meshy climb at the role's actual height (metres).
+## the in-place Meshy climb at the role's actual height (metres). The offset centres the rungs' plane on the hands' swing
+## (the hands slide about +-10 cm around it; tests/paladin_anim measures that); the body stays at z = 0.
 const LADDER_FIT := {"p": Vector2(0.17, 0.033), "n": Vector2(0.10, 0.004), "b": Vector2(0.15, -0.016), "r": Vector2(0.12, -0.041), "q": Vector2(0.15, -0.067), "k": Vector2(0.06, 0.088)}
+## Where the blade points in skeleton space (x < 0 = outward for the right hand): a little splay keeps it off the thigh and hip while walking.
+const SWORD_AIM := Vector3(-0.35, -0.3, 0.89)
 const STRIKE_CLIPS := ["light_1", "light_2", "light_3", "heavy"]
 
 
@@ -134,7 +137,7 @@ func _add_sword(body: PaladinModel, team: String) -> void:
 	# In the A-pose the hand hangs with its fingers pointing down. The blade is aimed in SKELETON space (down and a little forward: it then points forward when the arm is thrust forward; held
 	# at the ready) and converted into the hand's own frame, so it does not depend on how the rig's bone axes happen to point.
 	var to_local := sk.get_bone_global_rest(hand).basis.orthonormalized().inverse()
-	var z_dir: Vector3 = to_local * Vector3(0.0, -0.58, 0.81).normalized()   # at rest the point trails forward-down (a ready guard), not straight down the leg
+	var z_dir: Vector3 = to_local * SWORD_AIM.normalized()   # at rest the point trails forward-down (a ready guard), not straight down the leg
 	var x_dir: Vector3 = to_local * Vector3(1.0, 0.0, 0.0)
 	var y_dir := z_dir.cross(x_dir).normalized()
 	x_dir = y_dir.cross(z_dir).normalized()

@@ -35,6 +35,7 @@ const SUITES: Dictionary = {
 	"training_ui": "res://combat/tests/test_training_ui.gd",
 	"paladins": "res://combat/tests/test_paladins.gd",
 	"paladin_board": "res://combat/tests/test_paladin_board.gd",
+	"paladin_anim": "res://combat/tests/test_paladin_anim.gd",
 	"net": "res://combat/tests/test_net.gd",
 	"net_latency": "res://combat/tests/test_net_latency.gd",
 	"net_arena": "res://combat/tests/test_net_arena.gd",
