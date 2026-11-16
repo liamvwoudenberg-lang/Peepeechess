@@ -49,6 +49,8 @@ const INTRO_SECONDS := 3.0
 const INTRO_EXTRA_DISTANCE := 3.2
 var _finish_t: float = -1.0            # >= 0 once the battle is over
 var _finish_target: FighterController = null
+## "" = the winner orbit; "king_fall" = the short cutscene on a fallen King (slower, lower, closer, with a long slow zoom-in).
+var finish_style: String = ""
 
 
 func _init() -> void:
@@ -114,6 +116,10 @@ func feedback(kind: String, amount: float, dir: Vector3 = Vector3.ZERO) -> void:
 			add_shake(amount)
 			punch(dir, 0.12)
 			kick_fov(-2.0, 0.05)
+		"ability_hit":
+			add_shake(amount)
+			punch(dir, 0.18)
+			kick_fov(-4.0, 0.1)
 		"block":
 			add_shake(amount * 0.6)
 			punch(dir, 0.04)
@@ -152,9 +158,12 @@ func kick_fov(delta_deg: float, hold: float = 0.0) -> void:
 
 
 ## Battle over: slowly orbit and push in on the winner (null: both down / draw -> keep the player's framing).
-func set_finish(winner: FighterController) -> void:
+func set_finish(winner: FighterController, style: String = "") -> void:
 	_finish_t = 0.0
 	_finish_target = winner
+	finish_style = style
+	if style == "king_fall":
+		kick_fov(-6.0, 1.4)   # a long, slow zoom-in on the falling King (a no-op with reduce motion)
 
 
 ## Pushes a camera position out of the pillar cylinders (continuous, so no popping while a fighter circles one).
@@ -198,9 +207,15 @@ func _process(delta: float) -> void:
 	var want_distance := distance
 	if finishing:
 		# Slow orbit around the winner, easing closer.
-		yaw = CombatConstants.wrap_angle(yaw + delta * 0.18)
-		want_distance = lerpf(distance, MIN_DISTANCE + 0.6, clampf(_finish_t / 2.5, 0.0, 1.0))
-		desired_pivot = focus_pos + Vector3(0.0, 1.35, 0.0)
+		if finish_style == "king_fall":
+			# The King's cutscene: slower orbit, much closer, the pivot sinking with the body.
+			yaw = CombatConstants.wrap_angle(yaw + delta * 0.1)
+			want_distance = lerpf(distance, MIN_DISTANCE + 0.2, clampf(_finish_t / 3.5, 0.0, 1.0))
+			desired_pivot = focus_pos + Vector3(0.0, lerpf(1.35, 0.55, clampf(_finish_t / 3.0, 0.0, 1.0)), 0.0)
+		else:
+			yaw = CombatConstants.wrap_angle(yaw + delta * 0.18)
+			want_distance = lerpf(distance, MIN_DISTANCE + 0.6, clampf(_finish_t / 2.5, 0.0, 1.0))
+			desired_pivot = focus_pos + Vector3(0.0, 1.35, 0.0)
 	elif locked and foe_alive and _finish_t < 0.0:
 		var foe := _fighter_position(opponent)
 		var to_foe := CombatConstants.flat(foe - own)

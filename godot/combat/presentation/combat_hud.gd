@@ -15,6 +15,8 @@ var _center_label: Label
 var _message_box: VBoxContainer
 var _result_panel: PanelContainer
 var _result_label: Label
+var _result_box: VBoxContainer
+var _victory: VictoryCard
 var _help_label: Label
 var _names: Dictionary = {}
 var _messages: Array = []
@@ -65,6 +67,7 @@ func setup(p_sim: CombatSimulation, human_hint: String) -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	_result_panel.add_child(box)
+	_result_box = box
 	_result_label = Label.new()
 	_result_label.add_theme_font_size_override("font_size", 30)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -195,8 +198,31 @@ func _view_width() -> float:
 	return view.get_visible_rect().size.x if view != null else 1280.0
 
 
+## The victory screen: replaces the plain text headline with the VictoryCard (headline, reason, both fighters' remaining health).
+## `info` comes from VictoryCard.info_for. The text from show_result stays set (tools and tests read it) but is not drawn.
+func show_victory(info: Dictionary, reduce_motion: bool = false) -> void:
+	if _result_box == null:
+		return   # a HUD variant without the result panel (CourtyardCombatHud shows its own transient headline)
+	if _victory == null:
+		_victory = VictoryCard.new()
+		_result_box.add_child(_victory)
+		_result_box.move_child(_victory, 0)
+	_result_label.visible = false
+	_victory.show_info(info, _view_width())
+	_victory.visible = true
+	_result_panel.visible = true
+	_victory.play_in(reduce_motion)
+
+
+func victory_card() -> VictoryCard:
+	return _victory
+
+
 func hide_result() -> void:
 	_result_panel.visible = false
+	if _victory != null:
+		_victory.visible = false
+	_result_label.visible = true
 
 
 ## "ATTACKER vs DEFENDER" text for the duel introduction ("" when the request has no roles).

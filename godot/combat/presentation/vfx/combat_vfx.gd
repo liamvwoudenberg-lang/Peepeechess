@@ -16,6 +16,8 @@ const Trail := preload("res://combat/presentation/vfx/trail_ribbon.gd")
 
 static var low_quality: bool = false
 static var reduce_motion: bool = false
+## HitWeight.Tier of the last landed blow: a cheap read-out for tests and tools.
+var last_tier: int = -1
 static var show_numbers: bool = true
 
 const CAPS_HIGH := {"sparks": 48, "sprites": 16, "numbers": 6, "trail_points": 12, "body_trails": true}
@@ -65,7 +67,7 @@ static func configure_from_args() -> void:
 	all.append_array(OS.get_cmdline_args())
 	all.append_array(OS.get_cmdline_user_args())
 	low_quality = OS.has_feature("mobile") or ("--lowfx" in all)
-	reduce_motion = "--reduce-motion" in all
+	reduce_motion = "--reduce-motion" in all or preload("res://ui/theme/ui_prefs.gd").reduce_motion   # the Settings toggle counts too
 	show_numbers = not ("--no-damage-numbers" in all)
 	ThirdPersonCamera.reduce_motion = reduce_motion
 
@@ -373,14 +375,24 @@ func on_event(event: Dictionary) -> void:
 			var damage := int(event["damage"])   # the HP actually removed (the number shown)
 			var felt := sim.felt_damage(damage)   # the blow's strength before the duel-length scale (the feel)
 			var power := clampf(float(felt) / 40.0, 0.2, 1.0)
-			spawn_sprite(contact, 0.2 + 0.35 * power, 0.5 + 0.7 * power, Color(1.0, 0.8, 0.5, 0.75), 0.14)
-			spawn_sparks(contact, dir + Vector3(0, 0.25, 0), 5 + int(power * 7.0), Color(1.0, 0.75, 0.4, 0.9), 3.0 + 2.0 * power)
+			var knockout := not target.health.is_alive()
+			var attack_kind := int(actor.sm.attack.kind) if actor.sm != null and actor.sm.attack != null else -1
+			var tier := HitWeight.tier_for(attack_kind, felt, knockout)   # light < heavy (charged) < ability < finisher
+			var weight := HitWeight.profile(tier)
+			last_tier = tier
+			var tier_key := "tier_%s" % weight["name"]
+			stats[tier_key] = int(stats.get(tier_key, 0)) + 1
+			spawn_sprite(contact, (0.2 + 0.35 * power) * float(weight["sprite"]), (0.5 + 0.7 * power) * float(weight["sprite"]), Color(1.0, 0.8, 0.5, 0.75), 0.14)
+			spawn_sparks(contact, dir + Vector3(0, 0.25, 0), roundi((5.0 + power * 7.0) * float(weight["sparks"])), Color(1.0, 0.75, 0.4, 0.9), 3.0 + 2.0 * power)
+			if bool(weight["ring"]) and not knockout:   # heavy / ability blows: a flat shockwave ring at the contact
+				spawn_sprite(contact, 0.3, 1.3 * float(weight["sprite"]), Color(1.0, 0.9, 0.7, 0.5), 0.22, "ring")
 			if damage > 0:   # a graze that only builds up the carried fraction takes no whole HP: no number
 				spawn_number(target.global_position + Vector3(0, 2.05, 0), damage, Color(1.0, 0.85, 0.6) if felt < 20 else Color(1.0, 0.55, 0.3))
-			request_hitstop(ids, 2 + felt / 18)
+			request_hitstop(ids, HitWeight.hitstop_frames(tier, felt))
 			_target_react(target, "hit", felt, dir)
-			_camera_event("heavy_hit" if felt >= 20 else "hit", 0.08 + 0.2 * power, dir)
-			if not target.health.is_alive():   # the knockout blow: bigger burst, a heavy camera punch and slow motion
+			if not knockout:
+				_camera_event(String(weight["camera"]), HitWeight.shake_amount(tier, felt), dir)
+			if knockout:   # the knockout blow: bigger burst, a heavy camera punch and slow motion
 				spawn_sprite(contact, 0.4, 2.2, Color(1.0, 0.95, 0.8, 0.8), 0.3, "ring")
 				spawn_sparks(contact, dir + Vector3(0, 0.4, 0), 14, Color(1.0, 0.85, 0.5, 1.0), 5.0, 1.2)
 				request_hitstop(ids, 5)
@@ -483,9 +495,25 @@ func on_result(result: Dictionary) -> void:
 			var base := f.global_position
 			spawn_sprite(base + Vector3(0, 0.08, 0), 0.6, 3.4, Color(0.9, 0.35, 0.2, 0.45), 0.9, "ring")
 			spawn_sparks(base + Vector3(0, 0.9, 0), Vector3.UP, 16, Color(1.0, 0.55, 0.25, 0.9), 2.4, 1.6)
+	# King-falls cutscene: a King that loses (King's last stand) gets a golden burst, a longer slow motion and the camera stays on him.
+	var fallen_king: FighterController = null
+	if not double_ko:
+		for f in sim.fighters:
+			if f.player_id != winner_id and f.role == "k":
+				fallen_king = f
+	if fallen_king != null:
+		var crown := fallen_king.global_position + Vector3(0, 1.9, 0)
+		spawn_sprite(crown, 0.4, 2.8, Color(1.0, 0.85, 0.35, 0.8), 0.9, "ring")
+		spawn_sprite(fallen_king.global_position + Vector3(0, 0.1, 0), 0.8, 4.5, Color(1.0, 0.8, 0.3, 0.4), 1.2, "ring")
+		spawn_sparks(crown, Vector3.DOWN, 24, Color(1.0, 0.85, 0.4, 1.0), 2.6, 1.6)
+		stats["king_falls"] = int(stats.get("king_falls", 0)) + 1
+		request_slowmo(1.1)
 	for cam in cameras:
 		if is_instance_valid(cam) and cam.has_method("set_finish"):
-			cam.set_finish(winner if not double_ko else null)
+			if fallen_king != null:
+				cam.set_finish(fallen_king, "king_fall")
+			else:
+				cam.set_finish(winner if not double_ko else null)
 
 
 # ---- per-frame -------------------------------------------------------------------------------
