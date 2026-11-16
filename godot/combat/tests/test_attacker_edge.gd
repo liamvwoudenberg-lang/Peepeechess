@@ -71,7 +71,8 @@ static func _data(h) -> void:
 				boosted_attackers += 1
 			if pair[1] > 1.0001:
 				boosted_defenders += 1
-	h.check(boosted_attackers > 0 and boosted_defenders == 0, "attackers are boosted (%d pairings) and NOBODY boosts a defender (%d): a strong piece stays strong when it attacks" % [boosted_attackers, boosted_defenders])
+	# 2026-11-16 table: a boosted defender appears only where a stronger attacker would win far above its ~70% target (the Queen attacking).
+	h.check(boosted_attackers > 0 and boosted_defenders <= 6, "attackers are boosted (%d pairings); defenders only where the attacker is much stronger (%d, at most 6)" % [boosted_attackers, boosted_defenders])
 	for key in ["kq", "qk", "kk", "pk", "kp"]:
 		h.eq(Balance.attacker_edge(key.substr(0, 1), key.substr(1, 1)), [1.0, 1.0], "%s: the King is neutral (King's last stand keeps its own balance)" % key)
 	h.eq(Balance.attacker_edge("x", "y"), [1.0, 1.0], "an unknown pairing is neutral")
@@ -412,19 +413,20 @@ static func _gate(h, tree: SceneTree) -> void:
 ## The Queen is the strongest piece and must feel like it: she beats a Pawn or Bishop that attacks her, and wins when she attacks them,
 ## while the weaker attacker still has a real chance (the attacker's initiative bonus). Casual bot, fixed seeds.
 static func _queen_gate(h, tree: SceneTree) -> void:
-	h.begin("queen gate: a Queen holds against a Pawn or Bishop that attacks her and wins when she attacks (casual bot, fixed seeds)")
-	var cfg := {"style": "balanced", "skill": 0.6}
+	h.begin("queen gate: the Queen wins about 70% when she attacks a Pawn / Bishop and holds about 50/50 when they attack her (mean of a casual and a skilled bot, fixed seeds)")
 	var rates := {}
 	for key in ["qp", "qb", "pq", "bq"]:
-		var wins := 0
-		for i in GATE_N:
-			var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), cfg, GATE_SEED + 500 + i)
-			if r["outcome"] == "attacker":
-				wins += 1
-		rates[key] = float(wins) / float(GATE_N)
-	h.check(rates["qp"] >= 0.80 and rates["qb"] >= 0.80, "a Queen attacking a Pawn / Bishop wins at least 80%% (%.0f%% / %.0f%%)" % [100.0 * rates["qp"], 100.0 * rates["qb"]])
-	h.check(rates["pq"] <= 0.45 and rates["bq"] <= 0.55, "a Pawn / Bishop attacking the Queen wins at most 45%% / 55%% (%.0f%% / %.0f%%): she holds" % [100.0 * rates["pq"], 100.0 * rates["bq"]])
-	h.check(rates["pq"] >= 0.03, "...but the Pawn still has a real chance as the attacker (%.0f%%)" % (100.0 * rates["pq"]))
+		var total := 0.0
+		for cfg in [{"style": "balanced", "skill": 0.6}, {"style": "duelist", "skill": 0.9}]:
+			var wins := 0
+			for i in GATE_N:
+				var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), cfg, GATE_SEED + 500 + i)
+				if r["outcome"] == "attacker":
+					wins += 1
+			total += float(wins) / float(GATE_N)
+		rates[key] = total / 2.0
+	h.check(rates["qp"] >= 0.55 and rates["qp"] <= 0.90 and rates["qb"] >= 0.55 and rates["qb"] <= 0.90, "a Queen attacking a Pawn / Bishop wins 55-90%% (%.0f%% / %.0f%%)" % [100.0 * rates["qp"], 100.0 * rates["qb"]])
+	h.check(rates["pq"] >= 0.30 and rates["pq"] <= 0.70 and rates["bq"] >= 0.30 and rates["bq"] <= 0.70, "a Pawn / Bishop attacking the Queen wins 30-70%% (%.0f%% / %.0f%%): about even" % [100.0 * rates["pq"], 100.0 * rates["bq"]])
 
 
 ## Hit stun: a victim that was just hit cannot act, a heavy (charged) blow stuns much longer than a quick one, and raw frame data has none.

@@ -3,7 +3,7 @@
 
     python3 godot/combat/tools/merge_edge.py OUT_DIR/edge-*.json [--write] [--balance godot/combat/data/balance_v1.json]
 
-Without --write it only prints the table. With --write it rewrites ONLY the "attacker_edge" block at the end of the data file
+Without --write it only prints the table. With --write it rewrites ONLY the "attacker_edge" block at the end of the data file (WARNING: it drops any block placed after it, e.g. "hit_stun": re-add it by hand and check `git diff`)
 (text edit: every other number stays byte-identical). Multipliers are rounded to 2 decimals, never below 1.0, and at most one side
 of a pairing is boosted (the loader validates this). Pairings that hit a search limit are listed so a human looks at them.
 """

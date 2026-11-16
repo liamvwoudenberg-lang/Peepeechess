@@ -68,7 +68,7 @@ Meshy arena + fortress courtyard, training mode + 4 AI levels (merged `5871e52`)
 Running: attacker-table recalibration (scratchpad shards; finish with merge_edge.py --write, SHIPPED_STAMP, queen gate).
 
 **Agents can still do**
-- [ ] Recalibration result -> balance_v1.json, test_balance SHIPPED_STAMP, queen gate (in progress).
+- [x] Recalibration applied 2026-11-16 (stamp balance-v1:b56c6911a70dfd79): Queen ~70% attacking / ~50% defending by the bot mean; bots only, still needs a human playtest. Note merge_edge.py --write drops blocks after attacker_edge (hit_stun was re-added by hand).
 - [ ] Full gate on the release candidate: `npm run lint`, `npm test`, `npm run build`, `npm run test:contracts`, `test:classic`, `test:battle` + Godot import/scene smoke (TOOLCHAIN.md).
 - [ ] Multiplayer test flakes (prediction 0.1 m check, `invalid:b-n` counter, DTLS ERROR line) -> A1.
 - [ ] Play page polish (old toggle buttons, queue spinner) -> B1; computer opponent in Battle (undo, auto start) -> B3.
