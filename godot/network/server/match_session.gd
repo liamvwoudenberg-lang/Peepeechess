@@ -78,6 +78,17 @@ func join(player_id: String, now: int) -> Dictionary:
 	set_connected(player_id, true, now)
 	return {"ok": true}
 
+## Hosted games: fills whichever seat is still open (the host may have chosen Black).
+func join_open(player_id: String, now: int) -> Dictionary:
+	if status != "waiting":
+		return error("FORBIDDEN", "The match has no open seat.")
+	for color in ["w", "b"]:
+		if game.players[color].begins_with("open-") and not connected[color]:
+			game.players[color] = player_id
+			set_connected(player_id, true, now)
+			return {"ok": true}
+	return error("FORBIDDEN", "The match has no open seat.")
+
 func set_connected(player_id: String, present: bool, now: int) -> void:
 	var color = color_of(player_id)
 	if color.is_empty():

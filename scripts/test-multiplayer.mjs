@@ -15,10 +15,15 @@ const envFor = name => {
   }
   return env;
 };
-const run = (name, args) => {
+// Godot 4.6.3 logs this engine error whenever a DTLS ENet server host is destroyed (also with no clients); an in-process
+// listen-server test has to close one. Failed handshakes are logged the same way when a test provokes one on purpose.
+const engineNoise = /^ERROR: (?:Parameter "p_mutex->mutex" is null\.|TLS handshake error: -\d+)\n(?:(?:[ \t]+.*|mbedtls error.*|)\n?)*/gm;
+const run = (name, args, tolerateEngineNoise = false) => {
   const r = spawnSync(godot, ['--headless', '--path', 'godot', ...args], { env: envFor(name), encoding: 'utf8', timeout: 180000 });
   process.stdout.write(r.stdout || ''); process.stderr.write(r.stderr || '');
-  if (r.error || r.status !== 0 || diagnostics.test((r.stdout || '') + (r.stderr || ''))) throw r.error || Error(`${name} failed: ${r.status}`);
+  let output = (r.stdout || '') + (r.stderr || '');
+  if (tolerateEngineNoise) output = output.replace(engineNoise, '');
+  if (r.error || r.status !== 0 || diagnostics.test(output)) throw r.error || Error(`${name} failed: ${r.status}`);
 };
 const children = [];
 function start(name, args) {
@@ -97,6 +102,8 @@ try {
   run('authority', ['--script', 'res://tests/network/network_test.gd']);
   run('roster', ['--script', 'res://tests/network/roster_test.gd']);
   run('online-ui', ['--script', 'res://tests/network/online_ui_test.gd']);
+  run('host-play', ['--script', 'res://tests/network/host_play_test.gd'], true);
+  run('host-pinning', ['--script', 'res://tests/network/host_play_test.gd', '--', '--pinning'], true);
   run('online-prediction', ['--script', 'res://tests/network/online_prediction_test.gd']);
   run('client-scene', ['res://network/client/online_lobby.tscn', '--quit-after', '3']);
   const cert = join(directory, 'localhost.crt');
