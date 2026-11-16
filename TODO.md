@@ -98,4 +98,4 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 - [ ] **Variants**: bring the old web game's variants and analytics back as Battle Chess rule sets.
 
 ### Added 2026-11-16
-- [ ] **Host-your-own-PC online play** (host's PC runs the authoritative server, friends join over the internet): fork running, branch `ccr-host-play`. Needs a real two-machine test over a real router (UPnP/port-forward) - never tried.
+- [x] (merged `ccr-host-play`; loopback-tested only) **Host-your-own-PC online play**: Play -> Online -> "Host a game on this PC", friends paste the invite. Needs a real two-machine test over a real router (UPnP/port-forward), Windows Firewall, Android hosting untested. See docs/application/HOSTING_GUIDE.md.
