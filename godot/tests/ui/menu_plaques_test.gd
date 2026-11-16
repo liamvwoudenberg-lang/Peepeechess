@@ -44,8 +44,28 @@ func run() -> void:
 		await process_frame
 	check(app.scene3d.camera.find_children("MenuPlaques*", "Node3D", false, false).size() == 1, "rebuilding home removes old plaques")
 	app.navigate("settings")
+	for i in 3:
+		await process_frame
+	check(app.scene3d != null, "pages keep the castle behind them")
+	var chrome = app.scene3d.camera.get_node_or_null("ChromePlaques") if app.scene3d != null else null
+	check(chrome != null, "navigation, brand and account sit on 3D plaques on every page")
+	if chrome != null:
+		chrome._sync()
+		var frames := 0
+		for entry in chrome.entries:
+			if entry.frame and entry.root.visible and entry.edge.scale.x > 0.0:
+				frames += 1
+		check(frames == 1, "the page sits on one visible 3D frame")
+		var active := 0
+		for entry in chrome.entries:
+			if not entry.frame and entry.button.theme_type_variation == "NavButtonActive" and chrome._rest_level(entry) > 0.0:
+				active += 1
+		check(active == 1, "the current page's navigation plaque stays lit")
+	Settings.quality = "low"
+	app.navigate("profile")
 	await process_frame
-	check(app.scene3d == null, "leaving home releases the 3D menu")
+	check(app.scene3d == null, "the low tier falls back to flat pages (no castle behind them)")
+	Settings.quality = "balanced"
 	app.queue_free()
 	await process_frame
 	Prefs.reset_defaults()

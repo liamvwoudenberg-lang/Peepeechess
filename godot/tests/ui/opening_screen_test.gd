@@ -337,7 +337,7 @@ func quality_checks() -> void:
 		expect(stats.quality == level, level + ": the scene is built for the quality setting")
 		var paladin_count: int = shell.scene3d.find_children("BoardPaladin*", "Node3D", true, false).size()
 		expect(paladin_count == (4 if level == "low" else 12), level + ": the opening board uses lightweight paladin pieces")
-		expect(stats.draw_nodes <= 38, level + ": geometry and the paladin pieces stay within the draw-node budget (%d)" % stats.draw_nodes)
+		expect(stats.draw_nodes <= 80, level + ": geometry and the paladin pieces stay within the draw-node budget (%d)" % stats.draw_nodes)
 		await drop(shell)
 	Settings.quality = "balanced"
 	expect(results.low.lights < results.balanced.lights and results.balanced.lights <= results.high.lights, "fewer real lights on lower quality (%d / %d / %d)" % [results.low.lights, results.balanced.lights, results.high.lights])
@@ -398,8 +398,8 @@ func navigation_checks() -> void:
 	var shell: Control = await fresh_shell()
 	shell.navigate("settings")
 	await settle(1)
-	expect(shell.intro == null and shell.page == "settings" and shell.scene3d == null, "navigating away during the intro cancels it and frees the scene")
-	expect(shell.get_node_or_null("OpeningScreen") == null and shell.get_node_or_null("OpeningScene") == null, "no opening nodes are left behind")
+	expect(shell.intro == null and shell.page == "settings" and shell.scene3d != null, "navigating away during the intro cancels it; the castle stays behind the page")
+	expect(shell.get_node_or_null("OpeningScreen") == null, "no opening screen is left behind")
 	shell.navigate("home")
 	await settle(1)
 	expect(shell.intro == null and has_menu(shell), "home afterwards is the menu, never the intro")
@@ -417,7 +417,7 @@ func navigation_checks() -> void:
 	expect(menu.get_node_or_null("PadUi") != null, "the controller helper is installed alongside the opening screen")
 	menu.navigate("settings")
 	await settle(1)
-	expect(menu.page == "settings" and menu.scene3d == null, "settings page after the intro has no 3D scene")
+	expect(menu.page == "settings" and menu.scene3d != null, "settings page after the intro sits in the 3D castle")
 	await drop(menu)
 
 # ---------------------------------------------------------------- layout

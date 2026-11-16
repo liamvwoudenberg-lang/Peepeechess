@@ -15,6 +15,7 @@ const Icons = preload("res://ui/theme/ui_icons.gd")
 const SettingsPage = preload("res://ui/settings_page.gd")
 const FriendsPage = preload("res://ui/friends_page.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
+const MenuPlaquesScript = preload("res://ui/opening/menu_plaques.gd")
 const TrainingPageScript = preload("res://ui/training_page.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
 const INK = Tokens.BG
@@ -57,6 +58,7 @@ var _backdrop: Control
 ## The 3D castle behind home and match setup (freed on other pages) and the
 ## opening-screen overlay that drives its camera while the first-launch intro plays (null otherwise).
 var scene3d: Node3D
+var _brand_button: Button
 var intro: Control
 var _last_toast = ""
 var _toast_clock = 0.0
@@ -163,6 +165,7 @@ func _build_frame() -> void:
 	brand.add_theme_font_size_override("font_size", 22)
 	brand.add_theme_color_override("font_color", Tokens.GOLD_HI)
 	brand.tooltip_text = "Main menu"
+	_brand_button = brand
 	var brand_spacer = Control.new()
 	brand_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand_row.add_child(brand_spacer)
@@ -214,12 +217,14 @@ func navigate(target: String) -> void:
 	account_badge = _topbar_badge
 	_topbar_holder.visible = page != "home"
 	notice.visible = page != "home"
-	if page not in ["home", "play"]:
-		_release_scene3d()
-	elif page == "play":
+	# The castle stays behind every page (the pages sit on 3D plaques in it); only the low quality tier uses the flat pages.
+	var castle_pages: bool = Settings.quality != "low"
+	if page == "play" or (page != "home" and castle_pages):
 		_ensure_scene3d(1.0)
 		_backdrop.center_dim = 1.0
-	_backdrop.mode = "scene" if page in ["home", "play"] else "page"
+	elif page != "home":
+		_release_scene3d()
+	_backdrop.mode = "scene" if (page in ["home", "play"] or castle_pages) else "page"
 	_page_width.max_width = 4000.0 if page == "home" else 1120.0
 	_page_width.call("_fit")
 	page_scroll.scroll_vertical = 0
@@ -238,7 +243,27 @@ func navigate(target: String) -> void:
 		"history": _history_page()
 		"leaderboard": _leaderboard_page()
 	_update_badge()
+	_sync_chrome()
 	Motion.fade_in(content, Motion.DURATION, 1.0)
+
+## Navigation, brand, account chip and the page frame as 3D plaques in the castle camera (one set per castle, reused across pages).
+func _sync_chrome() -> void:
+	if not is_instance_valid(scene3d) or scene3d.get("camera") == null or not is_instance_valid(_brand_button):
+		return
+	var cam: Camera3D = scene3d.camera
+	if cam.get_node_or_null("ChromePlaques") != null:
+		return
+	var chrome_buttons := {"brand": _brand_button, "account": _topbar_badge}
+	for key in _menu_buttons:
+		chrome_buttons[key] = _menu_buttons[key]
+	var plaques = MenuPlaquesScript.new()
+	plaques.setup(cam, chrome_buttons, "ChromePlaques")
+	plaques.add_frame(notice, _page_frame_rect)   # `notice` is visible on every page except home, so the frame is too
+
+func _page_frame_rect() -> Rect2:
+	var scroll := page_scroll.get_global_rect()
+	var column := _page_width.get_global_rect()
+	return Rect2(column.position.x, scroll.position.y, column.size.x, scroll.size.y)
 
 ## The title page. The very first time in a run it is the opening screen (title + "press any button", then the camera glides
 ## through the gate and the menu fades in); afterwards the menu simply shows over the 3D castle.
