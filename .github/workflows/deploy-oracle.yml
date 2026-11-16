@@ -1,0 +1,90 @@
+name: Deploy server to Oracle
+
+# Manual only. Builds the x86_64 and arm64 dedicated servers, then deploys ONE of them to the Oracle VM over SSH.
+# The VM script health-checks the new release and rolls back to the previous one on failure (tools/deploy/remote/install_release.sh).
+# Needs the secrets in docs/deployment/ORACLE.md. The `oracle-production` environment can require a reviewer before the deploy job runs.
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: "Architecture of the VM (A1 = arm64, AMD micro = x86_64)"
+        type: choice
+        options: [arm64, x86_64]
+        default: arm64
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: deploy-oracle
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot editor
+        run: |
+          curl -fL --retry 2 https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip -o /tmp/godot.zip
+          echo 'a035258da32b77f966a5376f9fa29c30a6adde826a85ba918e1605bd1fc9823eba7d85f1dd5e748956bd2ba72827c0025ffa11bb82aec91128c407a2e723c99c  /tmp/godot.zip' | sha512sum -c -
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 /usr/local/bin/godot
+      - name: Install the server export templates
+        run: bash tools/deploy/install_server_templates.sh
+      - name: Build the server package
+        run: GODOT=godot bash tools/deploy/build_server.sh ${{ matrix.arch }} artifacts/server-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: peepeechess-server-${{ matrix.arch }}
+          path: artifacts/server-release/*
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: oracle-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: peepeechess-server-${{ inputs.arch }}
+          path: package
+      - name: Prepare SSH (key and pinned host key from secrets; never printed)
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+      - name: Upload and install (health check and automatic rollback run on the VM)
+        id: install
+        env:
+          HOST: ${{ secrets.ORACLE_HOST }}
+          SSH_USER: ${{ secrets.ORACLE_SSH_USER }}
+        run: |
+          opts="-i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=yes -o BatchMode=yes"
+          pkg="$(ls package/*.tar.gz | head -n 1)"
+          # shellcheck disable=SC2086
+          scp $opts "$pkg" "$pkg.sha256" tools/deploy/remote/install_release.sh "$SSH_USER@$HOST:/tmp/"
+          # shellcheck disable=SC2086
+          ssh $opts "$SSH_USER@$HOST" "sudo bash /tmp/install_release.sh /tmp/$(basename "$pkg")"
+      - name: Remove SSH material
+        if: always()
+        run: rm -rf "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+      - name: Report a failed deploy by GitHub issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Oracle deploy failed (rolled back if a previous release existed)" \
+            --body "The health check or the upload failed. See ${RUN_URL}. The VM keeps running the previous release when one existed." || true

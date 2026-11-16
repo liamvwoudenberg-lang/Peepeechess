@@ -1,0 +1,27 @@
+[Unit]
+Description=Peepeechess dedicated server (ENet/DTLS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=peepeechess
+Group=peepeechess
+# /opt/peepeechess/current is a symlink to the active release (see remote/install_release.sh); rollback = repoint it.
+WorkingDirectory=/opt/peepeechess/current
+EnvironmentFile=/etc/peepeechess/server.env
+ExecStart=/opt/peepeechess/current/run-server.sh --bind=${BIND} --port=${PORT} --certificate=${CERTIFICATE} --private-key=${PRIVATE_KEY} --backend-url=${BACKEND_URL} --server-id=${SERVER_ID}
+Restart=on-failure
+RestartSec=3
+# small single-process game server: sandboxed and inside a memory budget that fits the free A1 shape
+MemoryMax=1G
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/peepeechess
+Environment=HOME=/var/lib/peepeechess
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
