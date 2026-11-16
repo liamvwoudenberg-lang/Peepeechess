@@ -51,3 +51,13 @@ See `godot/assets/combat/audio/INVENTORY.md` (generated: file, duration, peak, R
 1. Add a recipe function and a `add("name", category, variants, peak_db, fn)` line in `catalogue()`.
 2. `python3 -I tools/audio/generate_sfx.py` and commit the new files + manifest.
 3. Map it in `godot/combat/audio/combat_audio.gd` and add it to `REQUIRED` in `test_audio.gd` if it is mandatory.
+
+
+## Loudness and mix (2026-11-16 audio pass)
+
+Measured with `analyze_sfx.py`: peaks were already safe (all at or below -2 dBFS) but steel and leather hits were about 5 dB quieter in RMS than
+plate and flesh hits at the same peak, and footsteps (-29 dB RMS) and the UI hover (-29 dB) were nearly inaudible after the engine's trims.
+`DRIVE` in `generate_sfx.py` soft-saturates steel and leather hits (raises RMS, same peak); footsteps are now -12 dB peak and hover -13 dB.
+Hit RMS by material now lies within about 2 dB (-11.6 to -13.8 dB). In the game the score ducks by 7 dB for 0.28 s under every priority-3 sound
+(guard break, parry, ability, stingers) via `MusicDirector.duck`; the Music bus is created on demand (`MusicDirector.ensure_bus`), so the Settings
+Music slider is always present. Nobody has listened to any of this: a human pass on headphones and speakers is still needed.

@@ -32,6 +32,16 @@ REPO = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = REPO / "godot" / "assets" / "combat" / "audio"
 
 
+def drive(x, peak_db, k):
+    """Soft-saturate (tanh) then renormalise to the same peak: raises the RMS of spiky sounds (loudness evening) without a higher peak."""
+    t = math.tanh(k)
+    return normalise([math.tanh(k * v / max(max(x), -min(x), 1e-9)) / t for v in x], peak_db)
+
+
+# Loudness evening (measured with analyze_sfx.py): steel and leather hits were ~5 dB quieter in RMS than plate/flesh at the same peak.
+DRIVE = {"hit_steel_light": 2.4, "hit_steel_heavy": 2.4, "hit_leather_light": 1.8, "hit_leather_heavy": 1.8}
+
+
 # ---------------------------------------------------------------------------------------------
 # DSP primitives (lists of floats)
 # ---------------------------------------------------------------------------------------------
@@ -476,7 +486,7 @@ def catalogue():
     add("guard_break", "defence", 1, -2.5, make_guard_break)
     add("parry", "defence", 2, -2.0, make_parry)
     add("dodge", "movement", 2, -8.0, make_dodge)
-    add("footstep_stone", "movement", 3, -17.0, make_footstep)
+    add("footstep_stone", "movement", 3, -12.0, make_footstep)
     add("stagger", "reaction", 2, -6.0, make_stagger)
     add("defeat", "result", 1, -3.0, make_defeat)
     add("victory", "result", 1, -4.0, make_victory)
@@ -484,7 +494,7 @@ def catalogue():
         add(f"ability_{kind}", "ability", 1, -4.0, lambda r, v, kind=kind: make_ability(kind, r, v))
     add("countdown_tick", "cue", 1, -8.0, make_countdown_tick)
     add("fight_cue", "cue", 1, -3.0, make_fight_cue)
-    for kind, pk in (("hover", -16.0), ("click", -10.0), ("confirm", -9.0), ("back", -10.0)):
+    for kind, pk in (("hover", -13.0), ("click", -10.0), ("confirm", -9.0), ("back", -10.0)):
         add(f"ui_{kind}", "ui", 1, pk, lambda r, v, kind=kind: make_ui(kind, r, v))
     return cat
 
@@ -528,7 +538,10 @@ def generate(out_dir: Path, only=None) -> dict:
         stats_acc = []
         for v in range(variants):
             raw = fn(rng_for(name, v), v)
-            raw = fade_edges(normalise(raw, peak_db))
+            raw = normalise(raw, peak_db)
+            if name in DRIVE:
+                raw = drive(raw, peak_db, DRIVE[name])
+            raw = fade_edges(raw)
             pcm = to_pcm(raw)
             fname = f"{name}.wav" if variants == 1 else f"{name}_{v + 1}.wav"
             write_wav(out_dir / fname, pcm)
