@@ -1,0 +1,47 @@
+{
+ "id": "a03_bishop_vs_rook",
+ "category": "advanced",
+ "order": 3,
+ "title": "Bishop vs Rook: spacing and counters",
+ "summary": "Keep your distance, counter, and win.",
+ "player_role": "b",
+ "opponent_role": "r",
+ "behaviour": "normal",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "gap",
+   "type": "hold_distance",
+   "text": "Hold 2.2-3.6 m for 5 s",
+   "min": 2.2,
+   "max": 3.6,
+   "seconds": 5
+  },
+  {
+   "id": "counter",
+   "type": "counter_after",
+   "text": "Strike within 1.5 s of a parry",
+   "after": "parry",
+   "count": 1,
+   "window_ticks": 90
+  },
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "i05_distance"
+ ]
+}

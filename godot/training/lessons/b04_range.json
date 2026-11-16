@@ -1,0 +1,27 @@
+{
+ "id": "b04_range",
+ "category": "beginner",
+ "order": 4,
+ "title": "Attack range",
+ "summary": "Reach matters: hit the dummy from the far edge of your reach.",
+ "player_role": "n",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "far",
+   "type": "hit_at_range",
+   "text": "Land 2 hits from at least 1.2 m",
+   "count": 2,
+   "min_distance": 1.2
+  }
+ ],
+ "fail": [],
+ "rating": {},
+ "hints": [
+  "Step back until the dummy is just inside your weapon's reach, then strike."
+ ]
+}

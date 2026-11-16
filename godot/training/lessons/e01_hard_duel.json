@@ -1,0 +1,38 @@
+{
+ "id": "e01_hard_duel",
+ "category": "expert",
+ "order": 1,
+ "title": "Hard duel",
+ "summary": "Beat a Hard Knight with a Pawn.",
+ "player_role": "p",
+ "opponent_role": "n",
+ "behaviour": "normal",
+ "difficulty": "hard",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {
+  "silver": {
+   "max_damage_fraction": 0.6
+  },
+  "gold": {
+   "max_damage_fraction": 0.3
+  }
+ },
+ "hints": [],
+ "requires": [
+  "a01_knight_vs_pawn"
+ ]
+}

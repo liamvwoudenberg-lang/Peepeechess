@@ -1,0 +1,41 @@
+{
+ "id": "i02_dodge_counter",
+ "category": "intermediate",
+ "order": 2,
+ "title": "Dodge and counter",
+ "summary": "Dodge an attack and strike back before they recover.",
+ "player_role": "n",
+ "opponent_role": "p",
+ "behaviour": "attack_only",
+ "difficulty": "normal",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "dodge",
+   "type": "dodge_n",
+   "text": "Dodge 2 attacks",
+   "count": 2
+  },
+  {
+   "id": "counter",
+   "type": "counter_after",
+   "text": "Counter within 1.5 s of a dodge",
+   "after": "dodge",
+   "count": 2,
+   "window_ticks": 90
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "b06_dodge",
+  "b08_first_combo"
+ ]
+}

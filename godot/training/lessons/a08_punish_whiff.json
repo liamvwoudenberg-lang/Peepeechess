@@ -1,0 +1,32 @@
+{
+ "id": "a08_punish_whiff",
+ "category": "advanced",
+ "order": 8,
+ "title": "Punishing misses",
+ "summary": "Make the Bishop miss, then punish 3 times.",
+ "player_role": "r",
+ "opponent_role": "b",
+ "behaviour": "attack_only",
+ "difficulty": "hard",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "punish",
+   "type": "punish",
+   "text": "Punish 3 openings",
+   "count": 3
+  }
+ ],
+ "fail": [
+  {
+   "type": "damage_fraction",
+   "fraction": 0.9
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "i03_punish_recovery"
+ ]
+}

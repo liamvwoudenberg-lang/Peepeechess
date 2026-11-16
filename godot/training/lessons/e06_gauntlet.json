@@ -1,0 +1,31 @@
+{
+ "id": "e06_gauntlet",
+ "category": "expert",
+ "order": 6,
+ "title": "Difficult matchup",
+ "summary": "King against an Expert Queen: win with the counter.",
+ "player_role": "k",
+ "opponent_role": "q",
+ "behaviour": "normal",
+ "difficulty": "expert",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "a05_king_vs_queen"
+ ]
+}

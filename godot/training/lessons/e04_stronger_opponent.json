@@ -1,0 +1,31 @@
+{
+ "id": "e04_stronger_opponent",
+ "category": "expert",
+ "order": 4,
+ "title": "Beat a stronger fighter",
+ "summary": "A Pawn against a Hard Queen: use every defence.",
+ "player_role": "p",
+ "opponent_role": "q",
+ "behaviour": "normal",
+ "difficulty": "hard",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "e01_hard_duel"
+ ]
+}

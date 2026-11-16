@@ -1,0 +1,41 @@
+{
+ "id": "a06_cancel",
+ "category": "advanced",
+ "order": 6,
+ "title": "Animation cancelling",
+ "summary": "Cancel an attack's recovery with a dodge.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "normal",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "cancel",
+   "type": "cancel",
+   "text": "Cancel 3 attacks into a dodge",
+   "count": 3
+  },
+  {
+   "id": "hits",
+   "type": "hit_count",
+   "text": "Land 2 hits",
+   "count": 2
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 80
+  }
+ ],
+ "rating": {},
+ "hints": [
+  "After the swing's cancel point you can dodge, parry or use your ability instead of waiting."
+ ],
+ "requires": [
+  "b08_first_combo",
+  "b06_dodge"
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "id": "e03_combo_pressure",
+ "category": "expert",
+ "order": 3,
+ "title": "Combos under pressure",
+ "summary": "Land a 3-hit combo against a Hard Rook, then win.",
+ "player_role": "q",
+ "opponent_role": "r",
+ "behaviour": "normal",
+ "difficulty": "hard",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "combo",
+   "type": "combo",
+   "text": "Land a 3-hit combo",
+   "count": 3
+  },
+  {
+   "id": "win",
+   "type": "win",
+   "text": "Win the duel"
+  }
+ ],
+ "fail": [
+  {
+   "type": "time_limit",
+   "seconds": 88
+  }
+ ],
+ "rating": {},
+ "hints": [],
+ "requires": [
+  "a04_queen_vs_king"
+ ]
+}

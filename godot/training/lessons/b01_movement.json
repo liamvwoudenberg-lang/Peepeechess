@@ -1,0 +1,33 @@
+{
+ "id": "b01_movement",
+ "category": "beginner",
+ "order": 1,
+ "title": "Movement",
+ "summary": "Walk and sprint around the arena. Stay on the stone floor and keep your distance.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "walk",
+   "type": "move_distance",
+   "text": "Walk 8 metres",
+   "meters": 8
+  }
+ ],
+ "fail": [],
+ "rating": {
+  "silver": {
+   "max_seconds": 14
+  },
+  "gold": {
+   "max_seconds": 9
+  }
+ },
+ "hints": [
+  "Move with the left stick / WASD. Sprinting costs stamina."
+ ]
+}

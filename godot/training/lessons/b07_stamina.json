@@ -1,0 +1,27 @@
+{
+ "id": "b07_stamina",
+ "category": "beginner",
+ "order": 7,
+ "title": "Stamina and recovery",
+ "summary": "Empty your stamina with attacks, then back off and let it recover.",
+ "player_role": "p",
+ "opponent_role": "p",
+ "behaviour": "idle",
+ "difficulty": "easy",
+ "arena": "stone-v1",
+ "attacker": "player",
+ "objectives": [
+  {
+   "id": "cycle",
+   "type": "stamina_cycle",
+   "text": "Drop below 30% stamina, then recover to 90%",
+   "drain_below": 0.3,
+   "recover_above": 0.9
+  }
+ ],
+ "fail": [],
+ "rating": {},
+ "hints": [
+  "Stamina does not recover while you act. Stop attacking and wait."
+ ]
+}

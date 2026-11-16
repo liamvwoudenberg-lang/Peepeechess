@@ -11,7 +11,7 @@ const Balance := preload("res://combat/data/balance_data.gd")
 ## window, 12 x 1.25 riposte ...). Those suites run under this override, which restores the frame data they were written for, so they
 ## keep proving the MECHANICS; the suites below run on the data as shipped, and the pacing suite pins what the shipped pacing changed.
 const RAW_PACING_PATCH := "res://combat/tests/raw_pacing.json"
-const SHIPPED_DATA_SUITES := ["balance", "attacker_edge", "pacing", "anim_integrity", "soak", "world", "pit_climb", "overlay", "world_assets", "assets", "polish", "contracts"]
+const SHIPPED_DATA_SUITES := ["balance", "attacker_edge", "pacing", "training", "ai_difficulty", "anim_integrity", "soak", "world", "pit_climb", "overlay", "world_assets", "assets", "polish", "contracts"]
 const SUITES: Dictionary = {
 	"components": "res://combat/tests/test_components.gd",
 	"contracts": "res://combat/tests/test_contracts.gd",
@@ -30,6 +30,8 @@ const SUITES: Dictionary = {
 	"matchups": "res://combat/tests/test_matchups.gd",
 	"attacker_edge": "res://combat/tests/test_attacker_edge.gd",
 	"pacing": "res://combat/tests/test_pacing.gd",
+	"training": "res://combat/tests/test_training.gd",
+	"ai_difficulty": "res://combat/tests/test_ai_difficulty.gd",
 	"paladins": "res://combat/tests/test_paladins.gd",
 	"paladin_board": "res://combat/tests/test_paladin_board.gd",
 	"net": "res://combat/tests/test_net.gd",
