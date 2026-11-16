@@ -83,3 +83,16 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 - [ ] Signing: Android upload key + Play App Signing, Windows Authenticode -> A4.
 - [ ] Store listings, privacy policy, human playtests and balance sign-off, listen to the audio -> A5/A6/B6.
 - [ ] Download Kinemiq/free-game-animations if wanted (container cannot reach Hugging Face).
+
+## Improvement backlog (user-approved 2026-11-16, in this order of work)
+### Feel and polish (biggest visible gains)
+- [ ] **Hit feedback**: hitstop, screen shake, camera punch-ins on heavy hits, impact sparks and layered impact sound per weapon hit (hit stun exists; the juice around it is thin).
+- [ ] **Animation**: hands on ladder rungs via IK (Godot 4.6 TwoBoneIK3D), ground-contact IK for the feet, proper block / parry / dodge / victory / defeat animations replacing the procedural ones; Kinemiq pack if the user downloads it.
+- [ ] **Audio**: listen-and-fix pass on generated music, impacts and UI sounds, plus a music slider in Settings.
+- [ ] **Cinematic moments**: camera sweep when a capture is declared, a victory screen, a short king-falls cutscene for checkmate duels.
+### Gameplay depth
+- [ ] **Piece identity in combat**: more distinct move sets (Knight charge, Bishop ranged strike, Rook guard-break) so pairings differ in feel, not only in numbers. Changes balance: recalibrate afterwards.
+- [ ] **Pacing**: Rook duels still run long; comeback mechanic or sudden-death phase. Changes balance: recalibrate afterwards.
+- [ ] **Pieces walking around each other**: castling and sliding moves currently walk straight over other pieces.
+- [ ] **Roguelike / campaign mode**: short campaign of scripted fights with unlockable pieces or arenas (builds on the training lessons).
+- [ ] **Variants**: bring the old web game's variants and analytics back as Battle Chess rule sets.
