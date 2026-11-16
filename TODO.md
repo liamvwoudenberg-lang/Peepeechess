@@ -86,10 +86,10 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 
 ## Improvement backlog (user-approved 2026-11-16, in this order of work)
 ### Feel and polish (biggest visible gains)
-- [ ] **Hit feedback**: hitstop, screen shake, camera punch-ins on heavy hits, impact sparks and layered impact sound per weapon hit (hit stun exists; the juice around it is thin).
+- [x] (merged `ccr-juice`; sweep/king-falls camera never rendered, legacy overlay has no sweep) **Hit feedback**: hitstop, screen shake, camera punch-ins on heavy hits, impact sparks and layered impact sound per weapon hit (hit stun exists; the juice around it is thin).
 - [x] (merged `ccr-anim-ik`; partly: block/defeat/hit-reaction unchanged, foot sliding only reduced, victory/dodge not looked at, nothing watched in motion) **Animation**: hands on ladder rungs via IK (Godot 4.6 TwoBoneIK3D), ground-contact IK for the feet, proper block / parry / dodge / victory / defeat animations replacing the procedural ones; Kinemiq pack if the user downloads it.
 - [x] (merged; measured only, still needs a human listen; `ONLINE UI` virtual-movement test is flaky) **Audio**: listen-and-fix pass on generated music, impacts and UI sounds, plus a music slider in Settings.
-- [ ] **Cinematic moments**: camera sweep when a capture is declared, a victory screen, a short king-falls cutscene for checkmate duels.
+- [x] (merged `ccr-juice`; needs a look in a real pit sequence and angle tuning) **Cinematic moments**: camera sweep when a capture is declared, a victory screen, a short king-falls cutscene for checkmate duels.
 ### Gameplay depth
 - [ ] **Piece identity in combat**: more distinct move sets (Knight charge, Bishop ranged strike, Rook guard-break) so pairings differ in feel, not only in numbers. Changes balance: recalibrate afterwards.
 - [ ] **Pacing**: Rook duels still run long; comeback mechanic or sudden-death phase. Changes balance: recalibrate afterwards.
