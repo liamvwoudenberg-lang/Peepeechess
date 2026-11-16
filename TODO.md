@@ -88,7 +88,7 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 ### Feel and polish (biggest visible gains)
 - [ ] **Hit feedback**: hitstop, screen shake, camera punch-ins on heavy hits, impact sparks and layered impact sound per weapon hit (hit stun exists; the juice around it is thin).
 - [ ] **Animation**: hands on ladder rungs via IK (Godot 4.6 TwoBoneIK3D), ground-contact IK for the feet, proper block / parry / dodge / victory / defeat animations replacing the procedural ones; Kinemiq pack if the user downloads it.
-- [ ] **Audio**: listen-and-fix pass on generated music, impacts and UI sounds, plus a music slider in Settings.
+- [x] (merged; measured only, still needs a human listen; `ONLINE UI` virtual-movement test is flaky) **Audio**: listen-and-fix pass on generated music, impacts and UI sounds, plus a music slider in Settings.
 - [ ] **Cinematic moments**: camera sweep when a capture is declared, a victory screen, a short king-falls cutscene for checkmate duels.
 ### Gameplay depth
 - [ ] **Piece identity in combat**: more distinct move sets (Knight charge, Bishop ranged strike, Rook guard-break) so pairings differ in feel, not only in numbers. Changes balance: recalibrate afterwards.
