@@ -204,7 +204,13 @@ func _build_meshy() -> bool:
 	disc.height = 0.4
 	disc.radial_segments = 48
 	base.mesh = disc
-	base.material_override = _stone_material(7.0, Color(0.3, 0.29, 0.28))
+	var base_material := _stone_material(7.0, Color(0.3, 0.29, 0.28))
+	var base_tex := load("res://assets/environment/stone_circle/Meshy_AI_Ancient_Stone_Circle_20261114_texture_0.png") as Texture2D
+	if base_tex != null:   # the ground between the circle and the wall wears the same weathered stone, not the dark procedural tile
+		base_material.albedo_texture = base_tex
+		base_material.albedo_color = Color(0.85, 0.82, 0.78)
+		base_material.uv1_scale = Vector3(3.0, 3.0, 3.0)
+	base.material_override = base_material
 	base.position = Vector3(0.0, -0.23, 0.0)   # top at -0.03: below the circle, so nothing is coplanar with it
 	add_child(base)
 	# (1) floor: the Ancient Stone Circle, 0.16 m thick, top face just above y = 0 (fighters stand on the simulation's y = 0 plane)
