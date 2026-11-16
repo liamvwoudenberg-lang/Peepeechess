@@ -447,6 +447,10 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	if edge != 1.0:
 		raw = maxi(1, roundi(float(raw) * edge))
 	var away_from_attacker := CombatConstants.flat(d.global_position - a.global_position)
+	if hit_stun_on:   # the game's rules (raw frame data, option attacker_edge:false, has none of these)
+		var identity := atk.range_mult(away_from_attacker.length()) * pacing_mult(a, d)
+		if identity != 1.0:
+			raw = maxi(1, roundi(float(raw) * identity))
 
 	# 1. Dodge invulnerability.
 	if d.sm.iframes_active():
@@ -474,7 +478,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	# 4. Block: absorbs a frontal hit for stamina; not enough stamina breaks the guard.
 	if d.sm.guard_up() and d.faces_toward(a.global_position, float(d.profile["block_arc_deg"])):
 		var guard_cost := float(raw) * atk.guard_cost_mult * float(d.profile["block_cost_mult"])
-		if d.stamina.can_afford(guard_cost):
+		if d.stamina.can_afford(guard_cost) and not (atk.guard_break > 0 and hit_stun_on):
 			d.stamina.lose(guard_cost)
 			d.add_knockback(away_from_attacker, atk.knockback_m * 0.5)
 			_emit("block", a, d, 0)
@@ -508,6 +512,27 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		var ticks := roundi(float(atk.hitstun_ticks) * mult)
 		if ticks > 0:
 			d.sm.enter_staggered(ticks, "hit")
+
+
+## Pacing: a fighter far behind on health hits a little harder (comeback), and once the duel has run past `start_s` every blow
+## grows by `ramp_per_s` per second (sudden death), so a long Rook duel ends. Derived from the HP and the clock only, so it is
+## deterministic and needs nothing extra in a snapshot.
+func pacing_mult(a: FighterController, d: FighterController) -> float:
+	var rules := Balance.pacing()
+	var mult := 1.0
+	var comeback: Dictionary = rules["comeback"]
+	if d.health.ratio() - a.health.ratio() >= float(comeback["hp_gap"]):
+		mult *= float(comeback["damage_mult"])
+	var sudden: Dictionary = rules["sudden_death"]
+	var elapsed_s := float(CombatConstants.DURATION_TICKS - duration_remaining) / 60.0
+	if elapsed_s > float(sudden["start_s"]):
+		mult *= 1.0 + float(sudden["ramp_per_s"]) * (elapsed_s - float(sudden["start_s"]))
+	return mult
+
+
+## Sudden death is on (for the presentation: a warning toast / red edge).
+func sudden_death_active() -> bool:
+	return float(CombatConstants.DURATION_TICKS - duration_remaining) / 60.0 > float(Balance.pacing()["sudden_death"]["start_s"])
 
 
 ## The strength of a blow as the presentation should feel it: the HP it removed, scaled back by the duel-length scale, so the hit

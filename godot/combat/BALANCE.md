@@ -289,3 +289,19 @@ heavy x2.0, ability x1.5), so a fighter who was just hit cannot hit back at once
 than a quick one (about 0.27 s). The stagger immunity that follows prevents stun-locking. Raw frame data (`attacker_edge:false`) has no
 stun, so the exact-trade tests are unchanged. Because stun shifts every matchup toward the attacker, the attacker table must be
 recalibrated (`edge_calibrate.gd rule=initiative`); the queen gate in `test_attacker_edge.gd` fails until that is done.
+
+## Piece identity and pacing (2026-11-16)
+All data in `balance_v1.json` (counted in the tuning stamp) plus three small rules in `CombatSimulation._apply_hit`; none is applied to raw frame
+data (`attacker_edge:false`), and every one is derived from HP, the clock and the two fighters' positions only, so duels stay deterministic and
+snapshots / the online wire format are unchanged (ability ids, action ids and timings of the contract are the same; the Knight lunge is still 72 ticks).
+- **Knight** - Lunging Strike is a telegraphed charge: longer wind-up (0.52), a 4.2 m armoured run, no cancel and 24 ticks of recovery, so a blocked
+  or dodged lunge is punishable.
+- **Bishop** - the heavy is a beam: reach x2.0, 26 degree arc, wind-up 0.6, damage grows to x1.3 beyond 2 m (`far_m`/`far_mult`); the light chain is
+  weaker up close (x0.8 inside 1.1 m, `near_m`/`near_mult`). The bot fires the beam from range.
+- **Rook** - the heavy is a guard-break (`guard_break: 1`): a blocked hit always breaks the guard (chip damage, guard-break stun), it is rooted (no
+  forward motion) and slower (wind-up 0.64). The bot answers a blocking opponent with it.
+- **Queen / Pawn** - unchanged toolkit (Royal Fury combo of five; Last Stand surge at 35% HP).
+- **Comeback** - `pacing.comeback`: a fighter whose HP ratio is 0.4 or more below the opponent's hits x1.12 harder.
+- **Sudden death** - `pacing.sudden_death`: after 40 s every blow grows by 4% per second more (x3 at the 90 s limit), so Rook mirrors and other long
+  duels end. `CombatSimulation.sudden_death_active()` is there for a presentation warning.
+Tests: `piece_identity` suite. The attacker table was recalibrated after this change (see the section above and `edge_calibrate.gd`).

@@ -107,3 +107,9 @@ Proposed handshake for the next contract version (not implemented, needs a Codex
 
 Not covered: real devices, real mobile/Wi-Fi networks, NAT rebinding, bandwidth limits, Windows/Android crossplay, clock drift over long
 matches, more than 150 ms RTT in the lockstep suites (120 ms + 2% loss end-to-end).
+
+## Piece identity and pacing rules (2026-11-16, additive, no wire change)
+The new rules (range-scaled damage, guard-break, comeback, sudden death) live in the authoritative `CombatSimulation` and are derived from HP, the
+clock and positions, so a client that predicts with the same `balance-v1` data reproduces them and the snapshot carries nothing new. Clients must run
+the same tuning data: the tuning stamp (`balance-v1:<hash>`) changed, which is exactly what the proposed contract v2 handshake (see "Mixed-version /
+tuning safety within v1") is for. HANDOFF (Codex-owned): the contract v2 handshake should refuse a peer whose stamp differs; nothing else changes.

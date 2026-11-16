@@ -68,7 +68,7 @@ static func _defaults(h) -> void:
 	h.eq(AttackLibrary.ability_attack("n", "lunging-strike").absolute_ticks, 72, "lunge length")
 	h.eq(AttackLibrary.for_role("q")["light"].size(), 5, "queen has five light links (royal fury)")
 	h.eq(AttackLibrary.light("q", 4).id, "queen.light.5", "queen link 5")
-	h.eq(AttackLibrary.heavy("r").armor_end, 0.7, "rook heavy armour end")
+	h.eq(AttackLibrary.heavy("r").armor_end, 0.76, "rook heavy armour end (the slower guard-breaking heavy: piece identity 2026-11-16)")
 	h.eq(AttackLibrary.for_role("p")["abilities"], {}, "pawn has no attack ability")
 	var d := AbilityComponent.DEFINITIONS
 	h.eq(d["last-stand"]["buff_ticks"], 300, "last stand lasts 300 ticks")

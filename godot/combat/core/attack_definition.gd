@@ -39,6 +39,14 @@ enum Phase { STARTUP, ACTIVE, RECOVERY }
 ## Multiplier on the stamina a blocker pays to absorb this attack.
 @export var guard_cost_mult: float = 1.0
 @export var knockback_m: float = 0.3
+## Piece identity. A blocked hit of a guard-breaking attack (Rook) always breaks the guard (1 = on).
+@export var guard_break: int = 0
+## Damage by distance: inside `near_m` the blow is scaled toward `near_mult` (a Bishop is weak up close); beyond `far_m` it grows
+## toward `far_mult` over one metre (a Bishop's beam bites at range). 0 = off. Distance is between the fighters' centres.
+@export var near_m: float = 0.0
+@export var near_mult: float = 1.0
+@export var far_m: float = 0.0
+@export var far_mult: float = 1.0
 
 @export var forward_motion_m: float = 0.0
 @export_range(0.0, 1.0) var motion_start: float = 0.0
@@ -87,6 +95,15 @@ func forward_speed(tick: int, total: int) -> float:
 	if tick < first or tick >= last:
 		return 0.0
 	return forward_motion_m / (float(last - first) * CombatConstants.DT)
+
+
+## The distance multiplier of this blow (1.0 when neither curve is set). Deterministic in the fighters' flat distance.
+func range_mult(distance: float) -> float:
+	if near_m > 0.0 and distance < near_m:
+		return lerpf(near_mult, 1.0, clampf(distance / near_m, 0.0, 1.0))
+	if far_m > 0.0 and distance > far_m:
+		return lerpf(1.0, far_mult, clampf(distance - far_m, 0.0, 1.0))
+	return 1.0
 
 
 func has_armor_at(tick: int, total: int) -> bool:
