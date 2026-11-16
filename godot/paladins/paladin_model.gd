@@ -21,6 +21,19 @@ const TEXTURE_MAX_SIZE := 1024
 const GLB_CLIPS := {"walk": "Walking", "run": "Running", "slash": "Charged_Slash", "climb": "Fast_Ladder_Climb", "casual_walk": "Casual_Walk"}
 ## Ground speed (m/s at SOURCE_HEIGHT) the walk and run clips are foot-locked at; scaled by height / SOURCE_HEIGHT.
 const NOMINAL_SPEED := {"walk": 1.35, "run": 3.6}
+## The ground speed each role's stance foot actually travels at in the Walking / Running clips (m/s at SOURCE_HEIGHT), measured by
+## godot/combat/tools/paladin_stride_fit.gd. Playing a clip at ground speed / this value keeps the planted foot still on the ground (the old
+## shared constants above made the feet skate by 10-30%; they remain as the fallback for an unknown role).
+const STANCE_SPEED := {
+	"p": {"walk": 0.94, "run": 2.66}, "n": {"walk": 1.16, "run": 2.55}, "b": {"walk": 1.28, "run": 2.66},
+	"r": {"walk": 1.16, "run": 2.54}, "q": {"walk": 1.40, "run": 2.99}, "k": {"walk": 1.22, "run": 2.66}}
+
+
+## Stance speed of `clip` ("run" or anything else = walk) for `role` at SOURCE_HEIGHT.
+static func stance_speed(role_code: String, clip: String) -> float:
+	var key := "run" if clip == "run" else "walk"
+	var table: Dictionary = STANCE_SPEED.get(role_code, {})
+	return float(table.get(key, NOMINAL_SPEED[key]))
 
 static var _templates: Dictionary = {}   # "role_side" -> Node3D (never in the tree)
 static var _textures: Dictionary = {}
@@ -196,5 +209,5 @@ func play(clip: String, speed: float = 1.0, blend: float = 0.15) -> void:
 
 ## Playback speed that keeps the feet on the ground while the piece moves at `metres_per_second`.
 func locomotion_speed(clip: String, metres_per_second: float) -> float:
-	var nominal: float = float(NOMINAL_SPEED.get(clip, 1.0)) * height / SOURCE_HEIGHT
+	var nominal: float = (stance_speed(role, clip) if clip in ["walk", "run"] else 1.0) * height / SOURCE_HEIGHT
 	return metres_per_second / maxf(nominal, 0.01)
