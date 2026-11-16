@@ -9,7 +9,45 @@ const Rules := preload("res://chess/chess_engine.gd")
 
 
 static func run(h, tree: SceneTree) -> void:
+	_planner(h)
 	await _board(h, tree)
+
+
+static func _planner(h) -> void:
+	h.begin("path planner: walkers go around occupied squares, end exactly on the goal, and the route is deterministic")
+	var P := PiecePathPlanner
+	var from := Interaction.world_position(0)    # a1
+	var to := Interaction.world_position(7)      # h1: a rook slide along the first rank
+	# a clear board: one straight leg
+	var clear: Array[Vector3] = P.plan(from, to, [])
+	h.eq(clear.size(), 1, "a clear board gives a single straight leg")
+	h.check(clear[0].is_equal_approx(to), "the straight leg ends exactly on the goal")
+	# the whole rank is occupied between the endpoints (start squares of a back rank)
+	var blockers: Array = []
+	for at in range(0, 16):
+		blockers.append(Interaction.world_position(at))
+	var path: Array[Vector3] = P.plan(from, to, blockers)
+	h.check(path.size() > 1, "a blocked rank forces a detour (%d legs)" % path.size())
+	h.check(path[path.size() - 1].is_equal_approx(to), "the detour ends exactly on the goal square")
+	var inside := 0
+	var last := from
+	var flat: Array = []
+	for b in blockers:
+		if Vector2(b.x, b.z).distance_to(Vector2(from.x, from.z)) > 0.01 and Vector2(b.x, b.z).distance_to(Vector2(to.x, to.z)) > 0.01:
+			flat.append(Vector2(b.x, b.z))
+	for point in path:
+		for c in flat:
+			if P._segment_distance(Vector2(last.x, last.z), Vector2(point.x, point.z), c) < P.FOOTPRINT - 0.001:
+				inside += 1
+		last = point
+	h.eq(inside, 0, "no leg of the detour passes through an occupied square's footprint")
+	var again: Array[Vector3] = P.plan(from, to, blockers)
+	h.check(again == path, "the same inputs give the same route")
+	# a diagonal slide through a packed centre is also routed around
+	var diag: Array[Vector3] = P.plan(Interaction.world_position(2), Interaction.world_position(47), [Interaction.world_position(11), Interaction.world_position(20), Interaction.world_position(29), Interaction.world_position(38)])
+	h.check(diag[diag.size() - 1].is_equal_approx(Interaction.world_position(47)), "a blocked diagonal also ends on its goal (%d legs)" % diag.size())
+	# knights keep their L path and ignore blockers
+	h.eq(PaladinPiece.path_between("n", Interaction.world_position(6), Interaction.world_position(21), blockers).size(), 2, "knights keep the two-leg L even with blockers")
 
 
 static func _wait(tree: SceneTree, frames: int) -> void:

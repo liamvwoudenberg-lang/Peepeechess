@@ -215,6 +215,9 @@ func sync_state() -> void:
 	var longest := 0.0
 	var swaps: Array = []
 	var active: Array = []
+	var blockers: Array = []   # squares holding a piece once the move is made: walkers go around them
+	for q in state.pieces:
+		blockers.append(Interaction.world_position(Rules.index(q.square)))
 	for p in state.pieces:
 		var id: String = p.pieceId
 		active.append(id)
@@ -235,7 +238,7 @@ func sync_state() -> void:
 		var node = pieces[id]
 		if node is PaladinPiece:
 			if walk_ok and not node.position.is_equal_approx(target):
-				longest = maxf(longest, node.walk_along(PaladinPiece.path_between(_piece_roles[id], node.position, target), BoardTheme.anim_seconds(1.0)))
+				longest = maxf(longest, node.walk_along(PaladinPiece.path_between(_piece_roles[id], node.position, target, blockers), BoardTheme.anim_seconds(1.0)))
 			else:
 				node.position = target
 		elif animation_enabled and BoardTheme.anim_scale() > 0.0 and not fresh_match and not node.position.is_equal_approx(target):

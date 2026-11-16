@@ -85,7 +85,9 @@ static func _fit_footprint(m: PaladinModel) -> void:
 
 
 ## The corner of the L for a knight (the long leg first); every other move is one straight leg.
-static func path_between(role_code: String, from: Vector3, to: Vector3) -> Array[Vector3]:
+static func path_between(role_code: String, from: Vector3, to: Vector3, blockers: Array = []) -> Array[Vector3]:
+	if role_code != "n" and not blockers.is_empty():
+		return PiecePathPlanner.plan(from, to, blockers)   # sliders and castling walk AROUND the pieces in the way
 	var path: Array[Vector3] = []
 	if role_code == "n":
 		var d := to - from
