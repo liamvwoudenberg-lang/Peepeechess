@@ -26,6 +26,8 @@ var aspect := 1.6
 var flipped := false
 var animate := true
 var auto_advance := true
+## The capture sweep (see sweep_pose); also off whenever reduce motion is on.
+var sweep_enabled := true
 ## Perspective orbit (same defaults as the original 3D board).
 var yaw := 0.0
 var elevation := 0.88
@@ -302,7 +304,33 @@ func _eval(t: float) -> Dictionary:
 			return _descent(W.smooth(t))
 		State.RETURN_TO_CHESS:
 			return _return_path(t, _from)
-	return _lerp_pose(_from, pose_for(state), W.smooth(t))
+	var pose := _lerp_pose(_from, pose_for(state), W.smooth(t))
+	if state == State.CAPTURE_FOCUS and sweep_enabled and not _reduce_motion():
+		pose = sweep_pose(pose, t)
+	return pose
+
+
+## Capture sweep: while the camera zooms onto the contested tile it swings out to a low oblique angle and back, so the capture
+## reads as an event. Zero at both ends (the steady pose is untouched), bell shaped in between, and off with reduce motion.
+## Pure: depends only on the pose, t and the focus tile.
+const SWEEP_SIDE := 3.4   # metres the camera swings sideways at the peak
+const SWEEP_TILT := 0.85  # how far (0..1) the view tilts toward the tile at the peak
+
+func sweep_pose(pose: Dictionary, t: float) -> Dictionary:
+	var arc := sin(PI * clampf(t, 0.0, 1.0))
+	if arc <= 0.001:
+		return pose
+	var target := origin + focus_tile
+	var p: Vector3 = pose["p"]
+	var side := Vector3(1.0, 0.0, 0.0) * SWEEP_SIDE * arc
+	var swung := p + side
+	var look := Basis.looking_at((target - swung).normalized(), Vector3.UP).get_rotation_quaternion()
+	var q: Quaternion = (pose["q"] as Quaternion).slerp(look, arc * SWEEP_TILT)
+	return {"p": swung, "q": q, "fov": pose["fov"]}
+
+
+static func _reduce_motion() -> bool:
+	return ThirdPersonCamera.reduce_motion or preload("res://ui/theme/ui_prefs.gd").reduce_motion
 
 
 # ---- the dolly-zoom descent -----------------------------------------------------------------------

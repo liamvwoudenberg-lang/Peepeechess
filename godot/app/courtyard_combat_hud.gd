@@ -18,6 +18,7 @@ var _surface: Control
 var _damage: Array[Dictionary] = []
 var _last_event_id := 0
 var _result_age := -1.0
+var _victory_age := -1.0
 var _icon_textures: Array[Texture2D] = []
 
 
@@ -55,8 +56,44 @@ func show_result(text: String) -> void:
 
 func hide_result() -> void:
 	_result_age = -1.0
+	_victory_age = -1.0
 	if _result_label != null:
 		_result_label.visible = false
+	if _victory != null:
+		_victory.visible = false
+
+
+## The victory screen in the compact HUD: a centred, non-blocking card that holds for a few seconds over the pit, then fades.
+## (The application's own result card below the board stays the place for the buttons.)
+const VICTORY_HOLD := 3.6
+const VICTORY_FADE := 0.7
+
+func show_victory(info: Dictionary, reduce_motion: bool = false) -> void:
+	if _victory == null:
+		var center := CenterContainer.new()
+		center.name = "VictoryCenter"
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(center)
+		var panel := PanelContainer.new()
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.03, 0.04, 0.07, 0.82)
+		style.border_color = Color(0.85, 0.66, 0.35, 0.9)
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(8)
+		style.set_content_margin_all(18)
+		panel.add_theme_stylebox_override("panel", style)
+		center.add_child(panel)
+		_victory = VictoryCard.new()
+		_victory.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(_victory)
+	_victory.show_info(info, _view_width())
+	_victory.visible = true
+	_victory.get_parent().visible = true
+	_victory.get_parent().get_parent().visible = true
+	_victory_age = 0.0
+	_victory.play_in(reduce_motion)
 
 
 ## Event IDs are monotonic within one duel. Duplicate snapshots cannot duplicate damage.
@@ -111,6 +148,13 @@ func _process(delta: float) -> void:
 	var countdown := sim.phase == CombatSimulation.Phase.COUNTDOWN
 	_center_label.visible = countdown
 	_center_label.text = str(ceili(float(sim.countdown_remaining) / 60.0)) if countdown else ""
+	if _victory_age >= 0.0:
+		_victory_age += delta
+		var panel := _victory.get_parent() as Control
+		panel.modulate.a = clampf((VICTORY_HOLD + VICTORY_FADE - _victory_age) / VICTORY_FADE, 0.0, 1.0)
+		if _victory_age >= VICTORY_HOLD + VICTORY_FADE:
+			_victory_age = -1.0
+			panel.get_parent().visible = false
 	if _result_age >= 0.0:
 		_result_age += delta
 		_result_label.modulate.a = clampf((1.4 - _result_age) * 3.0, 0.0, 1.0)

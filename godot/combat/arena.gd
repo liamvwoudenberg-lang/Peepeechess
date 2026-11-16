@@ -273,6 +273,11 @@ func _on_finished(result: Dictionary) -> void:
 		var reasons := {"knockout": "Knockout", "timeout_hp": "Time - more health remaining", "timeout_tie": "Time - tie goes to the defender", "double_knockout": "Double knockout - defender holds"}
 		var who := "%s (%s)" % [FighterRoster.display_name(winner.role), "White" if winner.color == "w" else "Black"] if winner != null else "?"
 		hud.show_result("%s wins\n%s\n(attacker HP %d, defender HP %d)" % [who, reasons.get(result["reason"], result["reason"]), int(result["attackerHp"]), int(result["defenderHp"])])
+		var attacker_f := sim.attacker()
+		var defender_f := sim.defender()
+		if attacker_f != null and defender_f != null:   # the victory screen replaces the plain headline
+			var side := func(f) -> Dictionary: return {"role": f.role, "color": f.color, "max_hp": f.health.maximum}
+			hud.show_victory(VictoryCard.info_for(result, side.call(attacker_f), side.call(defender_f), FighterRoster.display_name), CombatVfx.reduce_motion or ThirdPersonCamera.reduce_motion)
 	if vfx != null and is_instance_valid(vfx):
 		vfx.on_result(result)  # winner victory pose / loser defeat pose / finish camera
 	if audio != null and is_instance_valid(audio) and mode == Mode.PRESENTATION and audio.has_method("on_battle_finished"):

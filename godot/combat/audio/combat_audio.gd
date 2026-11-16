@@ -383,12 +383,30 @@ func on_event(event: Dictionary) -> void:
 	_play(sound, where, pitch)
 	# Layering (same sample library, different pitch): a heavy blow and a guard break get a low body thud under the
 	# impact, a parry gets a high, short ring over it. Rate limits and voice caps still apply per sound.
+	if type == "hit":
+		_layer_weighty_hit(event, sound, where)
 	if type == "hit" and sound.ends_with("heavy") and has_sound("stagger"):
 		_play("stagger", where, 0.78)
 	elif type == "guardbreak" and has_sound("stagger"):
 		_play("stagger", where, 0.7)
 	elif type == "parry" and has_sound("block"):
 		_play("block", where, 1.7)
+
+
+## Extra layers under the main impact for the heaviest blows, from the existing sample library only (pitch changes, no new ids):
+## an ability hit adds a low guard-break crack, the knockout blow adds a deep thud and a slow metallic ring.
+func _layer_weighty_hit(event: Dictionary, _sound: String, where: Vector3) -> void:
+	if sim == null or not is_instance_valid(sim) or not sim.has_method("fighter_by_id"):
+		return
+	var actor = sim.fighter_by_id(String(event.get("actorPlayerId", "")))
+	var target = sim.fighter_by_id(String(event.get("targetPlayerId", "")))
+	if actor != null and actor.sm.attack != null and actor.sm.attack.kind == AttackDefinition.Kind.ABILITY and has_sound("guard_break"):
+		_play("guard_break", where, 1.15)
+	if target != null and not target.health.is_alive():
+		if has_sound("stagger"):
+			_play("stagger", where, 0.6)
+		if has_sound("parry"):
+			_play("parry", where, 0.55)
 
 
 func _on_finished(result: Dictionary) -> void:
