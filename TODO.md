@@ -59,3 +59,27 @@ Everything below was only tested headless or in software rendering; nothing has 
 - [ ] Oracle Always Free deployment (branch deploy/oracle-always-free): server exports, systemd, deploy workflow with rollback, hourly A1 provisioning; ask before creating any infrastructure.
 - [ ] Multiplayer test flakes; Android crash investigation (suspected texture memory); Kinemiq animations (needs the user to download the dataset).
 - [ ] Builds: confirm the latest Windows exe (`latest-windows` release) and Android apk (`latest-android`) were produced from the newest commit; never run on real devices.
+
+## Release plan (2026-11-16) - what is left to ship, split by who can do it
+Versions are bumped to 0.4.0-rc1 (Godot), 0.4.0 / code 4 (Android + Windows presets). Full gate and owner items: `docs/development/RELEASE_CHECKLIST.md`.
+
+Done by agents this session (all headless/software-GL tested only): Codex branches merged (castle menu, visual polish, design audit, implementation audit, paladin animation),
+Meshy arena + fortress courtyard, training mode + 4 AI levels (merged `5871e52`), Oracle deployment tooling (branch `deploy/oracle-always-free` `ca9ad53`), 2D-view battle fix, menu contrast.
+Running: attacker-table recalibration (scratchpad shards; finish with merge_edge.py --write, SHIPPED_STAMP, queen gate).
+
+**Agents can still do**
+- [ ] Recalibration result -> balance_v1.json, test_balance SHIPPED_STAMP, queen gate (in progress).
+- [ ] Full gate on the release candidate: `npm run lint`, `npm test`, `npm run build`, `npm run test:contracts`, `test:classic`, `test:battle` + Godot import/scene smoke (TOOLCHAIN.md).
+- [ ] Multiplayer test flakes (prediction 0.1 m check, `invalid:b-n` counter, DTLS ERROR line) -> A1.
+- [ ] Play page polish (old toggle buttons, queue spinner) -> B1; computer opponent in Battle (undo, auto start) -> B3.
+- [ ] Online duels use the older presentation and ignore AI levels -> A7/B4/B5 (contract change is Codex-owned).
+- [ ] Account policy features: password recovery, deletion, email verification (backend + UI) -> A5.
+- [ ] Crash reporting / log collection -> B9. CI Node-20 action bumps -> C4. Remove stale worktrees/branches -> C1/C3.
+- [ ] Trapdoor/pit-fall animation vs the new arena (needs a precise user report).
+
+**Needs the owner (cannot be done from this container)**
+- [ ] Real-device QA on Windows, Android (adb logcat for the exit-after-opening-screen report), controllers, touch -> A2.
+- [ ] Production services: PostgreSQL API + HTTPS, Oracle server go-live steps in `docs/deployment/ORACLE.md`, certificates -> A3.
+- [ ] Signing: Android upload key + Play App Signing, Windows Authenticode -> A4.
+- [ ] Store listings, privacy policy, human playtests and balance sign-off, listen to the audio -> A5/A6/B6.
+- [ ] Download Kinemiq/free-game-animations if wanted (container cannot reach Hugging Face).
