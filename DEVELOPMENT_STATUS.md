@@ -1,7 +1,69 @@
 # Peepeechess — development status
 
-Updated by Claude Code. Branch of record for combat/integration work: `ccr-a4637d6e-lypbb4` (PR #4). Codex branches
-(`codex/*`) are merged in through GitHub only; never edit another agent's worktree.
+## Playability-first milestone — 2026-11-15 (Codex, in progress)
+
+The [ordered TODO](IMPLEMENTATION_TODO.md) now puts a complete stable session and
+installed-APK evidence ahead of extra modes/social features. This pass starts
+from audit commit `45ae066` and preserves the separate visual draft PR #12.
+
+Computer-initiated captures now show a short preview and enter real combat
+automatically. Mobile human seats now use touch controls when no gamepad is
+assigned; unsupported two-human shared-touch setups are explained before Play.
+The local full-session smoke passed 33 checks across real menu/input, Classic,
+3D board, capture/combat/touch attack, validated settlement, pit return,
+continued chess, result and rematch. Routing/interruption and checker regressions
+also passed. Full regression and installed-APK CI are in progress; neither a
+desktop smoke nor an export is being reported as a working Android runtime.
+
+The new `android-runtime` job uses the normal exported debug APK on Android 15,
+real OS taps, per-stage screenshots, logs and the APK checksum. Physical-phone
+verification remains open. See [the Android guide](docs/application/ANDROID_RUNTIME.md).
+No combat-owned mechanics/assets changed; the newer arena/animation branch and
+the packet-loss recovery investigation remain separate open work.
+
+## Implementation audit — 2026-11-15 (Codex)
+
+Current audit baseline is integrated `main` at `ab7b118`; `develop` still points
+to `b4c6dab`. Work is isolated on `codex/implementation-audit`. The newer visual
+work in draft PR #12 (`b4ec83c`) was inspected and preserved separately.
+[IMPLEMENTATION_TODO.md](IMPLEMENTATION_TODO.md) records 20 findings, completion
+criteria, ownership/deployment dependencies and current validation.
+
+Fixed 3D/pit board colour-blind highlights (all three styles, check markers,
+live preference/style changes and listener teardown) and computer clock handling
+(bounded cosmetic delay/search, no animation wait in timed play, flag-fall
+admission before presentation). Added 30 board accessibility checks and eight
+asynchronous computer-clock checks. CI now runs the existing AI and royal gates.
+Full verification results are recorded in the implementation TODO after the run.
+The extended multiplayer run also exposed a validation bug: the hard-snap total
+includes catchups when prediction resumes after an action, but the test treated
+all of them as continuous prediction errors. The harness now measures those
+categories separately, retains the existing error limits and rejects genuine
+prediction failures in a Node regression. This does not close the separate
+lossy-input/timing investigations. The real account/application integration
+passed, including persistence, outages and friend challenges.
+Final verification: lint, `npm test` (88 Node cases passed, one local PostgreSQL
+case skipped; all native combat/UI suites passed), build, contracts, Classic,
+Battle, royal, AI and application passed. The standalone online-combat quick
+profile passed all six fights. The complete `test:multiplayer` gate remains red:
+the final run lost White's connection recovery during duel two under 10% loss
+and ended at ply 5 with disconnect timeout. This stays open as I04; no recovery
+threshold was relaxed. The draft PR is not a claim of release readiness.
+
+[Draft PR #13](https://github.com/liamvwoudenberg-lang/Peepeechess/pull/13)
+publishes the audit and fixes. The
+[Windows prerelease](https://github.com/liamvwoudenberg-lang/Peepeechess/releases/tag/audit-2026-11-15-a8c6ea4)
+contains the gameplay fixes from `a8c6ea4` (subsequent changes are validation/docs).
+Linux package, static PE/PCK and headless Windows-runner smoke passed in
+[the release run](https://github.com/liamvwoudenberg-lang/Peepeechess/actions/runs/43658895149).
+The executable was not committed and was never tested on a physical Windows PC.
+See `downloads/windows/LATEST.md` for exact hashes/downloads.
+No combat mechanics/assets changed. Hardware, public online services and the
+remaining TODO items are not claimed complete.
+
+The dated updates below are historical records. The former combat/integration
+branch of record was `ccr-a4637d6e-lypbb4` (PR #4, since merged). Integrate Codex
+branches through GitHub; never edit another agent's worktree.
 
 ## Design decision of record (project owner, 2026-11-11)
 

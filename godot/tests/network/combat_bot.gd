@@ -160,6 +160,9 @@ func _collect(net) -> Dictionary:
 	var out = {"stats": net.stats.duplicate(), "rttTicksEstimate": net.rtt_estimate_ticks(), "clockOffset": net.clock_offset}
 	out["corrections"] = {"n": net.corrections.size(), "mean": _mean(net.corrections), "p95": _percentile(net.corrections, 0.95), "max": net.max_correction}
 	out["catchups"] = {"n": net.catchups.size(), "mean": _mean(net.catchups), "max": _percentile(net.catchups, 1.0)}
+	# hard_snaps includes resuming prediction after actions (including Blink).
+	# Continuous prediction corrections have their own maximum/mean and gates.
+	out["resumeHardSnaps"] = net.catchups.filter(func(distance): return distance > net.HARD_SNAP_ABOVE).size()
 	out["unacked"] = net.unacked_count()
 	return out
 

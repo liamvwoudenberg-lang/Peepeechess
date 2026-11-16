@@ -12,12 +12,25 @@ var presentation_enabled = true
 ## Set by the computer opponent (chess/ai/computer_opponent.gd): {color, seat: {type:"ai", skill, style, attacker_style}}. That colour is
 ## fought by CombatAI; the human then always uses seat 1's controls whichever colour they play. Empty = two humans.
 var computer_seat: Dictionary = {}
+const SHARED_TOUCH_NOTICE = "Two-player touch battles need two controllers. Choose Computer to play battles with the touchscreen."
+var prefer_touch = OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
 var arena: Node
 var _loading = false
 var _generation = 0
 var _host: Node
 var _request: Dictionary = {}
 var _codec = Codec.new()
+
+static func human_input_scheme(assigned: String, touch: bool) -> String:
+	return "touch" if touch and not assigned.begins_with("pad") else assigned
+
+static func local_controls_available(vs_computer: bool, touch: bool) -> bool:
+	if not touch or vs_computer:
+		return true
+	var assignment = InputAssignment.shared()
+	var first = assignment.scheme_for_slot(0)
+	var second = assignment.scheme_for_slot(1)
+	return first.begins_with("pad") and second.begins_with("pad") and first != second and assignment.is_slot_ready(0) and assignment.is_slot_ready(1)
 
 func available() -> bool:
 	return ResourceLoader.exists(scene_path, "PackedScene")
@@ -42,6 +55,8 @@ func check_request(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 		for participant in [request.attacker, request.defender]:
 			if not (profile.supports_role(participant.role) or (experimental and profile.is_experimental_role(participant.role))):
 				return {"ok": false, "code": "INVALID_PAYLOAD", "error": "Combat for %s is not implemented by the combat module yet. Cancel to return to the board." % {"p": "Pawn", "n": "Knight", "b": "Bishop", "r": "Rook", "q": "Queen", "k": "King"}[participant.role]}
+	if not local_controls_available(not computer_seat.is_empty(), prefer_touch):
+		return {"ok": false, "error": SHARED_TOUCH_NOTICE}
 	return {"ok": true}
 
 func begin_load(request: Dictionary, host: Node, options: Dictionary = {}) -> Dictionary:
@@ -103,7 +118,8 @@ func start(request: Dictionary, options: Dictionary = {}) -> Dictionary:
 				if participant.playerId == request.attacker.playerId:
 					seats[participant.playerId].style = computer_seat.seat.get("attacker_style", computer_seat.seat.get("style", "balanced"))
 			else:
-				seats[participant.playerId] = {"type": "human", "scheme": assignment.scheme_for_color("w" if not computer_seat.is_empty() else participant.color)}
+				var assigned = assignment.scheme_for_color("w" if not computer_seat.is_empty() else participant.color)
+				seats[participant.playerId] = {"type": "human", "scheme": human_input_scheme(assigned, prefer_touch)}
 		arena.call("configure_seats", seats)
 	for property in arena.get_property_list():
 		if property.name == "presentation_enabled":

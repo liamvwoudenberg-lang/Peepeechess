@@ -14,6 +14,7 @@ const OpeningScreen = preload("res://ui/opening/opening_screen.gd")
 const Icons = preload("res://ui/theme/ui_icons.gd")
 const SettingsPage = preload("res://ui/settings_page.gd")
 const FriendsPage = preload("res://ui/friends_page.gd")
+const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
 const INK = Tokens.BG
 const PAPER = Tokens.TEXT
@@ -89,6 +90,19 @@ func _ready() -> void:
 		var recent = Settings.result.duplicate(true)
 		Settings.result.clear()
 		Results.show_dialog(self, recent, func(): pass, func(): navigate("history"))
+	Input.joy_connection_changed.connect(_controllers_changed)
+	_start_debug_smoke()
+
+func _controllers_changed(_device: int, _connected: bool) -> void:
+	if page == "play" and selected_mode == "battle" and not online:
+		navigate("play")
+
+func _start_debug_smoke() -> void:
+	# Private debug-app trigger used by the APK verifier; release builds ignore it.
+	if OS.is_debug_build() and not Engine.has_meta("playability_smoke_started") and (FileAccess.file_exists("user://playability-smoke.request") or "--playability-smoke" in OS.get_cmdline_user_args()):
+		Engine.set_meta("playability_smoke_started", true)
+		var runner = load("res://app/diagnostics/playability_smoke.gd").new()
+		get_tree().root.add_child.call_deferred(runner)
 
 func _build_theme() -> void:
 	Kit.install(self)  # shared design-system theme (godot/ui/theme), press animation and UI sounds
@@ -329,11 +343,17 @@ func _play_page() -> void:
 		OpponentUI.build_computer_options(setup, opponent, func(): navigate("play"))  # level + colour pickers
 	if not online:
 		var vs_computer = opponent.kind == "computer"
-		_button(setup, ("Play the computer · " if vs_computer else "Start local ") + selected_mode.capitalize() + " Chess  →", start_local, true)
+		var touch = OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+		var controls_ready = selected_mode != "battle" or CombatAdapter.local_controls_available(vs_computer, touch)
+		var start = _button(setup, ("Play the computer · " if vs_computer else "Start local ") + selected_mode.capitalize() + " Chess  →", start_local, true)
+		start.disabled = not controls_ready
+		if not controls_ready:
+			start.tooltip_text = CombatAdapter.SHARED_TOUCH_NOTICE
+			_label(setup, CombatAdapter.SHARED_TOUCH_NOTICE, 15, GOLD)
 		_label(setup, "Play the computer at six levels; in Battle Chess it also fights your duels. No account required." if vs_computer else "Pass-and-play chess. Battle duels use two local control schemes; no account required.", 14, MUTED)
 		if selected_mode == "battle":  # claude/pads-input: who fights with what (change it in Settings -> Controls)
 			var seats = InputAssignment.shared()
-			_label(setup, "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
+			_label(setup, "Duel controls · touchscreen; a connected controller takes priority." if touch and vs_computer else "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
@@ -375,8 +395,13 @@ func launch_data() -> Dictionary:
 	return launch
 
 func start_local() -> void:
+	if selected_mode == "battle" and not CombatAdapter.local_controls_available(opponent.kind == "computer", OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()):
+		_message(CombatAdapter.SHARED_TOUCH_NOTICE)
+		return
 	Settings.launch = launch_data()
-	get_tree().change_scene_to_file("res://app/main.tscn")
+	# A real Button press is still being dispatched by the viewport here. Keep
+	# its controls in the tree until that input traversal has finished.
+	get_tree().change_scene_to_file.call_deferred("res://app/main.tscn")
 
 func _account_page() -> void:
 	_heading("One account. Every board.", "Use the same sign-in on Windows and Android. Your online profile, match history and ratings stay together.")

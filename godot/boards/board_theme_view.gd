@@ -5,6 +5,7 @@ extends RefCounted
 ## defensive: missing nodes are skipped, and the default theme ("slate") never overrides the board's own materials.
 const Models = preload("res://boards/piece_meshes.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
+const UiPrefs = preload("res://ui/theme/ui_prefs.gd")
 const PIECE_DIR = "res://assets/world/pieces/"
 const ROLE_NAMES = {"p": "pawn", "n": "knight", "b": "bishop", "r": "rook", "q": "queen", "k": "king"}
 
@@ -17,10 +18,16 @@ class Binder:
 		board = p_board
 	func _ready() -> void:
 		BoardTheme.events().changed.connect(_changed)
+		UiPrefs.add_listener(_preferences_changed)
 		BoardThemeView.apply_3d(board)
 	func _changed() -> void:
 		BoardThemeView.apply_3d(board)
+		_preferences_changed()
+	func _preferences_changed() -> void:
+		if is_instance_valid(board):
+			board.update_marks()
 	func _exit_tree() -> void:
+		UiPrefs.remove_listener(_preferences_changed)
 		if BoardTheme.events().changed.is_connected(_changed):
 			BoardTheme.events().changed.disconnect(_changed)
 
@@ -149,6 +156,8 @@ static func destination_3d(board, at: int, capture: bool) -> void:
 			board.marks.get_child(index).layers = 2
 
 static func _make_destination(board, at_position: Vector3, capture: bool) -> void:
+	var move_color = UiPrefs.move_highlight(Color(0.3, 0.9, 0.75))
+	var capture_color = UiPrefs.capture_highlight(Color(1, 0.83, 0.4))
 	match BoardTheme.highlight:
 		"rings":
 			var ring = TorusMesh.new()
@@ -157,11 +166,12 @@ static func _make_destination(board, at_position: Vector3, capture: bool) -> voi
 			ring.outer_radius = radius + 0.035
 			ring.rings = 32
 			ring.ring_segments = 6
-			Models.add(board.marks, ring, at_position, _mark_material(Color(1, 0.83, 0.4, 0.9) if capture else Color(0.3, 0.9, 0.75, 0.9)), Vector3(1, 0.2, 1))
+			Models.add(board.marks, ring, at_position, _mark_material(Color(capture_color if capture else move_color, 0.9)), Vector3(1, 0.2, 1))
 		"tint":
 			var tint = BoxMesh.new()
 			tint.size = Vector3(0.97, 0.012, 0.97)
-			Models.add(board.marks, tint, at_position, _mark_material(Color(0.95, 0.35, 0.3, 0.42) if capture else Color(0.25, 0.85, 0.65, 0.38)))
+			var tint_color = UiPrefs.capture_highlight(Color(0.95, 0.35, 0.3)) if capture else UiPrefs.move_highlight(Color(0.25, 0.85, 0.65))
+			Models.add(board.marks, tint, at_position, _mark_material(Color(tint_color, 0.42 if capture else 0.38)))
 		_:
 			var disc = CylinderMesh.new()
 			var disc_radius = 0.44 if capture else 0.17
@@ -169,4 +179,4 @@ static func _make_destination(board, at_position: Vector3, capture: bool) -> voi
 			disc.bottom_radius = disc_radius
 			disc.height = 0.012
 			disc.radial_segments = 32
-			Models.add(board.marks, disc, at_position, _mark_material(Color(0.3, 0.9, 0.75, 0.85)))
+			Models.add(board.marks, disc, at_position, _mark_material(Color(capture_color if capture else move_color, 0.85)))

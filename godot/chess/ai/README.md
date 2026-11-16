@@ -84,8 +84,10 @@ computer uses `aggressive` (verified against an idle human in `tests/ai/ai_comba
 
 ## Computer opponent behaviour
 
-- Plays after a seeded 0.5-0.9 s delay, shortened when animations are fast or off, and waits for `animation_busy` (board animation).
-- Clock: about 1/30 of the remaining time (+ half the increment), never more than the level budget; under 5 s it plays in <= 120 ms.
+- Plays after a seeded 0.5-0.9 s delay, shortened when animations are fast or off. Untimed games wait for `animation_busy` (board animation).
+- Clock: about 1/30 of the remaining time (+ half the increment), bounded by the level budget and one tenth of the remaining clock.
+  Below 5 s the search targets at most 120 ms; frame scheduling and search cancellation add overhead. Timed games cap the cosmetic delay
+  at the same budget and play without waiting for board animations. A ready move polls the clock before presentation work and cannot override flag fall.
 - Draw offers: accepts when its last score is <= -90 cp, or in a long (>= 80 plies) level game; otherwise declines. It claims a Classic
   threefold / fifty-move draw when not better than +20 cp. It resigns (Classic, level >= 3) after three consecutive moves at <= -1100 cp past
   move 30. Battle Chess draws: only the human's offer is answered; the computer never resigns there.

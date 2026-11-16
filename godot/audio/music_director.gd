@@ -400,10 +400,14 @@ static func to_stream(samples: PackedFloat32Array, looped: bool) -> AudioStreamW
 	stream.mix_rate = RATE
 	stream.stereo = false
 	stream.data = bytes
-	if looped:
+	if looped and samples.size() > 1:
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		stream.loop_begin = 0
-		stream.loop_end = samples.size()
+		# Godot 4.6.3's WAV mixer can decode loop_end inclusively. Match its
+		# WAV importer: the endpoint must be inside the PCM allocation, never
+		# one past it. The latter crashes Android's AudioTrack thread after a
+		# few loops (godotengine/godot#124849); desktop heaps can hide the read.
+		stream.loop_end = samples.size() - 1
 	return stream
 
 

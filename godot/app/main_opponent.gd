@@ -9,8 +9,60 @@ var selection: Dictionary = OpponentUI.default_state()
 var _section: VBoxContainer
 var _caption: Label
 var _dialog_box: VBoxContainer
+const COMPUTER_CAPTURE_PREVIEW_SECONDS = 2.0
+var _capture_game: BattleChessMatch
+var _capture_flow: BattleFlow
+var _capture_id = ""
+var _capture_remaining = 0.0
 ## king's last stand: the New game dialog's ruleset choice ({"royal": bool}, persisted by RoyalOption). Applied by apply_ruleset().
 var royal_state: Dictionary = {"royal": RoyalOption.load_choice()}
+
+func _init() -> void:
+	set_process(false)
+
+## A computer's capture is its committed intent: show the matchup briefly, then
+## use the same battle entry point as the player's button. Royal duels retain
+## their own mandatory sequence/banner. Local two-player previews stay manual.
+func prepare_capture(request: Dictionary, available: bool) -> void:
+	_clear_capture()
+	main.fight_button.text = "Start battle"
+	if not available or not computer.active or request.attacker.color != computer.ai_color or main.battle_flow.is_royal_duel():
+		return
+	_capture_game = main.game
+	_capture_flow = main.battle_flow
+	_capture_id = request.battleId
+	_capture_remaining = COMPUTER_CAPTURE_PREVIEW_SECONDS
+	main.battle_detail.text += "\n\nThe computer attacks. Battle starts automatically."
+	main.fight_button.text = "Fight now"
+	main.battle_cancel.hide()  # an opponent's move cannot be cancelled; New game / Menu still interrupt safely
+	set_process(true)
+
+func _clear_capture() -> void:
+	_capture_game = null
+	_capture_flow = null
+	_capture_id = ""
+	_capture_remaining = 0.0
+	set_process(false)
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(main) or main.is_queued_for_deletion() or not computer.active or main.game != _capture_game or not is_instance_valid(_capture_flow) or main.battle_flow != _capture_flow:
+		_clear_capture()
+		return
+	var pending = _capture_game.pending_request()
+	if _capture_flow.phase != "preview" or pending.get("battleId", "") != _capture_id or not _capture_game.engine.result.is_empty():
+		_clear_capture()
+		return
+	if _capture_game.paused:
+		return
+	_capture_remaining -= maxf(0.0, delta)
+	if _capture_remaining <= 0.0:
+		var can_start = not main.fight_button.disabled
+		_clear_capture()  # clear before starting: load/phase signals may re-enter the scene
+		if can_start:
+			main._start_battle_pressed()
+
+func _exit_tree() -> void:
+	_clear_capture()
 
 static func install(host: Control) -> MainOpponent:
 	var glue = MainOpponent.new()

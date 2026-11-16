@@ -619,6 +619,10 @@ func _capture_preview(request: Dictionary) -> void:
 	fight_button.disabled = not readiness.ok
 	if not readiness.ok:
 		fight_button.tooltip_text = str(readiness.error)
+	else:
+		fight_button.tooltip_text = ""
+	if opponent != null:
+		opponent.prepare_capture(request, readiness.ok)
 
 var _restore_2d_after_battle := false
 
