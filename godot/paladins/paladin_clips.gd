@@ -65,6 +65,21 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D, role: String =
 				if colon >= 0:
 					motion.track_set_path(i, NodePath(prefix + original.substr(colon + 1)))
 			var fallback := library.get_animation(clip_name)
+			if clip_name == "dodge":
+				# The roll tucks the sword arm across the torso and the blade passes through the body: keep the procedural, guard-carried arm.
+				for i in range(motion.get_track_count() - 1, -1, -1):
+					var bone_path := String(motion.track_get_path(i))
+					if bone_path.ends_with("RightArm") or bone_path.ends_with("RightForeArm") or bone_path.ends_with("RightHand") or bone_path.ends_with("RightShoulder"):
+						motion.remove_track(i)
+				# ...stretched over the whole roll (the procedural keys span 0.7 s; the pack's roll is longer)
+				var stretch := motion.length / maxf(fallback.length, 0.01)
+				for i in fallback.get_track_count():
+					var bone_path := String(fallback.track_get_path(i))
+					if bone_path.ends_with("RightArm") or bone_path.ends_with("RightForeArm") or bone_path.ends_with("RightHand") or bone_path.ends_with("RightShoulder"):
+						fallback.copy_track(i, motion)
+						var added := motion.get_track_count() - 1
+						for k in motion.track_get_key_count(added):
+							motion.track_set_key_time(added, k, motion.track_get_key_time(added, k) * stretch)
 			for i in fallback.get_track_count():
 				if motion.find_track(fallback.track_get_path(i), fallback.track_get_type(i)) < 0:
 					fallback.copy_track(i, motion)
@@ -265,12 +280,17 @@ static func _specs() -> Dictionary:
 	var guard := {"RArm": Vector3(-60, 0, -12), "RFore": Vector3(-105, 0, 0), "LArm": Vector3(-55, 0, 16), "LFore": Vector3(-100, 0, 0), "Spine": Vector3(8, 0, 0), "Head": Vector3(6, 0, 0),
 			"LUp": Vector3(-14, 0, 0), "LLeg": Vector3(22, 0, 0), "RUp": Vector3(10, 0, 0), "RLeg": Vector3(14, 0, 0)}
 	specs["block"] = {"len": 1.4, "keys": [_k(0.0, Vector3(0, -0.05, 0.02), guard), _k(0.7, Vector3(0, -0.06, 0.02), _mix(guard, {"Spine": Vector3(9.5, 1, 0)})), _k(1.4, Vector3(0, -0.05, 0.02), guard)]}
-	# --- parry: a sharp deflecting flick ----------------------------------------------------------------------------------------------
-	specs["parry"] = {"len": 0.7, "keys": [_k(0.0, z, {}), _k(0.12, Vector3(0, -0.04, 0.0), _mix(guard, {"RArm": Vector3(-50, 0, -60), "RFore": Vector3(-60, 0, 0)})),
-			_k(0.3, Vector3(0, -0.05, 0.08), _mix(guard, {"RArm": Vector3(-82, 0, 18), "RFore": Vector3(-20, 0, 0), "Spine": Vector3(4, 24, 0)})), _k(0.7, z, {})]}
+	# --- parry: anticipation (blade drawn back and out), a sharp cross-body deflection, overshoot, settle ----------------------------------------
+	var p_ready := _mix(guard, {"RArm": Vector3(-40, 0, -72), "RFore": Vector3(-70, 0, 0), "Spine": Vector3(2, -14, 0), "Spine2": Vector3(0, -8, 0), "LUp": Vector3(-8, 0, 0), "RUp": Vector3(12, 0, 0)})
+	var p_hit := _mix(guard, {"RArm": Vector3(-84, 0, 22), "RFore": Vector3(-18, 0, 0), "Spine": Vector3(5, 26, 0), "Spine2": Vector3(0, 12, 0), "Head": Vector3(0, 8, 0)})
+	var p_over := _mix(p_hit, {"RArm": Vector3(-76, 0, 34), "Spine": Vector3(4, 32, 0), "Spine2": Vector3(0, 15, 0)})
+	specs["parry"] = {"len": 0.7, "keys": [_k(0.0, z, {}), _k(0.1, Vector3(0, -0.03, -0.03), p_ready), _k(0.2, Vector3(0, -0.05, 0.08), p_hit), _k(0.28, Vector3(0, -0.05, 0.09), p_over),
+			_k(0.42, Vector3(0, -0.04, 0.05), _mix(guard, {"RArm": Vector3(-66, 0, 8), "Spine": Vector3(5, 10, 0)})), _k(0.7, z, {})]}
 	# --- dodge: duck low and lean away -----------------------------------------------------------------------------------------------
 	var duck := {"Spine": Vector3(28, 0, 0), "Spine2": Vector3(10, 0, 0), "Head": Vector3(-14, 0, 0), "LUp": Vector3(-62, 0, 0), "LLeg": Vector3(84, 0, 0), "RUp": Vector3(-48, 0, 0), "RLeg": Vector3(70, 0, 0),
 			"RArm": Vector3(-30, 0, 40), "LArm": Vector3(-30, 0, -40), "LFore": Vector3(-30, 0, 0), "RFore": Vector3(-30, 0, 0)}
+	duck["RArm"] = Vector3(-60, 0, -12)   # the sword arm carries the blade forward like a guard: a thigh raised in the crouch is then never in its way
+	duck["RFore"] = Vector3(-105, 0, 0)
 	specs["dodge"] = {"len": 0.7, "keys": [_k(0.0, z, {}), _k(0.18, Vector3(0, -0.34, -0.05), duck), _k(0.45, Vector3(0, -0.3, -0.05), duck), _k(0.7, z, {})]}
 	# --- stagger / hit reactions ----------------------------------------------------------------------------------------------------------
 	var stag := {"Spine": Vector3(-20, 0, 8), "Spine2": Vector3(-8, 0, 0), "Head": Vector3(-24, 6, 0), "LArm": Vector3(-20, 0, -48), "RArm": Vector3(-20, 0, 48), "LFore": Vector3(-30, 0, 0), "RFore": Vector3(-30, 0, 0),
@@ -286,8 +306,12 @@ static func _specs() -> Dictionary:
 	var down := {"Spine": Vector3(46, 0, 0), "Spine2": Vector3(16, 0, 0), "Head": Vector3(28, 0, 0), "LUp": Vector3(-96, 0, 6), "LLeg": Vector3(112, 0, 0), "RUp": Vector3(-72, 0, -8), "RLeg": Vector3(100, 0, 0),
 			"LArm": Vector3(10, 0, -34), "RArm": Vector3(10, 0, 34), "LFore": Vector3(-10, 0, 0), "RFore": Vector3(-10, 0, 0), "LFoot": Vector3(-20, 0, 0), "RFoot": Vector3(-20, 0, 0)}
 	specs["defeat"] = {"len": 1.1, "keys": [_k(0.0, z, {}), _k(0.28, Vector3(0, -0.28, -0.1), _mix(stag, {"LLeg": Vector3(50, 0, 0), "RLeg": Vector3(50, 0, 0)})), _k(1.1, Vector3(0, -0.66, -0.08), down)]}
-	var vic := {"RArm": Vector3(-30, 0, -150), "RFore": Vector3(-20, 0, 0), "LArm": Vector3(0, 0, -20), "Spine": Vector3(-6, 0, 0), "Head": Vector3(-10, 0, 0)}
-	specs["victory"] = {"len": 1.2, "keys": [_k(0.0, z, {}), _k(0.5, Vector3(0, 0.03, 0), vic), _k(1.2, Vector3(0, 0.02, 0), vic)]}
+	# victory: a settling breath, a small crouch (anticipation), then the sword arm thrown up with a little overshoot and held with a slow breath
+	var vic_crouch := {"Spine": Vector3(10, 0, 0), "Head": Vector3(8, 0, 0), "LUp": Vector3(-18, 0, 0), "LLeg": Vector3(30, 0, 0), "RUp": Vector3(-14, 0, 0), "RLeg": Vector3(24, 0, 0), "RArm": Vector3(-10, 0, -40), "RFore": Vector3(-30, 0, 0)}
+	var vic := {"RArm": Vector3(-34, 0, -150), "RFore": Vector3(-20, 0, 0), "LArm": Vector3(0, 0, -22), "Spine": Vector3(-6, 0, 0), "Head": Vector3(-10, 0, 0)}
+	var vic_over := _mix(vic, {"RArm": Vector3(-38, 0, -164), "Spine": Vector3(-9, 0, 0), "Head": Vector3(-14, 0, 0)})
+	specs["victory"] = {"len": 1.6, "keys": [_k(0.0, z, {}), _k(0.28, Vector3(0, -0.07, 0.0), vic_crouch), _k(0.62, Vector3(0, 0.04, 0.0), vic_over), _k(0.8, Vector3(0, 0.025, 0.0), vic),
+			_k(1.2, Vector3(0, 0.035, 0.0), _mix(vic, {"Spine": Vector3(-7, 0, 0)})), _k(1.6, Vector3(0, 0.025, 0.0), vic)]}
 	# --- pit: ladder ------------------------------------------------------------------------------------------------------------------------------
 	var up_a := {"RArm": Vector3(-160, 0, 16), "RFore": Vector3(-30, 0, 0), "LArm": Vector3(-105, 0, 26), "LFore": Vector3(-70, 0, 0), "LUp": Vector3(-70, 0, 0), "LLeg": Vector3(80, 0, 0), "RUp": Vector3(6, 0, 0), "Spine": Vector3(8, 0, 0)}
 	var up_b := {"LArm": Vector3(-160, 0, -16), "LFore": Vector3(-30, 0, 0), "RArm": Vector3(-105, 0, -26), "RFore": Vector3(-70, 0, 0), "RUp": Vector3(-70, 0, 0), "RLeg": Vector3(80, 0, 0), "LUp": Vector3(6, 0, 0), "Spine": Vector3(8, 0, 0)}

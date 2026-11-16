@@ -18,6 +18,7 @@ const LADDER_FIT := {"p": Vector2(0.17, 0.033), "n": Vector2(0.10, 0.004), "b": 
 ## Where the blade points in skeleton space (x < 0 = outward for the right hand): a little splay keeps it off the thigh and hip while walking.
 const SWORD_AIM := Vector3(-0.35, -0.3, 0.89)
 const STRIKE_CLIPS := ["light_1", "light_2", "light_3", "heavy"]
+var limb_ik: PaladinLimbIK
 
 
 static func wanted(role: String) -> bool:
@@ -32,7 +33,13 @@ func setup_free(role: String, _lod_level: int = 0, team: String = "w") -> bool:
 	model = body
 	add_child(model)
 	PaladinClips.ensure(body.player, body.skeleton, role)
+	_add_limb_ik(body, role)
 	_add_sword(body, team)
+	if limb_ik != null:
+		limb_ik.sword = body.skeleton.get_node_or_null("WeaponSocket_R/Sword")
+		limb_ik.sword_hand = body.skeleton.find_bone("mixamorig_RightHand")
+		if limb_ik.sword != null:
+			limb_ik.sword_rest = limb_ik.sword.transform.basis
 	_bind(team)
 	return true
 
@@ -93,8 +100,8 @@ func _blend(from_clip: String, to_clip: String) -> float:
 
 
 func _nominal_speed(clip: String) -> float:
-	var base: float = float(PaladinModel.NOMINAL_SPEED["run" if clip == "run" else "walk"])
-	return base * float(HEIGHTS.get(fighter.role if fighter != null else "p", 1.7)) / PaladinModel.SOURCE_HEIGHT
+	var role_code: String = fighter.role if fighter != null else (model as PaladinModel).role if model is PaladinModel else "p"
+	return PaladinModel.stance_speed(role_code, clip) * float(HEIGHTS.get(role_code, 1.7)) / PaladinModel.SOURCE_HEIGHT
 
 
 ## The Meshy climb advances 0.325442 m over its 0.733333 s source cycle.
@@ -165,6 +172,18 @@ func _add_sword(body: PaladinModel, team: String) -> void:
 	_part(sword, "Grip", Vector3(0.04, 0.04, 0.18), Vector3(0, 0, -0.04), gold)
 	_part(sword, "Pommel", Vector3(0.065, 0.065, 0.065), Vector3(0, 0, -0.14), gold)
 	_sockets["WeaponSocket_R"] = attachment
+
+
+## IK after the animation: hands on the rungs while climbing, feet on the floor (and held where they land) while walking or standing.
+func _add_limb_ik(body: PaladinModel, role: String) -> void:
+	var ik := PaladinLimbIK.new()
+	if ik.setup(body.skeleton, self, body.player):
+		var fit: Vector2 = LADDER_FIT.get(role, LADDER_FIT["p"])
+		ik.plane_z = WorldConstants.LADDER_Z - fit.x   # the pit's rungs, in the climber's frame (it stands at z = 0)
+		ik.half_width = WorldConstants.LADDER_HALF_WIDTH - 0.06
+		limb_ik = ik
+	else:
+		ik.free()
 
 
 func _part(parent: Node3D, part_name: String, size: Vector3, at: Vector3, material: Material) -> void:
