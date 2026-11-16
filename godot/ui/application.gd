@@ -53,7 +53,7 @@ var _topbar_holder: Control
 var _page_width: MarginContainer
 var _topbar_badge: Button
 var _backdrop: Control
-## The 3D castle behind the home page (built lazily when "home" is shown, freed when another page replaces it) and the
+## The 3D castle behind home and match setup (freed on other pages) and the
 ## opening-screen overlay that drives its camera while the first-launch intro plays (null otherwise).
 var scene3d: Node3D
 var intro: Control
@@ -208,9 +208,12 @@ func navigate(target: String) -> void:
 	account_badge = _topbar_badge
 	_topbar_holder.visible = page != "home"
 	notice.visible = page != "home"
-	if page != "home":
+	if page not in ["home", "play"]:
 		_release_scene3d()
-	_backdrop.mode = "scene" if page == "home" else "page"
+	elif page == "play":
+		_ensure_scene3d(1.0)
+		_backdrop.center_dim = 1.0
+	_backdrop.mode = "scene" if page in ["home", "play"] else "page"
 	_page_width.max_width = 4000.0 if page == "home" else 1120.0
 	_page_width.call("_fit")
 	page_scroll.scroll_vertical = 0
@@ -265,7 +268,7 @@ func _ensure_scene3d(blend: float) -> void:
 	move_child(scene3d, 0)
 	scene3d.call("build", Settings.quality, Motion.enabled(), blend)
 
-## Frees the castle (it renders nothing and costs nothing while another page is open; the next visit to home rebuilds it).
+## Frees the castle while a page without the scene is open; the next visit rebuilds it.
 func _release_scene3d() -> void:
 	if is_instance_valid(scene3d):
 		if scene3d.get_parent() != null:
@@ -307,18 +310,34 @@ func _message(text: String, error: bool = false) -> void:
 		_toast_clock = now
 		Kit.toast(self, text, "danger" if error else "info")
 
+## Keep the match options readable over the castle while echoing its gold trim.
+func _style_scene_card(panel: PanelContainer, selected: bool) -> void:
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	style = style.duplicate() as StyleBoxFlat
+	style.bg_color = Color(0.14, 0.105, 0.055, 0.93) if selected else Color(0.055, 0.065, 0.10, 0.93)
+	style.border_color = Tokens.GOLD if selected else Color(0.48, 0.38, 0.21, 0.8)
+	panel.add_theme_stylebox_override("panel", style)
+
+
 func _play_page() -> void:
 	_heading("Make your next move.", "Classic precision or a capture worth fighting for. Choose your game, then make it yours.")
+	for label in [title_label, subtitle_label]:
+		label.add_theme_color_override("font_outline_color", Color(0.02, 0.025, 0.05, 0.95))
+		label.add_theme_constant_override("outline_size", 5)
 	var modes = _flow(content)
 	for data in [["classic", "♜", "Classic Chess", "The complete game. Checkmate, clocks and every special move."], ["battle", "⚔", "Battle Chess", "Legal captures open a duel. The winner decides who stays."]]:
 		var selected: String = data[0]
 		var card = _card(modes)
 		card.get_parent().custom_minimum_size.x = 300
 		card.get_parent().theme_type_variation = "SelectedPanel" if selected_mode == selected else "CardPanel"
+		_style_scene_card(card.get_parent() as PanelContainer, selected_mode == selected)
 		Kit.icon_label_row(card, "rook" if selected == "classic" else "sword", data[2], "H2" if selected_mode == selected else "H3")
 		_label(card, data[3], 15, MUTED).custom_minimum_size = Vector2(260, 48)
 		_button(card, "Selected" if selected_mode == selected else "Choose " + data[2], func(): selected_mode = selected; navigate("play"), selected_mode == selected)
 	var setup = _card(content)
+	_style_scene_card(setup.get_parent() as PanelContainer, false)
 	_label(setup, "YOUR MATCH", 13, GOLD)
 	var row = _flow(setup)
 	_button(row, "Local · two players" + (" ✓" if not online and opponent.kind == "local" else ""), func(): online = false; opponent.kind = "local"; navigate("play"), not online and opponent.kind == "local")

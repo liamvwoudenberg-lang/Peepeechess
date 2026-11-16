@@ -11,6 +11,9 @@ extends CharacterModel
 static var prefer_paladins: bool = true
 ## Standing height per role (m); every supplied model is 1.7 m tall, so these only scale them.
 const HEIGHTS := {"p": 1.5, "n": 1.7, "b": 1.75, "r": 1.65, "q": 1.8, "k": 1.9}
+## Forward offset and rung-grid phase, fitted against the hands and feet of
+## the in-place Meshy climb at the role's actual height (metres).
+const LADDER_FIT := {"p": Vector2(0.17, 0.033), "n": Vector2(0.10, 0.004), "b": Vector2(0.15, -0.016), "r": Vector2(0.12, -0.041), "q": Vector2(0.15, -0.067), "k": Vector2(0.06, 0.088)}
 const STRIKE_CLIPS := ["light_1", "light_2", "light_3", "heavy"]
 
 
@@ -25,7 +28,7 @@ func setup_free(role: String, _lod_level: int = 0, team: String = "w") -> bool:
 		return false
 	model = body
 	add_child(model)
-	PaladinClips.ensure(body.player, body.skeleton)
+	PaladinClips.ensure(body.player, body.skeleton, role)
 	_add_sword(body, team)
 	_bind(team)
 	return true
@@ -89,6 +92,25 @@ func _blend(from_clip: String, to_clip: String) -> float:
 func _nominal_speed(clip: String) -> float:
 	var base: float = float(PaladinModel.NOMINAL_SPEED["run" if clip == "run" else "walk"])
 	return base * float(HEIGHTS.get(fighter.role if fighter != null else "p", 1.7)) / PaladinModel.SOURCE_HEIGHT
+
+
+## The Meshy climb advances 0.325442 m over its 0.733333 s source cycle.
+## Its in-place copy has the drift removed, so match playback to the rate at
+## which the pit moves the fighter, scaled to this model's standing height.
+func ladder_playback_speed(world_speed: float) -> float:
+	var body := model as PaladinModel
+	var height := body.height if body != null else PaladinModel.SOURCE_HEIGHT
+	var authored_speed := (0.325442 / 0.733333) * height / PaladinModel.SOURCE_HEIGHT
+	return world_speed / authored_speed
+
+
+## One source cycle advances each hand and foot by two rungs.
+func ladder_fit() -> Vector3:
+	var body := model as PaladinModel
+	var role := body.role if body != null else "p"
+	var height := body.height if body != null else PaladinModel.SOURCE_HEIGHT
+	var fit: Vector2 = LADDER_FIT.get(role, LADDER_FIT["p"])
+	return Vector3(0.325442 * height / PaladinModel.SOURCE_HEIGHT * 0.5, fit.y, fit.x)
 
 
 ## The strike pose of the authored clips sits at PaladinClips.STRIKE of the clip; the simulation opens the hit window at startup_end.

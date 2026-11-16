@@ -26,6 +26,9 @@ var quality := "high"
 var _built := false
 var _cone_materials: Array[StandardMaterial3D] = []
 var _ladder_deploy := 0.0
+var _ladder_pitch_scale := 1.0
+var _ladder_phase := 0.0
+var _ladder_inset := 0.0
 var _hole_center := Vector3.ZERO
 
 
@@ -52,6 +55,7 @@ func build() -> void:
 func activate() -> void:
 	build()
 	visible = true
+	configure_ladder(0.25, 0.0, 0.0)
 	set_light_shaft(0.0)
 	set_ladder(0.0)
 
@@ -227,7 +231,8 @@ func _build_ladder() -> void:
 	if not uses_ladder_asset:
 		var wood := Models.material(Color("6a4d30"))
 		var iron := Models.material(Color("3b3c40"), 0.6)
-		var length := W.BOARD_DEPTH
+		# Extra length remains below the floor when a shorter rung pitch is used.
+		var length := W.BOARD_DEPTH * 2.0 + 2.0
 		for side in [-1, 1]:
 			Models.box(ladder, Vector3(0.05, length, 0.05), Vector3(side * W.LADDER_HALF_WIDTH, -length * 0.5, 0), wood)
 		var y := 0.25
@@ -248,7 +253,7 @@ func _build_ladder_asset() -> bool:
 		return false
 	ladder.add_child(top.instantiate())
 	var bottom := -1.0
-	while bottom > -(W.BOARD_DEPTH + 0.04) + 0.05:
+	while bottom > -(W.BOARD_DEPTH * 2.0 + 2.0):
 		var part: Node3D = segment.instantiate()
 		part.position = Vector3(0, bottom - 2.0, 0)
 		ladder.add_child(part)
@@ -262,7 +267,18 @@ func set_ladder(amount: float) -> void:
 		return
 	_ladder_deploy = clampf(amount, 0.0, 1.0)
 	ladder.visible = _ladder_deploy > 0.001
-	ladder.scale = Vector3(1, maxf(_ladder_deploy, 0.001), 1)
+	ladder.scale = Vector3(1, maxf(_ladder_deploy, 0.001) * _ladder_pitch_scale, 1)
+	ladder.position.y = W.BOARD_DEPTH + _ladder_phase
+	ladder.position.z = W.LADDER_Z - _ladder_inset
+
+
+## The bundled ladder has 0.25 m rung spacing. Scale its vertical geometry to
+## the climber's measured stride while retaining its width and wall position.
+func configure_ladder(spacing: float, phase: float, inset: float) -> void:
+	_ladder_pitch_scale = clampf(spacing / 0.25, 0.5, 1.0)
+	_ladder_phase = phase
+	_ladder_inset = inset
+	set_ladder(_ladder_deploy)
 
 
 func ladder_deploy() -> float:

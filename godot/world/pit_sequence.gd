@@ -334,6 +334,9 @@ func _begin_climb() -> void:
 	_set_arena_overlays(false)
 	var visual := _winner_visual
 	if visual != null and is_instance_valid(visual):
+		if visual.has_method("ladder_fit"):
+			var fit: Vector3 = visual.call("ladder_fit")
+			world.chamber.configure_ladder(fit.x, fit.y, fit.z)
 		visual.set_process(false)
 		if visual.get_parent() != world.chamber:
 			visual.reparent(world.chamber, true)
@@ -471,7 +474,10 @@ func _climb_stage(stage: int, visual: Node3D) -> void:
 		return
 	if stage == 1:
 		if visual.has_method("has_clip") and visual.call("has_clip", "climb"):
-			visual.call("play_clip", "climb", W.CLIMB_SPEED / W.LADDER_CLIP_SPEED)
+			var speed := W.CLIMB_SPEED / W.LADDER_CLIP_SPEED
+			if visual.has_method("ladder_playback_speed"):
+				speed = visual.call("ladder_playback_speed", W.CLIMB_SPEED)
+			visual.call("play_clip", "climb", speed)
 		else:
 			visual.call("play_clip", "walk", 0.5)  # fallback: walk clip, slowed, while the model rises
 	elif stage == 2:

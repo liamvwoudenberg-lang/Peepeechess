@@ -1,8 +1,8 @@
 class_name PaladinClips
 extends RefCounted
 ## Procedural combat clips for the supplied paladin models (Mixamo skeleton, bones `mixamorig_<Name>`, A-pose, facing +Z).
-## The GLBs only carry Walking / Running (the Pawn also Charged_Slash and Fast_Ladder_Climb), so every other clip of the
-## CharacterModel contract is authored here as rotation keyframes and added to the model's AnimationPlayer once.
+## The GLBs carry Walking / Running (the Pawn also Charged_Slash and Fast_Ladder_Climb). Most remaining clips are authored
+## here; selected sword, defence and reaction clips use role-specific retargeted CC0 motion when available.
 ##
 ## Authoring space: every key lists rotation deltas in DEGREES in SKELETON space (x = the character's left, y = up, z = forward;
 ## about x: +ve tips "up" towards "forward", so a hanging arm raised forward is NEGATIVE x; about z: +ve lifts a LEFT arm outwards and
@@ -26,7 +26,7 @@ const LOOPING := ["idle", "walk", "run", "strafe_left", "strafe_right", "block",
 
 
 ## Adds every missing clip to `player` (shared by all instances of the same template). Safe to call repeatedly.
-static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
+static func ensure(player: AnimationPlayer, skeleton: Skeleton3D, role: String = "") -> void:
 	if player == null or skeleton == null:
 		return
 	var library: AnimationLibrary = player.get_animation_library("")
@@ -49,9 +49,33 @@ static func ensure(player: AnimationPlayer, skeleton: Skeleton3D) -> void:
 		var spec: Dictionary = specs[clip_name]
 		var anim := _build(ctx, spec["keys"], float(spec["len"]), clip_name in LOOPING)
 		library.add_animation(clip_name, anim)
+	# Retargeted motion is built for each role. Keep procedural tracks for bones
+	# the source does not animate, so transitions cannot leave a limb in its old pose.
+	var file_name: String = PaladinModel.FILES.get(role, "")
+	for clip_name in ["light_1", "idle", "block", "dodge", "hit_react_light", "hit_react_heavy", "defeat"]:
+		var path := "res://assets/paladins/animations/%s_%s.res" % [file_name, clip_name]
+		if file_name == "" or not ResourceLoader.exists(path):
+			continue
+		var source := load(path) as Animation
+		if source != null:
+			var motion: Animation = source.duplicate(true)
+			for i in motion.get_track_count():
+				var original := String(motion.track_get_path(i))
+				var colon := original.find(":")
+				if colon >= 0:
+					motion.track_set_path(i, NodePath(prefix + original.substr(colon + 1)))
+			var fallback := library.get_animation(clip_name)
+			for i in fallback.get_track_count():
+				if motion.find_track(fallback.track_get_path(i), fallback.track_get_type(i)) < 0:
+					fallback.copy_track(i, motion)
+			if clip_name in ["idle", "block"]:
+				for i in motion.get_track_count():
+					motion.track_set_interpolation_type(i, Animation.INTERPOLATION_CUBIC)
+			library.remove_animation(clip_name)
+			library.add_animation(clip_name, motion)
 	# The ladder climb is the Pawn GLB's own Fast_Ladder_Climb for EVERY role (the Mixamo skeletons share bone names; the other models
 	# only lack the finger bones, whose tracks simply find no bone). The body is slimmed a little while climbing to fit the 1 m shaft.
-	var glb_climb := _glb_climb(player)
+	var glb_climb := _glb_climb(player, skeleton)
 	if glb_climb != null:
 		if library.has_animation("climb"):
 			library.remove_animation("climb")
@@ -78,13 +102,15 @@ static func _alias(library: AnimationLibrary, to: String, source: String) -> voi
 
 
 ## The Pawn model's Fast_Ladder_Climb, re-pathed onto `player`'s skeleton (null when the Pawn model is not available).
-static func _glb_climb(player: AnimationPlayer) -> Animation:
+static func _glb_climb(player: AnimationPlayer, skeleton: Skeleton3D) -> Animation:
 	var source: Animation = null
+	var source_skeleton := skeleton
 	if player.has_animation("Fast_Ladder_Climb"):
 		source = player.get_animation("Fast_Ladder_Climb")
 	else:
 		var pawn := PaladinModel._template("p", "w")
 		var pawn_player := PaladinModel._first(pawn, "AnimationPlayer") as AnimationPlayer if pawn != null else null
+		source_skeleton = PaladinModel._first(pawn, "Skeleton3D") as Skeleton3D if pawn != null else null
 		if pawn_player != null and pawn_player.has_animation("Fast_Ladder_Climb"):
 			source = pawn_player.get_animation("Fast_Ladder_Climb")
 	if source == null:
@@ -104,10 +130,19 @@ static func _glb_climb(player: AnimationPlayer) -> Animation:
 			if count > 1:
 				var first: Vector3 = anim.track_get_key_value(i, 0)
 				var drift: Vector3 = (anim.track_get_key_value(i, count - 1) as Vector3) - first
+				var source_hips := source_skeleton.find_bone("mixamorig_Hips") if source_skeleton != null else -1
+				var target_hips := skeleton.find_bone("mixamorig_Hips")
+				var correction := Vector3.ZERO
+				if source_hips >= 0 and target_hips >= 0:
+					var source_rest := source_skeleton.get_bone_rest(source_hips).origin
+					var target_rest := skeleton.get_bone_rest(target_hips).origin
+					# The source is positioned off-centre in its original scene. Keep
+					# its vertical crouch relative to rest, but centre it on this rig.
+					correction = Vector3(target_rest.x - first.x, target_rest.y - source_rest.y, target_rest.z - first.z)
 				var length := maxf(anim.length, 0.001)
 				for k in count:
 					var value: Vector3 = anim.track_get_key_value(i, k)
-					anim.track_set_key_value(i, k, value - drift * (anim.track_get_key_time(i, k) / length))
+					anim.track_set_key_value(i, k, value + correction - drift * (anim.track_get_key_time(i, k) / length))
 	anim.loop_mode = Animation.LOOP_LINEAR
 	return anim
 

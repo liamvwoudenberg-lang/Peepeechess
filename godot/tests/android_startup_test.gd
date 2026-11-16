@@ -61,7 +61,7 @@ func run() -> void:
 		for page in pages:
 			shell.navigate(page)
 			await settle(2)
-			expect(shell.page == page and not is_instance_valid(shell.scene3d), "menu navigation releases the castle background")
+			expect(shell.page == page and (is_instance_valid(shell.scene3d) if page == "play" else not is_instance_valid(shell.scene3d)), "match setup keeps the castle; other pages release it")
 		shell.selected_mode = "classic"
 		Settings.preferred_3d = false
 		shell.start_local()

@@ -576,7 +576,7 @@ func _court() -> void:
 		var yaw := PI if entry[1] == "dark" else 0.0
 		yaw += _rng.randf_range(-0.12, 0.12)
 		var scale_value := 4.2
-		statues.append({"role": entry[0], "side": entry[1], "xf": Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * scale_value), Vector3(cx, 0.16, cz)), "lod": 1})
+		statues.append({"role": entry[0], "side": entry[1], "xf": Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * scale_value), Vector3(cx, 0.16, cz)), "lod": 1, "board_piece": true})
 
 func _exterior_statues() -> void:
 	# two giants guard the bridge head: the white king and the black knight, each on a stepped plinth with a brazier at its foot
