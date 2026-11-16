@@ -406,6 +406,7 @@ func _play_page() -> void:
 			var seats = InputAssignment.shared()
 			_label(setup, "Duel controls · touchscreen; a connected controller takes priority." if touch and vs_computer else "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
+	_friends_on_this_pc_card()   # host/join over the internet: no account needed
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
 		return
@@ -426,6 +427,42 @@ func _play_page() -> void:
 	_button(queue_actions, "Reconnect to allocated match", _poll_status)
 	if status.invite != null:
 		_button(queue_actions, "Copy invite " + str(status.invite.code), func(): DisplayServer.clipboard_set(str(status.invite.code)); _message("Invite code copied."))
+
+## Host a game on this PC / join a friend's invite (docs/application/HOSTING_GUIDE.md). Unranked, no account; the mode and time
+## control come from the options above.
+var host_color = "w"
+var host_invite_edit: LineEdit
+
+func _friends_on_this_pc_card() -> void:
+	var card = _card(content)
+	Kit.section_header(card, "PLAY A FRIEND OVER THE INTERNET · NO ACCOUNT", "cloud")
+	_label(card, "Host the game on your PC, then send the invite to your friend. It uses the mode and time control chosen above and is never ranked.", 14, MUTED)
+	Kit.segmented(card, [["w", "I play White"], ["b", "I play Black"], ["r", "Random"]], host_color, func(value): host_color = value)
+	var host_button = _button(card, "Host a game on this PC  →", start_hosting, true)
+	host_button.name = "HostGameButton"
+	_label(card, "Joining a friend's game", 14, GOLD)
+	host_invite_edit = _field(card, "Paste the invite your friend sent (starts with PCHESS1-)")
+	host_invite_edit.name = "InviteField"
+	host_invite_edit.max_length = 6000
+	var join_row = _flow(card)
+	_button(join_row, "Paste", func(): host_invite_edit.text = DisplayServer.clipboard_get().strip_edges()).name = "PasteInvite"
+	_button(join_row, "Join with invite  →", join_with_invite, true).name = "JoinInviteButton"
+
+func hosting_launch() -> Dictionary:
+	var options = match_options()
+	return {"host": {"mode": options.mode, "color": host_color, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d}}
+
+func start_hosting() -> void:
+	Settings.launch = hosting_launch()
+	get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn")
+
+func join_with_invite() -> void:
+	var parsed = HostInvite.decode(host_invite_edit.text if host_invite_edit != null else "")
+	if not parsed.ok:
+		_message(str(parsed.message), true)
+		return
+	Settings.launch = {"invite": host_invite_edit.text.strip_edges(), "view3d": Settings.preferred_3d}
+	get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn")
 
 func _choose_view(use_3d: bool) -> void:
 	Settings.preferred_3d = use_3d

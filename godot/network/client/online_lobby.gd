@@ -16,6 +16,7 @@ const Board2D = preload("res://boards/board_2d.gd")
 const Board3D = preload("res://boards/board_3d.gd")
 const CombatView = preload("res://network/client/online_combat_view.gd")
 const Touch = preload("res://network/client/touch_combat_input.gd")
+const BalanceData = preload("res://combat/data/balance_data.gd")
 var client: OnlineChessClient
 var game: RemoteChessMatch
 var interaction: BoardInteraction
@@ -89,6 +90,12 @@ func _ready() -> void:
 	if launch.has("allocation") and launch.has("ticket"):
 		_provisioned = true
 		_connect_allocation(launch)
+	elif launch.has("host"):
+		_provisioned = true
+		_start_hosting(launch.host)
+	elif launch.has("invite"):
+		_provisioned = true
+		_join_invite(launch.invite)
 
 func _button(parent: Node, text: String, action: Callable) -> Button:
 	var button = Button.new()
@@ -414,6 +421,74 @@ func _connect_allocation(launch: Dictionary) -> void:
 	client.call("connect_account_server", str(endpoint.host), int(endpoint.port), str(launch.ticket), ca_file, bool(endpoint.get("insecureLocal", false)), str(endpoint.get("serverName", endpoint.host)))
 	set_view(bool(launch.get("view3d", AppSettings.preferred_3d)))
 
+## Host a game on this PC (launch.host = {mode, color, initialMs, incrementMs}): see docs/application/HOSTING_GUIDE.md.
+var hosted: HostedGame
+var host_panel: HostPanel
+var _host_options: Dictionary = {}
+var _host_match_sent = false
+var _host_invite_set = false
+
+func _start_hosting(options: Dictionary) -> void:
+	_host_options = options
+	_connection_row.hide()
+	_lobby_row.hide()
+	var color: String = str(options.get("color", "w"))
+	if color == "r":
+		color = "w" if randi() % 2 == 0 else "b"
+	hosted = HostedGame.new()
+	hosted.name = "HostedGame"
+	add_child(hosted)
+	host_panel = HostPanel.new()
+	var column = info.get_parent()
+	column.add_child(host_panel)
+	column.move_child(host_panel, 2)
+	host_panel.stop_requested.connect(_return_menu_now)
+	hosted.changed.connect(host_panel.update_state)
+	var started = hosted.begin({"mode": str(options.get("mode", "classic")), "color": color, "mapper": options.get("mapper", null), "lookup_ip": options.get("lookup_ip", true)})
+	if started != OK:
+		notices.text = str(hosted.state.get("error", "Hosting failed."))
+		return
+	_button(column, "Ready to play", func(): client.command("ready"))
+	client.session_ready.connect(_host_session_ready)
+	client.frame_received.connect(_host_frame)
+	client.session_token = hosted.host_token   # resumes the prepared host seat
+	client.connect_server("127.0.0.1", hosted.port, hosted.certificate.certificate_path, false, HostInvite.CERT_HOSTNAME)
+	set_view(bool(options.get("view3d", AppSettings.preferred_3d)))
+	notices.text = "Hosting. Send the invite to your friend, then both press Ready."
+
+func _host_session_ready(_welcome: Dictionary) -> void:
+	if _host_match_sent or not client.frame.is_empty():
+		return
+	_host_match_sent = true
+	client.create_match(str(_host_options.get("mode", "classic")), int(_host_options.get("initialMs", 0)), int(_host_options.get("incrementMs", 0)))
+
+func _host_frame(value: Dictionary) -> void:
+	if hosted != null and not _host_invite_set:
+		_host_invite_set = true
+		hosted.set_match(str(value.state.matchId))
+
+## Join a friend's hosted game (launch.invite = invite text).
+var invite_join: InviteJoin
+
+func _join_invite(invite_text: String) -> void:
+	_connection_row.hide()
+	_lobby_row.hide()
+	invite_join = InviteJoin.new()
+	add_child(invite_join)
+	invite_join.status.connect(func(text): notices.text = text)
+	invite_join.failed.connect(_join_failed)
+	invite_join.joined.connect(func(invite): notices.text = "Joined. Security check %s · both players press Ready." % HostInvite.short_fingerprint(invite.fingerprint))
+	var begun = invite_join.begin(client, invite_text, BalanceData.stamp())
+	if not begun.ok:
+		_join_failed(str(begun.code), str(begun.message))
+		return
+	_button(info.get_parent(), "Ready to play", func(): client.command("ready"))
+	set_view(AppSettings.preferred_3d)
+
+func _join_failed(_code: String, message: String) -> void:
+	notices.text = message
+	info.text = "Could not join the game. Go back and check the invite."
+
 func _show_online_result(value: Dictionary) -> void:
 	if not is_inside_tree():
 		return
@@ -427,6 +502,8 @@ func _return_menu() -> void:
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Leave online match?"
 	dialog.dialog_text = "The server keeps the match running. Leaving an active match can forfeit your seat after the reconnect timeout."
+	if hosted != null:
+		dialog.dialog_text = "This game runs on your PC. Leaving closes it for both players."
 	dialog.ok_button_text = "Leave match"
 	dialog.confirmed.connect(func(): dialog.queue_free(); _return_menu_now())
 	dialog.canceled.connect(dialog.queue_free)

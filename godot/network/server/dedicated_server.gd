@@ -23,6 +23,46 @@ var _last_periodic = 0
 var _last_clocks = 0
 var _running = false
 var account_backend: DedicatedAccountBackend
+## Listen-server policy for "host a game on my PC" (docs/application/HOSTING_GUIDE.md). Empty = the unchanged dedicated server.
+## {"enabled": true, "host_color": "w"|"b", "waiting_ms": int}. Server-side only: no change to the wire protocol or the contracts.
+## The host's own client resumes a session that create_host_session() prepared (so the host seat never depends on network addresses);
+## every other connection is a guest: at most one may hold a session, only the host can create the match, and nobody can spectate.
+var host_policy: Dictionary = {}
+var host_player = ""
+const HOST_WAITING_MS = 1800000
+
+## Stops listening and drops every connection (used when a hosted game ends).
+func shutdown() -> void:
+	_running = false
+	if transport != null:
+		# Godot 4.6.3 logs a mutex error when a DTLS ENet host is destroyed while peers are still attached: reset them first.
+		for peer in transport.peers.values():
+			peer.peer_disconnect_now()
+		if transport.host != null:
+			transport.host.flush()
+		transport.close()
+
+func configure_hosting(host_color: String = "w") -> void:
+	host_policy = {"enabled": true, "host_color": host_color if host_color in ["w", "b"] else "w", "waiting_ms": HOST_WAITING_MS}
+	host_player = ""
+
+## Prepares the host's session and returns its resume token (a secret the host's own client uses; it never appears in the invite).
+func create_host_session(now: int = 0) -> String:
+	var token = _crypto.generate_random_bytes(32).hex_encode()
+	var player = "player-" + _crypto.generate_random_bytes(16).hex_encode()
+	var digest = token.sha256_text()
+	var stamp = now if now > 0 else Time.get_ticks_msec()
+	sessions[player] = {"digest": digest, "expires": stamp + 86400000, "peer": 0, "matchId": "", "commands": {}}
+	token_index[digest] = player
+	host_player = player
+	return token
+
+func _remote_sessions() -> int:
+	var count = 0
+	for player in sessions:
+		if player != host_player:
+			count += 1
+	return count
 
 func configure_backend(url: String, identity: String, secret: String, directory: String, allow_loopback_http: bool = false) -> Error:
 	account_backend = AccountBackend.new()
@@ -67,6 +107,10 @@ func detach(id: int, now: int) -> void:
 		var room = rooms.get(sessions[player].matchId)
 		if room != null:
 			room.set_connected(player, false, now)
+		elif host_policy.get("enabled", false) and player != host_player:
+			# a stranger who connected but never joined the hosted match must not keep the single guest slot
+			token_index.erase(sessions[player].digest)
+			sessions.erase(player)
 
 func _reject_peer(id: int) -> void:
 	if transport != null:
@@ -174,6 +218,9 @@ func _hello(id: int, payload: Dictionary, now: int) -> void:
 			return
 		if sessions.size() >= MAX_SESSIONS:
 			_error(id, "RATE_LIMITED", "The server session limit was reached.", null, now)
+			return
+		if host_policy.get("enabled", false) and (host_player.is_empty() or _remote_sessions() >= 1):
+			_error(id, "FORBIDDEN", "This hosted game already has its players.", null, now)
 			return
 		token = _crypto.generate_random_bytes(32).hex_encode()
 		player = "player-" + _crypto.generate_random_bytes(16).hex_encode()
@@ -287,6 +334,8 @@ func _live_room(session: Dictionary) -> bool:
 func _create(session: Dictionary, player: String, payload: Dictionary, now: int) -> Dictionary:
 	if account_backend != null:
 		return {"ok": false, "code": "FORBIDDEN", "message": "Create matches through account matchmaking."}
+	if host_policy.get("enabled", false) and (player != host_player or not rooms.is_empty()):
+		return {"ok": false, "code": "FORBIDDEN", "message": "Only the host can create the match, and a hosted game has one match."}
 	if _live_room(session) or rooms.size() >= MAX_ROOMS:
 		return {"ok": false, "code": "FORBIDDEN", "message": "Leave or finish the current match, or wait for capacity."}
 	if payload.mode == "battle" and (payload.initialMs != 0 or payload.incrementMs != 0):
@@ -303,6 +352,9 @@ func _create(session: Dictionary, player: String, payload: Dictionary, now: int)
 	rooms[id] = room
 	session.matchId = id
 	dirty[id] = true
+	if host_policy.get("enabled", false) and host_policy.host_color == "b":
+		room.game.players = {"w": "open-" + id, "b": player}   # the host plays Black; White stays open for the friend
+		room.connected = {"w": false, "b": true}
 	return {"ok": true}
 
 func _join(session: Dictionary, player: String, payload: Dictionary, now: int) -> Dictionary:
@@ -310,7 +362,9 @@ func _join(session: Dictionary, player: String, payload: Dictionary, now: int) -
 		return {"ok": false, "code": "FORBIDDEN", "message": "Join matches through account matchmaking."}
 	if _live_room(session) or not rooms.has(payload.matchId):
 		return {"ok": false, "code": "FORBIDDEN", "message": "No available match for this session."}
-	var reply = rooms[payload.matchId].join(player, now)
+	if host_policy.get("enabled", false) and player == host_player:
+		return {"ok": false, "code": "FORBIDDEN", "message": "You are already the host of this match."}
+	var reply = rooms[payload.matchId].join_open(player, now) if host_policy.get("enabled", false) else rooms[payload.matchId].join(player, now)
 	if reply.ok:
 		session.matchId = payload.matchId
 	return reply
@@ -356,6 +410,10 @@ func _full_frame(match_id: String) -> void:
 func expire(now: int) -> void:
 	for id in connections.keys():
 		var connection: Dictionary = connections[id]
+		if host_policy.get("enabled", false) and not connection.player.is_empty() and connection.player != host_player and sessions.has(connection.player) and sessions[connection.player].matchId.is_empty() and now - connection.created >= 20000:
+			detach(id, now)   # hosted game: a guest has 20 s after connecting to present a valid match code
+			_reject_peer(id)
+			continue
 		if (connection.get("authPending", false) and now - connection.created >= 12000) or (not connection.get("authPending", false) and ((connection.player.is_empty() and now - connection.created >= 5000) or now - connection.seen >= 3000)):
 			detach(id, now)
 			_reject_peer(id)
@@ -370,7 +428,7 @@ func expire(now: int) -> void:
 			sessions.erase(player)
 	for id in rooms.keys():
 		var room = rooms[id]
-		if (room.status == "complete" and now - room.completed_ms >= 60000) or (room.status == "waiting" and now - room.created_ms >= 300000):
+		if (room.status == "complete" and now - room.completed_ms >= 60000) or (room.status == "waiting" and now - room.created_ms >= int(host_policy.get("waiting_ms", 300000))):
 			_persist_room(id, room, room.status != "complete")
 			for session in sessions.values():
 				if session.matchId == id:

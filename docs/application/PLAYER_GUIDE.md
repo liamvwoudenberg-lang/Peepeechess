@@ -71,6 +71,17 @@ The Settings page also provides an advanced direct-server lobby for local
 anonymous-server development. This is separate from persistent account
 matchmaking and must not be used to imply ranked account play.
 
+### Playing a friend on your own PC (no account)
+
+On the Play page, Online, the card **Play a friend over the internet · no account** lets one player host the game on their PC and the other join with an invite:
+
+- **Host:** choose the mode and time control above, pick *I play White / Black / Random* and press **Host a game on this PC**. Copy the invite and send it to your friend in a chat.
+  The screen shows whether your router opened the game's UDP port, your address and, if needed, manual port-forwarding steps.
+- **Join:** paste the invite (the **Paste** button reads the clipboard) and press **Join with invite**. Both players press **Ready to play**.
+- Hosted games are always unranked, have exactly one opponent, are encrypted, and end for both players when the host leaves the lobby. Both players need the same game version.
+
+Details, router setup, security and troubleshooting: [HOSTING_GUIDE.md](HOSTING_GUIDE.md).
+
 ## Profiles, results and history
 
 Profile shows the server-issued player ID and independent Classic / Battle
