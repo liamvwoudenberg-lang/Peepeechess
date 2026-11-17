@@ -19,7 +19,7 @@ static func run(h, tree: SceneTree) -> void:
 static func _data(h) -> void:
 	h.begin("piece identity data: Knight lunge telegraph, Bishop beam, Rook guard-break, pacing rules")
 	var lunge: AttackDefinition = AttackLibrary.ability_attack("n", "lunging-strike")
-	h.check(lunge.startup_end >= 0.5 and lunge.forward_motion_m >= 4.0 and lunge.armor_end > lunge.armor_start, "Knight lunge: a long wind-up (%.2f), a big gap-closing run (%.1f m), armoured on the way in" % [lunge.startup_end, lunge.forward_motion_m])
+	h.check(lunge.startup_end >= 0.45 and lunge.forward_motion_m >= 4.0 and lunge.armor_end > lunge.armor_start, "Knight lunge: a long wind-up (%.2f), a big gap-closing run (%.1f m), armoured on the way in" % [lunge.startup_end, lunge.forward_motion_m])
 	var recovery := lunge.absolute_ticks - lunge.active_window(lunge.absolute_ticks).y
 	h.check(lunge.cancel_from >= 1.0 and recovery >= 22, "Knight lunge: no cancel and %d ticks of recovery after the hit window, so a blocked or dodged lunge is punishable (72 ticks stay the contract length)" % recovery)
 	var beam: AttackDefinition = AttackLibrary.heavy("b")

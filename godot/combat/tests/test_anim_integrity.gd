@@ -18,6 +18,8 @@ const REPORT := "res://assets/combat/manifest/animation_audit.json"
 const KNOWN := {
 	"bishop|swing foot clears the floor": "the Bishop's slow, low walk lift grazes the floor for 4 foot-frames per cycle at touch-down (0.08 m of scrape per cycle)",
 	"knight|props do not sink into the torso": "Knight shield/sword intersect the torso by 10-13 cm for a few frames of defeat and stagger (coarse ellipse test)",
+	"bishop|bishop.heavy tip reaches the sim hitbox": "the Bishop's heavy is a ranged light beam (reach 3.5 m, 2x): the blade cannot reach it, the beam VFX covers the distance; the clip only has to hit inside the window",
+	"bishop|bishop.heavy tip is inside the hit sector": "the Bishop's heavy hits through a narrow (26 degree) light beam: the blade tip swings outside that sector while the beam VFX carries the hit",
 	"pawn|pawn.light.3 tip reaches the sim hitbox": "the Pawn's sweeping finisher tip reaches 1.558 m of the 1.56 m (80% of reachM) line: arm-length limited, 0.1% short",
 }
 
