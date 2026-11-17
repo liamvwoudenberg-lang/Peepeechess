@@ -592,7 +592,7 @@ func _play(sound: String, where: Vector3, pitch: float = 1.0, extra_db: float = 
 	else:
 		voice.global_position = where if voice.is_inside_tree() else voice.position
 	if not voice.is_inside_tree():
-		return   # the audio node already left the tree (e.g. a button hook firing while the screen is torn down): engine ERROR on Android otherwise
+		return false   # the audio node already left the tree (e.g. a button hook firing while the screen is torn down): engine ERROR on Android otherwise
 	voice.play()
 	_voice_info[voice.get_instance_id()] = [priority, sound, now, int(stream.get_length() * 1000.0 / maxf(voice.pitch_scale, 0.1)) + 30]
 	_last_played[sound] = now
