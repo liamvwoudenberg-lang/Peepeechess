@@ -99,3 +99,5 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 
 ### Added 2026-11-16
 - [x] (merged `ccr-host-play`; loopback-tested only) **Host-your-own-PC online play**: Play -> Online -> "Host a game on this PC", friends paste the invite. Needs a real two-machine test over a real router (UPnP/port-forward), Windows Firewall, Android hosting untested. See docs/application/HOSTING_GUIDE.md.
+- [ ] Meshy chessboard merged (`ccr-meshy-board`): carved slab under the tiles, hides while the trapdoor is open. Not watched in motion; top-down/2D/low views not rendered.
+- [ ] `overlay` suite: hot-seat split-screen check "each panel is inside its player's half of (64.0, 64.0)" fails on the working branch (also with the slab disabled): find which merge broke it.
