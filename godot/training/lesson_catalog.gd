@@ -69,6 +69,8 @@ func is_unlocked(id: String, progress: ProgressStore) -> bool:
 	var lesson := get_lesson(id)
 	if lesson.is_empty() or not is_available(id):
 		return false
+	if CampaignProgress.shared().is_lesson_unlocked(id):   # a Campaign reward opens the lesson without its prerequisites
+		return true
 	if lesson.has("requires"):
 		for required in lesson["requires"]:
 			# an unavailable prerequisite never blocks
