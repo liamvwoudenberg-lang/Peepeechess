@@ -119,6 +119,11 @@ static func draw_lists(app: Control) -> void:
 		lists.remove_child(child)
 		child.queue_free()
 	var snapshot: Dictionary = app.friends
+	if is_instance_valid(app.get("world")):
+		var names: Array = []
+		for friend in sorted_friends(snapshot.friends):
+			names.append(str(friend.get("username", friend.get("displayName", ""))))
+		app.world.set_friends(names)
 	var challenges: Dictionary = snapshot.challenges
 	var now_ms := int(Time.get_unix_time_from_system() * 1000.0)
 	# Challenges for you come first: they expire.

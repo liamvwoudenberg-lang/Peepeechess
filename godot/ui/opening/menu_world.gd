@@ -27,6 +27,15 @@ var _audio: Node = null
 var _built := {}
 var _play_state := ["classic", "local", true]
 var _exterior_kind := "friends"
+# hero props (MenuHeroProps): filled when their station is first visited
+var war_nodes: Array = []
+var war_materials := {}
+var war_offers: Array = []
+var medal_discs: Array = []
+var gallery_frames: Array = []
+var rank_banners: Array = []
+var friend_signs: Array = []
+var _display := {}               ## data the pages pushed before a station existed: applied when it is built
 
 ## `opening_scene`: an OpeningScene that has been built. The rig takes over its camera once `start()` is called (so the opening
 ## screen can still drive the first glide), or at once when `start_at` is given.
@@ -63,7 +72,15 @@ func _ensure_station(id: String) -> void:
 		"hall": _build_hall_props()
 		"exterior": _build_exterior_props()
 		"armoury": _build_armoury_props()
-		"yard": _build_yard_props()
+		"yard":
+			_build_yard_props()
+			MenuHeroProps.build_yard_extra(self)
+		"warroom": MenuHeroProps.build_warroom(self)
+		"gallery", "archive": MenuHeroProps.build_gallery(self, id)
+		"tower": MenuHeroProps.build_tower(self)
+	if id == "exterior":
+		MenuHeroProps.build_friend_signs(self)
+	_apply_display()
 
 func built_stations() -> Array:
 	return _built.keys()
@@ -287,8 +304,31 @@ func _holder(node_name: String, at: Vector3, yaw: float) -> Node3D:
 func _facing_camera(id: String, at: Vector3) -> float:
 	return MenuStations.yaw_toward(at, MenuStations.station(id).pos)
 
-func _register_prop(prop_id: String, node: Node3D, point: Vector3) -> void:
-	props[prop_id] = {"node": node, "point": point, "pulse": 0.0}
+func _register_prop(prop_id: String, node: Node3D, point: Vector3, radius: float = 1.4) -> void:
+	props[prop_id] = {"node": node, "point": point, "pulse": 0.0, "radius": radius}
+
+## The prop under a screen position (ray against each prop's pick sphere, nearest to the camera), or "" . Used for clicks on the 3D stage.
+func pick(camera: Camera3D, screen_position: Vector2) -> String:
+	if camera == null:
+		return ""
+	var origin := camera.project_ray_origin(screen_position)
+	var direction := camera.project_ray_normal(screen_position)
+	var best := ""
+	var best_distance := INF
+	for id in props:
+		var prop: Dictionary = props[id]
+		var node: Node3D = prop.node
+		if not is_instance_valid(node) or not node.is_visible_in_tree():
+			continue
+		var to_center: Vector3 = prop.point - origin
+		var along := to_center.dot(direction)
+		if along <= 0.0:
+			continue
+		var miss := (to_center - direction * along).length()
+		if miss <= float(prop.radius) and along < best_distance:
+			best_distance = along
+			best = String(id)
+	return best
 
 ## The great hall (Play): two banners for the two games and a small table with a live board preview of the chosen setup.
 func _build_hall_props() -> void:
@@ -498,3 +538,40 @@ func _on_flight_started(_station_id: String, _duration: float) -> void:
 
 func set_audio(audio: Node) -> void:
 	_audio = audio
+
+# ---------------------------------------------------------------------------------------------------------------------
+# displays: the pages push their data, the props show it (applied at once if the station exists, else when it is built)
+# ---------------------------------------------------------------------------------------------------------------------
+## Campaign: `status` map | boon | lost | cleared | none, `index` the current encounter, `cleared` the encounters won, `offers` the boon ids on offer.
+func set_campaign_display(status: String, index: int, cleared: int, offers: Array = []) -> void:
+	_display["campaign"] = [status, index, cleared, offers]
+	_apply_display()
+
+func set_training_medals(medals: Array) -> void:
+	_display["medals"] = medals
+	_apply_display()
+
+func set_gallery(results: Array) -> void:
+	_display["gallery"] = results
+	_apply_display()
+
+func set_leaderboard(names: Array) -> void:
+	_display["leaderboard"] = names
+	_apply_display()
+
+func set_friends(names: Array) -> void:
+	_display["friends"] = names
+	_apply_display()
+
+func _apply_display() -> void:
+	if _display.has("campaign") and not war_nodes.is_empty():
+		var c: Array = _display["campaign"]
+		MenuHeroProps.apply_campaign(self, c[0], c[1], c[2], c[3])
+	if _display.has("medals") and not medal_discs.is_empty():
+		MenuHeroProps.apply_medals(self, _display["medals"])
+	if _display.has("gallery") and not gallery_frames.is_empty():
+		MenuHeroProps.apply_gallery(self, _display["gallery"])
+	if _display.has("leaderboard") and not rank_banners.is_empty():
+		MenuHeroProps.apply_leaderboard(self, _display["leaderboard"])
+	if _display.has("friends") and not friend_signs.is_empty():
+		MenuHeroProps.apply_friends(self, _display["friends"])
