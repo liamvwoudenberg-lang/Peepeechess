@@ -91,8 +91,8 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 - [x] (merged; measured only, still needs a human listen; `ONLINE UI` virtual-movement test is flaky) **Audio**: listen-and-fix pass on generated music, impacts and UI sounds, plus a music slider in Settings.
 - [x] (merged `ccr-juice`; needs a look in a real pit sequence and angle tuning) **Cinematic moments**: camera sweep when a capture is declared, a victory screen, a short king-falls cutscene for checkmate duels.
 ### Gameplay depth
-- [ ] **Piece identity in combat**: more distinct move sets (Knight charge, Bishop ranged strike, Rook guard-break) so pairings differ in feel, not only in numbers. Changes balance: recalibrate afterwards.
-- [ ] **Pacing**: Rook duels still run long; comeback mechanic or sudden-death phase. Changes balance: recalibrate afterwards.
+- [x] (merged `ccr-piece-identity`: Knight lunge, Bishop beam, Rook guard-break, Pawn surge; bots use them; recalibrated, stamp balance-v1:7a1e47e27f4d0966; bots only, never played by hand) **Piece identity in combat**: more distinct move sets (Knight charge, Bishop ranged strike, Rook guard-break) so pairings differ in feel, not only in numbers. Changes balance: recalibrate afterwards.
+- [x] (merged: comeback bonus below 40% health, sudden-death ramp after 40 s) **Pacing**: Rook duels still run long; comeback mechanic or sudden-death phase. Changes balance: recalibrate afterwards.
 - [x] (merged, headless-tested only, not seen in motion) **Pieces walking around each other**: castling and sliding moves currently walk straight over other pieces.
 - [x] (merged `ccr-campaign`: 12 duels, boons, unlocks, saved run; no chess-only goals yet, skins not applied to models, never played by hand) **Roguelike / campaign mode**: short campaign of scripted fights with unlockable pieces or arenas (builds on the training lessons).
 - [ ] **Variants**: bring the old web game's variants and analytics back as Battle Chess rule sets.
