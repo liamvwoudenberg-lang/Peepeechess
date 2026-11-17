@@ -447,7 +447,8 @@ func _start_hosting(options: Dictionary) -> void:
 	host_panel.detect_requested.connect(func(): hosted.detect_public_ip())
 	host_panel.manual_address_submitted.connect(func(text): if not hosted.set_manual_address(text): notices.text = "That is not a valid address or name.")
 	hosted.changed.connect(host_panel.update_state)
-	var started = hosted.begin({"mode": str(options.get("mode", "classic")), "color": color, "mapper": options.get("mapper", null), "lookup_ip": options.get("lookup_ip", false)})
+	var started = hosted.begin({"mode": str(options.get("mode", "classic")), "color": color, "mapper": options.get("mapper", null), "lookup_ip": options.get("lookup_ip", false),
+		"connection": str(options.get("connection", "direct")), "relay_url": str(options.get("relay_url", ""))})
 	if started != OK:
 		notices.text = str(hosted.state.get("error", "Hosting failed."))
 		return

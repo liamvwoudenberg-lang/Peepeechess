@@ -437,6 +437,9 @@ func _play_page() -> void:
 ## Host a game on this PC / join a friend's invite (docs/application/HOSTING_GUIDE.md). Unranked, no account; the mode and time
 ## control come from the options above.
 var host_color = "w"
+## "relay" works through any home router (no port forwarding); "direct" needs a forwarded UDP port. Relay is the default once a relay address is set.
+var host_connection = ""
+var _host_connection_chosen = false
 var host_invite_edit: LineEdit
 var host_pass_edit: LineEdit
 
@@ -445,6 +448,17 @@ func _friends_on_this_pc_card() -> void:
 	Kit.section_header(card, "PLAY A FRIEND OVER THE INTERNET · NO ACCOUNT", "cloud")
 	_label(card, "Host the game on your PC, then send the invite to your friend. It uses the mode and time control chosen above and is never ranked.", 14, MUTED)
 	Kit.segmented(card, [["w", "I play White"], ["b", "I play Black"], ["r", "Random"]], host_color, func(value): host_color = value)
+	if not RelaySettings.configured():
+		host_connection = "direct"
+	elif not _host_connection_chosen:
+		host_connection = "relay"   # relay is the default as soon as one is configured; the player's own choice sticks
+	if RelaySettings.configured():
+		Kit.segmented(card, [["relay", "Relay (works everywhere)"], ["direct", "Direct (needs port forwarding)"]], host_connection, func(value): host_connection = value; _host_connection_chosen = true).name = "ConnectionChoice"
+		_label(card, "Relay: your friend connects through a relay server. No router settings, and your address is not in the invite. The relay only sees encrypted traffic.", 14, MUTED)
+	else:
+		var no_relay = _label(card, "No relay configured: direct mode only (needs a forwarded UDP port). Paste a relay address in Settings to play through any router.", 14, MUTED)
+		no_relay.name = "NoRelayNotice"
+		_button(card, "Open Settings", func(): navigate("settings")).name = "RelaySettingsButton"
 	var host_button = _button(card, "Host a game on this PC  →", start_hosting, true)
 	host_button.name = "HostGameButton"
 	_label(card, "Joining a friend's game", 14, GOLD)
@@ -460,7 +474,10 @@ func _friends_on_this_pc_card() -> void:
 
 func hosting_launch() -> Dictionary:
 	var options = match_options()
-	return {"host": {"mode": options.mode, "color": host_color, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d}}
+	var relay = RelaySettings.url()
+	var connection = host_connection if not relay.is_empty() and host_connection in ["relay", "direct"] else "direct"
+	return {"host": {"mode": options.mode, "color": host_color, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d,
+		"connection": connection, "relay_url": relay}}
 
 func start_hosting() -> void:
 	Settings.launch = hosting_launch()

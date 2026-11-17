@@ -96,11 +96,18 @@ func update_state(state: Dictionary) -> void:
 	_fingerprint.text = "Security check: %s (your friend sees the same code when they join)." % HostInvite.short_fingerprint(fingerprint) if not fingerprint.is_empty() else ""
 	# Addresses are never printed: only whether the invite has an internet address and the UDP port that must be open.
 	var lines: Array = []
-	lines.append("Internet address in the invite: %s" % ("yes (hidden)" if bool(state.get("has_internet_address", false)) else "not yet"))
-	lines.append("Same-network addresses: %d (hidden)" % state.get("lan", []).size())
-	if int(state.get("port", 0)) > 0:
-		lines.append("UDP port %d" % int(state.get("port", 0)))
+	var relay_only = str(state.get("connection", "direct")) == "relay"
+	if relay_only:
+		lines.append("Connection: relay. No port forwarding is needed and no address is in the invite.")
+	else:
+		if str(state.get("connection", "direct")) == "both":
+			lines.append("Connection: relay first, direct addresses as a fallback.")
+		lines.append("Internet address in the invite: %s" % ("yes (hidden)" if bool(state.get("has_internet_address", false)) else "not yet"))
+		lines.append("Same-network addresses: %d (hidden)" % state.get("lan", []).size())
+		if int(state.get("port", 0)) > 0:
+			lines.append("UDP port %d" % int(state.get("port", 0)))
 	_address.text = "\n".join(lines)
+	_manual_edit.get_parent().visible = not relay_only   # nothing to type or detect when no address is shared
 	var reach: Dictionary = state.get("reach", {})
 	_reach.text = str(reach.get("text", ""))
 	_manual.text = manual_steps(int(state.get("port", 0))) if str(reach.get("level", "")) == "manual" else ""

@@ -262,9 +262,13 @@ func _parry(net, tick: int) -> void:
 		_parry_seen_at = -1
 
 # ---- invalid inputs (seat b) -----------------------------------------------------------------------------------------------
+const INVALID_START := 260
+
 func _invalid(net, tick: int) -> void:
-	var step: int = (tick - 190) / 80
-	if tick < 190 or (tick - 190) % 80 != 0 or _bad_steps.has(step):
+	# Start later than the first possible tick: when the client's local tick runs ahead of the server's countdown (a loaded machine lets the
+	# client catch up in bursts) the first probe reached the server before the battle was running and was refused as WRONG_PHASE, not STALE_INPUT.
+	var step: int = (tick - INVALID_START) / 80
+	if tick < INVALID_START or (tick - INVALID_START) % 80 != 0 or _bad_steps.has(step):
 		return
 	_bad_steps[step] = true
 	var builder = client.input_builder
@@ -274,9 +278,13 @@ func _invalid(net, tick: int) -> void:
 	match step:
 		0: # a valid packet and its exact replay: the replay is stale and must change nothing
 			var fresh = builder.build(0, 0, 0, true, false, false)
+			# Root cause of the old flake: one packet and ONE replay over a link that drops 2% (60 ms+2% proxy): when either datagram was lost the
+			# server never saw a stale duplicate (stale == 0). The replay is repeated, so at least one still arrives unless 3 of 4 datagrams are lost.
 			send.call(fresh)
 			send.call(fresh)
-			reports.notes.append("replayed sequence %d" % fresh.sequence)
+			send.call(fresh)
+			send.call(fresh)
+			reports.notes.append("replayed sequence %d (three times)" % fresh.sequence)
 		1: # a packet claiming to be the other seat
 			var spoof = builder.build(0, 0, 0, true, false, false)
 			spoof.playerId = net.opponent_id
@@ -308,6 +316,11 @@ func _invalid(net, tick: int) -> void:
 		7: # valid input but on the reliable channel
 			var wrong = builder.build(0, 0, 0, true, false, false)
 			send.call(wrong, true)
+			# one more replay at the end of the probe sequence: a stale duplicate must be seen at least once whatever happened to the first one
+			var late = builder.build(0, 0, 0, true, false, false)
+			send.call(late)
+			send.call(late)
+			send.call(late)
 
 func _process(_delta: float) -> bool:
 	if _closing:

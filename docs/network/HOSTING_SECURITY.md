@@ -23,21 +23,37 @@ Scope: "Host a game on this PC" (`godot/network/host/*`, listen-server policy in
 - UPnP itself is a router feature that any program on the LAN can use; it is only used for the game port and removed afterwards.
 - A third-party address-echo site (only on the explicit button) sees that this PC asked, and its address.
 
-## Relay mode (hides both players' addresses): design, not implemented
+## Relay mode (no port forwarding; hides both players' addresses from each other)
 
-A relay is a small UDP forwarder on a third machine (for example the Oracle Always Free VM, see `docs/deployment/ORACLE.md`). Neither player learns the other's address.
+Shipped as `tools/relay/relay.mjs` + `godot/network/relay/` (deployment: `docs/deployment/RELAY.md`). Both players connect OUT to the relay over a WebSocket
+(`wss://`); the game's ENet + DTLS keep running END TO END between host and guest through it:
 
-- Why it is **not** shipped here: the host's game is the DTLS *server*. An ENet listening host (Godot 4.6.3) never initiates a packet from its listen port, but a NAT'd
-  host would have to open the path outwards first for the relay to reach it. That needs either an outbound-connecting server transport (a change to
-  `enet_transport.gd`) or a helper process beside the game. Both are bigger than a security patch, change the transport, and could not be tested over a real NAT here.
-- Sketch for later: relay assigns a session id; the host opens an outbound ENet connection to the relay (host becomes a *client* of the relay and a bridge to its own
-  loopback server); the guest dials the relay with the session id (inside the sealed invite); the relay copies DTLS datagrams between the two without being able to read
-  them (end-to-end DTLS with the pinned certificate stays between host and guest). The invite would carry `{relay: host:port, session: id}` instead of the host address.
-  Risks to design: relay abuse (session limits, bandwidth caps, expiry), amplification, and a relay operator who sees both addresses and traffic volume.
-- Until then: use a VPN/overlay network you trust (for example a tailnet) if you must not reveal your home address to the friend.
+- Host: the game server listens on this PC's loopback only (nothing is exposed to any network); a bridge copies its UDP datagrams to `/h/<session>` and back.
+- Guest: a bridge opens a loopback UDP port, the game's ENet client dials it, and the datagrams go to `/g/<session>`.
+- The sealed invite carries `{relay, session}` and NO host address (relay-only), plus the pinned certificate. The guest verifies the host's certificate through the
+  tunnel exactly as in direct mode, so the relay cannot impersonate the host. Transport order in an invite that has both: relay first, direct addresses as fallback.
+
+| Threat | Direct mode | Relay mode |
+|---|---|---|
+| Friend learns the host's IP | yes, necessarily | **no** |
+| Host learns the friend's IP | only from packets of an open port | **no** |
+| Strangers probe the host's game port | the port is open to the internet (guest-locked, rate limited) | **no port is open** (loopback only) |
+| Third party reads or alters moves | no: DTLS with a pinned certificate | no: the same DTLS, end to end |
+| Relay operator reads or alters moves | n/a | **no**: it only carries ciphertext (it can drop or delay packets) |
+| Relay operator sees both IP addresses, session timing and traffic volume | n/a | **yes**: run your own or a friend's relay |
+| Stranger takes the guest seat | invite + match token + lock | needs the 128-bit session id (only in the invite) AND the match token AND the host's certificate check happens on the guest side |
+| Stranger hijacks the host side of a session id | n/a | the first host to register an id owns it; a hijacker cannot present the pinned certificate, and the real guest aborts the DTLS handshake |
+| Relay abuse (floods, many sessions) | n/a | caps: sessions, sockets, 2 kB datagrams, per-session bytes/s and datagrams/s, per-address connects/min, one guest per session, idle/wait expiry, 1 MiB write back-pressure |
+| Relay logs | n/a | no IPs, session ids or payloads are logged; `/healthz` returns counts only. The platform in front may log addresses (check it) |
+
+Remaining limits: the relay is a single point of availability; a relay that drops packets only slows or ends a game, it cannot change it. Plain `ws://`
+is accepted only for this PC and private networks (an invite with a public `ws://` relay is refused). The relay carries the game over TCP, so very lossy
+connections stall more than UDP would. Everything here was tested with relay, host and guest as real processes on one machine, not over a real NAT or platform.
 
 ## Tests
 
 - `godot/tests/network/host_play_test.gd` (sealing, wrong/missing word code, tampering, no-consent lookup, default privacy, expiry, locking, invite round trips, real DTLS in one process).
 - `scripts/test-host-play-processes.mjs`: two **separate Godot processes** over localhost UDP, directly and through the UDP latency/loss proxy.
 - Not covered: real routers and NAT (UPnP against hardware), the real internet, IPv6-only hosts, Android hosting, Windows Firewall prompts.
+- `tools/relay/relay.test.mjs`: the relay's own behaviour (pairing, one-guest lock, session isolation, size/rate/session caps, per-address connect limit, expiry and host grace, malformed frames).
+- `scripts/test-relay-play.mjs`: relay + host process + guest process (Classic, Classic with 60 ms + 2% loss on the relay path, a Battle capture reaching its duel, and the direct fallback). Part of `npm run test:multiplayer`.

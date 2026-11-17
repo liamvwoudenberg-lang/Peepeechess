@@ -6,6 +6,14 @@ and sends the other an invite. Hosted games are never ranked and cost nothing to
 > Status: implemented and tested headless on loopback (real DTLS between two game clients in one process). It has **not** been tried
 > across a real router or the real internet yet; see "What is not verified" at the end.
 
+## Relay or direct?
+
+* **Relay (works everywhere):** no router settings, nothing to forward, and your address is not in the invite. It needs a relay server somebody
+  runs once (`docs/deployment/RELAY.md`); put its `wss://` address into **Settings > Online relay**. When one is set, **Host a game** offers
+  *Relay (works everywhere)* and uses it by default. Your friend does not configure anything: the invite carries the relay.
+* **Direct (needs port forwarding):** the rest of this guide. Your friend connects straight to your PC, so they learn your IP address.
+  If no relay address is set the game says "No relay configured: direct mode only".
+
 ## How to host
 
 1. Open the game, go to **Play → Online** and choose the mode (Classic or Battle) and, for Classic, the time control.

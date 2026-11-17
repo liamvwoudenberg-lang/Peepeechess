@@ -114,6 +114,9 @@ try {
   const server = start('server', ['--script', 'res://network/server/server_main.gd', '--', '--bind=127.0.0.1', `--port=${serverPort}`, `--certificate=${cert}`, `--private-key=${key}`, '--run-seconds=180']);
   await waitFor(() => server.log().includes('SERVER_READY') || diagnostics.test(server.log()));
   assert.doesNotMatch(server.log(), diagnostics);
+  // The impaired proxies drop DTLS handshake datagrams on purpose, and Godot logs "ERROR: TLS handshake error: -N" for a handshake that lost
+  // packets: engine noise, not an application error (the end-of-run checks below already accept exactly these lines).
+  const serverDiagnostics = () => server.log().replace(engineNoise, '');
   for (const scenario of ['classic', 'clock', 'battle']) {
     const impaired = scenario === 'battle';
     const proxies = await Promise.all([proxy(serverPort, 173, impaired), proxy(serverPort, 941, impaired)]);
@@ -169,7 +172,7 @@ try {
       }
     } finally { proxies.forEach(p => p.close()); }
   }
-  assert.doesNotMatch(server.log(), diagnostics);
+  assert.doesNotMatch(serverDiagnostics(), diagnostics);
   const wrongCert = join(directory, 'wrong.crt');
   const wrongKey = join(directory, 'wrong.key');
   const wrong = spawnSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=unrelated', '-keyout', wrongKey, '-out', wrongCert], { encoding: 'utf8' });

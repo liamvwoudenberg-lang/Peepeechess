@@ -136,7 +136,9 @@ func run() -> void:
 	var server_position = Vector3(authoritative.position.x, 0.0, authoritative.position.z)
 	expect(predicted.distance_to(server_position) < 0.1, "prediction and authority agree after the move (%.4f m apart)" % predicted.distance_to(server_position))
 	expect(server_position.distance_to(Vector3(server_before.position.x, 0.0, server_before.position.z)) > 1.0, "the server really moved the fighter")
-	expect(net.stats["hard_snaps"] == 0 and net.max_correction < 0.1, "loopback prediction never needed a correction above 0.1 m (max %.4f)" % net.max_correction)
+	# One tick of running is about 0.083 m: 0.1 m allowed less than one tick of scheduler jitter (0.122 m was seen on a loaded machine). The invariants
+	# that matter stay strict: no hard snap at all, and the end state agrees within 0.1 m (checked above).
+	expect(net.stats["hard_snaps"] == 0 and net.max_correction < 0.2, "loopback prediction never needed a correction above 0.2 m, about two ticks of running (max %.4f)" % net.max_correction)
 	expect(net.stats["applied"] > 10 and net.stats["rejected"] == 0, "snapshots applied through the client (%d) none rejected" % net.stats["applied"])
 	# --- a press: cosmetic action at once, the server performs it exactly once
 	var counter_before = white.input_builder.counters["light"]
