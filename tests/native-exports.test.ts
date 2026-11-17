@@ -13,6 +13,7 @@ test("native export presets separate test APK, release AAB and Windows without s
   assert.match(presets, /name="Android Debug APK"/);
   assert.match(presets, /name="Android Release AAB"/);
   assert.equal((presets.match(/permissions\/internet=true/g) || []).length, 2);
+  assert.equal((presets.match(/permissions\/vibrate=true/g) || []).length, 2);  // touch haptics (touch_controls.gd) need VIBRATE, else Java SecurityException spam
   assert.equal((presets.match(/user_data_backup\/allow=false/g) || []).length, 2);
   assert.match(presets, /gradle_build\/export_format=1/);
   assert.match(presets, /gradle_build\/target_sdk="36"/);
