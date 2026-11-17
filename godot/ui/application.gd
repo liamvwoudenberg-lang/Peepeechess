@@ -432,6 +432,7 @@ func _play_page() -> void:
 ## control come from the options above.
 var host_color = "w"
 var host_invite_edit: LineEdit
+var host_pass_edit: LineEdit
 
 func _friends_on_this_pc_card() -> void:
 	var card = _card(content)
@@ -443,7 +444,10 @@ func _friends_on_this_pc_card() -> void:
 	_label(card, "Joining a friend's game", 14, GOLD)
 	host_invite_edit = _field(card, "Paste the invite your friend sent (starts with PCHESS1-)")
 	host_invite_edit.name = "InviteField"
-	host_invite_edit.max_length = 6000
+	host_invite_edit.max_length = 12000
+	host_pass_edit = _field(card, "Word code from the host (for example K7QM-X2PD-9WTR)")
+	host_pass_edit.name = "PassphraseField"
+	host_pass_edit.max_length = 32
 	var join_row = _flow(card)
 	_button(join_row, "Paste", func(): host_invite_edit.text = DisplayServer.clipboard_get().strip_edges()).name = "PasteInvite"
 	_button(join_row, "Join with invite  →", join_with_invite, true).name = "JoinInviteButton"
@@ -457,11 +461,12 @@ func start_hosting() -> void:
 	get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn")
 
 func join_with_invite() -> void:
-	var parsed = HostInvite.decode(host_invite_edit.text if host_invite_edit != null else "")
+	var pass_text = host_pass_edit.text.strip_edges() if host_pass_edit != null else ""
+	var parsed = HostInvite.decode(host_invite_edit.text if host_invite_edit != null else "", pass_text)
 	if not parsed.ok:
 		_message(str(parsed.message), true)
 		return
-	Settings.launch = {"invite": host_invite_edit.text.strip_edges(), "view3d": Settings.preferred_3d}
+	Settings.launch = {"invite": host_invite_edit.text.strip_edges(), "passphrase": pass_text, "view3d": Settings.preferred_3d}
 	get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn")
 
 func _choose_view(use_3d: bool) -> void:

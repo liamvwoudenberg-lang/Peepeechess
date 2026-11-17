@@ -42,9 +42,16 @@ func shutdown() -> void:
 			transport.host.flush()
 		transport.close()
 
-func configure_hosting(host_color: String = "w") -> void:
-	host_policy = {"enabled": true, "host_color": host_color if host_color in ["w", "b"] else "w", "waiting_ms": HOST_WAITING_MS}
+## invite_ttl_ms > 0: the invite stops working that long after hosting began, unless the guest has already joined.
+## After the guest joined, the listener is LOCKED: new connections from any other address (except this PC's own loopback) are dropped silently.
+func configure_hosting(host_color: String = "w", invite_ttl_ms: int = 0) -> void:
+	host_policy = {"enabled": true, "host_color": host_color if host_color in ["w", "b"] else "w", "waiting_ms": HOST_WAITING_MS,
+		"invite_expires": Time.get_ticks_msec() + invite_ttl_ms if invite_ttl_ms > 0 else 0, "locked": false, "guest_address": ""}
 	host_player = ""
+
+func _hosted_invite_expired(now: int) -> bool:
+	var expires = int(host_policy.get("invite_expires", 0))
+	return expires > 0 and now > expires and not bool(host_policy.get("locked", false))
 
 ## Prepares the host's session and returns its resume token (a secret the host's own client uses; it never appears in the invite).
 func create_host_session(now: int = 0) -> String:
@@ -84,6 +91,14 @@ func start(address: String, port: int, certificate: String = "", key: String = "
 	return response
 
 func attach(id: int, address: String, now: int) -> void:
+	if host_policy.get("enabled", false):
+		var own = address in ["127.0.0.1", "::1", "::ffff:127.0.0.1"]
+		if bool(host_policy.get("locked", false)) and not own and address != str(host_policy.get("guest_address", "")):
+			_reject_peer(id)   # hosted game with its guest seated: strangers are dropped without any reply
+			return
+		if _hosted_invite_expired(now) and not own:
+			_reject_peer(id)
+			return
 	if not _ip_budgets.has(address):
 		if _ip_budgets.size() >= 512:
 			_reject_peer(id)
@@ -93,7 +108,7 @@ func attach(id: int, address: String, now: int) -> void:
 	if not _ip_budgets[address].budget.take(now):
 		_reject_peer(id)
 		return
-	connections[id] = {"player": "", "created": now, "seen": now, "strikes": 0, "lastError": -1000,
+	connections[id] = {"player": "", "address": address, "created": now, "seen": now, "strikes": 0, "lastError": -1000,
 		"packets": Budget.new(180, 240, now), "bytes": Budget.new(131072, 131072, now),
 		"control": Budget.new(10, 20, now), "input": Budget.new(90, 120, now)}
 
@@ -367,6 +382,11 @@ func _join(session: Dictionary, player: String, payload: Dictionary, now: int) -
 	var reply = rooms[payload.matchId].join_open(player, now) if host_policy.get("enabled", false) else rooms[payload.matchId].join(player, now)
 	if reply.ok:
 		session.matchId = payload.matchId
+		if host_policy.get("enabled", false):
+			for connection in connections.values():
+				if connection.player == player:
+					host_policy["guest_address"] = str(connection.get("address", ""))
+			host_policy["locked"] = true   # one guest: the invite is used up, nobody else may even connect
 	return reply
 
 func _failure_payload(reply: Dictionary, request_id: Variant) -> Dictionary:

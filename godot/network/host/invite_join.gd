@@ -16,12 +16,14 @@ var _attempt_started = 0
 var _active = false
 var _joining = false
 var _ca_path = ""
+## Tests and relay mode: {"host": ..., "port": ...} replaces the invite's addresses (a latency proxy or a relay in front of the host).
+var address_override: Dictionary = {}
 
 ## Validates the invite text and starts connecting. Returns {ok} or {ok: false, code, message} (nothing was started then).
-func begin(chess_client: OnlineChessClient, invite_text: String, tuning: String) -> Dictionary:
+func begin(chess_client: OnlineChessClient, invite_text: String, tuning: String, passphrase: String = "") -> Dictionary:
 	client = chess_client
 	own_tuning = tuning
-	var parsed = HostInvite.decode(invite_text)
+	var parsed = HostInvite.decode(invite_text, passphrase)
 	if not parsed.ok:
 		return parsed
 	var fit = HostInvite.compatible(parsed, own_tuning)
@@ -57,11 +59,15 @@ func _next_address() -> void:
 		failed.emit("UNREACHABLE", "Could not reach the host. Check that your friend is still hosting, that the invite is complete, and that their router forwards UDP port %d (see the hosting guide)." % int(invite.port))
 		return
 	var host: String = invite.hosts[_index]
-	status.emit("Connecting to %s (%d of %d)…" % [host, _index + 1, invite.hosts.size()])
+	var dial_port = int(invite.port)
+	if not address_override.is_empty():
+		host = str(address_override.host)
+		dial_port = int(address_override.port)
+	status.emit("Connecting to the host (%d of %d)…" % [_index + 1, invite.hosts.size()])   # the address itself is never shown or logged
 	client.disconnect_server(true)
 	_attempt_started = Time.get_ticks_msec()
 	client.auto_reconnect = false
-	var started = client.connect_server(host, int(invite.port), _ca_path, false, HostInvite.CERT_HOSTNAME)
+	var started = client.connect_server(host, dial_port, _ca_path, false, HostInvite.CERT_HOSTNAME)
 	if started != OK:
 		_next_address()
 

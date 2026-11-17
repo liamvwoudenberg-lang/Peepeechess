@@ -5,6 +5,9 @@ extends RefCounted
 ## The match id is the join token: it is 128 random bits created by the host's server and is only ever sent through the invite.
 ## Format: "PCHESS1-" + base64url(JSON) + "-" + 8 hex check characters. Whitespace and line breaks are ignored when parsing.
 const PREFIX = "PCHESS1-"
+const SEALED_PREFIX = "PCHESS2-"
+const PASSPHRASE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"   # no 0/O/1/I/L: it is read aloud
+const KDF_ROUNDS = 6000
 const MAX_LENGTH = 6000
 const PROTOCOL = "peepeechess-enet-v1"
 const CERT_HOSTNAME = "peepeechess-host"
@@ -22,10 +25,18 @@ static func encode(fields: Dictionary) -> String:
 	return PREFIX + text + "-" + _check(text)
 
 ## Returns {ok: true, hosts, port, matchId, certificate (PEM), fingerprint (hex), tuning, mode, version} or {ok: false, code, message}.
-static func decode(raw: String) -> Dictionary:
-	var text = raw.strip_edges()
-	for blank in [" ", "\n", "\r", "\t"]:
-		text = text.replace(blank, "")
+## A sealed invite (PCHESS2-...) needs the word code the host reads out: without it the result is {ok: false, code: "SEALED"}.
+static func decode(raw: String, passphrase: String = "") -> Dictionary:
+	var text = _clean(raw)
+	if text.length() > MAX_LENGTH * 2:
+		return _fail("TOO_LONG", "That does not look like an invite code.")
+	if text.begins_with(SEALED_PREFIX):
+		if passphrase.strip_edges().is_empty():
+			return _fail("SEALED", "This invite is sealed. Enter the word code the host told you (for example K7QM-X2PD-9WTR).")
+		var opened = unseal(text, passphrase)
+		if not opened.ok:
+			return opened
+		text = _clean(str(opened.code))
 	if text.length() > MAX_LENGTH:
 		return _fail("TOO_LONG", "That does not look like an invite code.")
 	if not text.begins_with(PREFIX):
@@ -115,6 +126,88 @@ static func compatible(invite: Dictionary, own_tuning: String) -> Dictionary:
 	if not str(invite.get("tuning", "")).is_empty() and str(invite.tuning) != own_tuning:
 		return {"ok": false, "code": "TUNING", "message": "The host plays a different version of the combat rules (%s, you have %s). Update the game so both of you run the same version." % [str(invite.tuning), own_tuning]}
 	return {"ok": true}
+
+static func _clean(raw: String) -> String:
+	var text = raw.strip_edges()
+	for blank in [" ", "\n", "\r", "\t"]:
+		text = text.replace(blank, "")
+	return text
+
+static func is_sealed(raw: String) -> bool:
+	return _clean(raw).begins_with(SEALED_PREFIX)
+
+## A fresh word code for one invite: 12 characters in three groups (about 59 bits). The host tells it to the friend on another channel.
+static func generate_passphrase() -> String:
+	var bytes = Crypto.new().generate_random_bytes(12)
+	var out = ""
+	for i in bytes.size():
+		if i > 0 and i % 4 == 0:
+			out += "-"
+		out += PASSPHRASE_ALPHABET[bytes[i] % PASSPHRASE_ALPHABET.length()]
+	return out
+
+static func _normalise_passphrase(text: String) -> String:
+	return text.strip_edges().to_upper().replace("-", "").replace(" ", "").replace("0", "O").replace("1", "I")
+
+static func _derive(passphrase: String, salt: PackedByteArray) -> Array:
+	var crypto = Crypto.new()
+	var secret = _normalise_passphrase(passphrase).to_utf8_buffer()
+	var key = crypto.hmac_digest(HashingContext.HASH_SHA256, salt, secret)
+	for i in KDF_ROUNDS:
+		key = crypto.hmac_digest(HashingContext.HASH_SHA256, key, secret)   # iterated to slow down guessing of a stolen invite
+	return [crypto.hmac_digest(HashingContext.HASH_SHA256, key, "enc".to_utf8_buffer()), crypto.hmac_digest(HashingContext.HASH_SHA256, key, "mac".to_utf8_buffer())]
+
+## Encrypts an invite (AES-256-CBC, HMAC-SHA256 over salt+iv+ciphertext) so it can be pasted into a chat without exposing the host's
+## address or certificate to anyone who lacks the word code. Returns "PCHESS2-<base64url>-<check>".
+static func seal(code: String, passphrase: String) -> String:
+	var crypto = Crypto.new()
+	var salt = crypto.generate_random_bytes(16)
+	var iv = crypto.generate_random_bytes(16)
+	var keys = _derive(passphrase, salt)
+	var plain = code.to_utf8_buffer()
+	var pad = 16 - plain.size() % 16
+	for _i in pad:
+		plain.append(pad)
+	var aes = AESContext.new()
+	aes.start(AESContext.MODE_CBC_ENCRYPT, keys[0], iv)
+	var cipher = aes.update(plain)
+	aes.finish()
+	var body = salt + iv + cipher
+	var tag = crypto.hmac_digest(HashingContext.HASH_SHA256, keys[1], body)
+	var text = _b64url_encode(body + tag)
+	return SEALED_PREFIX + text + "-" + _check(text)
+
+static func unseal(raw: String, passphrase: String) -> Dictionary:
+	var text = _clean(raw)
+	if not text.begins_with(SEALED_PREFIX):
+		return _fail("NOT_AN_INVITE", "This is not a sealed invite.")
+	var rest = text.trim_prefix(SEALED_PREFIX)
+	var cut = rest.rfind("-")
+	if cut <= 0 or rest.length() - cut - 1 != 8 or rest.substr(cut + 1) != _check(rest.substr(0, cut)):
+		return _fail("DAMAGED", "The sealed invite looks damaged or cut off. Copy it again, including the end.")
+	var blob = _b64url_decode(rest.substr(0, cut))
+	if blob.size() < 80 or (blob.size() - 64) % 16 != 0:
+		return _fail("DAMAGED", "The sealed invite could not be read.")
+	var salt = blob.slice(0, 16)
+	var iv = blob.slice(16, 32)
+	var cipher = blob.slice(32, blob.size() - 32)
+	var tag = blob.slice(blob.size() - 32)
+	var keys = _derive(passphrase, salt)
+	var expected = Crypto.new().hmac_digest(HashingContext.HASH_SHA256, keys[1], salt + iv + cipher)
+	var diff = 0
+	for i in 32:
+		diff |= expected[i] ^ tag[i]
+	if diff != 0:
+		return _fail("WRONG_PASSPHRASE", "That word code does not open this invite. Check it with the host.")
+	var aes = AESContext.new()
+	aes.start(AESContext.MODE_CBC_DECRYPT, keys[0], iv)
+	var plain = aes.update(cipher)
+	aes.finish()
+	var pad = plain[plain.size() - 1] if plain.size() > 0 else 0
+	if pad < 1 or pad > 16 or pad > plain.size():
+		return _fail("DAMAGED", "The sealed invite could not be read.")
+	plain.resize(plain.size() - pad)
+	return {"ok": true, "code": plain.get_string_from_utf8()}
 
 static func _check(text: String) -> String:
 	return text.sha256_text().substr(0, 8)
