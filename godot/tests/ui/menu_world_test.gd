@@ -27,6 +27,7 @@ func run() -> void:
 	stations_and_pages()
 	rig_flights()
 	await world_in_the_application()
+	await hero_props()
 	await quality_tiers()
 	await tab_row()
 	await skip_on_input()
@@ -232,18 +233,47 @@ func world_in_the_application() -> void:
 	for i in 60:
 		world.advance(1.0 / 60.0)
 	world.select_prop("banner_classic")
-	var bowed := false
-	var base_pitch := knight.transform.basis.get_euler().x
+	check(world.paladin_clip("hall") == "bow", "selecting makes the paladin bow (clip: %s)" % world.paladin_clip("hall"))
+	world.select_prop("banner_classic")
+	check(world.paladin_clip("hall") == "salute", "the next selection salutes (clip: %s)" % world.paladin_clip("hall"))
+	# the station paladins are RIGGED: a skeleton, real clips that advance, a look modifier that turns the head
+	check(world.is_rigged("hall"), "the hall paladin is a rigged PaladinModel")
+	var rigged: PaladinModel = world.paladins["hall"].model
+	check(rigged != null and rigged.skeleton != null and rigged.player != null and rigged.player.has_animation("greet") and rigged.player.has_animation("bow") and rigged.player.has_animation("salute") and rigged.player.has_animation("look_around"), "the paladin has a skeleton and the menu clips (greet, bow, salute, look_around)")
+	var position_before := rigged.player.current_animation_position
+	await settle(12)
+	check(rigged.player.is_playing() and rigged.player.current_animation_position != position_before, "the clip advances over frames (%.3f -> %.3f)" % [position_before, rigged.player.current_animation_position])
+	var look: MenuLookModifier = world.paladins["hall"].look
+	check(look != null and look.has_bones(), "the head/spine look modifier found its bones")
+	world.hover_prop("banner_battle")
 	for i in 40:
 		world.advance(1.0 / 60.0)
-		if absf(knight.transform.basis.get_euler().x - base_pitch) > 0.1:
-			bowed = true
-	check(bowed, "selecting makes the paladin bow")
+	await settle(3)
+	check(absf(look.applied) > 0.02, "hovering a prop turns the head through the look modifier (%.3f rad)" % look.applied)
+	world.clear_hover()
+	for i in 80:
+		world.advance(1.0 / 60.0)
+	await settle(3)
+	check(absf(look.applied) < 0.05, "...and it turns back when the hover ends (%.3f rad)" % look.applied)
+	# only the paladin at the current station is animated
+	var other: PaladinModel = null
+	for id in world.paladins:
+		if id != world.current_station() and world.paladins[id].model != null:
+			other = world.paladins[id].model
+	check(other == null or is_zero_approx(other.player.speed_scale), "paladins at other stations hold their pose (no skeleton cost)")
+	# a flight makes the station it leaves step aside and the arrival walks back in
+	MenuCameraRig.instant_override = 0
+	world.fly_to_station("yard")
+	check(is_equal_approx(float(world.paladins["hall"].aside_target), 1.0), "the paladin the camera leaves steps aside")
+	check(world.paladin_clip("hall") == "walk", "...walking (clip: %s)" % world.paladin_clip("hall"))
+	world.skip()
+	MenuCameraRig.instant_override = 1
+	await settle(2)
 	# budgets: the scene plus the menu layer stays modest on phones
 	var stats: Dictionary = app.scene3d.stats()
 	var layer: Dictionary = world.stats()
 	check(int(stats.draw_nodes) <= 80, "the castle itself keeps its draw-node budget (%d)" % int(stats.draw_nodes))
-	check(int(layer.draw_nodes) <= 160 and int(layer.stations) == world.built_stations().size(), "the menu layer after visiting every station stays modest (%d nodes, %d stations built)" % [int(layer.draw_nodes), int(layer.stations)])
+	check(int(layer.draw_nodes) <= 280 and int(layer.stations) == world.built_stations().size(), "the menu layer after visiting every station stays modest (%d nodes, %d stations built)" % [int(layer.draw_nodes), int(layer.stations)])
 	check(int(stats.lights) <= 10, "no extra real lights (%d)" % int(stats.lights))
 	var fresh = fresh_app()
 	await settle()
@@ -252,6 +282,91 @@ func world_in_the_application() -> void:
 	fresh.queue_free()
 	await settle(2)
 	app.queue_free()
+	await settle(2)
+
+## Phases 3-4: the war room map table, the yard, gallery, watchtower and friend signs, and picking props for clicks.
+func hero_props() -> void:
+	MenuCameraRig.instant_override = 1
+	Settings.quality = "balanced"
+	var app = fresh_app()
+	await settle()
+	var world: MenuWorld = app.world
+	for page in ["campaign", "training", "profile", "history", "leaderboard", "friends"]:
+		app.navigate(page)
+		await settle(3)
+	check(world.war_nodes.size() == 12, "the war room map table has twelve encounter nodes (%d)" % world.war_nodes.size())
+	var bosses := 0
+	for i in world.war_nodes.size():
+		if world.war_nodes[i].boss:
+			bosses += 1
+			check(MenuHeroProps.BOSS_NODES.has(i) and CampaignNodes.is_boss(i), "node %d is a boss in the table and the data" % i)
+	check(bosses == 3, "three boss nodes (%d)" % bosses)
+	# states: locked covered, cleared with a banner, current lit and enlarged
+	world.set_campaign_display("map", 3, 3)
+	var n: Array = world.war_nodes
+	check(not n[0].cover.visible and n[0].flag.visible, "a cleared node shows its banner and no cover")
+	check(not n[3].cover.visible and not n[3].flag.visible and n[3].holder.scale.x > 1.1, "the current node is uncovered and enlarged")
+	check(n[3].body.material_override == world.war_materials.current, "the current node is lit")
+	check(n[7].cover.visible and not n[7].flag.visible, "a later node is covered")
+	world.set_campaign_display("boon", 4, 4, ["vitality", "endurance", "iron_will"])
+	check(world.war_offers[0].node.visible and world.war_offers[2].node.visible, "three boon pedestals appear while a boon is offered")
+	check((world.war_offers[0].label as Label3D).text == "Vitality" and (world.war_offers[2].label as Label3D).text == "Iron Will", "the pedestals are labelled with the boons")
+	world.set_campaign_display("none", 0, 0)
+	check(not world.war_offers[0].node.visible and n[0].cover.visible, "no run: boons hidden and every node covered")
+	# the page state is what the application pushes
+	app.navigate("campaign")
+	await settle(2)
+	var run: CampaignRun = CampaignProgress.shared().run
+	check(run == null or world.war_nodes[int(run.index)].holder.scale.x > 1.0 or run.status == "lost", "the application shows the run's current node")
+	# training medals, gallery, leaderboard and friends signs
+	world.set_training_medals([3, 2, 1, 0, 0, 0, 0, 0])
+	check(world.medal_discs.size() == 8, "the medal wall has eight slots")
+	check((world.medal_discs[0].material_override as StandardMaterial3D).emission_enabled and not (world.medal_discs[3].material_override as StandardMaterial3D).emission_enabled, "earned medals glow, empty slots do not")
+	world.set_gallery(["win", "loss", "draw"])
+	var win_color := Color("3f8f5a")
+	var gallery_checked := 0
+	for f in world.gallery_frames:
+		if int(f.slot) == 0:
+			gallery_checked += 1
+			check((f.material as StandardMaterial3D).albedo_color.is_equal_approx(win_color) and (f.label as Label3D).text == "Win", "the first frame shows a win")
+	check(gallery_checked == 2, "the gallery and the archive both have framed matches (%d)" % gallery_checked)
+	world.set_leaderboard(["Ada", "Bo"])
+	check((world.rank_banners[0].name as Label3D).text == "Ada" and (world.rank_banners[2].name as Label3D).text == "", "the rank banners show the top names")
+	world.set_friends(["Cy", "Di"])
+	check(world.friend_signs[0].node.visible and world.friend_signs[1].node.visible and not world.friend_signs[2].node.visible, "one sign per friend")
+	check((world.friend_signs[1].label as Label3D).text == "Di", "a friend's name is on the sign")
+	# data pushed before a station exists is applied when it is built
+	var late = fresh_app()
+	await settle()
+	late.world.set_leaderboard(["Eve"])
+	late.navigate("leaderboard")
+	await settle(3)
+	check((late.world.rank_banners[0].name as Label3D).text == "Eve", "data pushed before the station exists is shown once it is built")
+	# picking: a ray through a prop's centre finds it, one through the sky does not
+	app.navigate("play")
+	await settle(3)
+	var camera: Camera3D = app.scene3d.camera
+	var banner_point: Vector3 = world.props["banner_battle"].point
+	check(not camera.is_position_behind(banner_point), "the battle banner is in front of the hall camera")
+	var hit := world.pick(camera, camera.unproject_position(banner_point))
+	check(hit == "banner_battle", "picking at a banner's screen position finds it (%s)" % hit)
+	check(world.pick(camera, Vector2(2.0, 2.0)) == "", "picking empty sky finds nothing")
+	late.queue_free()
+	app.queue_free()
+	await settle(2)
+	# portrait windows (phones): the world shows through the top 30%, the page sits below it
+	var phone = fresh_app(540, 960)
+	await settle(3)
+	phone.navigate("play")
+	await settle(3)
+	check(phone._portrait_gap.custom_minimum_size.y > 200.0, "a portrait window leaves the top part to the world (%.0f px)" % phone._portrait_gap.custom_minimum_size.y)
+	phone.queue_free()
+	var wide = fresh_app(1280, 800)
+	await settle(3)
+	wide.navigate("play")
+	await settle(3)
+	check(is_zero_approx(wide._portrait_gap.custom_minimum_size.y), "a landscape window keeps the page beside the world")
+	wide.queue_free()
 	await settle(2)
 
 func quality_tiers() -> void:

@@ -190,6 +190,9 @@ func _build_frame() -> void:
 		var target: String = item[0]
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
 		_nav_labels[target] = item[1]
+	_portrait_gap = Control.new()   # portrait windows (phones): the world shows through the top part, the page sits below it
+	_portrait_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_portrait_gap)
 	page_scroll = ScrollContainer.new()
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -219,6 +222,43 @@ func _input(event: InputEvent) -> void:
 	if (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton) and event.is_pressed():
 		world.skip()
 		get_viewport().set_input_as_handled()
+
+## A click on a 3D prop of the stage does what the matching page control does (the controls still own focus, tooltips and the pad).
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_instance_valid(world) or is_instance_valid(intro) or world.is_flying():
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and is_instance_valid(scene3d):
+		var camera: Camera3D = scene3d.get("camera")
+		var id: String = world.pick(camera, event.position)
+		if id != "":
+			world.select_prop(id)
+			_prop_clicked(id)
+			get_viewport().set_input_as_handled()
+
+func _prop_clicked(id: String) -> void:
+	if id == "banner_classic" or id == "banner_battle":
+		selected_mode = "classic" if id == "banner_classic" else "battle"
+		online = false
+		navigate("play")
+	elif id == "preview":
+		navigate("play")
+	elif id.begins_with("friend_") or id == "sign_friends":
+		navigate("friends")
+	elif id == "sign_online":
+		online = true
+		navigate("play")
+	elif id.begins_with("campaign_node_") or id == "map_table" or id.begins_with("boon_"):
+		navigate("campaign")
+	elif id in ["weapon_rack", "medal_wall", "dummy"]:
+		navigate("training")
+	elif id.begins_with("gallery_"):
+		navigate("profile")
+	elif id.begins_with("archive_"):
+		navigate("history")
+	elif id.begins_with("rank_"):
+		navigate("leaderboard")
+	elif id.begins_with("settings_") or id.begins_with("armoury_"):
+		navigate("settings")
 
 ## Circle on a controller: leave a sub-page for Play (PadUi calls this only when no dialog is open).
 func _pad_back() -> void:
@@ -277,9 +317,14 @@ func navigate(target: String) -> void:
 
 ## Page column width and side, and the nav row's text/icon mode. On a roomy window the page sits on the right and the left stays open for the
 ## 3D world (the station's paladin and props); narrow windows use the whole width.
+var _portrait_gap: Control
+
 func _apply_layout() -> void:
 	if _page_width == null:
 		return
+	if is_instance_valid(_portrait_gap):
+		var portrait := is_instance_valid(world) and page != "home" and size.y > size.x * 1.15
+		_portrait_gap.custom_minimum_size.y = size.y * 0.30 if portrait else 0.0
 	var stage := is_instance_valid(world) and page != "home" and size.x >= 1000.0
 	_page_width.align_right = stage
 	if page == "home":
@@ -335,6 +380,19 @@ func _sync_world_state() -> void:
 		return
 	world.set_play_selection(selected_mode, "online" if online else str(opponent.get("kind", "local")), Settings.preferred_3d)
 	world.set_exterior_selection("online" if (page == "play" and online) else "friends")
+	var run: CampaignRun = CampaignProgress.shared().run
+	world.set_campaign_display(String(run.status) if run != null else "none", int(run.index) if run != null else 0, int(run.nodes_cleared()) if run != null else 0,
+			Array(run.offer) if run != null else [])
+	if page == "training":
+		var progress := ProgressStore.new()
+		var catalog := LessonCatalog.load_all()
+		var medals: Array = []
+		for lesson in catalog.playable():
+			if medals.size() >= 8:
+				break
+			var entry: Dictionary = progress.lessons.get(String(lesson.get("id", "")), {})
+			medals.append(ProgressStore.RATINGS.find(String(entry.get("best_rating", ""))) if bool(entry.get("completed", false)) else 0)
+		world.set_training_medals(medals)
 
 ## A page control makes the station paladin look at a prop on hover/focus and bow on press.
 func _wire_prop(button: Control, prop_id: String) -> void:
@@ -789,6 +847,12 @@ func _load_history(generation: int, offset: int = 0) -> void:
 		previous_button.queue_free()
 	_history_more_button = null
 	var matches: Array = response.data.get("matches", [])
+	if is_instance_valid(world) and offset == 0:
+		var outcomes: Array = []
+		for record in matches:
+			var white: bool = record.whitePlayerId == Settings.account.get("playerId")
+			outcomes.append("draw" if record.result == "draw" else ("win" if record.result == ("white" if white else "black") else "loss"))
+		world.set_gallery(outcomes)
 	if matches.is_empty() and offset == 0:
 		Kit.empty_state(content, "list", "No online matches yet", "Your first online match is waiting. Find an opponent from Play.", "Find a match", func(): online = true; navigate("play"))
 	for record in matches:
@@ -830,6 +894,11 @@ func _load_leaderboard(generation: int, mode: String) -> void:
 		Kit.error_state(content, "The leaderboard could not be loaded. " + str(response.message), "Try again", func(): navigate("leaderboard"))
 		return
 	var players: Array = response.data.get("players", [])
+	if is_instance_valid(world):
+		var top: Array = []
+		for entry in players:
+			top.append(str(entry.get("displayName", "")))
+		world.set_leaderboard(top)
 	for i in players.size():
 		var profile: Dictionary = players[i]
 		var stats: Dictionary = profile[mode]
