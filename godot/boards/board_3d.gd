@@ -332,6 +332,9 @@ func square_at(point: Vector2) -> int:
 	var origin = camera.project_ray_origin(scaled)
 	var end = origin + camera.project_ray_normal(scaled) * 400
 	var query = PhysicsRayQueryParameters3D.create(origin, end)
+	# Only tile colliders are pickable. Without this mask, the pit chamber's camera-collision slab (built on the first battle and
+	# left in the physics world afterwards) sat between the camera and the board, so every click after a duel hit it, not a tile.
+	query.collision_mask = TILE_PHYSICS_LAYER
 	var hit = viewport_3d.find_world_3d().direct_space_state.intersect_ray(query)
 	return hit.collider.get_meta("square", -1) if not hit.is_empty() else -1
 

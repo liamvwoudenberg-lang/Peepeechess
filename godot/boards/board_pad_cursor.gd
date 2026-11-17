@@ -48,6 +48,9 @@ var show_cursor: bool = false
 var quarter_turns_provider: Callable = Callable()
 ## square -> Rect2 in the overlay's coordinates, or an empty Rect2 when unknown (the cursor then draws nothing).
 var square_rect_provider: Callable = Callable()
+## (square, inset) -> the square's four projected corners (PackedVector2Array, overlay coordinates), so the cursor follows the board's
+## perspective. Optional: without it the cursor falls back to an axis-aligned rectangle from `square_rect_provider`.
+var square_quad_provider: Callable = Callable()
 var promoting: Dictionary = {}  # {"from","to","index"} while the picker is open
 var last_message: String = ""
 
@@ -392,12 +395,18 @@ class _CursorOverlay:
 		var rect: Rect2 = cursor.square_rect_provider.call(cursor.cursor)
 		if rect.size == Vector2.ZERO:
 			return
-		var ring := rect.grow(-rect.size.x * 0.04)
-		draw_rect(ring, Color(0.35, 0.8, 1.0, 0.2), true)
-		draw_rect(ring, Color(0.45, 0.88, 1.0, 0.95), false, maxf(3.0, rect.size.x * 0.06))
-		var arm := rect.size.x * 0.18
-		for corner in [ring.position, ring.position + Vector2(ring.size.x, 0), ring.position + Vector2(0, ring.size.y), ring.end]:
-			draw_circle(corner, arm * 0.18, Color.WHITE)
+		var quad := PackedVector2Array()
+		if cursor.square_quad_provider.is_valid():
+			quad = cursor.square_quad_provider.call(cursor.cursor, 0.46)
+		if quad.size() != 4:
+			var ring := rect.grow(-rect.size.x * 0.04)
+			quad = PackedVector2Array([ring.position, ring.position + Vector2(ring.size.x, 0), ring.end, ring.position + Vector2(0, ring.size.y)])
+		draw_colored_polygon(quad, Color(0.35, 0.8, 1.0, 0.2))
+		var outline := quad.duplicate()
+		outline.append(quad[0])
+		draw_polyline(outline, Color(0.45, 0.88, 1.0, 0.95), maxf(3.0, rect.size.x * 0.06), true)
+		for corner in quad:
+			draw_circle(corner, maxf(2.5, rect.size.x * 0.032), Color.WHITE)
 		if not cursor.promoting.is_empty():
 			_draw_picker(rect)
 		var font := ThemeDB.fallback_font
