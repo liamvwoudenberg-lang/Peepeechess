@@ -16,6 +16,8 @@ const SettingsPage = preload("res://ui/settings_page.gd")
 const FriendsPage = preload("res://ui/friends_page.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const MenuPlaquesScript = preload("res://ui/opening/menu_plaques.gd")
+const MenuWorldScript = preload("res://ui/opening/menu_world.gd")
+const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const TrainingPageScript = preload("res://ui/training_page.gd")
 const CampaignPageScript = preload("res://ui/campaign_page.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
@@ -59,6 +61,11 @@ var _backdrop: Control
 ## The 3D castle behind home and match setup (freed on other pages) and the
 ## opening-screen overlay that drives its camera while the first-launch intro plays (null otherwise).
 var scene3d: Node3D
+## The cinematic menu layer over scene3d (stations, camera flights, paladins, props); null on the low quality tier (flat pages).
+var world: Node3D
+var _stage_fade := 1.0
+var _nav: HFlowContainer
+var _nav_labels: Dictionary = {}
 var _brand_button: Button
 var intro: Control
 var _last_toast = ""
@@ -157,6 +164,7 @@ func _build_frame() -> void:
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
 	var top_width = MaxWidth.new()  # keeps the navigation aligned with the centred page column on wide screens
+	top_width.max_width = 1400.0    # one row of tabs at 1280 px (the page column below is narrower)
 	top_width.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(top_width)
 	_topbar = VBoxContainer.new()
@@ -177,9 +185,11 @@ func _build_frame() -> void:
 	account_badge = Kit.button(brand_row, "Sign in", func(): navigate("account"), "", "user")
 	_topbar_badge = account_badge
 	var nav = _flow(_topbar)
+	_nav = nav
 	for item in [["play", "Play", "crown"], ["training", "Training", "sword"], ["campaign", "Campaign", "crown"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
 		var target: String = item[0]
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
+		_nav_labels[target] = item[1]
 	page_scroll = ScrollContainer.new()
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -198,7 +208,17 @@ func _build_frame() -> void:
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(footer)
 	notice = _label(footer, "Your board. Your perspective. One shared game.", 14, MUTED)
+	notice.custom_minimum_size.y = 14.0
 	_update_badge()
+	resized.connect(_apply_layout)
+
+## Any key, click or pad button during a camera flight skips to the end of it.
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(world) or not world.is_flying():
+		return
+	if (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton) and event.is_pressed():
+		world.skip()
+		get_viewport().set_input_as_handled()
 
 ## Circle on a controller: leave a sub-page for Play (PadUi calls this only when no dialog is open).
 func _pad_back() -> void:
@@ -230,8 +250,9 @@ func navigate(target: String) -> void:
 	elif page != "home":
 		_release_scene3d()
 	_backdrop.mode = "scene" if (page in ["home", "play"] or castle_pages) else "page"
-	_page_width.max_width = 4000.0 if page == "home" else 1120.0
-	_page_width.call("_fit")
+	if page != "home":
+		notice.text = ""   # the tagline belongs to the title screen; inner pages keep this line for messages only
+	_apply_layout()
 	page_scroll.scroll_vertical = 0
 	queue_label = null
 	friend_lists = null
@@ -251,6 +272,81 @@ func navigate(target: String) -> void:
 	_update_badge()
 	_sync_chrome()
 	Motion.fade_in(content, Motion.DURATION, 1.0)
+	_fly_world_to_page()
+	_sync_world_state()
+
+## Page column width and side, and the nav row's text/icon mode. On a roomy window the page sits on the right and the left stays open for the
+## 3D world (the station's paladin and props); narrow windows use the whole width.
+func _apply_layout() -> void:
+	if _page_width == null:
+		return
+	var stage := is_instance_valid(world) and page != "home" and size.x >= 1000.0
+	_page_width.align_right = stage
+	if page == "home":
+		_page_width.max_width = 4000.0
+	elif stage:
+		_page_width.max_width = clampf(size.x * 0.52, 620.0, 880.0)
+	else:
+		_page_width.max_width = 1120.0
+	_page_width.call("_fit")
+	_fit_nav()
+
+## One row of tabs: full labels when they fit, icon-only (labels as tooltips) when they do not. Never wraps on windows >= 480 px.
+func _fit_nav() -> void:
+	if _nav == null or _menu_buttons.is_empty():
+		return
+	for key in _menu_buttons:
+		var button: Button = _menu_buttons[key]
+		button.text = _nav_labels[key]
+		button.tooltip_text = ""
+	var gap := float(_nav.get_theme_constant("h_separation"))
+	var need := gap * float(_menu_buttons.size() - 1)
+	for key in _menu_buttons:
+		need += (_menu_buttons[key] as Button).get_combined_minimum_size().x
+	var avail := minf(size.x - 48.0, 1400.0)
+	nav_icon_only = need > avail
+	if nav_icon_only:
+		for key in _menu_buttons:
+			var button: Button = _menu_buttons[key]
+			button.tooltip_text = _nav_labels[key]
+			button.text = ""
+			button.accessibility_name = _nav_labels[key]
+	_update_friends_badge()
+
+var nav_icon_only := false
+
+## Flies the camera to the page's station (long the first time, one second after that; instant in headless test runs).
+func _fly_world_to_page() -> void:
+	if not is_instance_valid(world):
+		return
+	if is_instance_valid(intro):
+		return   # the opening screen still drives the camera
+	if not world.rig.active:
+		world.start("home")
+	var duration: float = world.fly_to_page(page, online)
+	if duration > 0.0:
+		_stage_fade = 0.0
+		page_scroll.modulate.a = 0.0
+		notice.modulate.a = 0.0
+
+## Keeps the 3D props in step with the page state (selected game, opponent kind, 2D/3D board, Friends vs Online).
+func _sync_world_state() -> void:
+	if not is_instance_valid(world):
+		return
+	world.set_play_selection(selected_mode, "online" if online else str(opponent.get("kind", "local")), Settings.preferred_3d)
+	world.set_exterior_selection("online" if (page == "play" and online) else "friends")
+
+## A page control makes the station paladin look at a prop on hover/focus and bow on press.
+func _wire_prop(button: Control, prop_id: String) -> void:
+	if not is_instance_valid(world) or button == null:
+		return
+	var w: Node3D = world
+	button.mouse_entered.connect(func(): w.hover_prop(prop_id))
+	button.mouse_exited.connect(func(): w.clear_hover())
+	button.focus_entered.connect(func(): w.hover_prop(prop_id))
+	button.focus_exited.connect(func(): w.clear_hover())
+	if button is BaseButton:
+		(button as BaseButton).pressed.connect(func(): w.select_prop(prop_id))
 
 ## Navigation, brand, account chip and the page frame as 3D plaques in the castle camera (one set per castle, reused across pages).
 func _sync_chrome() -> void:
@@ -269,7 +365,9 @@ func _sync_chrome() -> void:
 func _page_frame_rect() -> Rect2:
 	var scroll := page_scroll.get_global_rect()
 	var column := _page_width.get_global_rect()
-	return Rect2(column.position.x, scroll.position.y, column.size.x, scroll.size.y)
+	var left := float(_page_width.get_theme_constant("margin_left"))
+	var right := float(_page_width.get_theme_constant("margin_right"))
+	return Rect2(column.position.x + left, scroll.position.y, maxf(1.0, column.size.x - left - right), scroll.size.y)
 
 ## The title page. The very first time in a run it is the opening screen (title + "press any button", then the camera glides
 ## through the gate and the menu fades in); afterwards the menu simply shows over the 3D castle.
@@ -294,6 +392,8 @@ func _home_page() -> void:
 func _on_intro_finished(screen: Control) -> void:
 	if intro == screen:
 		intro = null
+	if is_instance_valid(world) and not world.rig.active:
+		world.start("home")   # the home station is exactly the pose the opening glide ends on
 	Music.go(get_tree(), "menu")
 	Motion.settle(content)
 
@@ -305,9 +405,14 @@ func _ensure_scene3d(blend: float) -> void:
 	add_child(scene3d)
 	move_child(scene3d, 0)
 	scene3d.call("build", Settings.quality, Motion.enabled(), blend)
+	if Settings.quality != "low":   # the flat low tier keeps the old menu exactly as it was
+		world = MenuWorldScript.new()
+		world.call("setup", scene3d, Settings.quality)
+		world.set_audio(get_node_or_null("UiAudio"))
 
 ## Frees the castle while a page without the scene is open; the next visit rebuilds it.
 func _release_scene3d() -> void:
+	world = null
 	if is_instance_valid(scene3d):
 		if scene3d.get_parent() != null:
 			scene3d.get_parent().remove_child(scene3d)
@@ -373,7 +478,8 @@ func _play_page() -> void:
 		_style_scene_card(card.get_parent() as PanelContainer, selected_mode == selected)
 		Kit.icon_label_row(card, "rook" if selected == "classic" else "sword", data[2], "H2" if selected_mode == selected else "H3")
 		_label(card, data[3], 15, MUTED).custom_minimum_size = Vector2(260, 48)
-		_button(card, "Selected" if selected_mode == selected else "Choose " + data[2], func(): selected_mode = selected; navigate("play"), selected_mode == selected)
+		var choose = _button(card, "Selected" if selected_mode == selected else "Choose " + data[2], func(): selected_mode = selected; navigate("play"), selected_mode == selected)
+		_wire_prop(choose, "banner_" + selected)
 	var setup = _card(content)
 	_style_scene_card(setup.get_parent() as PanelContainer, false)
 	_label(setup, "YOUR MATCH", 13, GOLD)
@@ -850,6 +956,12 @@ func _open_allocation(allocation: Dictionary) -> void:
 	get_tree().change_scene_to_file("res://network/client/online_lobby.tscn")
 
 func _process(delta: float) -> void:
+	if is_instance_valid(world):
+		var flying: bool = world.is_flying()
+		var rate := (6.5 if Prefs.reduce_motion else 5.0) if not flying else 8.0
+		_stage_fade = move_toward(_stage_fade, 0.0 if flying else 1.0, delta * rate)
+		page_scroll.modulate.a = _stage_fade
+		notice.modulate.a = _stage_fade
 	_poll_timer += delta
 	if _poll_timer >= 2.0:
 		_poll_timer = 0.0

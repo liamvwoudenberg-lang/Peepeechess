@@ -11,6 +11,7 @@ extends Node3D
 ## screen drives it, the scene only draws. Free the node to free everything (no statics, no autoloads).
 const Builder = preload("res://ui/opening/castle_builder.gd")
 const Assets = preload("res://ui/opening/opening_assets.gd")
+const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const Batch = preload("res://ui/opening/mesh_batch.gd")
 const PIECES := "res://assets/world/pieces/"
 const PALADIN_STATUES := "res://assets/paladins/opening/"
@@ -28,6 +29,8 @@ var blend := 0.0
 ## Camera-drift speed multiplier (the opening drifts slowly, the menu even slower).
 var drift_rate := 1.0
 var camera: Camera3D
+## The cinematic menu's camera rig (menu_camera_rig.gd). While it is `active` it owns the camera instead of `blend`.
+var rig: MenuCameraRig = null
 var sun: DirectionalLight3D
 var fill: DirectionalLight3D
 var gate_light: OmniLight3D
@@ -267,6 +270,15 @@ func _build_paladin_piece(spec: Dictionary, role: String, side: String) -> bool:
 	return true
 
 
+## One posed paladin (the same lightweight static mesh as the board pieces) at `placement`; null when the assets are missing.
+## Used by the cinematic menu for its station paladins.
+func spawn_paladin(role: String, side: String, placement: Transform3D) -> Node3D:
+	var before := get_child_count()
+	if not _build_paladin_piece({"xf": placement}, role, side):
+		return null
+	var piece := get_child(get_child_count() - 1) as Node3D
+	return piece if get_child_count() > before else null
+
 func _build_statues(q: int, builder: Builder) -> void:
 	# The board uses paladin pieces; the exterior's stone statues are batched by material.
 	var buckets := {}
@@ -496,6 +508,9 @@ func _drift_offset() -> Vector3:
 func _apply_camera() -> void:
 	if camera == null:
 		return
+	if rig != null and rig.active:
+		_apply_rig()
+		return
 	var s := blend
 	var pos := _path(s) + _drift_offset()
 	var look_ease := smoothstep(0.0, 1.0, clampf((s - 0.05) / 0.9, 0.0, 1.0))
@@ -508,6 +523,29 @@ func _apply_camera() -> void:
 	basis = basis * Basis(Vector3.BACK, roll)
 	camera.transform = Transform3D(basis, pos)
 	_update_projection(s)
+
+## The rig's pose, with a faint idle drift on top so a resting station never looks frozen (zero while a flight runs or motion is reduced).
+func _apply_rig() -> void:
+	var calm := 0.0 if rig.flying else 1.0
+	var drift := _drift_offset() * 0.10 * calm
+	var pos := rig.pos + drift
+	var look := rig.look + drift * 0.5
+	var basis := Basis.looking_at((look - pos).normalized(), Vector3.UP) * Basis(Vector3.BACK, rig.roll)
+	if is_inside_tree() and not Prefs.reduce_motion and calm > 0.0:
+		# slight parallax: the view leans toward the pointer (zero under reduce-motion and during a flight)
+		var view := get_viewport().get_visible_rect().size
+		var mouse := get_viewport().get_mouse_position() / maxf(view.x, 1.0) - Vector2(0.5, 0.5 * view.y / maxf(view.x, 1.0))
+		look += basis.x * mouse.x * 2.4 - basis.y * mouse.y * 1.6
+		basis = Basis.looking_at((look - pos).normalized(), Vector3.UP) * Basis(Vector3.BACK, rig.roll)
+	camera.transform = Transform3D(basis, pos)
+	var size := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(1280, 800)
+	_viewport_size = size
+	if size.x / maxf(size.y, 1.0) >= 1.15:
+		camera.keep_aspect = Camera3D.KEEP_HEIGHT
+		camera.fov = rig.fov
+	else:
+		camera.keep_aspect = Camera3D.KEEP_WIDTH
+		camera.fov = rig.fov + 20.0
 
 func _on_viewport_resized() -> void:
 	_apply_camera()
@@ -535,6 +573,8 @@ func advance(delta: float) -> void:
 		_sky.set_shader_parameter("t", _wall_clock if animated else 0.0)
 
 func _process(delta: float) -> void:
+	if rig != null:
+		rig.advance(delta)
 	advance(delta)
 
 func _notification(what: int) -> void:
@@ -546,7 +586,10 @@ func _notification(what: int) -> void:
 func stats() -> Dictionary:
 	var meshes := 0
 	var lights := 0
+	var menu_layer := get_node_or_null("MenuWorld")   # the cinematic menu layer has its own budget (MenuWorld.stats)
 	for node in find_children("*", "", true, false):
+		if menu_layer != null and (node == menu_layer or menu_layer.is_ancestor_of(node)):
+			continue
 		if node is MeshInstance3D or node is MultiMeshInstance3D:
 			meshes += 1
 		elif node is Light3D:

@@ -1,6 +1,6 @@
 # Cinematic menu: one 3D world, the camera flies between pages
 
-Status: **idea / design draft** (2026-11-17). Nothing here is built. It extends the opening screen (`godot/ui/opening/*`) and the 3D
+Status: **phases 1-2 built** (2026-11-17, branch `ccr-cine-menu-1`); phases 3-5 are still ideas. It extends the opening screen (`godot/ui/opening/*`) and the 3D
 plaques (`menu_plaques.gd`), which already exist.
 
 ## 1. The idea in one paragraph
@@ -108,3 +108,21 @@ Play options, Settings, Friends lists, Profile stats and History tables are form
 3. Is a **first-person-feeling walkthrough** wanted (camera follows a path with slight bob), or a smoother cinematic style (current)?
 4. How much **waiting** is acceptable per navigation: a 1 s flight every time, or a long flight only the first time then quick cuts?
 5. Should a **paladin character** stand at each station and react (nod on hover, bow on select), as the opening statues do?
+
+## 11. Decided 2026-11-17 (owner) and what phases 1-2 built
+
+Decisions: (1) one night look everywhere; (2) Friends, account sign-in and Online play are OUTSIDE the castle walls (the bridge, with a
+signpost and a campfire), local pages are inside; (3) a smooth cinematic glide like the title screen, not a walkthrough; (4) the first flight
+into each station in a session is long (2.5 s, with fly-past beats), every later flight about 1 s (`MenuCameraRig.LONG_FLIGHT/SHORT_FLIGHT`,
+nothing persisted); (5) a paladin stands at each station and reacts (turns and nods on arrival, looks at a hovered prop, bows on select).
+
+Built (godot/ui/opening/): `menu_stations.gd` (nine stations, page -> station map, authored paths, gate pass), `menu_camera_rig.gd` (spline
+flights, ease, interrupt/retarget, back, skip, reduce-motion crossfade, instant test mode), `menu_world.gd` (the persistent layer: station
+paladins and props built lazily the first time a station is visited, the Play hall banners and a live board preview table, the exterior
+signpost and campfire, the armoury rack, the yard dummy). `OpeningScene` gained the `rig` hook, a faint idle drift and pointer parallax,
+and `spawn_paladin()`. `application.gd` routes `navigate(page)` through the world (fade during a flight, skip on any key/click/pad button, page
+column on the right so the left stays open as the stage, one-row tab bar that falls back to icons, no repeated tagline on inner pages).
+Low quality keeps the flat menu. Tests: `godot/tests/ui/menu_world_test.gd` (in `npm run test:ui`).
+Limits: the station paladins are the static statue meshes (no skeleton), so "nod", "look" and "bow" are body tilts and turns, not animations;
+Training, Campaign, Profile, History and Leaderboard use camera stations with a paladin but no hero props yet (phases 3-4); flight audio reuses
+the UI 'back' sound; the 3D props are not clickable (the Controls own input).
