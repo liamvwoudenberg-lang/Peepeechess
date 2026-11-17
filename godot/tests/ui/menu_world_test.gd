@@ -232,13 +232,42 @@ func world_in_the_application() -> void:
 	for i in 60:
 		world.advance(1.0 / 60.0)
 	world.select_prop("banner_classic")
-	var bowed := false
-	var base_pitch := knight.transform.basis.get_euler().x
+	check(world.paladin_clip("hall") == "bow", "selecting makes the paladin bow (clip: %s)" % world.paladin_clip("hall"))
+	world.select_prop("banner_classic")
+	check(world.paladin_clip("hall") == "salute", "the next selection salutes (clip: %s)" % world.paladin_clip("hall"))
+	# the station paladins are RIGGED: a skeleton, real clips that advance, a look modifier that turns the head
+	check(world.is_rigged("hall"), "the hall paladin is a rigged PaladinModel")
+	var rigged: PaladinModel = world.paladins["hall"].model
+	check(rigged != null and rigged.skeleton != null and rigged.player != null and rigged.player.has_animation("greet") and rigged.player.has_animation("bow") and rigged.player.has_animation("salute") and rigged.player.has_animation("look_around"), "the paladin has a skeleton and the menu clips (greet, bow, salute, look_around)")
+	var position_before := rigged.player.current_animation_position
+	await settle(12)
+	check(rigged.player.is_playing() and rigged.player.current_animation_position != position_before, "the clip advances over frames (%.3f -> %.3f)" % [position_before, rigged.player.current_animation_position])
+	var look: MenuLookModifier = world.paladins["hall"].look
+	check(look != null and look.has_bones(), "the head/spine look modifier found its bones")
+	world.hover_prop("banner_battle")
 	for i in 40:
 		world.advance(1.0 / 60.0)
-		if absf(knight.transform.basis.get_euler().x - base_pitch) > 0.1:
-			bowed = true
-	check(bowed, "selecting makes the paladin bow")
+	await settle(3)
+	check(absf(look.applied) > 0.02, "hovering a prop turns the head through the look modifier (%.3f rad)" % look.applied)
+	world.clear_hover()
+	for i in 80:
+		world.advance(1.0 / 60.0)
+	await settle(3)
+	check(absf(look.applied) < 0.05, "...and it turns back when the hover ends (%.3f rad)" % look.applied)
+	# only the paladin at the current station is animated
+	var other: PaladinModel = null
+	for id in world.paladins:
+		if id != world.current_station() and world.paladins[id].model != null:
+			other = world.paladins[id].model
+	check(other == null or is_zero_approx(other.player.speed_scale), "paladins at other stations hold their pose (no skeleton cost)")
+	# a flight makes the station it leaves step aside and the arrival walks back in
+	MenuCameraRig.instant_override = 0
+	world.fly_to_station("yard")
+	check(is_equal_approx(float(world.paladins["hall"].aside_target), 1.0), "the paladin the camera leaves steps aside")
+	check(world.paladin_clip("hall") == "walk", "...walking (clip: %s)" % world.paladin_clip("hall"))
+	world.skip()
+	MenuCameraRig.instant_override = 1
+	await settle(2)
 	# budgets: the scene plus the menu layer stays modest on phones
 	var stats: Dictionary = app.scene3d.stats()
 	var layer: Dictionary = world.stats()

@@ -99,43 +99,117 @@ func back() -> bool:
 # ---------------------------------------------------------------------------------------------------------------------
 # paladins: one at each station, idle breathing, a nod on arrival, a look at a hovered prop, a bow on select
 # ---------------------------------------------------------------------------------------------------------------------
+const ROLE_CODE := {"pawn": "p", "knight": "n", "bishop": "b", "rook": "r", "queen": "q", "king": "k"}
+const ASIDE_DISTANCE := 1.6      ## a paladin steps this far out of the camera's way when a flight starts (metres)
+const IDLE_VARIATION_EVERY := Vector2(11.0, 19.0)   ## seconds between 'look around' idles
+
+## The station paladin: a RIGGED paladin (PaladinModel + PaladinClips, the same characters as the board and the duels) with a looping idle,
+## a greeting on arrival, a head/upper-body look at the hovered prop (MenuLookModifier), a bow or salute on select and a step aside when the
+## camera flies off. Without the rigged asset it falls back to the old static statue (tilts only).
 func _build_paladin(id: String) -> void:
 	var spec: Dictionary = MenuStations.station(id).paladin
 	var at := MenuStations.paladin_position(id)
 	var cam_pos: Vector3 = MenuStations.station(id).pos
 	var yaw := MenuStations.yaw_toward(at, cam_pos)
-	var placement := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * float(spec.scale)), at)
-	var node: Node3D = scene.call("spawn_paladin", spec.role, spec.side, placement)
-	if node == null:
-		return
-	node.reparent(self)   # the menu layer owns its nodes (the scene's own stats and budget exclude them)
-	node.name = "StationPaladin_" + id
-	paladins[id] = {"node": node, "pos": at, "yaw": yaw, "scale": float(spec.scale), "look_off": 0.7, "look_target": 0.0, "pitch": 0.0,
-		"pitch_target": 0.0, "bow": -1.0, "nod": -1.0, "phase": float(paladins.size()) * 1.3}
-	_apply_paladin(paladins[id], 0.0)
+	var code: String = ROLE_CODE.get(spec.role, "p")
+	var side := "w" if spec.side == "light" else "b"
+	var state := {"pos": at, "yaw": yaw, "scale": float(spec.scale), "look_off": 0.7, "look_target": 0.0,
+		"phase": float(paladins.size()) * 1.3, "model": null, "look": null, "aside": 1.0, "aside_target": 0.0, "aside_dir": _aside_direction(id),
+		"variation_in": randf_range(IDLE_VARIATION_EVERY.x, IDLE_VARIATION_EVERY.y), "select_count": 0, "clip": "idle"}
+	var model: PaladinModel = PaladinModel.create(code, side, float(spec.scale)) if PaladinModel.available(code) else null
+	if model != null and model.skeleton != null and model.player != null:
+		model.name = "StationPaladin_" + id
+		add_child(model)
+		var look := MenuLookModifier.new()
+		look.name = "MenuLook"
+		model.skeleton.add_child(look)
+		look.setup(model.skeleton)
+		state.model = model
+		state.look = look
+		state.node = model
+	else:
+		if model != null:
+			model.queue_free()
+		var placement := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * float(spec.scale)), at)
+		var node: Node3D = scene.call("spawn_paladin", spec.role, spec.side, placement)
+		if node == null:
+			return
+		node.reparent(self)   # the menu layer owns its nodes (the scene's own stats and budget exclude them)
+		node.name = "StationPaladin_" + id
+		state.node = node
+	paladins[id] = state
+	_apply_paladin(state)
+	_play(state, "idle")
 
-func _apply_paladin(state: Dictionary, breath: float) -> void:
+func _aside_direction(id: String) -> Vector3:
+	var s := MenuStations.station(id)
+	var forward: Vector3 = (s.look - s.pos)
+	forward.y = 0.0
+	if forward.length() < 0.01:
+		return Vector3.RIGHT
+	return Vector3.UP.cross(forward.normalized())   # the camera's left: the paladin steps further out of the page's way
+
+func _apply_paladin(state: Dictionary) -> void:
 	var node: Node3D = state.node
 	if not is_instance_valid(node):
 		return
-	var s: float = state.scale * (1.0 + breath)
-	var basis := Basis(Vector3.UP, float(state.yaw) + float(state.look_off)) * Basis(Vector3.RIGHT, float(state.pitch))
-	var unit := Basis.from_scale(Vector3.ONE / PaladinModel.SOURCE_HEIGHT)
-	node.transform = Transform3D(basis * Basis.from_scale(Vector3(state.scale, s, state.scale)) * unit, state.pos)
+	var body_yaw: float = float(state.yaw) + float(state.look_off) * (0.6 if state.model != null else 1.0)
+	var at: Vector3 = state.pos + state.aside_dir * ASIDE_DISTANCE * float(state.aside)
+	if state.model != null:
+		node.transform = Transform3D(Basis(Vector3.UP, body_yaw), at)
+		var look: MenuLookModifier = state.look
+		if is_instance_valid(look):
+			look.yaw = float(state.look_off) * 0.4
+	else:
+		var unit := Basis.from_scale(Vector3.ONE / PaladinModel.SOURCE_HEIGHT)
+		node.transform = Transform3D(Basis(Vector3.UP, body_yaw) * Basis.from_scale(Vector3.ONE * float(state.scale)) * unit, at)
+
+## Plays `clip` on the station paladin's skeleton: one-shots return to the looping idle by themselves. Reduce-motion keeps the idle pose still.
+func _play(state: Dictionary, clip: String, blend: float = 0.2) -> void:
+	state.clip = clip
+	var model: PaladinModel = state.model
+	if model == null or not is_instance_valid(model) or not model.player.is_inside_tree():
+		return
+	var player := model.player
+	if not player.has_animation(clip):
+		return
+	if Prefs.reduce_motion:
+		player.play("idle", 0.0)
+		player.seek(0.0, true)
+		player.pause()
+		return
+	player.play(clip, blend)
+	if clip != "idle" and player.get_animation(clip).loop_mode == Animation.LOOP_NONE:
+		player.queue("idle")
 
 func paladin_at(station_id: String) -> Node3D:
 	return paladins[station_id].node if paladins.has(station_id) else null
+
+## The clip a station paladin is playing (tests and the page read this): "idle", "greet", "bow", "salute", "look_around", "walk".
+func paladin_clip(station_id: String) -> String:
+	if not paladins.has(station_id):
+		return ""
+	var model: PaladinModel = paladins[station_id].model
+	if model != null and is_instance_valid(model) and model.player != null and model.player.is_playing():
+		return String(model.player.current_animation)
+	return String(paladins[station_id].clip)
+
+func is_rigged(station_id: String) -> bool:
+	return paladins.has(station_id) and paladins[station_id].model != null
 
 func _greet(station_id: String, instant: bool = false) -> void:
 	if not paladins.has(station_id):
 		return
 	var state: Dictionary = paladins[station_id]
 	state.look_target = 0.0
+	state.aside_target = 0.0
 	if instant or Prefs.reduce_motion:
 		state.look_off = 0.0
-		_apply_paladin(state, 0.0)
+		state.aside = 0.0
+		_apply_paladin(state)
+		_play(state, "idle")
 	else:
-		state.nod = 0.0
+		_play(state, "walk" if float(state.aside) > 0.05 else "greet")   # it walks back into place first, then greets (see advance)
 
 ## Hovering a prop makes the current station's paladin look at it.
 func hover_prop(prop_id: String) -> void:
@@ -150,22 +224,24 @@ func hover_prop(prop_id: String) -> void:
 	state.look_target = wrapf(want, -PI, PI) * 0.8
 	if Prefs.reduce_motion:
 		state.look_off = state.look_target
-		_apply_paladin(state, 0.0)
+		_apply_paladin(state)
 
 func clear_hover() -> void:
 	if _hover_station != "" and paladins.has(_hover_station):
 		paladins[_hover_station].look_target = 0.0
 		if Prefs.reduce_motion:
 			paladins[_hover_station].look_off = 0.0
-			_apply_paladin(paladins[_hover_station], 0.0)
+			_apply_paladin(paladins[_hover_station])
 	_hover_station = ""
 	_hover_point = Vector3.INF
 
-## Selecting something: the paladin bows (raises its sword in spirit: the statue pose cannot, so it dips and lifts).
+## Selecting something: the paladin bows, or salutes on every second selection.
 func select_prop(prop_id: String = "") -> void:
 	var id := rig.current_id
 	if paladins.has(id) and not Prefs.reduce_motion:
-		paladins[id].bow = 0.0
+		var state: Dictionary = paladins[id]
+		state.select_count += 1
+		_play(state, "salute" if int(state.select_count) % 2 == 0 else "bow", 0.15)
 	if props.has(prop_id):
 		_pulse(prop_id)
 
@@ -383,20 +459,22 @@ func advance(delta: float) -> void:
 	for id in paladins:
 		var state: Dictionary = paladins[id]
 		state.look_off = lerpf(state.look_off, state.look_target, step)
-		var pitch_target := 0.0
-		if state.nod >= 0.0:
-			state.nod += delta / 0.55
-			pitch_target = 0.16 * sin(clampf(state.nod, 0.0, 1.0) * PI)
-			if state.nod >= 1.0:
-				state.nod = -1.0
-		if state.bow >= 0.0:
-			state.bow += delta / 0.7
-			pitch_target = 0.5 * sin(clampf(state.bow, 0.0, 1.0) * PI)
-			if state.bow >= 1.0:
-				state.bow = -1.0
-		state.pitch = lerpf(state.pitch, pitch_target, 1.0 if Prefs.reduce_motion else 1.0 - exp(-12.0 * minf(delta, 0.1)))
-		var breath := 0.0 if Prefs.reduce_motion else 0.012 * sin(_clock * 1.7 + float(state.phase))
-		_apply_paladin(state, breath)
+		var was_aside: float = state.aside
+		state.aside = move_toward(state.aside, state.aside_target, delta / 0.9) if not Prefs.reduce_motion else state.aside_target
+		var model: PaladinModel = state.model
+		if model != null and is_instance_valid(model) and model.player != null:
+			# only the paladin the camera is at (or flying to) is animated: the others hold their pose and cost nothing
+			var active: bool = id == rig.current_id or (rig.flying and id == rig.origin_id)
+			model.player.speed_scale = 1.0 if active else 0.0
+			if not Prefs.reduce_motion and active:
+				if state.clip == "walk" and was_aside > 0.02 and state.aside <= 0.02:
+					_play(state, "greet")   # back in place: the greeting
+				elif state.clip == "idle" or paladin_clip(id) == "idle":
+					state.variation_in -= delta
+					if state.variation_in <= 0.0:
+						state.variation_in = randf_range(IDLE_VARIATION_EVERY.x, IDLE_VARIATION_EVERY.y)
+						_play(state, "look_around", 0.4)
+		_apply_paladin(state)
 	for id in props:
 		var prop: Dictionary = props[id]
 		if prop.pulse > 0.0:
@@ -409,6 +487,12 @@ func _on_arrived(station_id: String) -> void:
 func _on_flight_started(_station_id: String, _duration: float) -> void:
 	_hover_station = ""
 	clear_hover()
+	# the paladin the camera leaves steps out of its way (it walks aside while the camera flies off)
+	var leaving := rig.origin_id
+	if paladins.has(leaving) and not Prefs.reduce_motion:
+		var state: Dictionary = paladins[leaving]
+		state.aside_target = 1.0
+		_play(state, "walk", 0.25)
 	if is_instance_valid(_audio) and _audio.has_method("play_ui"):
 		_audio.call("play_ui", "back")   # the existing UI 'back' swish doubles as the flight whoosh (no new sound ids)
 
