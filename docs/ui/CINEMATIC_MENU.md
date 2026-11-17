@@ -126,3 +126,18 @@ Low quality keeps the flat menu. Tests: `godot/tests/ui/menu_world_test.gd` (in 
 Limits: the station paladins are the static statue meshes (no skeleton), so "nod", "look" and "bow" are body tilts and turns, not animations;
 Training, Campaign, Profile, History and Leaderboard use camera stations with a paladin but no hero props yet (phases 3-4); flight audio reuses
 the UI 'back' sound; the 3D props are not clickable (the Controls own input).
+
+## 12. Built in the second pass (2026-11-17, branch ccr-cine-menu-2)
+- **Rigged station paladins** (`menu_world.gd`, `menu_look_modifier.gd`, new clips `greet`, `bow`, `salute`, `look_around` in `paladin_clips.gd`): the same
+  `PaladinModel` characters as the board and duels, a looping idle, a greeting on arrival, an occasional look-around, a head/spine look-at at the hovered prop
+  through a `SkeletonModifier3D`, a bow or salute on select, and a step aside (walk clip) when the camera flies off. Only the paladin at the current station
+  (and the one being left) is animated. Reduce-motion keeps the idle pose still. Falls back to the old static statue if the rig is missing.
+- **War room** (`menu_hero_props.gd`): a map table with 12 nodes (boss nodes tall and red, locked covered, cleared with a banner, current enlarged and lit)
+  and three boon pedestals shown while a boon is offered. The campaign page pushes the run's state (`set_campaign_display`).
+- **Hero props**: training yard (weapon rack, dummies, medal wall lit by lesson ratings), gallery and archive (framed matches coloured win/loss/draw),
+  watchtower (rank banners with the top names), friend name signs outside the walls. Pages push data through `set_training_medals`, `set_gallery`,
+  `set_leaderboard`, `set_friends`; data pushed before a station is built is applied when it is.
+- **Clickable props**: `MenuWorld.pick()` casts the mouse ray against each prop's pick sphere; `Application._prop_clicked` maps the prop to the same action as its page control.
+- **Flight whoosh**: the existing `dodge` rush of air (no new sound id). **Portrait/phone**: windows taller than wide leave the top 30% to the world.
+- **Not done / decisions**: depth of field is not possible on the Compatibility renderer the project uses; the project has no display font, so the typography pass
+  is left; the props are positioned for landscape (portrait only shows what falls in the top band); the stations' props have never been watched in motion.

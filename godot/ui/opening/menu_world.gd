@@ -533,8 +533,11 @@ func _on_flight_started(_station_id: String, _duration: float) -> void:
 		var state: Dictionary = paladins[leaving]
 		state.aside_target = 1.0
 		_play(state, "walk", 0.25)
-	if is_instance_valid(_audio) and _audio.has_method("play_ui"):
-		_audio.call("play_ui", "back")   # the existing UI 'back' swish doubles as the flight whoosh (no new sound ids)
+	# the flight whoosh: the existing 'dodge' rush of air (a distinct sound from the UI cues, no new generated id); the UI 'back' swish is the fallback
+	if is_instance_valid(_audio) and _audio.has_method("_play") and not Prefs.reduce_motion:
+		_audio.call("_play", "dodge", Vector3.ZERO)
+	elif is_instance_valid(_audio) and _audio.has_method("play_ui"):
+		_audio.call("play_ui", "back")
 
 func set_audio(audio: Node) -> void:
 	_audio = audio

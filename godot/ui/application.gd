@@ -190,6 +190,9 @@ func _build_frame() -> void:
 		var target: String = item[0]
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
 		_nav_labels[target] = item[1]
+	_portrait_gap = Control.new()   # portrait windows (phones): the world shows through the top part, the page sits below it
+	_portrait_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_portrait_gap)
 	page_scroll = ScrollContainer.new()
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -314,9 +317,14 @@ func navigate(target: String) -> void:
 
 ## Page column width and side, and the nav row's text/icon mode. On a roomy window the page sits on the right and the left stays open for the
 ## 3D world (the station's paladin and props); narrow windows use the whole width.
+var _portrait_gap: Control
+
 func _apply_layout() -> void:
 	if _page_width == null:
 		return
+	if is_instance_valid(_portrait_gap):
+		var portrait := is_instance_valid(world) and page != "home" and size.y > size.x * 1.15
+		_portrait_gap.custom_minimum_size.y = size.y * 0.30 if portrait else 0.0
 	var stage := is_instance_valid(world) and page != "home" and size.x >= 1000.0
 	_page_width.align_right = stage
 	if page == "home":

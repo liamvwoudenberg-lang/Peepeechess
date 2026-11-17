@@ -354,6 +354,20 @@ func hero_props() -> void:
 	late.queue_free()
 	app.queue_free()
 	await settle(2)
+	# portrait windows (phones): the world shows through the top 30%, the page sits below it
+	var phone = fresh_app(540, 960)
+	await settle(3)
+	phone.navigate("play")
+	await settle(3)
+	check(phone._portrait_gap.custom_minimum_size.y > 200.0, "a portrait window leaves the top part to the world (%.0f px)" % phone._portrait_gap.custom_minimum_size.y)
+	phone.queue_free()
+	var wide = fresh_app(1280, 800)
+	await settle(3)
+	wide.navigate("play")
+	await settle(3)
+	check(is_zero_approx(wide._portrait_gap.custom_minimum_size.y), "a landscape window keeps the page beside the world")
+	wide.queue_free()
+	await settle(2)
 
 func quality_tiers() -> void:
 	MenuCameraRig.instant_override = 1
