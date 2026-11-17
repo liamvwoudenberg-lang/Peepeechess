@@ -38,6 +38,7 @@ func run() -> void:
 	await _battle_game()
 	await _lobby_screens()
 	await _privacy()
+	await _relay_units()
 	print("HOST PLAY: %d checks; failures=%d" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -349,4 +350,88 @@ func _battle_game() -> void:
 	for node in [host_client, friend, join]:
 		node.queue_free()
 	hosted.queue_free()
+	await process_frame
+
+
+# ---- relay mode: invite fields, address rules, settings and screens (the real relay path is scripts/test-relay-play.mjs) ------------
+func _relay_units() -> void:
+	var cert = HostCertificate.new()
+	cert.generate(test_dir)
+	var session = "ab".repeat(16)
+	var fields = {"hosts": [], "port": 2456, "matchId": "match-" + "cd".repeat(16), "certificate": cert.certificate_pem, "tuning": Balance.stamp(), "mode": "classic",
+		"version": "t", "relay": "wss://relay.example.com", "session": session}
+	var decoded = HostInvite.decode(HostInvite.encode(fields))
+	check(decoded.ok and decoded.hosts.is_empty() and decoded.relay == "wss://relay.example.com" and decoded.session == session, "a relay-only invite carries the relay and session and no host address at all")
+	var sealed = HostInvite.seal(HostInvite.encode(fields), "K7QM-X2PD-9WTR")
+	var opened = HostInvite.decode(sealed, "K7QM-X2PD-9WTR")
+	check(opened.ok and opened.relay == "wss://relay.example.com", "a sealed relay invite opens with the word code")
+	var no_hosts_no_relay = fields.duplicate()
+	no_hosts_no_relay.erase("relay")
+	no_hosts_no_relay.erase("session")
+	check(not HostInvite.decode(HostInvite.encode(no_hosts_no_relay)).ok, "an invite with neither host addresses nor a relay is refused")
+	var bad = fields.duplicate()
+	bad.relay = "ws://relay.example.com"
+	check(not HostInvite.decode(HostInvite.encode(bad)).ok, "an unencrypted ws:// relay on the internet is refused")
+	bad = fields.duplicate()
+	bad.session = "nothex"
+	check(not HostInvite.decode(HostInvite.encode(bad)).ok, "a bad session id is refused")
+	bad = fields.duplicate()
+	bad.relay = "wss://exa mple.com/<x>"
+	check(not HostInvite.decode(HostInvite.encode(bad)).ok, "a malformed relay address is refused")
+	var local = fields.duplicate()
+	local.relay = "ws://127.0.0.1:8080"
+	check(HostInvite.decode(HostInvite.encode(local)).ok, "ws:// is fine for this PC (testing)")
+	check(RelaySettings.validate("wss://relay.example.com/path").ok and RelaySettings.validate("ws://192.168.1.5:8080").ok and RelaySettings.validate("ws://172.20.0.4").ok, "wss:// anywhere, ws:// on private networks")
+	check(not RelaySettings.validate("ws://172.32.0.4").ok and not RelaySettings.validate("ws://8.8.8.8").ok and not RelaySettings.validate("http://x.example.com").ok and not RelaySettings.validate("relay.example.com").ok, "public ws://, http:// and bare names are refused")
+	RelaySettings.reset_cache()
+	check(RelaySettings.save("https://nope").ok == false, "an invalid relay address is not saved")
+	check(RelaySettings.save("wss://relay.example.com/").ok and RelaySettings.url() == "wss://relay.example.com", "a valid address is saved without the trailing slash")
+	check(RelaySettings.save("").ok and RelaySettings.url().is_empty(), "an empty address clears the relay (direct mode only)")
+	# HostedGame without a relay address falls back to direct mode; with one it listens on loopback only and builds a relay invite after the relay answers
+	var fake = FakePortMapper.new()
+	fake.scripted = {"ok": true, "external_ip": "127.0.0.1", "message": "fake", "private_external": false}
+	var direct = HostedGame.new()
+	root.add_child(direct)
+	check(direct.begin({"mode": "classic", "color": "w", "port": 24970, "mapper": fake, "connection": "relay", "relay_url": ""}) == OK and direct.connection == "direct", "no relay address: hosting falls back to direct mode")
+	direct.stop()
+	direct.queue_free()
+	var bridge = RelayBridge.new()
+	root.add_child(bridge)
+	var states = []
+	bridge.state_changed.connect(func(value): states.append(value))
+	check(bridge.start_guest("ws://127.0.0.1:1", "ab".repeat(16)) == OK and bridge.local_port > 0, "the guest bridge opens a loopback port for the game client")
+	check(await wait_for(func(): return "failed" in states, 30000), "a relay that cannot be reached ends in 'failed' (retries, then gives up)")
+	bridge.stop()
+	bridge.queue_free()
+	await process_frame
+	# the Play page and the Settings page
+	AppSettings.loaded = true
+	AppSettings.intro_seen = true
+	AppSettings.launch.clear()
+	RelaySettings.save("")
+	var shell = load("res://ui/application.tscn").instantiate()
+	root.add_child(shell)
+	for _i in 6:
+		await process_frame
+	shell.online = true
+	shell.navigate("play")
+	for _i in 4:
+		await process_frame
+	check(shell.find_child("NoRelayNotice", true, false) != null and shell.find_child("ConnectionChoice", true, false) == null, "no relay address: the Play page says direct mode only and offers no relay choice")
+	check(shell.hosting_launch().host.connection == "direct", "no relay address: hosting is launched in direct mode")
+	RelaySettings.save("wss://relay.example.com")
+	shell.online = true
+	shell.navigate("play")
+	for _i in 4:
+		await process_frame
+	check(shell.find_child("ConnectionChoice", true, false) != null, "with a relay address the Play page offers Relay / Direct")
+	var launch = shell.hosting_launch().host
+	check(launch.connection == "relay" and launch.relay_url == "wss://relay.example.com", "with a relay address, hosting defaults to the relay")
+	shell.navigate("settings")
+	for _i in 4:
+		await process_frame
+	var relay_field = shell.find_child("RelayAddress", true, false)
+	check(relay_field != null and relay_field.text == "wss://relay.example.com", "Settings has a relay address field showing the saved address")
+	RelaySettings.save("")
+	shell.queue_free()
 	await process_frame

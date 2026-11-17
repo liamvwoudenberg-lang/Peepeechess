@@ -21,6 +21,9 @@ static func encode(fields: Dictionary) -> String:
 	var body = {"v": 1, "h": fields.get("hosts", []), "p": int(fields.get("port", 0)), "m": str(fields.get("matchId", "")),
 		"c": Marshalls.raw_to_base64(der), "t": str(fields.get("tuning", "")), "g": str(fields.get("mode", "")),
 		"pr": PROTOCOL, "a": str(fields.get("version", ""))}
+	if not str(fields.get("relay", "")).is_empty():
+		body["r"] = str(fields.relay)       # relay mode: the relay's address and this game's session id (see network/relay/)
+		body["s"] = str(fields.get("session", ""))
 	var text = _b64url_encode(JSON.stringify(body, "", true).to_utf8_buffer())
 	return PREFIX + text + "-" + _check(text)
 
@@ -62,7 +65,15 @@ static func _validate(data: Dictionary) -> Dictionary:
 	var hosts: Array = []
 	var host_regex = RegEx.new()
 	host_regex.compile(HOST_PATTERN)
-	if not data.get("h") is Array or data.h.is_empty() or data.h.size() > 8:
+	var relay_url = str(data.get("r", ""))
+	var session = str(data.get("s", ""))
+	if not relay_url.is_empty():
+		var check = RelaySettings.validate(relay_url)
+		var session_regex = RegEx.new()
+		session_regex.compile("^[0-9a-f]{32}$")
+		if not check.ok or session_regex.search(session) == null:
+			return _fail("DAMAGED", "The invite contains an invalid relay address.")
+	if not data.get("h") is Array or data.h.size() > 8 or (data.h.is_empty() and relay_url.is_empty()):
 		return _fail("DAMAGED", "The invite has no host address.")
 	for value in data.h:
 		if not value is String or host_regex.search(value) == null:
@@ -89,7 +100,7 @@ static func _validate(data: Dictionary) -> Dictionary:
 	if mode not in ["classic", "battle"]:
 		return _fail("DAMAGED", "The invite names an unknown game mode.")
 	return {"ok": true, "hosts": hosts, "port": int(port), "matchId": match_id, "certificate": pem, "fingerprint": fingerprint(der),
-		"tuning": str(data.get("t", "")), "mode": mode, "version": str(data.get("a", ""))}
+		"tuning": str(data.get("t", "")), "mode": mode, "version": str(data.get("a", "")), "relay": relay_url, "session": session}
 
 static func fingerprint(der: PackedByteArray) -> String:
 	var ctx = HashingContext.new()

@@ -26,6 +26,14 @@ var invite_ttl_ms = DEFAULT_INVITE_TTL_MS
 var _router_done = false
 var _ip_done = false
 var _stopped = false
+## Relay mode (network/relay/, docs/deployment/RELAY.md): "relay" = only through the relay (no port forwarding, the game port is not exposed at
+## all and the invite carries no IP address), "direct" = UDP port + UPnP as before, "both" = the relay first, direct addresses as a fallback.
+var connection = "direct"
+var relay_url = ""
+var relay_session = ""
+var relay_bridge: RelayBridge
+var _relay_ready = false
+var _relay_failed = false
 
 ## options: mode "classic"|"battle", color "w"|"b", port (0 = first free from 2456), mapper (PortMapper or null for UPnP),
 ## lookup_ip (bool, default true), version (string shown to the friend).
@@ -45,11 +53,16 @@ func begin(options: Dictionary) -> Error:
 	add_child(server)
 	server.configure_hosting(str(options.get("color", "w")), invite_ttl_ms)
 	host_token = server.create_host_session()
+	connection = str(options.get("connection", "direct"))
+	relay_url = str(options.get("relay_url", ""))
+	if connection != "direct" and relay_url.is_empty():
+		connection = "direct"   # no relay configured: direct mode only
 	var wanted = int(options.get("port", 0))
 	var started = ERR_CANT_CREATE
 	var tries = [wanted] if wanted > 0 else range(DEFAULT_PORT, DEFAULT_PORT + PORT_TRIES)
 	for candidate in tries:
-		started = server.start("0.0.0.0", int(candidate), certificate.certificate_path, certificate.key_path, false)
+		# relay only: the game port listens on this PC's loopback and is never exposed to any network
+		started = server.start("127.0.0.1" if connection == "relay" else "0.0.0.0", int(candidate), certificate.certificate_path, certificate.key_path, false)
 		if started == OK:
 			port = int(candidate)
 			break
@@ -66,15 +79,38 @@ func begin(options: Dictionary) -> Error:
 		mapper = UpnpPortMapper.new()
 	add_child(mapper)
 	mapper.finished.connect(_router_finished)
-	mapper.start(port)
+	if connection == "relay":
+		_router_done = true   # no router mapping is needed (or wanted) through the relay
+		state.router = {"ok": false, "skipped": true}
+	else:
+		mapper.start(port)
+	if connection != "direct":
+		relay_session = Crypto.new().generate_random_bytes(16).hex_encode()
+		relay_bridge = RelayBridge.new()
+		add_child(relay_bridge)
+		relay_bridge.state_changed.connect(_relay_state)
+		if relay_bridge.start_host(relay_url, relay_session, port) != OK:
+			_relay_failed = true
 	# PRIVACY: no website is asked for the public address unless the host consents (detect_public_ip(), a button in the host panel).
 	ip_lookup = PublicIpLookup.new()
 	add_child(ip_lookup)
 	ip_lookup.finished.connect(_ip_finished)
 	_ip_done = true
-	if bool(options.get("lookup_ip", false)):
+	if bool(options.get("lookup_ip", false)) and connection != "relay":
 		detect_public_ip()
 	return OK
+
+func _relay_state(value: String) -> void:
+	if value in ["ready", "peer", "peer_left"]:
+		_relay_ready = true
+		_relay_failed = false
+	elif value == "failed":
+		_relay_ready = false
+		_relay_failed = true
+		if connection == "relay":
+			_set_phase("failed", {"error": "Could not reach the relay. Check your internet connection and the relay address in Settings, or choose Direct."})
+			return
+	_rebuild()
 
 ## The host agreed to ask a plain-text HTTPS endpoint for the public address (a third party then sees the host's address).
 func detect_public_ip() -> void:
@@ -122,22 +158,34 @@ func _rebuild() -> void:
 		return
 	var public = _public_address()
 	var hosts: Array = []
-	if not manual_address.is_empty():
-		hosts.append(manual_address)
-	if not public.is_empty() and public not in hosts:
-		hosts.append(public)
-	for lan in state.lan:
-		hosts.append(lan)
-	if hosts.is_empty():
-		hosts.append("127.0.0.1")
+	if connection != "relay":
+		if not manual_address.is_empty():
+			hosts.append(manual_address)
+		if not public.is_empty() and public not in hosts:
+			hosts.append(public)
+		for lan in state.lan:
+			hosts.append(lan)
+		if hosts.is_empty():
+			hosts.append("127.0.0.1")
+	state.connection = connection
+	state.relay_ready = _relay_ready
 	state.reach = reachability(state.router, public if not manual_address.is_empty() else str(state.public_ip), port, _router_done and _ip_done)
+	var relay_wait = connection != "direct" and not _relay_ready and not _relay_failed
+	if connection == "relay":
+		state.reach = {"level": "good", "text": "Relay connection: works through any home router, no port forwarding. Your address is not in the invite." if _relay_ready else "Connecting to the relay…"}
+	elif connection == "both" and _relay_ready:
+		state.reach = {"level": "good", "text": "Relay connection is ready (works through any home router). Direct addresses stay in the invite as a fallback. " + str(state.reach.get("text", ""))}
 	state.invite = ""
-	if not match_id.is_empty() and _router_done and _ip_done:
-		var code = HostInvite.encode({"hosts": hosts, "port": port, "matchId": match_id, "certificate": certificate.certificate_pem,
-			"tuning": Server.Room.Balance.stamp(), "mode": mode, "version": version_text})
+	if not match_id.is_empty() and _router_done and _ip_done and not relay_wait:
+		var fields = {"hosts": hosts, "port": port, "matchId": match_id, "certificate": certificate.certificate_pem,
+			"tuning": Server.Room.Balance.stamp(), "mode": mode, "version": version_text}
+		if _relay_ready:
+			fields["relay"] = relay_url
+			fields["session"] = relay_session
+		var code = HostInvite.encode(fields)
 		state.invite = HostInvite.seal(code, passphrase) if seal_invite else code
 	state.passphrase = passphrase if seal_invite else ""
-	state.has_internet_address = not public.is_empty() or not manual_address.is_empty()
+	state.has_internet_address = not public.is_empty() or not manual_address.is_empty() or _relay_ready
 	_set_phase("ready" if not state.invite.is_empty() else "opening")
 
 ## What to tell the host about reachability. level: checking | good | maybe | manual | blocked.
@@ -160,6 +208,8 @@ func stop() -> void:
 	if _stopped:
 		return
 	_stopped = true
+	if relay_bridge != null:
+		relay_bridge.stop()
 	if mapper != null:
 		mapper.stop()
 	if server != null:

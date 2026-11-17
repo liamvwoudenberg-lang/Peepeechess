@@ -93,11 +93,15 @@ func run() -> void:
 	white.touch_controls._layout()
 	var up: Rect2 = white.touch_controls._regions.up
 	touch(0, white.touch_controls.global_position + up.get_center(), true)
+	var my_z = func(): return float(white.client.latest_combat.fighters.filter(func(f): return f.playerId == white.client.player_id)[0].position.z)
 	for _i in range(70):
 		await physics_frame
+	# Keep holding until the SERVER's fighter has moved (a fixed frame count is not a fixed number of server ticks under load).
+	var deadline = Time.get_ticks_msec() + 8000
+	while my_z.call() <= -0.5 and Time.get_ticks_msec() < deadline:
+		await physics_frame
 	touch(0, white.touch_controls.global_position + up.get_center(), false)
-	var mine = white.client.latest_combat.fighters.filter(func(f): return f.playerId == white.client.player_id)[0]
-	expect(mine.position.z > -0.5, "virtual movement travels through network to authoritative fighter")
+	expect(my_z.call() > -0.5, "virtual movement travels through network to authoritative fighter")
 	var light: Rect2 = white.touch_controls._regions.light
 	for _attack in range(90):  # duels last ~30 s now (BALANCE.md duel length): keep attacking until the fight is decided
 		if white.client.frame.state.phase != "combat":

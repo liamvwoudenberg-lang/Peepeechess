@@ -1,0 +1,14 @@
+# Example for a free web service on Render (render.com): "New > Blueprint", point it at this repository and this file.
+# The platform terminates TLS, so the relay address for the game is wss://<service>.onrender.com . Free services sleep when idle: the first
+# connection after a pause can take about a minute (the game retries for ~12 s per attempt; press Host again if it gave up).
+services:
+  - type: web
+    name: peepeechess-relay
+    runtime: docker
+    dockerfilePath: ./tools/relay/Dockerfile
+    dockerContext: ./tools/relay
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"
