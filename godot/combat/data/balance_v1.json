@@ -534,8 +534,8 @@
 					"animation": "lunge",
 					"ticks_scale": 1.0,
 					"absolute_ticks": 72,
-					"startup_end": 0.45,
-					"active_end": 0.62,
+					"startup_end": 0.52,
+					"active_end": 0.66,
 					"cancel_from": 1.0,
 					"damage_mult": 2.2,
 					"reach_mult": 1.2,
@@ -546,10 +546,10 @@
 					"guard_cost_mult": 2.0,
 					"knockback_m": 1.4,
 					"forward_motion_m": 4.2,
-					"motion_start": 0.3,
-					"motion_end": 0.55,
+					"motion_start": 0.38,
+					"motion_end": 0.6,
 					"armor_start": 0.0,
-					"armor_end": 0.62
+					"armor_end": 0.66
 				}
 			}
 		},
@@ -557,6 +557,8 @@
 			"light": [
 				{
 					"id": "bishop.light.1",
+					"near_m": 1.1,
+					"near_mult": 0.8,
 					"kind": "LIGHT",
 					"combo_index": 0,
 					"animation": "slash_right",
@@ -581,6 +583,8 @@
 				},
 				{
 					"id": "bishop.light.2",
+					"near_m": 1.1,
+					"near_mult": 0.8,
 					"kind": "LIGHT",
 					"combo_index": 1,
 					"animation": "slash_left",
@@ -605,6 +609,8 @@
 				},
 				{
 					"id": "bishop.light.3",
+					"near_m": 1.1,
+					"near_mult": 0.8,
 					"kind": "LIGHT",
 					"combo_index": 2,
 					"animation": "overhead",
@@ -635,12 +641,14 @@
 				"animation": "overhead_smash",
 				"ticks_scale": 1.25,
 				"absolute_ticks": 0,
-				"startup_end": 0.52,
-				"active_end": 0.66,
+				"startup_end": 0.6,
+				"active_end": 0.72,
 				"cancel_from": 0.95,
 				"damage_mult": 1.9,
-				"reach_mult": 1.0,
-				"arc_degrees": 60.0,
+				"reach_mult": 2.0,
+				"far_m": 2.0,
+				"far_mult": 1.3,
+				"arc_degrees": 26.0,
 				"stamina_cost": 47.6,
 				"poise_damage": 40.0,
 				"hitstun_ticks": 32,
@@ -731,13 +739,14 @@
 			],
 			"heavy": {
 				"id": "rook.heavy",
+				"guard_break": 1,
 				"kind": "HEAVY",
 				"combo_index": 0,
 				"animation": "overhead_smash",
 				"ticks_scale": 1.25,
 				"absolute_ticks": 0,
-				"startup_end": 0.58,
-				"active_end": 0.7,
+				"startup_end": 0.64,
+				"active_end": 0.76,
 				"cancel_from": 0.96,
 				"damage_mult": 2.2,
 				"reach_mult": 1.0,
@@ -747,11 +756,11 @@
 				"hitstun_ticks": 38,
 				"guard_cost_mult": 2.2,
 				"knockback_m": 1.3,
-				"forward_motion_m": 0.6,
+				"forward_motion_m": 0.0,
 				"motion_start": 0.4,
 				"motion_end": 0.6,
 				"armor_start": 0.25,
-				"armor_end": 0.7
+				"armor_end": 0.76
 			},
 			"abilities": {}
 		},
@@ -1062,6 +1071,16 @@
 			"qq": 0.356
 		}
 	},
+	"pacing": {
+		"comeback": {
+			"hp_gap": 0.4,
+			"damage_mult": 1.12
+		},
+		"sudden_death": {
+			"start_s": 40.0,
+			"ramp_per_s": 0.04
+		}
+	},
 	"attacker_edge": {
 		"target": 0.62,
 		"stamina": {
@@ -1071,30 +1090,30 @@
 		},
 		"pairs": {
 			"pp": [1.15, 1.0],
-			"pn": [1.71, 1.0],
-			"pb": [1.03, 1.0],
-			"pr": [1.0, 1.09],
+			"pn": [1.81, 1.0],
+			"pb": [1.52, 1.0],
+			"pr": [1.03, 1.0],
 			"pq": [3.97, 1.0],
-			"np": [1.0, 1.36],
-			"nn": [1.09, 1.0],
-			"nb": [1.03, 1.0],
-			"nr": [1.15, 1.0],
-			"nq": [1.91, 1.0],
-			"bp": [1.22, 1.0],
-			"bn": [1.61, 1.0],
-			"bb": [1.09, 1.0],
-			"br": [1.36, 1.0],
-			"bq": [4.7, 1.0],
-			"rp": [1.29, 1.0],
-			"rn": [1.15, 1.0],
-			"rb": [1.09, 1.0],
-			"rr": [1.29, 1.0],
-			"rq": [2.26, 1.0],
-			"qp": [1.0, 2.99],
-			"qn": [1.0, 1.44],
-			"qb": [1.0, 2.99],
-			"qr": [1.0, 2.26],
-			"qq": [1.44, 1.0]
+			"np": [1.0, 1.09],
+			"nn": [1.03, 1.0],
+			"nb": [1.0, 1.22],
+			"nr": [1.03, 1.0],
+			"nq": [2.02, 1.0],
+			"bp": [1.0, 1.09],
+			"bn": [1.44, 1.0],
+			"bb": [1.03, 1.0],
+			"br": [1.03, 1.0],
+			"bq": [3.35, 1.0],
+			"rp": [1.15, 1.0],
+			"rn": [1.22, 1.0],
+			"rb": [1.0, 1.03],
+			"rr": [1.03, 1.0],
+			"rq": [2.53, 1.0],
+			"qp": [1.0, 3.17],
+			"qn": [1.0, 1.81],
+			"qb": [1.0, 3.17],
+			"qr": [1.0, 2.02],
+			"qq": [1.36, 1.0]
 		}
 	},
 	"hit_stun": {

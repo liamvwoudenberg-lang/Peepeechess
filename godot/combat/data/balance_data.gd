@@ -60,7 +60,7 @@ const ABILITY_REQUIRED := {
 	"counter": ["kind", "role", "cast_ticks", "stamina_cost", "counter_start", "counter_end", "counter_arc_deg",
 			"counter_stagger_ticks", "stance_move_mult", "stance_turn_mult"],
 }
-const ATTACK_INT_KEYS := ["combo_index", "absolute_ticks", "hitstun_ticks"]
+const ATTACK_INT_KEYS := ["combo_index", "absolute_ticks", "hitstun_ticks", "guard_break"]
 const ATTACK_STR_KEYS := ["id", "animation"]
 const ATTACK_KINDS := ["LIGHT", "HEAVY", "ABILITY"]
 
@@ -162,6 +162,11 @@ static func duel_target_seconds() -> float:
 ## The stamina rule of the attacker's advantage: {"attacker_cost": 0..1, "defender_cost": 1..4, "defender_regen": 0.1..1}. The attacker's
 ## costs are multiplied by attacker_cost (0 = unlimited stamina), the defender's by defender_cost and its regeneration by
 ## defender_regen. Neutral (all 1.0) when the data has none.
+## Pacing rules (comeback, sudden death); neutral when the data has none. Counted in the tuning stamp like every other number.
+static func pacing() -> Dictionary:
+	return _active.get("pacing", {"comeback": {"hp_gap": 2.0, "damage_mult": 1.0}, "sudden_death": {"start_s": 9999.0, "ramp_per_s": 0.0}})
+
+
 static func stamina_edge() -> Dictionary:
 	_ensure()
 	var rule: Dictionary = _active.get("attacker_edge", {}).get("stamina", {})
@@ -288,6 +293,17 @@ static func validate(data: Dictionary) -> Array:
 			for key in ["light_mult", "heavy_mult", "ability_mult"]:
 				if not _is_number(stun_data.get(key, 0.0)) or float(stun_data.get(key, 0.0)) < 0.0 or float(stun_data.get(key, 0.0)) > 5.0:
 					errors.append("hit_stun.%s must be a number in 0..5" % key)
+	if data.has("pacing"):
+		var pace = data["pacing"]
+		if typeof(pace) != TYPE_DICTIONARY:
+			errors.append("pacing must be an object")
+		else:
+			var comeback = pace.get("comeback", {})
+			var sudden = pace.get("sudden_death", {})
+			if typeof(comeback) != TYPE_DICTIONARY or not _is_number(comeback.get("hp_gap", 2.0)) or float(comeback.get("hp_gap", 2.0)) < 0.05 or not _is_number(comeback.get("damage_mult", 1.0)) or float(comeback.get("damage_mult", 1.0)) < 1.0 or float(comeback.get("damage_mult", 1.0)) > 2.0:
+				errors.append("pacing.comeback: hp_gap >= 0.05 and damage_mult in 1..2")
+			if typeof(sudden) != TYPE_DICTIONARY or not _is_number(sudden.get("start_s", 9999.0)) or float(sudden.get("start_s", 9999.0)) < 5.0 or not _is_number(sudden.get("ramp_per_s", 0.0)) or float(sudden.get("ramp_per_s", 0.0)) < 0.0 or float(sudden.get("ramp_per_s", 0.0)) > 1.0:
+				errors.append("pacing.sudden_death: start_s >= 5 and ramp_per_s in 0..1")
 	if data.has("attacker_edge"):
 		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
 	for id in data["abilities"]:
@@ -551,6 +567,12 @@ static func _normalise(raw: Dictionary) -> Dictionary:
 	if raw.has("hit_stun"):
 		var stun_raw: Dictionary = raw["hit_stun"]
 		out["hit_stun"] = {"light_mult": float(stun_raw.get("light_mult", 0.0)), "heavy_mult": float(stun_raw.get("heavy_mult", 0.0)), "ability_mult": float(stun_raw.get("ability_mult", 0.0))}
+	if raw.has("pacing"):
+		var pace_raw: Dictionary = raw["pacing"]
+		var comeback_raw: Dictionary = pace_raw.get("comeback", {})
+		var sudden_raw: Dictionary = pace_raw.get("sudden_death", {})
+		out["pacing"] = {"comeback": {"hp_gap": float(comeback_raw.get("hp_gap", 2.0)), "damage_mult": float(comeback_raw.get("damage_mult", 1.0))},
+				"sudden_death": {"start_s": float(sudden_raw.get("start_s", 9999.0)), "ramp_per_s": float(sudden_raw.get("ramp_per_s", 0.0))}}
 	if raw.has("attacker_edge"):
 		var edge := {"target": float(raw["attacker_edge"].get("target", 0.0)), "pairs": {}}
 		if raw["attacker_edge"].has("stamina"):

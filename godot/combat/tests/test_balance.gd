@@ -10,7 +10,7 @@ const S := CombatConstants.State
 ## Pin of the shipped tuning. A balance change MUST update this on purpose: the stamp is what a server and its clients
 ## compare, so an accidental edit of balance_v1.json fails here instead of silently desynchronising a match.
 const SHIPPED_ID := "balance-v1"
-const SHIPPED_STAMP := "balance-v1:b56c6911a70dfd79"   # changed on purpose 2026-11-16: attacker table recalibrated after hit stun and aiming (Queen ~70% attacking, ~50% defending)
+const SHIPPED_STAMP := "balance-v1:7a1e47e27f4d0966"   # changed on purpose 2026-11-17: piece identity (Knight lunge, Bishop beam, Rook guard-break), pacing (comeback + sudden death), table recalibrated
 
 
 static func run(h, tree: SceneTree) -> void:
@@ -68,7 +68,7 @@ static func _defaults(h) -> void:
 	h.eq(AttackLibrary.ability_attack("n", "lunging-strike").absolute_ticks, 72, "lunge length")
 	h.eq(AttackLibrary.for_role("q")["light"].size(), 5, "queen has five light links (royal fury)")
 	h.eq(AttackLibrary.light("q", 4).id, "queen.light.5", "queen link 5")
-	h.eq(AttackLibrary.heavy("r").armor_end, 0.7, "rook heavy armour end")
+	h.eq(AttackLibrary.heavy("r").armor_end, 0.76, "rook heavy armour end (the slower guard-breaking heavy: piece identity 2026-11-16)")
 	h.eq(AttackLibrary.for_role("p")["abilities"], {}, "pawn has no attack ability")
 	var d := AbilityComponent.DEFINITIONS
 	h.eq(d["last-stand"]["buff_ticks"], 300, "last stand lasts 300 ticks")

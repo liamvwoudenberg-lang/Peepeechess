@@ -254,12 +254,19 @@ func think(snapshot: Dictionary) -> Dictionary:
 				_follow_ups_left = 0
 			_follow_ups_left -= 1
 			_follow_up_in = int(round(float(_my_stats["lightTicks"]) * 0.78)) if _follow_ups_left > 0 else -1
+		elif String(_my_stats["abilityId"]) == "blink" and dist > reach + 0.15 and dist <= float(_my_stats["reachM"]) * AttackLibrary.heavy("b").reach_mult + 0.1 \
+				and aimed and my_state != "Blocking" and _attack_cooldown <= 0 and not bool(_p["no_attack"]):
+			# Bishop identity: its heavy is a narrow beam that reaches far beyond a sword; fire it from range instead of closing in.
+			builder.press("heavy")
+			_attack_cooldown = int((int(_my_stats["heavyTicks"]) + rng.randi_range(18, 50)) * float(_p["cooldown_scale"]))
 		elif dist <= reach + 0.15 and aimed and my_state != "Blocking" and (_attack_cooldown <= 0 or opp_vulnerable and _attack_cooldown <= 10):
 			var want := opp_vulnerable or float(_p["poke"]) >= 1.0 or rng.randf() < float(_p["poke"])
 			if bool(_p["no_attack"]) or (float(_p["error_rate"]) > 0.0 and rng.randf() < float(_p["error_rate"]) * 0.5):
 				want = false
 			if want:
-				if rng.randf() < (float(_p["heavy_chance"]) + (0.25 if opp_vulnerable and opp["state"] == "Staggered" else 0.0)):
+				# Rook identity: its heavy breaks a raised guard, so a turtling opponent is answered with it.
+				var guard_break_bonus := 0.5 if String(_my_stats["abilityId"]) == "fortress-guard" and String(opp["state"]) == "Blocking" else 0.0
+				if rng.randf() < (float(_p["heavy_chance"]) + guard_break_bonus + (0.25 if opp_vulnerable and opp["state"] == "Staggered" else 0.0)):
 					builder.press("heavy")
 					_attack_cooldown = int((int(_my_stats["heavyTicks"]) + rng.randi_range(18, 50)) * float(_p["cooldown_scale"]))
 				else:

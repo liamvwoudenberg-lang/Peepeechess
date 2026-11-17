@@ -72,7 +72,7 @@ static func _data(h) -> void:
 			if pair[1] > 1.0001:
 				boosted_defenders += 1
 	# 2026-11-16 table: a boosted defender appears only where a stronger attacker would win far above its ~70% target (the Queen attacking).
-	h.check(boosted_attackers > 0 and boosted_defenders <= 6, "attackers are boosted (%d pairings); defenders only where the attacker is much stronger (%d, at most 6)" % [boosted_attackers, boosted_defenders])
+	h.check(boosted_attackers > 0 and boosted_defenders <= 8, "attackers are boosted (%d pairings); defenders only where the attacker is much stronger (%d, at most 8)" % [boosted_attackers, boosted_defenders])
 	for key in ["kq", "qk", "kk", "pk", "kp"]:
 		h.eq(Balance.attacker_edge(key.substr(0, 1), key.substr(1, 1)), [1.0, 1.0], "%s: the King is neutral (King's last stand keeps its own balance)" % key)
 	h.eq(Balance.attacker_edge("x", "y"), [1.0, 1.0], "an unknown pairing is neutral")
