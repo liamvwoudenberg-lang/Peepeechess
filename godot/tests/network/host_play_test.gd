@@ -37,6 +37,7 @@ func run() -> void:
 	await _game()
 	await _battle_game()
 	await _lobby_screens()
+	await _privacy()
 	print("HOST PLAY: %d checks; failures=%d" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -151,7 +152,7 @@ func _game() -> void:
 	var failures_seen = []
 	join.joined.connect(func(invite): joined.append(invite))
 	join.failed.connect(func(code, message): failures_seen.append(code))
-	var begun = join.begin(friend, invite_text, Balance.stamp())
+	var begun = join.begin(friend, invite_text, Balance.stamp(), hosted.passphrase)
 	check(begun.ok, "the invite is accepted by the join flow")
 	check(await wait_for(func(): return not joined.is_empty() or not failures_seen.is_empty(), 12000) and not joined.is_empty(), "the friend connects securely and joins the host's match (failures: %s)" % str(failures_seen))
 	check(friend.frame.get("state", {}).get("players", {}).get("w") == friend.player_id and friend.frame.get("state", {}).get("players", {}).get("b") == host_client.player_id, "the host chose Black, so the friend sits at White")
@@ -162,7 +163,7 @@ func _game() -> void:
 	root.add_child(late_join)
 	var late_failed = []
 	late_join.failed.connect(func(code, _message): late_failed.append(code))
-	late_join.begin(late_client, invite_text, Balance.stamp())
+	late_join.begin(late_client, invite_text, Balance.stamp(), hosted.passphrase)
 	check(await wait_for(func(): return not late_failed.is_empty(), 12000), "a third player with the invite is refused (one opponent only)")
 	late_join.cancel()
 	# both ready, White moves, Black sees it
@@ -172,7 +173,7 @@ func _game() -> void:
 	friend.chess_move("e2", "e4")
 	check(await wait_for(func(): return host_client.frame.get("state", {}).get("chess", {}).get("history", []).size() == 1, 6000), "the host sees the friend's move through the authoritative server")
 	# the host's tuning and version are what the friend checked
-	check(HostInvite.decode(invite_text).tuning == Balance.stamp(), "the invite carries the tuning stamp")
+	check(HostInvite.decode(invite_text, hosted.passphrase).tuning == Balance.stamp(), "the invite carries the tuning stamp")
 	# stopping removes the router mapping and the key
 	var key_path = hosted.certificate.key_path
 	friend.disconnect_server(true)
@@ -184,6 +185,62 @@ func _game() -> void:
 	check(not FileAccess.file_exists(key_path), "stopping the host deletes the private key")
 	for node in [host_client, friend, join, late_client, late_join]:
 		node.queue_free()
+	hosted.queue_free()
+	await process_frame
+
+# ---- privacy: sealed invites, no automatic IP lookup, masked UI, locked listener ------------------------------------------------
+func _privacy() -> void:
+	var cert = HostCertificate.new()
+	cert.generate(test_dir.path_join("privacy"))
+	var plain = HostInvite.encode({"hosts": ["203.0.113.77"], "port": 2456, "matchId": "match-" + "cd".repeat(16), "certificate": cert.certificate_pem, "tuning": Balance.stamp(), "mode": "classic", "version": "t"})
+	var word = HostInvite.generate_passphrase()
+	check(word.length() == 14 and word.count("-") == 2, "the word code has three groups of four (%s)" % word)
+	var sealed = HostInvite.seal(plain, word)
+	check(sealed.begins_with("PCHESS2-") and HostInvite.is_sealed(sealed), "a sealed invite has its own prefix")
+	check(not sealed.contains("203.0.113.77") and not Marshalls.base64_to_raw(sealed.trim_prefix("PCHESS2-").replace("-", "+").replace("_", "/")).get_string_from_ascii().contains("203.0.113.77"), "the address is not readable inside the sealed invite")
+	check(HostInvite.decode(sealed).code == "SEALED", "without the word code a sealed invite is refused with a clear message")
+	var opened = HostInvite.decode(sealed, word.to_lower())
+	check(opened.ok and opened.hosts == ["203.0.113.77"] and opened.matchId == "match-" + "cd".repeat(16), "with the word code (any case) the invite opens")
+	check(HostInvite.decode(sealed, "AAAA-BBBB-CCCC").code == "WRONG_PASSPHRASE", "a wrong word code is refused")
+	var tampered = sealed.substr(0, 60) + ("A" if sealed[60] != "A" else "B") + sealed.substr(61)
+	check(not HostInvite.decode(tampered, word).ok, "a changed character is detected")
+	check(HostInvite.seal(plain, word) != sealed, "sealing twice gives different text (random salt and iv)")
+	# no automatic website lookup
+	var lookup = PublicIpLookup.new()
+	root.add_child(lookup)
+	var answered = []
+	lookup.finished.connect(func(address): answered.append(address))
+	lookup.lookup()
+	await process_frame
+	await process_frame
+	check(answered == [""] and lookup._request == null, "the public-address lookup does nothing (no network request) without the host's consent")
+	lookup.queue_free()
+	var fake = FakePortMapper.new()
+	fake.scripted = {"ok": false, "message": "no router"}
+	var hosted = HostedGame.new()
+	root.add_child(hosted)
+	check(hosted.begin({"mode": "classic", "color": "w", "port": 24997, "mapper": fake}) == OK, "hosting starts with default privacy settings")
+	check(hosted.ip_lookup != null and not hosted.ip_lookup.consented, "by default no website is asked for the host's address")
+	check(not hosted.set_manual_address("bad address!") and hosted.set_manual_address("example.org") and hosted.manual_address == "example.org", "a typed address is validated and used")
+	hosted.set_match("match-" + "ef".repeat(16))
+	await wait_for(func(): return not hosted.state.invite.is_empty(), 6000)
+	check(HostInvite.is_sealed(hosted.state.invite) and hosted.state.passphrase == hosted.passphrase, "the invite is sealed by default and the word code is kept separate")
+	var decoded = HostInvite.decode(hosted.state.invite, hosted.passphrase)
+	check(decoded.ok and decoded.hosts[0] == "example.org", "the typed address comes first in the invite")
+	# the host server: expiry and locking
+	var server = hosted.server
+	server.host_policy["invite_expires"] = Time.get_ticks_msec() - 1
+	server.attach(901, "198.51.100.9", Time.get_ticks_msec())
+	check(not server.connections.has(901), "an expired invite: a stranger's connection is dropped without a reply")
+	server.attach(902, "127.0.0.1", Time.get_ticks_msec())
+	check(server.connections.has(902), "the host's own loopback client is never locked out")
+	server.host_policy["invite_expires"] = 0
+	server.host_policy["locked"] = true
+	server.host_policy["guest_address"] = "198.51.100.20"
+	server.attach(903, "198.51.100.9", Time.get_ticks_msec())
+	server.attach(904, "198.51.100.20", Time.get_ticks_msec())
+	check(not server.connections.has(903) and server.connections.has(904), "once the guest is seated only the guest's address may connect")
+	hosted.stop()
 	hosted.queue_free()
 	await process_frame
 
@@ -235,7 +292,7 @@ func _lobby_screens() -> void:
 	check(host_screen.host_panel._manual.text.contains("UDP"), "manual port-forwarding steps are shown when the router did not help")
 	check(host_screen.host_panel._fingerprint.text.contains("-"), "the security code is shown")
 	var invite_text: String = host_screen.host_panel._invite.text
-	AppSettings.launch = {"invite": invite_text, "view3d": false}
+	AppSettings.launch = {"invite": invite_text, "passphrase": host_screen.hosted.passphrase, "view3d": false}
 	var friend_screen = Lobby.instantiate()
 	root.add_child(friend_screen)
 	var joined = await wait_for(func(): return friend_screen.notices.text.begins_with("Joined"), 12000)
@@ -271,7 +328,7 @@ func _battle_game() -> void:
 	root.add_child(join)
 	var joined = []
 	join.joined.connect(func(invite): joined.append(invite.mode))
-	join.begin(friend, hosted.state.invite, Balance.stamp())
+	join.begin(friend, hosted.state.invite, Balance.stamp(), hosted.passphrase)
 	check(await wait_for(func(): return not joined.is_empty(), 12000) and joined[0] == "battle", "the friend joins the Battle game")
 	host_client.command("ready")
 	friend.command("ready")

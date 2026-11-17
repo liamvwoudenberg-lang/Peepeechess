@@ -11,16 +11,18 @@ and sends the other an invite. Hosted games are never ranked and cost nothing to
 1. Open the game, go to **Play → Online** and choose the mode (Classic or Battle) and, for Classic, the time control.
 2. Under *Play a friend over the internet · no account* choose **I play White / Black / Random** and press **Host a game on this PC**.
 3. Wait a few seconds. The game creates a one-off secure certificate, opens a UDP port (see below) and shows:
-   - the **invite** (a long text starting with `PCHESS1-`) and a **Copy invite** button,
-   - the address and port your friend would use (`Internet: 203.0.113.7:2456`, `Same network: 192.168.1.20:2456`),
-   - a **security code** like `AB12-CD34-EF56-7890`, shown to both players,
-   - whether your router opened the port, and manual steps when it did not.
-4. Send the invite to your friend in any chat. Both of you press **Ready to play**; the game starts.
+   - the **invite**, a long text starting with `PCHESS2-` that is **sealed** (encrypted). It is hidden on screen until you press **Show invite**, and there is a **Copy invite** button,
+   - a **word code** like `K7QM-X2PD-9WTR` (revealed with the invite): tell your friend this by voice or in a different chat than the invite,
+   - whether the invite has an internet address (your address itself is never printed on screen), the UDP port, and whether your router opened the port,
+   - a **security code** like `AB12-CD34-EF56-7890`, shown to both players.
+4. Send the invite to your friend in any chat and the word code another way. Both of you press **Ready to play**; the game starts.
+   The invite is valid for 15 minutes, and stops working for everyone else once your friend has joined.
 5. Leaving the lobby stops hosting: the match ends for both players, the router port is closed and the session key is deleted.
 
 ## How to join
 
-1. Open **Play → Online**, paste the invite into *Paste the invite your friend sent* (the **Paste** button reads the clipboard) and press **Join with invite**.
+1. Open **Play → Online**, paste the invite into *Paste the invite your friend sent* (the **Paste** button reads the clipboard), type the **word code** the host told you
+   into *Word code from the host*, and press **Join with invite**.
 2. The game tries the addresses in the invite one after another (internet address first, then local network) and joins.
 3. Press **Ready to play**.
 
@@ -43,7 +45,11 @@ Messages you may see when joining: *"This is not a Peepeechess invite"* (wrong t
 - One opponent only. A guest who connects but does not present a valid match code within 20 seconds is dropped and does not occupy the seat.
   Nobody can create other matches on your PC or watch the game. Rate limits from the normal server apply.
 - Anyone who gets the invite before your friend can take the seat, so send it privately. The security code lets you both confirm you talk about the same host.
-- The match code is never written to the log.
+- The match code is never written to the log. The host's address is never printed in the game UI or the logs; the join screen only says "Connecting to the host (1 of 2)".
+- Once your friend is seated, the port only accepts packets from your friend's address (and your own PC); everyone else is dropped without any reply. When the game ends
+  (or you leave the lobby) the router port and the listener are closed.
+- **A direct game necessarily shows your address to the friend you invite** (their game must connect to it). The sealed invite and the word code only protect it from
+  everyone else who might see the invite in a chat. Hiding it from the friend as well needs a relay: see `docs/network/HOSTING_SECURITY.md`.
 
 ## Opening the port (reachability)
 
@@ -51,10 +57,11 @@ Your friend must be able to reach **UDP port 2456** (the game uses the first fre
 
 1. **Automatic (UPnP).** The game asks your router to open the port, waits about 2.5 seconds and removes the mapping when you stop hosting (it also expires after 4 hours).
    If it works you see *"Your router opened UDP port …"*.
-2. **Public address.** With UPnP the router reports its outside address. Otherwise the game asks a plain HTTPS address-echo service
-   (`https://api.ipify.org`, then `https://ifconfig.me/ip`) for your public IPv4 address; only an ordinary request is sent, no game data.
-   Set `PEEPEECHESS_IP_LOOKUP=off` to disable it, or `PEEPEECHESS_IP_LOOKUP_URLS=https://example.org/ip,...` to use your own endpoints.
-   If nothing works the invite still contains your local-network address, and you can read your public address from your router's status page.
+2. **Public address (privacy: nothing is looked up automatically).** With UPnP the router reports its outside address and the game uses that, asking nobody.
+   Otherwise the invite has no internet address yet. Either **type it** into *Your public address* and press **Use this address** (your router's status page shows it;
+   a dynamic-DNS name works too), or press **Detect my address (asks a website)**: only after that click the game sends one plain HTTPS request to
+   `https://api.ipify.org`, then `https://ifconfig.me/ip`, and those websites see your address. `PEEPEECHESS_IP_LOOKUP_URLS=https://example.org/ip,...`
+   uses your own endpoints for that button; `PEEPEECHESS_IP_LOOKUP=on` (headless use) counts as consent, `off` disables the button.
 3. **Manual port forwarding** (when UPnP is off or refused): in your router's admin page (often `192.168.0.1` or `192.168.1.1`) find *Port forwarding / Virtual server / NAT*
    and add a rule: protocol **UDP**, external port and internal port = the port shown in the game, destination = your PC's local address shown in the game.
    Menu names differ per router brand; the rule always needs those four things.
