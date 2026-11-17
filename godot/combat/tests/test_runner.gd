@@ -7,11 +7,11 @@ extends SceneTree
 const Harness := preload("res://combat/tests/test_harness.gd")
 const Balance := preload("res://combat/data/balance_data.gd")
 ## The shipped pacing (BALANCE.md "Pacing": slower swings, dearer swings, wider parry window and richer parry reward, all in
-## balance_v1.json) is not the documented frame data the mechanics suites assert exact numbers against (24-tick light, 11-tick parry
+## config/balance.json) is not the documented frame data the mechanics suites assert exact numbers against (24-tick light, 11-tick parry
 ## window, 12 x 1.25 riposte ...). Those suites run under this override, which restores the frame data they were written for, so they
 ## keep proving the MECHANICS; the suites below run on the data as shipped, and the pacing suite pins what the shipped pacing changed.
 const RAW_PACING_PATCH := "res://combat/tests/raw_pacing.json"
-const SHIPPED_DATA_SUITES := ["balance", "attacker_edge", "piece_identity", "pacing", "training", "ai_difficulty", "anim_integrity", "soak", "world", "pit_climb", "overlay", "world_assets", "assets", "polish", "juice", "contracts"]
+const SHIPPED_DATA_SUITES := ["balance", "config", "attacker_edge", "piece_identity", "pacing", "training", "ai_difficulty", "anim_integrity", "soak", "world", "pit_climb", "overlay", "world_assets", "assets", "polish", "juice", "contracts"]
 const SUITES: Dictionary = {
 	"components": "res://combat/tests/test_components.gd",
 	"contracts": "res://combat/tests/test_contracts.gd",
@@ -24,6 +24,7 @@ const SUITES: Dictionary = {
 	"adapter": "res://combat/tests/test_adapter.gd",
 	"roles": "res://combat/tests/test_roles.gd",
 	"balance": "res://combat/tests/test_balance.gd",
+	"config": "res://combat/tests/test_config.gd",
 	"king": "res://combat/tests/test_king.gd",
 	"royal": "res://combat/tests/test_royal.gd",
 	"royal_flow": "res://combat/tests/test_royal_flow.gd",

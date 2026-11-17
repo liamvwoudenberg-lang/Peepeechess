@@ -33,7 +33,7 @@ const REQUIRED_CLIPS := ["idle", "walk", "run", "strafe_left", "strafe_right", "
 const COUNTER_RIPOSTE_START := 24.0 / 60.0
 const COUNTER_ABILITY_ID := "royal-counter"
 const TEAM_ACCENT := {"w": Color(0.9, 0.74, 0.28), "b": Color(0.55, 0.08, 0.22)}
-## Attack animation tag (AttackDefinition.animation, balance_v1.json) -> clip. The clip set has three light clips and one
+## Attack animation tag (AttackDefinition.animation, config/balance.json) -> clip. The clip set has three light clips and one
 ## heavy: a chain longer than three (the Queen's Royal Fury links 4 and 5) reuses the clip that matches the TAG, so the
 ## fifth link (`overhead`) plays the overhead finisher and not light_2.
 const ANIMATION_CLIP := {"thrust": "light_1", "slash_right": "light_1", "thrust_low": "light_2", "slash_left": "light_2",

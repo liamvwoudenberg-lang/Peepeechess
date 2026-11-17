@@ -9,7 +9,8 @@ extends RefCounted
 ## Modifiers: `hp_fraction` (the player starts with that fraction of health) and `seconds` (a shorter time limit). Rewards are unlocks (cosmetic skins,
 ## arena palettes, bonus Training lessons) granted the first time the node is cleared.
 
-const LEVEL_BY_INDEX := ["easy", "easy", "easy", "normal", "normal", "normal", "hard", "hard", "hard", "expert", "expert", "expert"]
+const ChessRules = preload("res://config/chess_rules.gd")
+static var LEVEL_BY_INDEX: Array = ChessRules.campaign_level_by_encounter()   # config/chess_rules.json: campaign.level_by_encounter
 
 const NODES := [
 	{"id": "n01_gate", "title": "The Gate", "kind": "duel", "summary": "Two pawns meet at the castle gate.", "player_role": "p", "opponent_role": "p", "attacker": "player"},

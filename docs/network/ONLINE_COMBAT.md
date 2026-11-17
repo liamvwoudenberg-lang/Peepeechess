@@ -75,7 +75,7 @@ Behaviour worth knowing:
 
 ## Mixed-version / tuning safety within v1
 
-The server and the client are built from the same repository, so they share the combat code and `balance_v1.json`. If they were
+The server and the client are built from the same repository, so they share the combat code and `config/balance.json`. If they were
 ever different builds, a client would still be *correct* (the server alone is authoritative; the client's prediction is cosmetic) but would
 mispredict and show wrong cooldown/ability assumptions. v1 messages have `additionalProperties: false`, so nothing can be added to
 `Hello`/`Welcome` without a new contract version. Within v1 this change adds only:

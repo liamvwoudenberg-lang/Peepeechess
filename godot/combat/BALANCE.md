@@ -1,5 +1,8 @@
 # Combat balance (six classes)
 
+> **Tuning now lives in `godot/config/`** (balance.json + chess_rules.json, with generated key references). How to tune and test a number: [docs/game/BALANCE_GUIDE.md](../../docs/game/BALANCE_GUIDE.md); rules: [docs/game/RULES_CONFIG.md](../../docs/game/RULES_CONFIG.md). The history below stays as written (old paths `combat/data/balance_v1.json` = `config/balance.json`).
+
+
 **Everything here is BOT-measured, not human-tested.** The numbers come from scripted opponents (`CombatAI` styles) playing
 through the real `CombatInput` channel. They show that a winning plan exists for a scripted player that knows the published
 frame data; they say nothing about how hard that plan is for a human, nor about feel. No human has played these fights.
@@ -13,7 +16,7 @@ with the skilled bot (`duelist` 0.9): a coin flip, slightly worse in mirror matc
 was far from balanced: as attacker the Queen won 74-78% and the Pawn 17-20%; **a Pawn attacking a Queen won 1 duel in 100**, a Queen attacking a
 Pawn 95-98%.
 
-**The rule now:** every pairing has two damage multipliers in `balance_v1.json` (`attacker_edge.pairs`, key = attacker role + defender
+**The rule now:** every pairing has two damage multipliers in `config/balance.json` (`attacker_edge.pairs`, key = attacker role + defender
 role, value = `[attacker x, defender x]`). Only the *weaker* side of a pairing is boosted and nobody is ever reduced, so a Pawn attacking a
 Queen hits several times harder, and a Queen attacking a Pawn faces a defender that hits back harder. The multiplier is applied in
 `CombatSimulation._apply_hit` before armour, so it also scales chip damage and the stamina cost of blocking the blow. The result and snapshot
@@ -80,7 +83,7 @@ calibrate with `edge_calibrate.gd target=0.62 n=32 iterations=8 shard=0/4 out=..
 
 ## Where the numbers live
 
-* `godot/combat/data/balance_v1.json` (loader `data/balance_data.gd`, `preload` only): per-role profiles (poise, armour, guard,
+* `godot/config/balance.json` (loader `data/balance_data.gd`, `preload` only): per-role profiles (poise, armour, guard,
   dodge, stamina economy, **movement profile**), ability definitions, every attack's frame data. `tuning_id` = `balance-v1`;
   `Balance.stamp()` = `balance-v1:<first 16 hex of the SHA-256 of the canonical data>` (currently `balance-v1:894711f5b35e3d38`, since the attacker advantage table was added; the win-rate matrices further down were measured against the previous data, `balance-v1:c8d3224861885f1d`).
 * **Contract stats stay in the BattleRequest** (HP, stamina, base damage, speed, reach, light/heavy/parry ticks, cooldown, ability
@@ -223,7 +226,7 @@ Reading (honest): one checker is winnable for a skilled King and a coin flip to 
 checkers are decided by attrition: the King finishes duel 1 with 14-60 HP on average against N/Q/R, so duel 2 is nearly a coin-flip
 at best. Against skilled checkers a King without a rest is a clear underdog.
 
-**Recommendations (none applied; contract stats are Codex's `battle_stats.json`, tuning is `balance_v1.json`):**
+**Recommendations (none applied; contract stats are Codex's `battle_stats.json`, tuning is `config/balance.json`):**
 1. If the last stand should be a *real* last chance, give the King a **partial refresh between duels** (for example +25% of
    maxHp, full stamina; a rule in `BattleRoyalMatch`, not a stat) or raise King HP 160 -> ~210; the matrix says double checks
    by N/R/Q are otherwise ~unwinnable for non-expert Kings.
@@ -239,7 +242,7 @@ checkers=balanced:0.6 king=balanced:0.6,duelist:0.9,patient:0.9` (about 8 min; t
 Why: with the attacker's advantage duels became very short (bot knockouts at 5-10 s; a boosted Pawn could end a Knight in two hits) and
 played like button mashing. The goal is a slower, more readable fight where reading the opponent beats spamming.
 
-What changed (all data, `balance_v1.json`; simulation numbers only through the data):
+What changed (all data, `config/balance.json`; simulation numbers only through the data):
 - **Pacing:** longer parry and dodge cooldowns, a wider parry window (`parry_window_bonus`), longer dodge invulnerability, a bigger parry
   stagger and refund and a stronger riposte, and higher stamina costs for swings (a heavy Pawn swing costs 44 instead of 26), so mashing runs dry
   and a well-timed parry or dodge opens the opponent.
@@ -265,7 +268,7 @@ Problem: the first edge table boosted whichever side was weaker, including the D
 attacking Queen). Raw, with no boosts, the Queen wins 100/70/100/95 percent attacking Pawn/Knight/Bishop/Rook (casual bot), so the table
 turned the strongest piece into a glass cannon: an idle Queen died to a Pawn within seconds. Players rightly said she felt too weak.
 
-New rule (`attacker_edge` in `balance_v1.json`, calibrated with `edge_calibrate.gd mode=attacker`, n=24, 6 bisection steps, two bots):
+New rule (`attacker_edge` in `config/balance.json`, calibrated with `edge_calibrate.gd mode=attacker`, n=24, 6 bisection steps, two bots):
 - **Nobody boosts a defender.** `defender_mult` is 1.0 in all 25 pairings (a test asserts it).
 - The attacker always gets an initiative bonus of at least x1.12 damage; when the raw matchup favours the defender it gets more, only as
   much as it takes to lift its win rate 10 points above the raw rate (never below 30% where reachable), capped at x3.0.
@@ -284,14 +287,14 @@ Reproduce: `edge_calibrate.gd -- mode=attacker n=24 iterations=6 shard=i/4 out=.
 - The paladin sword is thicker, re-aimed in a ready guard (point forward-down) and held by the grip; screenshots: `combat/tools/arena_shots.gd`.
 
 ## Hit stun (2026-11-14)
-A clean hit that does not break poise now stuns the victim for `hitstun_ticks x mult` ticks (`hit_stun` in `balance_v1.json`: light x1.3,
+A clean hit that does not break poise now stuns the victim for `hitstun_ticks x mult` ticks (`hit_stun` in `config/balance.json`: light x1.3,
 heavy x2.0, ability x1.5), so a fighter who was just hit cannot hit back at once, and a charged/heavy blow stuns much longer (about 0.7-1 s)
 than a quick one (about 0.27 s). The stagger immunity that follows prevents stun-locking. Raw frame data (`attacker_edge:false`) has no
 stun, so the exact-trade tests are unchanged. Because stun shifts every matchup toward the attacker, the attacker table must be
 recalibrated (`edge_calibrate.gd rule=initiative`); the queen gate in `test_attacker_edge.gd` fails until that is done.
 
 ## Piece identity and pacing (2026-11-16)
-All data in `balance_v1.json` (counted in the tuning stamp) plus three small rules in `CombatSimulation._apply_hit`; none is applied to raw frame
+All data in `config/balance.json` (counted in the tuning stamp) plus three small rules in `CombatSimulation._apply_hit`; none is applied to raw frame
 data (`attacker_edge:false`), and every one is derived from HP, the clock and the two fighters' positions only, so duels stay deterministic and
 snapshots / the online wire format are unchanged (ability ids, action ids and timings of the contract are the same; the Knight lunge is still 72 ticks).
 - **Knight** - Lunging Strike is a telegraphed charge: longer wind-up (0.52), a 4.2 m armoured run, no cancel and 24 ticks of recovery, so a blocked

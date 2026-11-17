@@ -8,7 +8,8 @@ extends RefCounted
 ##   status "cleared"  all encounters won
 ## A lost ordinary encounter costs one life and may be retried; a lost boss ends the run at once.
 
-const START_LIVES := 3
+const ChessRules = preload("res://config/chess_rules.gd")
+static var START_LIVES: int = ChessRules.campaign_start_lives()   # config/chess_rules.json: campaign.start_lives
 
 var seed_value: int = 1
 var index: int = 0

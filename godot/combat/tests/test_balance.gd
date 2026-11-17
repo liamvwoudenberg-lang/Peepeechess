@@ -1,5 +1,5 @@
 extends RefCounted
-## Externalised tuning (godot/combat/data/balance_v1.json via balance_data.gd): loading, validation, typed values,
+## Externalised tuning (godot/config/balance.json via balance_data.gd): loading, validation, typed values,
 ## identity (tuning_id + stable hash), the non-leaking override hook, defaults that reproduce the original numbers,
 ## and the per-role movement profiles FighterMovement consumes.
 
@@ -8,7 +8,7 @@ const Runner := preload("res://combat/tests/matchup_runner.gd")
 const S := CombatConstants.State
 
 ## Pin of the shipped tuning. A balance change MUST update this on purpose: the stamp is what a server and its clients
-## compare, so an accidental edit of balance_v1.json fails here instead of silently desynchronising a match.
+## compare, so an accidental edit of config/balance.json fails here instead of silently desynchronising a match.
 const SHIPPED_ID := "balance-v1"
 const SHIPPED_STAMP := "balance-v1:7a1e47e27f4d0966"   # changed on purpose 2026-11-17: piece identity (Knight lunge, Bishop beam, Rook guard-break), pacing (comeback + sudden death), table recalibrated
 
@@ -30,7 +30,7 @@ static func _identity(h) -> void:
 	h.eq(hash.length(), 64, "the hash is a SHA-256 hex digest")
 	h.eq(Balance.tuning_hash(), hash, "stable between calls")
 	h.eq(Balance.stamp(), "%s:%s" % [SHIPPED_ID, hash.substr(0, 16)], "stamp = id:first 16 hex")
-	h.eq(Balance.stamp(), SHIPPED_STAMP, "the shipped tuning is the pinned one (update SHIPPED_STAMP when balance_v1.json changes ON PURPOSE)")
+	h.eq(Balance.stamp(), SHIPPED_STAMP, "the shipped tuning is the pinned one (update SHIPPED_STAMP when config/balance.json changes ON PURPOSE)")
 	h.eq(Balance.roles().size(), 6, "six roles")
 	for role in ["p", "n", "b", "r", "q", "k"]:
 		h.check(Balance.has_role(role), "role %s has tuning" % role)

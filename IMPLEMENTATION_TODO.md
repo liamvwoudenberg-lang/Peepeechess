@@ -96,7 +96,7 @@ second priority ranking.
 - [ ] **I05 — Refresh the Battle chess AI's duel model.**
   `godot/chess/ai/battle_model.gd` consumes `balance_matrix_v1.json`, whose tuning
   stamp predates the shipped attacker advantage and pacing changes in
-  `combat/data/balance_v1.json`. It still rates Pawn attacking Queen at 10% while
+  `config/balance.json`. It still rates Pawn attacking Queen at 10% while
   the current balance report measures a very different outcome. Regenerate a
   version-matched matrix with the combat owner, validate its stamp, consume it in
   search, and update the heuristic tests. Do not substitute an unmeasured target

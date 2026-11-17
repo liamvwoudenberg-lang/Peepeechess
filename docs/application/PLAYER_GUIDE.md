@@ -17,7 +17,7 @@ not enter combat in C0. Local combat retains the existing two-seat controls.
 attacker gets more of a bonus, so a Pawn attacking a Queen has a real chance. Defenders are never boosted, so the stronger piece stays
 stronger: a Queen still beats a Pawn or Bishop most of the time, whoever attacks. The card before the fight shows the bonus ("Attacker
 initiative: blows hit x1.12"). This is tuned with computer-controlled fighters, not with people, so it is a starting point; if it feels wrong,
-tell us which pairing and what happened. Kings are not affected. Numbers: `godot/combat/data/balance_v1.json`; method: `godot/combat/BALANCE.md`.
+tell us which pairing and what happened. Kings are not affected. Numbers: `godot/config/balance.json`; method: `godot/combat/BALANCE.md`.
 
 Both local boards retain selection, legal move hints, promotion, move history,
 animations and their existing mouse/touch interactions. Local practice permits

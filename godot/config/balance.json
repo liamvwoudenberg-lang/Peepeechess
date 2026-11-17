@@ -1,4 +1,5 @@
 {
+	"_readme": "Combat tuning for every role. EDIT NUMBERS HERE, then run: godot --headless --path godot --script res://tools/config_check.gd. Keys starting with an underscore are comments and ignored (also in the tuning stamp). Meaning, unit and safe range of every key: docs/game/BALANCE_REFERENCE.md (generated from config/balance_meta.json). Guide: docs/game/BALANCE_GUIDE.md.",
 	"tuning_id": "balance-v1",
 	"schema": 1,
 	"profiles": {
@@ -1088,32 +1089,13 @@
 			"defender_cost": 1.0,
 			"defender_regen": 1.0
 		},
-		"pairs": {
-			"pp": [1.15, 1.0],
-			"pn": [1.81, 1.0],
-			"pb": [1.52, 1.0],
-			"pr": [1.03, 1.0],
-			"pq": [3.97, 1.0],
-			"np": [1.0, 1.09],
-			"nn": [1.03, 1.0],
-			"nb": [1.0, 1.22],
-			"nr": [1.03, 1.0],
-			"nq": [2.02, 1.0],
-			"bp": [1.0, 1.09],
-			"bn": [1.44, 1.0],
-			"bb": [1.03, 1.0],
-			"br": [1.03, 1.0],
-			"bq": [3.35, 1.0],
-			"rp": [1.15, 1.0],
-			"rn": [1.22, 1.0],
-			"rb": [1.0, 1.03],
-			"rr": [1.03, 1.0],
-			"rq": [2.53, 1.0],
-			"qp": [1.0, 3.17],
-			"qn": [1.0, 1.81],
-			"qb": [1.0, 3.17],
-			"qr": [1.0, 2.02],
-			"qq": [1.36, 1.0]
+		"_matrix": "rows = the ATTACKING role, columns = the DEFENDING role; each cell is [attacker damage x, defender damage x]; at most one side is boosted",
+		"matrix": {
+			"p": {"p": [1.15, 1.0], "n": [1.81, 1.0], "b": [1.52, 1.0], "r": [1.03, 1.0], "q": [3.97, 1.0]},
+			"n": {"p": [1.0, 1.09], "n": [1.03, 1.0], "b": [1.0, 1.22], "r": [1.03, 1.0], "q": [2.02, 1.0]},
+			"b": {"p": [1.0, 1.09], "n": [1.44, 1.0], "b": [1.03, 1.0], "r": [1.03, 1.0], "q": [3.35, 1.0]},
+			"r": {"p": [1.15, 1.0], "n": [1.22, 1.0], "b": [1.0, 1.03], "r": [1.03, 1.0], "q": [2.53, 1.0]},
+			"q": {"p": [1.0, 3.17], "n": [1.0, 1.81], "b": [1.0, 3.17], "r": [1.0, 2.02], "q": [1.36, 1.0]}
 		}
 	},
 	"hit_stun": {

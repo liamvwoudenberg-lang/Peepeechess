@@ -98,7 +98,7 @@ func _init(p_request: Dictionary, p_local_id: String, p_send: Callable, external
 	var other: Dictionary = request["defender"] if request["attacker"]["playerId"] == local_id else request["attacker"]
 	opponent_id = other["playerId"]
 	role = me["role"]
-	# The attacker's advantage includes a per-seat stamina rule (data/balance_v1.json): every cost is scaled for this seat.
+	# The attacker's advantage includes a per-seat stamina rule (config/balance.json): every cost is scaled for this seat.
 	var king_involved: bool = me["role"] == "k" or other["role"] == "k"
 	var stamina_rule := Balance.stamina_edge()
 	_cost_mult = 1.0 if king_involved else float(stamina_rule["attacker_cost"] if request["attacker"]["playerId"] == local_id else stamina_rule["defender_cost"])

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Merge edge_calibrate.gd shard files into balance_v1.json's "attacker_edge" section.
+"""Merge edge_calibrate.gd shard files into config/balance.json's "attacker_edge" block (compact matrix form).
 
-    python3 godot/combat/tools/merge_edge.py OUT_DIR/edge-*.json [--write] [--balance godot/combat/data/balance_v1.json]
+    python3 godot/combat/tools/merge_edge.py OUT_DIR/edge-*.json [--write] [--balance godot/config/balance.json]
 
 Without --write it only prints the table. With --write it rewrites ONLY the "attacker_edge" block at the end of the data file (WARNING: it drops any block placed after it, e.g. "hit_stun": re-add it by hand and check `git diff`)
 (text edit: every other number stays byte-identical). Multipliers are rounded to 2 decimals, never below 1.0, and at most one side
 of a pairing is boosted (the loader validates this). Pairings that hit a search limit are listed so a human looks at them.
 """
-import argparse, glob, json, sys
+import argparse, glob, json, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from balance_file import replace_block, render_edge_block
 
 ROLES = "pnbrq"
 
@@ -16,7 +18,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", nargs="+")
     parser.add_argument("--write", action="store_true")
-    parser.add_argument("--balance", default="godot/combat/data/balance_v1.json")
+    parser.add_argument("--balance", default="godot/config/balance.json")
     parser.add_argument("--allow-mixed-tunings", action="store_true",
                         help="accept shards stamped with different balance data (fine here: calibration uses explicit multipliers, "
                              "so the attacker_edge table itself never influences it). Later files override earlier ones, so a "
@@ -57,33 +59,10 @@ def main() -> int:
     if not args.write:
         return 0
 
-    def num(v: float) -> str:
-        return f"{v:.2f}".rstrip("0").rstrip(".") if v != 1 else "1.0"
-
-    lines = ['\t"attacker_edge": {', f'\t\t"target": {target},',
-             '\t\t"stamina": {', f'\t\t\t"attacker_cost": {num(stamina[0]) if stamina[0] else "0.0"},', f'\t\t\t"defender_cost": {num(stamina[1])},', f'\t\t\t"defender_regen": {num(stamina[2])}', '\t\t},',
-             '\t\t"pairs": {']
-    keys = [a + d for a in ROLES for d in ROLES]
-    for i, key in enumerate(keys):
-        p = pairs[key]
-        a, d = max(1.0, p["attacker_mult"]), max(1.0, p["defender_mult"])
-        if a > 1.0001 and d > 1.0001:
-            a, d = (a, 1.0) if a >= d else (1.0, d)
-        lines.append(f'\t\t\t"{key}": [{num(a)}, {num(d)}]' + ("," if i < len(keys) - 1 else ""))
-    lines += ["\t\t}", "\t}"]
-    block = "\n".join(lines)
+    block = render_edge_block(target, stamina, pairs)
     text = open(args.balance).read()
-    marker = '\t"attacker_edge": {'
-    if marker in text:
-        head = text[: text.index(marker)].rstrip()
-        head = head[:-1].rstrip() if head.endswith(",") else head
-        text = head + ",\n" + block + "\n}\n"
-    else:
-        body = text.rstrip()
-        assert body.endswith("}"), "unexpected end of file"
-        text = body[:-1].rstrip() + ",\n" + block + "\n}\n"
-    json.loads(text)  # must stay valid JSON
-    open(args.balance, "w").write(text)
+    out = replace_block(text, "attacker_edge", block)   # ONLY this block changes; hit_stun, pacing, ... stay byte-identical
+    open(args.balance, "w").write(out)
     print("wrote attacker_edge to", args.balance)
     return 0
 

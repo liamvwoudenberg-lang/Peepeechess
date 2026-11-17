@@ -12,7 +12,7 @@ extends RefCounted
 
 const S := CombatConstants.State
 
-## Defaults == the Pawn/Knight movement profile (balance_v1.json "accel", "turn_free", ...). Every fighter now reads its
+## Defaults == the Pawn/Knight movement profile (config/balance.json "accel", "turn_free", ...). Every fighter now reads its
 ## own profile keys; these constants stay as the documented baseline and for the client predictor, which should read
 ## the profile too (FighterProfile.for_role(role)) to predict Bishop/Rook/Queen/King exactly.
 const TURN_FREE := 0.30           # rad per tick (~1000 deg/s)

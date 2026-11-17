@@ -4,7 +4,7 @@ extends RefCounted
 ## The v1 BattleRequest schema forbids "k" as a Combatant role, so the DEFAULT `CombatSimulation.start(request)` still
 ## refuses it; the King fights only through `start(request, {"allow_experimental_roles": true})`.
 ##
-## Royal Counter (data: balance_v1.json "royal-counter"): a committed, armoured, slow stance of cast_ticks. Ticks
+## Royal Counter (data: config/balance.json "royal-counter"): a committed, armoured, slow stance of cast_ticks. Ticks
 ## [counter_start, counter_end) of the cast are the counter window: a frontal hit (arc counter_arc_deg) is negated, the
 ## attacker is staggered for counter_stagger_ticks, and the King ripostes (an ordinary AttackDefinition through the normal
 ## damage path, boosted by the profile's riposte_mult). A window that closes on nothing leaves the King recovering

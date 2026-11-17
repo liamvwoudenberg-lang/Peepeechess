@@ -1,6 +1,6 @@
 class_name AttackLibrary
 extends RefCounted
-## Per-role attack tables (data: res://combat/data/balance_v1.json). Bot-measured, not human-tested balance.
+## Per-role attack tables (data: res://config/balance.json). Bot-measured, not human-tested balance.
 ## Timings scale off the FighterStats the authority supplies (lightTicks, heavyTicks); the
 ## relative shapes (windows, damage multipliers, costs) live in the data.
 
@@ -13,7 +13,7 @@ static func supports_role(role: String) -> bool:
 
 
 ## {"light": Array[AttackDefinition], "heavy": AttackDefinition, "abilities": {id: AttackDefinition}} or {}.
-## Built from balance_v1.json; shared and cached until the tuning revision changes. Treat as read-only.
+## Built from config/balance.json; shared and cached until the tuning revision changes. Treat as read-only.
 static func for_role(role: String) -> Dictionary:
 	return Balance.attack_tables(role)
 

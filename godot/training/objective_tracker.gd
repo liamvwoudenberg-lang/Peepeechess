@@ -31,10 +31,11 @@ signal lesson_failed(reason: String, stats: Dictionary)
 
 const S := CombatConstants.State
 ## Longest gap (ticks) between two hits that still counts as one chain: a light swing (24-32 ticks) plus the engine's chain grace.
-const COMBO_WINDOW_TICKS := 78
-const DEFAULT_COUNTER_WINDOW := 90
+const ChessRules = preload("res://config/chess_rules.gd")
+static var COMBO_WINDOW_TICKS: int = ChessRules.training_combo_window_ticks()   # config/chess_rules.json: training.*
+static var DEFAULT_COUNTER_WINDOW: int = ChessRules.training_default_counter_window_ticks()
 ## A hit this soon after the opponent whiffed also counts as a punish.
-const WHIFF_PUNISH_WINDOW := 70
+static var WHIFF_PUNISH_WINDOW: int = ChessRules.training_whiff_punish_window_ticks()
 
 var lesson: Dictionary = {}
 var sim: CombatSimulation

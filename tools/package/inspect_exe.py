@@ -23,7 +23,7 @@ import sys
 DEFAULT_REQUIRED = [
     "project.binary",
     "chess/battle_stats.json",
-    "combat/data/balance_v1.json",
+    "config/balance.json",
     "assets/combat/audio/manifest.json",
     "assets/combat/arena/stone_arena_lights.json",
     "assets/combat/manifest/asset_manifest.json",

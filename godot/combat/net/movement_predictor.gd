@@ -10,7 +10,7 @@ extends RefCounted
 ## and shows server state (see CombatNetClient).
 ##
 ## Per-role movement feel (accel/decel/turn rates, sprint, block slow, radius) is read from the same tuning the server
-## fighter uses (FighterProfile.for_role(role), i.e. balance_v1.json), including the experimental King, so the model is
+## fighter uses (FighterProfile.for_role(role), i.e. config/balance.json), including the experimental King, so the model is
 ## exact for every role. Buff abilities that change walking speed (Last Stand 1.3x, Royal Fury 1.1x, Fortress Guard 0.7x)
 ## are modelled: the remaining buff time is recovered from the snapshot's `cooldownTicks` (buff and cooldown both start at
 ## the cast and tick down together), so `buff_remaining = cooldownTicks - (cooldown_total - buff_ticks)`.
@@ -34,7 +34,7 @@ static func params_for(role: String, stats: Dictionary, stamina_cost_mult: float
 		"block_move_mult": float(profile["block_move_mult"]),
 		"drain": float(profile["sprint_drain_per_tick"]) * stamina_cost_mult,
 		"radius": float(profile["radius"]),
-		# per-role movement profile (balance_v1.json); Pawn/Knight equal the FighterMovement constants
+		# per-role movement profile (config/balance.json); Pawn/Knight equal the FighterMovement constants
 		"accel": float(profile.get("accel", FighterMovement.ACCEL)),
 		"decel": float(profile.get("decel", FighterMovement.DECEL)),
 		"turn_free": float(profile.get("turn_free", FighterMovement.TURN_FREE)),

@@ -8,16 +8,10 @@ extends RefCounted
 ## Determinism: for a given level, seed and sequence of positions the chosen moves are identical when the
 ## search ends on depth/node limits (`deterministic = true` removes the wall clock entirely). With a wall-clock
 ## limit the depth reached depends on machine speed, so moves can differ between machines.
-const LEVELS = {
-	1: {"name": "Beginner", "max_depth": 1, "q_ply": 0, "node_limit": 400, "time_ms": 300, "noise": 90, "margin": 330, "blunder": 0.30, "skill": 0.20, "style": "balanced", "attack_style": "balanced"},
-	2: {"name": "Casual", "max_depth": 2, "q_ply": 2, "node_limit": 1500, "time_ms": 600, "noise": 55, "margin": 220, "blunder": 0.12, "skill": 0.38, "style": "balanced", "attack_style": "balanced"},
-	3: {"name": "Club", "max_depth": 3, "q_ply": 4, "node_limit": 4000, "time_ms": 1000, "noise": 25, "margin": 110, "blunder": 0.04, "skill": 0.55, "style": "balanced", "attack_style": "balanced"},
-	4: {"name": "Advanced", "max_depth": 5, "q_ply": 6, "node_limit": 9000, "time_ms": 1500, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.70, "style": "defensive", "attack_style": "aggressive"},
-	5: {"name": "Expert", "max_depth": 7, "q_ply": 8, "node_limit": 18000, "time_ms": 2500, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.82, "style": "duelist", "attack_style": "aggressive"},
-	6: {"name": "Strong", "max_depth": 12, "q_ply": 10, "node_limit": 40000, "time_ms": 4000, "noise": 0, "margin": 0, "blunder": 0.0, "skill": 0.92, "style": "duelist", "attack_style": "aggressive"},
-}
-const MIN_LEVEL = 1
-const MAX_LEVEL = 6
+const ChessRules = preload("res://config/chess_rules.gd")
+static var LEVELS: Dictionary = ChessRules.computer_levels()   # config/chess_rules.json: computer_levels
+static var MIN_LEVEL: int = ChessRules.min_computer_level()
+static var MAX_LEVEL: int = ChessRules.max_computer_level()
 var level = 3
 var seed_value = 1
 ## Multiplies every level's wall-clock budget (mobile devices use less; tests use more headroom).

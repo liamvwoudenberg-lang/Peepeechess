@@ -1,7 +1,7 @@
 class_name FighterProfile
 extends RefCounted
 ## Role tuning that the v1 FighterStats contract does not carry (poise, armour, guard, dodge,
-## stamina economy, movement feel). The numbers live in res://combat/data/balance_v1.json and are served by
+## stamina economy, movement feel). The numbers live in res://config/balance.json and are served by
 ## the Balance loader (balance_data.gd); this class is the stable lookup API. The contract's stats
 ## (HP, stamina, damage, speed, reach, light/heavy/parry ticks, ability cooldown) always come
 ## from the BattleRequest, never from here.

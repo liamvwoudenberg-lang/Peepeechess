@@ -15,8 +15,9 @@ const MATRIX_PATH = "res://combat/data/balance_matrix_v1.json"
 ## Material value in the evaluation when captures are duels (centipawns). Loosely follows the class
 ## strength ranking documented in combat/BALANCE.md (queen strongest, pawn weakest) rather than
 ## orthodox chess values: a Knight is a strong fighter, a Pawn a weak one.
-const FIGHT_VALUE = {"p": 90, "n": 340, "b": 300, "r": 430, "q": 900, "k": 0}
-const TIER = {"p": 0.0, "b": 1.0, "r": 1.7, "n": 2.0, "q": 3.0, "k": 1.5}
+const ChessRules = preload("res://config/chess_rules.gd")
+static var FIGHT_VALUE: Dictionary = ChessRules.battle_fight_value()   # config/chess_rules.json: battle_ai.fight_value
+static var TIER: Dictionary = ChessRules.battle_tier()   # config/chess_rules.json: battle_ai.tier
 static var _table: Dictionary = {}
 static var _loaded = false
 

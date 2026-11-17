@@ -24,7 +24,7 @@ func _ready() -> void:
 func run() -> void:
 	var root := get_tree().root
 	root.size = Vector2i(1280, 800)
-	for path in ["res://chess/battle_stats.json", "res://combat/data/balance_v1.json", "res://assets/combat/audio/manifest.json",
+	for path in ["res://chess/battle_stats.json", "res://config/balance.json", "res://assets/combat/audio/manifest.json",
 			"res://assets/combat/arena/stone_arena_lights.json", "res://assets/combat/manifest/asset_manifest.json",
 			"res://assets/world/manifest/world_manifest.json", "res://contracts/v2/schema.json"]:
 		var text := FileAccess.get_file_as_string(path)

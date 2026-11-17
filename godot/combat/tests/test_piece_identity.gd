@@ -1,6 +1,6 @@
 extends RefCounted
 ## Piece identity and pacing (BALANCE.md "Piece identity" and "Pacing"): the Knight's telegraphed lunge, the Bishop's range-scaled
-## beam, the Rook's guard-break, the comeback bonus and sudden death. Everything is data (balance_v1.json) plus three small rules in
+## beam, the Rook's guard-break, the comeback bonus and sudden death. Everything is data (config/balance.json) plus three small rules in
 ## the authoritative simulation, derived from HP and the clock only, so duels stay deterministic and snapshots are unchanged.
 
 const Balance := preload("res://combat/data/balance_data.gd")

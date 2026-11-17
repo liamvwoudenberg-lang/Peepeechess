@@ -1,5 +1,5 @@
 extends RefCounted
-## Loader for the externalised role tuning in `balance_v1.json` (profiles, ability definitions, attack
+## Loader for the externalised role tuning in `config/balance.json` (profiles, ability definitions, attack
 ## tables, movement profiles). Use it through `preload` (no global class on purpose):
 ##
 ##   const Balance := preload("res://combat/data/balance_data.gd")
@@ -24,7 +24,10 @@ extends RefCounted
 ## copies, so callers can never mutate the active table. A running fight keeps the profile it copied at
 ## setup; overrides only affect fights started afterwards.
 
-const DATA_PATH := "res://combat/data/balance_v1.json"
+const DATA_PATH := "res://config/balance.json"
+const META_PATH := "res://config/balance_meta.json"
+const SOURCE_LABEL := "config/balance.json"
+const DEV_OVERRIDE_PATH := "user://config_override/balance.json"
 const SCHEMA := 1
 
 const PROFILE_STR_KEYS := ["display", "weapon"]
@@ -243,7 +246,8 @@ static func snapshot() -> Dictionary:
 ## Arrays (the "light" attack chain) are replaced as a whole, dictionaries are merged key by key.
 static func apply_override(patch: Dictionary) -> Array:
 	_ensure()
-	var merged := _merge(_base.duplicate(true), patch.duplicate(true))
+	patch = _prepare(patch.duplicate(true))   # comment keys out, compact matrix in
+	var merged := _merge(_base.duplicate(true), patch)
 	if not patch.has("tuning_id"):
 		merged["tuning_id"] = String(_base["tuning_id"]) + "+override"
 	var errors := validate(merged)
@@ -261,6 +265,7 @@ static func clear_override() -> void:
 
 ## Validates raw (JSON-shaped) data. Returns human-readable problems; empty = valid.
 static func validate(data: Dictionary) -> Array:
+	data = _prepare(data.duplicate(true))
 	var errors: Array = []
 	if typeof(data.get("tuning_id", null)) != TYPE_STRING or String(data["tuning_id"]).is_empty():
 		errors.append("tuning_id must be a non-empty string")
@@ -306,6 +311,7 @@ static func validate(data: Dictionary) -> Array:
 				errors.append("pacing.sudden_death: start_s >= 5 and ramp_per_s in 0..1")
 	if data.has("attacker_edge"):
 		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
+	errors.append_array(_meta_errors(data))
 	for id in data["abilities"]:
 		var def = data["abilities"][id]
 		if typeof(def) == TYPE_DICTIONARY and def.has("role"):
@@ -324,14 +330,128 @@ static func _ensure() -> void:
 	var text := FileAccess.get_file_as_string(DATA_PATH)
 	var parsed = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
-		push_error("balance_data: %s is missing or not valid JSON" % DATA_PATH)
+		push_error("%s is missing or not valid JSON" % SOURCE_LABEL)
 		parsed = {"tuning_id": "invalid", "schema": SCHEMA, "profiles": {}, "abilities": {}, "attacks": {}}
 	else:
 		var errors := validate(parsed)
 		if not errors.is_empty():
-			push_error("balance_data: %s is invalid: %s" % [DATA_PATH, "; ".join(errors)])
+			push_error("%s is invalid: %s" % [SOURCE_LABEL, "; ".join(errors)])
+		parsed = _prepare(parsed)
 	_base = _normalise(parsed)
 	_install(_base.duplicate(true), false)
+	_load_dev_override()
+
+
+## True for a build where tuning files may be overridden from outside the pack (debug builds only).
+static func dev_overrides_allowed(debug_build: bool = OS.is_debug_build()) -> bool:
+	return debug_build and not _online_lock
+
+
+static var _online_lock := false
+static var _dev_override_error: Array = []
+
+
+## Online / ranked matches must run the SHIPPED tuning: starting one clears any development override and blocks new file
+## overrides until `unlock_online()`. A client and a server with different tunings would otherwise desynchronise.
+static func lock_for_online() -> void:
+	_online_lock = true
+	if _overridden:
+		clear_override()
+
+
+static func unlock_online() -> void:
+	_online_lock = false
+
+
+static func is_online_locked() -> bool:
+	return _online_lock
+
+
+## Problems found in the development override file the last time it was read (empty = none or not present).
+static func dev_override_errors() -> Array:
+	return _dev_override_error.duplicate()
+
+
+## Where the development override is looked for: `--config-dir=<dir>` (a directory holding balance.json) or
+## user://config_override/balance.json. Debug builds only; a release build ignores both.
+static func dev_override_file() -> String:
+	for arg in OS.get_cmdline_args():
+		if arg.begins_with("--config-dir="):
+			return arg.substr("--config-dir=".length()).path_join("balance.json")
+	return ProjectSettings.globalize_path(DEV_OVERRIDE_PATH)
+
+
+static func _load_dev_override() -> void:
+	load_override_from(dev_override_file())
+
+
+## Reads an override file (a patch with just the keys to change) and applies it when the build allows it. Returns true when it
+## was applied. A release build (`debug_build = false`) or an online/ranked lock ignores the file completely. Problems are kept in
+## `dev_override_errors()` and the file is NOT applied.
+static func load_override_from(path: String, debug_build: bool = OS.is_debug_build()) -> bool:
+	_dev_override_error = []
+	if not dev_overrides_allowed(debug_build) or not FileAccess.file_exists(path):
+		return false
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		_dev_override_error = ["%s is not a valid JSON object" % path]
+		push_warning("balance override ignored: " + _dev_override_error[0])
+		return false
+	var errors := apply_override(parsed)
+	if not errors.is_empty():
+		_dev_override_error = errors
+		push_warning("balance override %s ignored: %s" % [path, "; ".join(errors)])
+		return false
+	return true
+
+
+## The stamp the given raw data (a file's content) would have, without installing it. Comment keys and the matrix form do not change it.
+static func stamp_of(raw: Dictionary) -> String:
+	var prepared := _prepare(raw.duplicate(true))
+	var normalised := _normalise(prepared)
+	return "%s:%s" % [String(normalised["tuning_id"]), JSON.stringify(normalised, "", true).sha256_text().substr(0, 16)]
+
+
+## Strips documentation keys (any key starting with an underscore, at any depth) and expands the compact
+## attacker_edge.matrix into the pairs table the rest of the code uses. Idempotent.
+static func _prepare(raw: Dictionary) -> Dictionary:
+	var out: Dictionary = _strip_comments(raw)
+	if out.get("attacker_edge") is Dictionary and (out["attacker_edge"] as Dictionary).has("matrix"):
+		var edge: Dictionary = out["attacker_edge"]
+		var pairs: Dictionary = {}
+		var matrix = edge["matrix"]
+		if matrix is Dictionary:
+			for attacker in matrix:
+				var row = matrix[attacker]
+				if row is Dictionary:
+					for defender in row:
+						pairs[String(attacker) + String(defender)] = row[defender]
+		for key in (edge.get("pairs", {}) as Dictionary):   # explicit pairs win over the matrix
+			pairs[key] = edge["pairs"][key]
+		edge["pairs"] = pairs
+		edge.erase("matrix")
+	return out
+
+
+static func _strip_comments(value):
+	if value is Dictionary:
+		var out := {}
+		for key in value:
+			if String(key).begins_with("_"):
+				continue
+			out[key] = _strip_comments(value[key])
+		return out
+	if value is Array:
+		var items := []
+		for item in value:
+			items.append(_strip_comments(item))
+		return items
+	return value
+
+
+static func _meta_errors(data: Dictionary) -> Array:
+	const ConfigMeta := preload("res://config/config_meta.gd")
+	return ConfigMeta.check(data, SOURCE_LABEL, META_PATH)
 
 
 static func _install(data: Dictionary, overridden: bool) -> void:

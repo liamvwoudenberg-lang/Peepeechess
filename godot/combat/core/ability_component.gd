@@ -7,7 +7,7 @@ extends RefCounted
 
 const Balance := preload("res://combat/data/balance_data.gd")
 
-## id -> definition. The data is in balance_v1.json (see Balance); this getter keeps the old
+## id -> definition. The data is in config/balance.json (see Balance); this getter keeps the old
 ## `AbilityComponent.DEFINITIONS` access working and always reflects the active tuning (copy per read).
 ## Kinds: "buff" (timed modifiers), "attack" (an AttackLibrary swing), "blink" (teleport), "counter"
 ## (Royal Counter stance: armoured, a timed frontal hit is negated and riposted).

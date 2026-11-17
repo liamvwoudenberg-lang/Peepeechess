@@ -1,0 +1,321 @@
+{
+	"_readme": "Metadata for config/chess_rules.json (type, unit, range, meaning). Paths use * as a wildcard for list indices ([*]) and for names. The loader checks every value against this; docs/game/RULES_REFERENCE.md is generated from it.",
+	"paths": {
+		"schema": {
+			"type": "int",
+			"unit": "",
+			"doc": "File format version. Do not change.",
+			"min": 1,
+			"max": 1
+		},
+		"time_controls[*].label": {
+			"type": "string",
+			"unit": "",
+			"doc": "Name shown in the time-control list."
+		},
+		"time_controls[*].initial_ms": {
+			"type": "int",
+			"unit": "milliseconds",
+			"doc": "Starting clock time per side.",
+			"min": 1000,
+			"max": 21600000
+		},
+		"time_controls[*].increment_ms": {
+			"type": "int",
+			"unit": "milliseconds",
+			"doc": "Time added after every move (Fischer increment).",
+			"min": 0,
+			"max": 600000
+		},
+		"computer_levels.*.name": {
+			"type": "string",
+			"unit": "",
+			"doc": "Name of the computer level shown in the UI."
+		},
+		"computer_levels.*.max_depth": {
+			"type": "int",
+			"unit": "plies",
+			"doc": "Deepest search the engine may reach (ply = one half-move).",
+			"min": 1,
+			"max": 40
+		},
+		"computer_levels.*.q_ply": {
+			"type": "int",
+			"unit": "plies",
+			"doc": "Extra plies of capture-only (quiescence) search.",
+			"min": 0,
+			"max": 40
+		},
+		"computer_levels.*.node_limit": {
+			"type": "int",
+			"unit": "positions",
+			"doc": "Search stops after this many positions (makes the level deterministic).",
+			"min": 50,
+			"max": 5000000
+		},
+		"computer_levels.*.time_ms": {
+			"type": "int",
+			"unit": "milliseconds",
+			"doc": "Wall-clock thinking budget per move (scaled on slow devices).",
+			"min": 10,
+			"max": 120000
+		},
+		"computer_levels.*.noise": {
+			"type": "int",
+			"unit": "centipawns",
+			"doc": "Random noise added to move scores (weaker levels play looser).",
+			"min": 0,
+			"max": 1000
+		},
+		"computer_levels.*.margin": {
+			"type": "int",
+			"unit": "centipawns",
+			"doc": "Moves within this score margin of the best may be picked instead.",
+			"min": 0,
+			"max": 1000
+		},
+		"computer_levels.*.blunder": {
+			"type": "float",
+			"unit": "probability",
+			"doc": "Chance that the level deliberately plays a weaker move.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"computer_levels.*.skill": {
+			"type": "float",
+			"unit": "0..1",
+			"doc": "Duel skill used when this level fights in Battle Chess.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"computer_levels.*.style": {
+			"type": "string",
+			"unit": "",
+			"doc": "Duel style for defence: balanced, defensive, aggressive or duelist."
+		},
+		"computer_levels.*.attack_style": {
+			"type": "string",
+			"unit": "",
+			"doc": "Duel style when attacking."
+		},
+		"duel_ai_levels.*.label": {
+			"type": "string",
+			"unit": "",
+			"doc": "Name of the duel AI level (Easy, Normal, Hard, Expert)."
+		},
+		"duel_ai_levels.*.style": {
+			"type": "string",
+			"unit": "",
+			"doc": "Fighting style the bot uses."
+		},
+		"duel_ai_levels.*.skill": {
+			"type": "float",
+			"unit": "0..1",
+			"doc": "Overall bot skill.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.summary": {
+			"type": "string",
+			"unit": "",
+			"doc": "One-line description shown to the player."
+		},
+		"duel_ai_levels.*.params.react_extra": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Extra reaction delay (higher = slower to react).",
+			"min": 0,
+			"max": 120
+		},
+		"duel_ai_levels.*.params.error_rate": {
+			"type": "float",
+			"unit": "probability",
+			"doc": "Chance of a mistimed or wrong action.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.params.timing_jitter": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Random timing error on actions.",
+			"min": 0,
+			"max": 30
+		},
+		"duel_ai_levels.*.params.follow_chance": {
+			"type": "float",
+			"unit": "probability",
+			"doc": "Chance to follow up with the next hit of a combo.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.params.follow_max": {
+			"type": "int",
+			"unit": "hits",
+			"doc": "Longest combo the bot will attempt.",
+			"min": 0,
+			"max": 8
+		},
+		"duel_ai_levels.*.params.heavy_chance": {
+			"type": "float",
+			"unit": "probability",
+			"doc": "Chance to use a heavy attack when an opening appears.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.params.defence_scale": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "How often the bot defends (1 = baseline).",
+			"min": 0.0,
+			"max": 2.0
+		},
+		"duel_ai_levels.*.params.parry_bias": {
+			"type": "float",
+			"unit": "offset",
+			"doc": "Preference for parrying (negative = avoids parries).",
+			"min": -1.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.params.block_bias": {
+			"type": "float",
+			"unit": "offset",
+			"doc": "Preference for blocking.",
+			"min": -1.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.params.cooldown_scale": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Scales the pause between the bot's actions (higher = slower).",
+			"min": 0.2,
+			"max": 4.0
+		},
+		"duel_ai_levels.*.params.poke": {
+			"type": "float",
+			"unit": "probability",
+			"doc": "How often the bot pokes at range.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"duel_ai_levels.*.params.hold_extra": {
+			"type": "float",
+			"unit": "seconds",
+			"doc": "Extra time the bot holds a block or heavy charge.",
+			"min": 0.0,
+			"max": 2.0
+		},
+		"battle_ai.fight_value.*": {
+			"type": "int",
+			"unit": "centipawns",
+			"doc": "Value the chess computer gives a piece when it fights a Battle Chess duel.",
+			"min": 0,
+			"max": 5000
+		},
+		"battle_ai.tier.*": {
+			"type": "float",
+			"unit": "tier",
+			"doc": "Strength tier used to estimate who wins a duel (higher = stronger).",
+			"min": 0.0,
+			"max": 10.0
+		},
+		"royal.piece_values.*": {
+			"type": "int",
+			"unit": "points",
+			"doc": "Order value of a piece in King's last stand (smaller defends first).",
+			"min": 0,
+			"max": 100
+		},
+		"campaign.start_lives": {
+			"type": "int",
+			"unit": "lives",
+			"doc": "Lives at the start of a campaign run.",
+			"min": 1,
+			"max": 20
+		},
+		"campaign.max_boon_stack": {
+			"type": "int",
+			"unit": "times",
+			"doc": "How many times the same boon may be taken in one run.",
+			"min": 1,
+			"max": 10
+		},
+		"campaign.boon_offer_size": {
+			"type": "int",
+			"unit": "boons",
+			"doc": "How many boons are offered after a win.",
+			"min": 1,
+			"max": 5
+		},
+		"campaign.level_by_encounter[*]": {
+			"type": "string",
+			"unit": "",
+			"doc": "AI level (easy, normal, hard, expert) of each of the 12 encounters, in order."
+		},
+		"campaign.boons.*.title": {
+			"type": "string",
+			"unit": "",
+			"doc": "Boon name."
+		},
+		"campaign.boons.*.text": {
+			"type": "string",
+			"unit": "",
+			"doc": "Boon description shown to the player (keep it in line with the numbers)."
+		},
+		"campaign.boons.*.health": {
+			"type": "float",
+			"unit": "fraction",
+			"doc": "Extra health (0.15 = +15%).",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"campaign.boons.*.stamina": {
+			"type": "float",
+			"unit": "fraction",
+			"doc": "Extra stamina pool.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"campaign.boons.*.cost": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Stamina cost multiplier (0.85 = 15% cheaper).",
+			"min": 0.1,
+			"max": 1.0
+		},
+		"campaign.boons.*.regen": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Stamina regeneration multiplier (1.3 = 30% faster).",
+			"min": 1.0,
+			"max": 3.0
+		},
+		"training.combo_window_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Time allowed between hits for them to count as a combo.",
+			"min": 1,
+			"max": 600
+		},
+		"training.default_counter_window_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Default time to counter-attack after a parry or block in a lesson.",
+			"min": 1,
+			"max": 600
+		},
+		"training.whiff_punish_window_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Time to punish an opponent's missed attack.",
+			"min": 1,
+			"max": 600
+		},
+		"training.max_lesson_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Hard time limit of any lesson.",
+			"min": 600,
+			"max": 60000
+		}
+	}
+}

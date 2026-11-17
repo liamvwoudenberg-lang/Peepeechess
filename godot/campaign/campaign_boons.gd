@@ -6,15 +6,10 @@ extends RefCounted
 ##
 ## Offers are a pure function of (run seed, node index, boons already taken), so a run can be replayed and tested.
 
-const BOONS := {
-	"vitality": {"title": "Vitality", "text": "+15% health.", "health": 0.15},
-	"endurance": {"title": "Endurance", "text": "+25% stamina pool.", "stamina": 0.25},
-	"efficiency": {"title": "Efficiency", "text": "Stamina costs 15% less.", "cost": 0.85},
-	"second_wind": {"title": "Second wind", "text": "Stamina regenerates 30% faster.", "regen": 1.3},
-	"iron_will": {"title": "Iron will", "text": "+8% health and +10% stamina.", "health": 0.08, "stamina": 0.10},
-}
-const MAX_STACK := 2
-const OFFER_SIZE := 3
+const ChessRules = preload("res://config/chess_rules.gd")
+static var BOONS: Dictionary = ChessRules.campaign_boons()   # config/chess_rules.json: campaign.boons
+static var MAX_STACK: int = ChessRules.campaign_max_boon_stack()
+static var OFFER_SIZE: int = ChessRules.campaign_boon_offer_size()
 
 
 static func ids() -> Array:

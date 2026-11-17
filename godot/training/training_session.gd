@@ -30,7 +30,8 @@ class Player:
 
 const PLAYER_ID := "player-white"
 const OPPONENT_ID := "player-black"
-const MAX_TICKS := 6000
+const ChessRules = preload("res://config/chess_rules.gd")
+static var MAX_TICKS: int = ChessRules.training_max_lesson_ticks()   # config/chess_rules.json: training.max_lesson_ticks
 
 var lesson: Dictionary
 var options: Dictionary
@@ -134,7 +135,9 @@ func _tick(use_player: bool) -> void:
 
 
 ## Runs until the lesson is completed, failed or the fight ends, calling `think` (Callable(session)) before every tick. For scripted tests.
-func run(think: Callable, max_ticks: int = MAX_TICKS) -> void:
+func run(think: Callable, max_ticks: int = -1) -> void:
+	if max_ticks < 0:
+		max_ticks = MAX_TICKS   # config/chess_rules.json: training.max_lesson_ticks
 	var guard := 0
 	while is_running() and not tracker.finished and not tracker.failed and guard < max_ticks:
 		think.call(self)

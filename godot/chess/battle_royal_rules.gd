@@ -10,7 +10,8 @@ extends "res://chess/battle_rules.gd"
 ## board looks like after the king wins every duel, and how the match ends when it does not.
 const RULESET_ID = "battle-royal-v1"
 ## Material value used to order the mating group (ascending). Knight and bishop tie; the square breaks the tie.
-const VALUES = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9}
+const ChessRules = preload("res://config/chess_rules.gd")
+static var VALUES: Dictionary = ChessRules.royal_piece_values()   # config/chess_rules.json: royal.piece_values
 
 ## {} or {"mated": "w"|"b", "kingSquare": int, "fen": String, "group": [{"square": int, "role": String, "color": String}]}.
 ## Set instead of `result` when the side to move is checkmated; the match clears it through one of the resolve_* calls.

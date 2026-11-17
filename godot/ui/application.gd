@@ -21,11 +21,12 @@ const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const TrainingPageScript = preload("res://ui/training_page.gd")
 const CampaignPageScript = preload("res://ui/campaign_page.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
+const ChessRules = preload("res://config/chess_rules.gd")
 const INK = Tokens.BG
 const PAPER = Tokens.TEXT
 const MUTED = Tokens.TEXT_MUTED
 const GOLD = Tokens.GOLD
-const TIMES = [["3 + 2 · Blitz", 180000, 2000], ["5 + 0 · Blitz", 300000, 0], ["10 + 0 · Rapid", 600000, 0], ["15 + 10 · Rapid", 900000, 10000], ["30 + 0 · Classical", 1800000, 0]]
+var TIMES: Array = ChessRules.time_controls()   # config/chess_rules.json: time_controls
 var api: Node
 var page = "home"
 var selected_mode = "classic"
@@ -80,6 +81,7 @@ var _friends_clock = 0.0
 var _friend_alerts: Dictionary = {}  # requests/challenges already announced with a toast
 
 func _ready() -> void:
+	load("res://ui/debug/balance_panel.gd").attach(self)   # F6 balance panel: debug builds only (returns null in release)
 	Settings.load_preferences()
 	Settings.ensure_platform(get_tree())
 	var start_page := ""

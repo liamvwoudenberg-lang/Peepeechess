@@ -88,7 +88,7 @@ Adaptive mode: an exponential moving average of per-fight performance (win 0.5 +
 ## Adding things
 
 - **A lesson:** add it to `build_lessons.py` (or drop a JSON file in `godot/training/lessons/`) and run the `training` suite.
-- **A character:** add its role to `FighterRoster` (stats + attack tables in `balance_v1.json`); lessons may then use its role letter.
+- **A character:** add its role to `FighterRoster` (stats + attack tables in `config/balance.json`); lessons may then use its role letter.
 - **A combo or objective type:** add the type to `LessonSchema.OBJECTIVE_TYPES` / `REQUIRED_PARAM`, detect it in `ObjectiveTracker` from an event or fighter state, and
   add a scripted-fight test to `combat/tests/test_training.gd`.
 - **An AI parameter:** add the key with a NEUTRAL value to `CombatAI.NEUTRAL` (neutral must draw no extra random numbers) and use it in a preset.

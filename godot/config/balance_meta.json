@@ -1,0 +1,754 @@
+{
+	"_readme": "Metadata for config/balance.json: what each key means, its unit and its allowed range. The loader checks every value against this file and the reference table docs/game/BALANCE_REFERENCE.md is generated from it (godot --headless --path godot --script res://tools/config_docs.gd). Keys starting with an underscore are ignored.",
+	"profiles": {
+		"display": {
+			"type": "string",
+			"unit": "",
+			"doc": "Name shown in the UI for this role."
+		},
+		"weapon": {
+			"type": "string",
+			"unit": "",
+			"doc": "Weapon tag used by the presentation (sword model/clips)."
+		},
+		"radius": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Body radius of the fighter; used for collisions and hit tests.",
+			"min": 0.2,
+			"max": 1.0
+		},
+		"armor": {
+			"type": "float",
+			"unit": "fraction",
+			"doc": "Share of incoming damage that is ignored (0.25 = takes 25% less damage).",
+			"min": 0.0,
+			"max": 0.9
+		},
+		"poise": {
+			"type": "float",
+			"unit": "poise points",
+			"doc": "How much poise damage the fighter absorbs before it is staggered. Higher = harder to interrupt.",
+			"min": 1,
+			"max": 400
+		},
+		"poise_regen_per_tick": {
+			"type": "float",
+			"unit": "poise per tick",
+			"doc": "Poise regained each tick once the regen delay has passed.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"poise_regen_delay": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Ticks after the last hit before poise starts to regenerate.",
+			"min": 0,
+			"max": 600
+		},
+		"stagger_immunity_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Ticks of stagger immunity after recovering from a stagger (stops stun-locking).",
+			"min": 0,
+			"max": 300
+		},
+		"stamina_regen_per_tick": {
+			"type": "float",
+			"unit": "stamina per tick",
+			"doc": "Stamina regained each tick when not spending it.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"stamina_regen_delay": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Ticks after spending stamina before regeneration resumes.",
+			"min": 0,
+			"max": 300
+		},
+		"sprint_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Move speed multiplier while sprinting.",
+			"min": 1.0,
+			"max": 3.0
+		},
+		"sprint_drain_per_tick": {
+			"type": "float",
+			"unit": "stamina per tick",
+			"doc": "Stamina spent each tick while sprinting.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"block_arc_deg": {
+			"type": "float",
+			"unit": "degrees",
+			"doc": "Width of the arc in front of the fighter in which blocking works.",
+			"min": 10,
+			"max": 360
+		},
+		"block_cost_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Stamina cost multiplier when blocking a hit (lower = cheaper blocks).",
+			"min": 0.1,
+			"max": 5.0
+		},
+		"block_move_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Move speed multiplier while holding block.",
+			"min": 0.0,
+			"max": 1.5
+		},
+		"guardbreak_stun": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Stun time when the guard is broken.",
+			"min": 0,
+			"max": 300
+		},
+		"parry_arc_deg": {
+			"type": "float",
+			"unit": "degrees",
+			"doc": "Width of the arc in which a parry works.",
+			"min": 10,
+			"max": 360
+		},
+		"parry_cost": {
+			"type": "float",
+			"unit": "stamina",
+			"doc": "Stamina spent to attempt a parry.",
+			"min": 0.0,
+			"max": 100.0
+		},
+		"parry_refund": {
+			"type": "float",
+			"unit": "stamina",
+			"doc": "Stamina given back on a successful parry.",
+			"min": 0.0,
+			"max": 100.0
+		},
+		"parry_recovery_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Recovery time after a parry attempt.",
+			"min": 0,
+			"max": 120
+		},
+		"parry_cooldown_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Minimum time between parry attempts.",
+			"min": 0,
+			"max": 300
+		},
+		"parry_stagger_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "How long a successfully parried attacker is staggered.",
+			"min": 0,
+			"max": 300
+		},
+		"parry_window_bonus": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Extra ticks added to the parry timing window (bigger = more forgiving).",
+			"min": 0,
+			"max": 30
+		},
+		"riposte_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Damage multiplier of the counter-attack right after a successful parry.",
+			"min": 1.0,
+			"max": 4.0
+		},
+		"riposte_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "How long the riposte bonus lasts.",
+			"min": 0,
+			"max": 300
+		},
+		"dodge_cost": {
+			"type": "float",
+			"unit": "stamina",
+			"doc": "Stamina spent by a dodge roll.",
+			"min": 0.0,
+			"max": 100.0
+		},
+		"dodge_distance": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Distance covered by a dodge roll.",
+			"min": 0.5,
+			"max": 10.0
+		},
+		"dodge_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Total length of a dodge roll.",
+			"min": 5,
+			"max": 120
+		},
+		"dodge_iframe_start": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Tick of the dodge at which invulnerability starts.",
+			"min": 0,
+			"max": 60
+		},
+		"dodge_iframe_end": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Tick of the dodge at which invulnerability ends.",
+			"min": 1,
+			"max": 90
+		},
+		"dodge_cooldown_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Minimum time between dodges.",
+			"min": 0,
+			"max": 300
+		},
+		"hit_react_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Length of the flinch animation lock after a light hit that does not break poise.",
+			"min": 0,
+			"max": 60
+		},
+		"accel": {
+			"type": "float",
+			"unit": "metres/s^2",
+			"doc": "Movement acceleration (higher = snappier start).",
+			"min": 1,
+			"max": 200
+		},
+		"decel": {
+			"type": "float",
+			"unit": "metres/s^2",
+			"doc": "Movement deceleration when input stops.",
+			"min": 1,
+			"max": 300
+		},
+		"turn_free": {
+			"type": "float",
+			"unit": "turn rate",
+			"doc": "Turn speed when not locked on and not attacking.",
+			"min": 0.01,
+			"max": 2.0
+		},
+		"turn_locked": {
+			"type": "float",
+			"unit": "turn rate",
+			"doc": "Turn speed while locked on to the opponent.",
+			"min": 0.01,
+			"max": 2.0
+		},
+		"turn_attack_startup": {
+			"type": "float",
+			"unit": "turn rate",
+			"doc": "Turn speed during an attack's wind-up (free camera).",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"turn_attack_startup_locked": {
+			"type": "float",
+			"unit": "turn rate",
+			"doc": "Turn speed during an attack's wind-up (locked on).",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"attack_steer_startup": {
+			"type": "float",
+			"unit": "fraction",
+			"doc": "How much movement input steers during an attack wind-up.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"attack_steer_other": {
+			"type": "float",
+			"unit": "fraction",
+			"doc": "How much movement input steers during the rest of an attack.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"parry_steer": {
+			"type": "float",
+			"unit": "fraction",
+			"doc": "How much movement input steers during a parry.",
+			"min": 0.0,
+			"max": 1.0
+		}
+	},
+	"abilities": {
+		"kind": {
+			"type": "enum",
+			"unit": "",
+			"doc": "What the ability does: buff, attack, blink or counter."
+		},
+		"role": {
+			"type": "string",
+			"unit": "",
+			"doc": "Role that owns the ability (must have a profile)."
+		},
+		"cast_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Cast time before the effect starts.",
+			"min": 0,
+			"max": 300
+		},
+		"stamina_cost": {
+			"type": "float",
+			"unit": "stamina",
+			"doc": "Stamina spent when the ability is used.",
+			"min": 0.0,
+			"max": 200.0
+		},
+		"buff_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Duration of a buff.",
+			"min": 1,
+			"max": 1800
+		},
+		"hp_threshold": {
+			"type": "float",
+			"unit": "fraction of health",
+			"doc": "Health fraction at or below which the ability is allowed (0 = always).",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"move_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Move speed multiplier while buffed.",
+			"min": 0.1,
+			"max": 3.0
+		},
+		"attack_speed_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Attack speed multiplier while buffed.",
+			"min": 0.5,
+			"max": 3.0
+		},
+		"damage_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Damage multiplier while buffed.",
+			"min": 0.5,
+			"max": 4.0
+		},
+		"regen_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Stamina regeneration multiplier while buffed.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"combo_length": {
+			"type": "int",
+			"unit": "hits",
+			"doc": "Number of hits in an ability combo.",
+			"min": 1,
+			"max": 12
+		},
+		"guard_cost_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Guard stamina cost multiplier while the ability is active.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"guard_unbreakable": {
+			"type": "bool",
+			"unit": "",
+			"doc": "If true the guard cannot be broken while the ability is active."
+		},
+		"poise_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Poise multiplier while the ability is active.",
+			"min": 0.5,
+			"max": 10.0
+		},
+		"blink_distance": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Distance of a blink (short teleport).",
+			"min": 0.5,
+			"max": 12.0
+		},
+		"blink_tick": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Tick of the cast at which the blink happens.",
+			"min": 0,
+			"max": 120
+		},
+		"iframe_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Invulnerability ticks granted by the ability.",
+			"min": 0,
+			"max": 120
+		},
+		"counter_start": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Tick at which a counter stance starts to catch hits.",
+			"min": 0,
+			"max": 120
+		},
+		"counter_end": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Tick at which a counter stance stops catching hits.",
+			"min": 1,
+			"max": 240
+		},
+		"counter_arc_deg": {
+			"type": "float",
+			"unit": "degrees",
+			"doc": "Arc of a counter stance.",
+			"min": 10,
+			"max": 360
+		},
+		"counter_stagger_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Stagger applied to the attacker that hits a counter stance.",
+			"min": 0,
+			"max": 300
+		},
+		"stance_move_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Move speed multiplier while in the stance.",
+			"min": 0.0,
+			"max": 1.5
+		},
+		"stance_turn_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Turn speed multiplier while in the stance.",
+			"min": 0.0,
+			"max": 1.5
+		},
+		"experimental": {
+			"type": "bool",
+			"unit": "",
+			"doc": "True = the ability is refused unless a caller opts in (the King)."
+		}
+	},
+	"attacks": {
+		"id": {
+			"type": "string",
+			"unit": "",
+			"doc": "Identifier of the attack (used in logs and tests)."
+		},
+		"animation": {
+			"type": "string",
+			"unit": "",
+			"doc": "Animation tag the presentation plays for this attack."
+		},
+		"kind": {
+			"type": "enum",
+			"unit": "",
+			"doc": "LIGHT, HEAVY or ABILITY."
+		},
+		"combo_index": {
+			"type": "int",
+			"unit": "index",
+			"doc": "Position in the light-attack chain (0 = first).",
+			"min": 0,
+			"max": 8
+		},
+		"absolute_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Fixed total length in ticks (0 = derive from the role's contract light/heavy ticks and ticks_scale).",
+			"min": 0,
+			"max": 400
+		},
+		"hitstun_ticks": {
+			"type": "int",
+			"unit": "ticks (1 tick = 1/60 s)",
+			"doc": "Base hit stun the victim suffers; multiplied by hit_stun.*_mult.",
+			"min": 0,
+			"max": 200
+		},
+		"guard_break": {
+			"type": "int",
+			"unit": "0/1",
+			"doc": "1 = this attack always breaks a raised guard.",
+			"min": 0,
+			"max": 1
+		},
+		"startup_end": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "Where the wind-up ends and the active frames begin.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"active_end": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "Where the active (damaging) frames end.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"cancel_from": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "From here the attack can be cancelled into the next action.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"motion_start": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "Where the forward lunge starts.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"motion_end": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "Where the forward lunge ends.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"forward_motion_m": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Distance the fighter lunges forward during the attack.",
+			"min": 0.0,
+			"max": 10.0
+		},
+		"damage_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Multiplier on the contract base damage.",
+			"min": 0.0,
+			"max": 8.0
+		},
+		"guard_cost_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Multiplier on the blocker's stamina cost.",
+			"min": 0.0,
+			"max": 8.0
+		},
+		"poise_damage": {
+			"type": "float",
+			"unit": "poise points",
+			"doc": "Poise damage dealt to the victim.",
+			"min": 0.0,
+			"max": 400.0
+		},
+		"reach_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Multiplier on the contract reach.",
+			"min": 0.2,
+			"max": 5.0
+		},
+		"arc_degrees": {
+			"type": "float",
+			"unit": "degrees",
+			"doc": "Width of the hit arc (narrower = needs more aim).",
+			"min": 1,
+			"max": 360
+		},
+		"knockback_m": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Knockback distance on a hit.",
+			"min": 0.0,
+			"max": 6.0
+		},
+		"stamina_cost": {
+			"type": "float",
+			"unit": "stamina",
+			"doc": "Stamina spent to swing.",
+			"min": 0.0,
+			"max": 200.0
+		},
+		"ticks_scale": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Scales the attack's length relative to the contract ticks (higher = slower).",
+			"min": 0.3,
+			"max": 4.0
+		},
+		"armor_start": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "Where super armour starts (-1 = never).",
+			"min": -1.0,
+			"max": 1.0
+		},
+		"armor_end": {
+			"type": "float",
+			"unit": "fraction of the attack",
+			"doc": "Where super armour ends (-1 = never).",
+			"min": -1.0,
+			"max": 1.0
+		},
+		"near_m": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Distance below which near_mult applies (Bishop beam is weaker up close).",
+			"min": 0.0,
+			"max": 10.0
+		},
+		"near_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Damage multiplier at close range.",
+			"min": 0.0,
+			"max": 4.0
+		},
+		"far_m": {
+			"type": "float",
+			"unit": "metres",
+			"doc": "Distance above which far_mult applies (Bishop beam is stronger at range).",
+			"min": 0.0,
+			"max": 20.0
+		},
+		"far_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Damage multiplier at long range.",
+			"min": 0.0,
+			"max": 4.0
+		}
+	},
+	"paths": {
+		"tuning_id": {
+			"type": "string",
+			"unit": "",
+			"doc": "Name of this tuning. It is part of the stamp: client and server must match."
+		},
+		"schema": {
+			"type": "int",
+			"unit": "",
+			"doc": "File format version. Do not change.",
+			"min": 1,
+			"max": 1
+		},
+		"hit_stun.light_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Hit stun multiplier for a clean light hit.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"hit_stun.heavy_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Hit stun multiplier for a heavy (charged) hit; keep above light_mult.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"hit_stun.ability_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Hit stun multiplier for an ability hit.",
+			"min": 0.0,
+			"max": 5.0
+		},
+		"pacing.comeback.hp_gap": {
+			"type": "float",
+			"unit": "fraction of health",
+			"doc": "A fighter this far behind on health gets the comeback damage bonus.",
+			"min": 0.05,
+			"max": 1.0
+		},
+		"pacing.comeback.damage_mult": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Damage multiplier of the comeback bonus.",
+			"min": 1.0,
+			"max": 2.0
+		},
+		"pacing.sudden_death.start_s": {
+			"type": "float",
+			"unit": "seconds",
+			"doc": "Seconds of fighting after which every blow starts to grow.",
+			"min": 5.0,
+			"max": 600.0
+		},
+		"pacing.sudden_death.ramp_per_s": {
+			"type": "float",
+			"unit": "fraction per second",
+			"doc": "Damage growth per second once sudden death has started.",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"duel_length.damage_scale": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Global HP-damage scale used for every pairing without its own entry.",
+			"min": 0.05,
+			"max": 2.0
+		},
+		"duel_length.target_seconds": {
+			"type": "float",
+			"unit": "seconds",
+			"doc": "Target duel length the per-pair scales were calibrated for (informational).",
+			"min": 5.0,
+			"max": 600.0
+		},
+		"duel_length.pairs.*": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Per pairing (attacker role + defender role) damage scale that brings a duel to the target length.",
+			"min": 0.05,
+			"max": 1.0
+		},
+		"attacker_edge.target": {
+			"type": "float",
+			"unit": "win rate",
+			"doc": "Win rate the table was calibrated for (informational, bots only).",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"attacker_edge.stamina.attacker_cost": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Attacker's stamina cost multiplier (1 = neutral, lower = cheaper).",
+			"min": 0.0,
+			"max": 1.0
+		},
+		"attacker_edge.stamina.defender_cost": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Defender's stamina cost multiplier (1 = neutral, higher = costlier).",
+			"min": 1.0,
+			"max": 4.0
+		},
+		"attacker_edge.stamina.defender_regen": {
+			"type": "float",
+			"unit": "multiplier",
+			"doc": "Defender's stamina regeneration multiplier (1 = neutral, lower = slower).",
+			"min": 0.1,
+			"max": 1.0
+		},
+		"attacker_edge.pairs.*": {
+			"type": "pair",
+			"unit": "multipliers",
+			"doc": "[attacker damage x, defender damage x] for one pairing; at most one side may be above 1. Edit it in the matrix form (attacker_edge.matrix[attacker][defender]).",
+			"min": 1.0,
+			"max": 8.0
+		}
+	}
+}

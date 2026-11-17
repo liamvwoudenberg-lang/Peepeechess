@@ -1,0 +1,260 @@
+{
+	"_readme": "Chess and game rules you can tune, in one place. Edit values, then run: godot --headless --path godot --script res://tools/config_check.gd. Keys starting with an underscore are comments. What every key means, its unit and its allowed range: docs/game/RULES_REFERENCE.md (generated from config/chess_rules_meta.json). Combat balance lives in config/balance.json.",
+	"_fixed_rules": "NOT editable here on purpose (FIDE rules, shared by every client and the online contract): move legality, castling, en passant, promotion, check/checkmate/stalemate, insufficient material, the fifty-move rule CLAIM at 100 half-moves and the automatic draw at 150, threefold-repetition CLAIM and the automatic draw at fivefold. See docs/game/RULES_CONFIG.md.",
+	"schema": 1,
+	"time_controls": [
+		{
+			"label": "3 + 2 · Blitz",
+			"initial_ms": 180000,
+			"increment_ms": 2000
+		},
+		{
+			"label": "5 + 0 · Blitz",
+			"initial_ms": 300000,
+			"increment_ms": 0
+		},
+		{
+			"label": "10 + 0 · Rapid",
+			"initial_ms": 600000,
+			"increment_ms": 0
+		},
+		{
+			"label": "15 + 10 · Rapid",
+			"initial_ms": 900000,
+			"increment_ms": 10000
+		},
+		{
+			"label": "30 + 0 · Classical",
+			"initial_ms": 1800000,
+			"increment_ms": 0
+		}
+	],
+	"computer_levels": {
+		"1": {
+			"name": "Beginner",
+			"max_depth": 1,
+			"q_ply": 0,
+			"node_limit": 400,
+			"time_ms": 300,
+			"noise": 90,
+			"margin": 330,
+			"blunder": 0.3,
+			"skill": 0.2,
+			"style": "balanced",
+			"attack_style": "balanced"
+		},
+		"2": {
+			"name": "Casual",
+			"max_depth": 2,
+			"q_ply": 2,
+			"node_limit": 1500,
+			"time_ms": 600,
+			"noise": 55,
+			"margin": 220,
+			"blunder": 0.12,
+			"skill": 0.38,
+			"style": "balanced",
+			"attack_style": "balanced"
+		},
+		"3": {
+			"name": "Club",
+			"max_depth": 3,
+			"q_ply": 4,
+			"node_limit": 4000,
+			"time_ms": 1000,
+			"noise": 25,
+			"margin": 110,
+			"blunder": 0.04,
+			"skill": 0.55,
+			"style": "balanced",
+			"attack_style": "balanced"
+		},
+		"4": {
+			"name": "Advanced",
+			"max_depth": 5,
+			"q_ply": 6,
+			"node_limit": 9000,
+			"time_ms": 1500,
+			"noise": 0,
+			"margin": 0,
+			"blunder": 0.0,
+			"skill": 0.7,
+			"style": "defensive",
+			"attack_style": "aggressive"
+		},
+		"5": {
+			"name": "Expert",
+			"max_depth": 7,
+			"q_ply": 8,
+			"node_limit": 18000,
+			"time_ms": 2500,
+			"noise": 0,
+			"margin": 0,
+			"blunder": 0.0,
+			"skill": 0.82,
+			"style": "duelist",
+			"attack_style": "aggressive"
+		},
+		"6": {
+			"name": "Strong",
+			"max_depth": 12,
+			"q_ply": 10,
+			"node_limit": 40000,
+			"time_ms": 4000,
+			"noise": 0,
+			"margin": 0,
+			"blunder": 0.0,
+			"skill": 0.92,
+			"style": "duelist",
+			"attack_style": "aggressive"
+		}
+	},
+	"duel_ai_levels": {
+		"easy": {
+			"label": "Easy",
+			"style": "balanced",
+			"skill": 0.1,
+			"params": {
+				"react_extra": 16,
+				"error_rate": 0.3,
+				"follow_chance": 0.5,
+				"follow_max": 1,
+				"heavy_chance": 0.08,
+				"defence_scale": 0.35,
+				"parry_bias": -0.3,
+				"block_bias": 0.1,
+				"cooldown_scale": 1.8,
+				"poke": 0.45,
+				"hold_extra": 0.2
+			},
+			"summary": "Slow reactions, obvious attacks, short combos, forgiving timing."
+		},
+		"normal": {
+			"label": "Normal",
+			"style": "balanced",
+			"skill": 0.5,
+			"params": {
+				"react_extra": 4,
+				"error_rate": 0.1,
+				"follow_chance": 0.85,
+				"follow_max": 2,
+				"heavy_chance": 0.15,
+				"defence_scale": 0.9,
+				"cooldown_scale": 1.1
+			},
+			"summary": "Reasonable reactions, blocks and dodges sometimes, simple combos."
+		},
+		"hard": {
+			"label": "Hard",
+			"style": "duelist",
+			"skill": 0.78,
+			"params": {
+				"react_extra": 0,
+				"error_rate": 0.06,
+				"timing_jitter": 3,
+				"follow_chance": 1.0,
+				"follow_max": 2,
+				"poke": 0.6
+			},
+			"summary": "Good spacing, parries on the frame data, punishes recovery, full light chains."
+		},
+		"expert": {
+			"label": "Expert",
+			"style": "duelist",
+			"skill": 1.0,
+			"params": {
+				"react_extra": 0,
+				"error_rate": 0.0,
+				"timing_jitter": 0,
+				"follow_chance": 1.0,
+				"follow_max": 2,
+				"poke": 0.75,
+				"cooldown_scale": 0.8,
+				"heavy_chance": 0.22
+			},
+			"summary": "Matchup-aware, precise timing, punishes every opening, advanced combos. Still human-fair."
+		}
+	},
+	"battle_ai": {
+		"_doc": "How the computer judges a capture in Battle Chess: the value of each piece in a duel, and a tier used to estimate who wins a duel.",
+		"fight_value": {
+			"p": 90,
+			"n": 340,
+			"b": 300,
+			"r": 430,
+			"q": 900,
+			"k": 0
+		},
+		"tier": {
+			"p": 0.0,
+			"b": 1.0,
+			"r": 1.7,
+			"n": 2.0,
+			"q": 3.0,
+			"k": 1.5
+		}
+	},
+	"royal": {
+		"_doc": "King's last stand: the order in which defenders are considered (cheapest first).",
+		"piece_values": {
+			"p": 1,
+			"n": 3,
+			"b": 3,
+			"r": 5,
+			"q": 9
+		}
+	},
+	"campaign": {
+		"start_lives": 3,
+		"max_boon_stack": 2,
+		"boon_offer_size": 3,
+		"level_by_encounter": [
+			"easy",
+			"easy",
+			"easy",
+			"normal",
+			"normal",
+			"normal",
+			"hard",
+			"hard",
+			"hard",
+			"expert",
+			"expert",
+			"expert"
+		],
+		"boons": {
+			"vitality": {
+				"title": "Vitality",
+				"text": "+15% health.",
+				"health": 0.15
+			},
+			"endurance": {
+				"title": "Endurance",
+				"text": "+25% stamina pool.",
+				"stamina": 0.25
+			},
+			"efficiency": {
+				"title": "Efficiency",
+				"text": "Stamina costs 15% less.",
+				"cost": 0.85
+			},
+			"second_wind": {
+				"title": "Second wind",
+				"text": "Stamina regenerates 30% faster.",
+				"regen": 1.3
+			},
+			"iron_will": {
+				"title": "Iron will",
+				"text": "+8% health and +10% stamina.",
+				"health": 0.08,
+				"stamina": 0.1
+			}
+		}
+	},
+	"training": {
+		"combo_window_ticks": 78,
+		"default_counter_window_ticks": 90,
+		"whiff_punish_window_ticks": 70,
+		"max_lesson_ticks": 6000
+	}
+}

@@ -96,7 +96,7 @@ four commits on top of it (`git log 2198dc4..HEAD`). No PR has been opened for t
 
 * **Attacker's advantage (Battle Chess).** Measured first: the attacker had none (49%/48% win rate with a casual/skilled bot) and the roster was
   unbalanced (a Pawn attacking a Queen won 1 in 100). Now a data table of damage multipliers per attacker/defender pairing boosts the weaker side
-  (`attacker_edge` in `godot/combat/data/balance_v1.json`, applied in `CombatSimulation._apply_hit`); validated on independent seeds: mean 62.8%,
+  (`attacker_edge` in `godot/config/balance.json`, applied in `CombatSimulation._apply_hit`); validated on independent seeds: mean 62.8%,
   every pairing 56-72%. A per-seat stamina rule (attacker unlimited, defender limited) was built, measured and ships **neutral**: it helped only
   casual play. Details, tables and limits in `godot/combat/BALANCE.md`; suite `attacker_edge`. Bot-measured only.
 * **2026-11-13 batch (all merged on this branch):** full screen mode (Settings, F11/Alt+Enter); controller fix (the stick pointer no longer
@@ -145,7 +145,7 @@ Godot-import steps after it. See RELEASE_CHECKLIST A1. Not fixed here.
 
 ## Done (merged on `ccr-a4637d6e-lypbb4`; see "Verification" for what was actually run)
 
-* Combat: six fighters (King behind `allow_experimental_roles`), data-driven balance (`godot/combat/data/balance_v1.json`),
+* Combat: six fighters (King behind `allow_experimental_roles`), data-driven balance (`godot/config/balance.json`),
   per-role movement, 36-pair bot matchup gate, polish (trails, impact/parry/dodge FX, hitstop, camera), procedural audio,
   Android touch controls, two-pad (DS4/Xbox) input, rebinding, pad menus + board cursor, toggleable controls overlay
   (F1 / Share / touch "?"), prediction/reconciliation/interpolation wired into the real online path (`OnlineCombatView`).

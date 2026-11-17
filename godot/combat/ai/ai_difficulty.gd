@@ -12,34 +12,11 @@ extends RefCounted
 ## block_bias, follow_max, cooldown_scale, poke, hold_extra, punish, ...). Add a level or tune one by editing PRESETS only.
 ## BEHAVIOURS are the fixed opponents of Free Practice and lessons (idle, passive_block, attack_only, normal).
 
+const ChessRules = preload("res://config/chess_rules.gd")
 const LEVELS := ["easy", "normal", "hard", "expert"]
 const BEHAVIOURS := ["idle", "passive_block", "attack_only", "normal"]
 
-const PRESETS := {
-	"easy": {
-		"label": "Easy", "style": "balanced", "skill": 0.1,
-		"params": {"react_extra": 16, "error_rate": 0.3, "follow_chance": 0.5, "follow_max": 1, "heavy_chance": 0.08,
-				"defence_scale": 0.35, "parry_bias": -0.3, "block_bias": 0.1, "cooldown_scale": 1.8, "poke": 0.45, "hold_extra": 0.2},
-		"summary": "Slow reactions, obvious attacks, short combos, forgiving timing.",
-	},
-	"normal": {
-		"label": "Normal", "style": "balanced", "skill": 0.5,
-		"params": {"react_extra": 4, "error_rate": 0.1, "follow_chance": 0.85, "follow_max": 2, "heavy_chance": 0.15,
-				"defence_scale": 0.9, "cooldown_scale": 1.1},
-		"summary": "Reasonable reactions, blocks and dodges sometimes, simple combos.",
-	},
-	"hard": {
-		"label": "Hard", "style": "duelist", "skill": 0.78,
-		"params": {"react_extra": 0, "error_rate": 0.06, "timing_jitter": 3, "follow_chance": 1.0, "follow_max": 2, "poke": 0.6},
-		"summary": "Good spacing, parries on the frame data, punishes recovery, full light chains.",
-	},
-	"expert": {
-		"label": "Expert", "style": "duelist", "skill": 1.0,
-		"params": {"react_extra": 0, "error_rate": 0.0, "timing_jitter": 0, "follow_chance": 1.0, "follow_max": 2, "poke": 0.75,
-				"cooldown_scale": 0.8, "heavy_chance": 0.22},
-		"summary": "Matchup-aware, precise timing, punishes every opening, advanced combos. Still human-fair.",
-	},
-}
+static var PRESETS: Dictionary = ChessRules.duel_ai_levels()   # config/chess_rules.json: duel_ai_levels
 
 ## Fixed-behaviour opponents (lessons / Free Practice). `idle` and `passive_block` are driven by TrainingOpponent without a CombatAI.
 const BEHAVIOUR_PARAMS := {

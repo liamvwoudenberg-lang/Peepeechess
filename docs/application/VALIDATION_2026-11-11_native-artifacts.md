@@ -89,7 +89,7 @@ Artifacts of the run (not committed; scratchpad `/tmp/claude-0/-home-user-Peepee
   `SCRIPT ERROR`, `ERROR:`, load or missing-file diagnostics.
 - The smoke variant (same project, main scene replaced by `tools/package/smoke/package_smoke.tscn`; release export
   templates ignore `--script`) passed 22 checks, 0 failures: seven packed JSON files readable (`battle_stats.json`,
-  `balance_v1.json`, audio manifest, arena light sidecar, asset and world manifests, contract schema), the combat audio
+  `config/balance.json`, audio manifest, arena light sidecar, asset and world manifests, contract schema), the combat audio
   library loads from the package (34 sounds), the application opens on Play and navigates account, settings, profile,
   history, leaderboard and back, a local Classic match starts and accepts e2-e4 and e7-e5 and rejects an illegal repeat,
   and a local Battle Chess match starts.

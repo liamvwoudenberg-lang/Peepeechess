@@ -12,8 +12,8 @@ STATS = {  # == godot/chess/battle_stats.json (c0-balance-v1) lightTicks, heavyT
     "pawn": (24, 53, 11, 16), "knight": (32, 63, 13, 14), "bishop": (29, 59, 11, 15),
     "rook": (42, 74, 10, 18), "queen": (29, 58, 11, 14), "king": (33, 63, 13, 14),
 }
-DODGE = {"pawn": 22, "knight": 26, "bishop": 24, "rook": 30, "queen": 20, "king": 28}   # == dodge_ticks in godot/combat/data/balance_v1.json
-# Ability clip frames == the sim's cast ticks (balance_v1.json abilities): last-stand 12, lunge 72 (absolute_ticks), blink 20,
+DODGE = {"pawn": 22, "knight": 26, "bishop": 24, "rook": 30, "queen": 20, "king": 28}   # == dodge_ticks in godot/config/balance.json
+# Ability clip frames == the sim's cast ticks (config/balance.json abilities): last-stand 12, lunge 72 (absolute_ticks), blink 20,
 # fortress-guard 18, royal-fury 14, royal-counter 56 (King; experimental).
 ABILITY = {"pawn": 12, "knight": 72, "bishop": 20, "rook": 18, "queen": 14, "king": 56}
 # King's Royal Counter (sim: counter_start 6, counter_end 26 of the 56 cast ticks; a triggered counter becomes a 30-tick riposte attack
