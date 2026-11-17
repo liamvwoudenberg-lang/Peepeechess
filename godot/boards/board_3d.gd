@@ -83,9 +83,12 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	var plinth = Models.material(Color("263b42"), 0.3)
 	var plinth_node = Models.box(scene, WorldConstants.PLINTH_SIZE, WorldConstants.PLINTH_CENTER, plinth)
 	var frame_node = Models.box(scene, WorldConstants.FRAME_SIZE, WorldConstants.FRAME_CENTER, Models.material(Color("c39c5d"), 0.7))
-	var meshy_base: Node3D = null  # the Meshy tray has tall rims that swallow the tiles; keep the plain plinth
+	var meshy_base: Node3D = null   # the weathered stone slab replaces the gold frame; the low tier keeps the plain plinth
+	if MeshyCourtyard.BASE_ENABLED and PlatformInput.quality != "low":
+		meshy_base = MeshyCourtyard.board_base()
 	if meshy_base != null:
 		scene.add_child(meshy_base)
+		frame_node.position.y -= MeshyCourtyard.FRAME_SINK   # trapdoor rings copy the slab node's position, so the hole follows
 	var light = Models.material(Color("b7b9a5"))
 	var dark = Models.material(Color("496e70"))
 	for at in range(64):

@@ -22,6 +22,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _interruptions(h, tree)
 	await _repeat_leaks(h, tree)
 	await _top_down_view(h, tree)
+	await _meshy_base(h, tree)
 	await _single_camera(h, tree)
 	await _end_to_end(h, tree)
 
@@ -129,6 +130,64 @@ static func _world_is_chess(h, fx: Dictionary, label: String) -> void:
 		h.check(node.visible and node.scale == Vector3.ONE and node.position.is_equal_approx(Interaction.world_position(Rules.index(p.square))), label + ": piece %s on its tile, visible, unscaled" % p.pieceId)
 		h.check(node.rotation.x == 0.0 and node.rotation.z == 0.0, label + ": piece %s upright" % p.pieceId)
 	h.eq(board.pieces.size(), ids.size(), label + ": mesh registry equals chess state")
+
+
+# ---- the Meshy chessboard base ------------------------------------------------------------------------
+static func _meshy_base(h, tree: SceneTree) -> void:
+	h.begin("meshy board base: a weathered stone slab under the tiles, nothing above the tile tops, hidden while the trapdoor is open")
+	var fx := await _fixture(tree)
+	var board: ChessBoard3D = fx["board"]
+	var world: BattleWorld = fx["world"]
+	var found := board.scene.find_children("MeshyBoardBase", "Node3D", false, false)
+	h.eq(found.size(), 1, "exactly one MeshyBoardBase on the board (balanced quality)")
+	if found.is_empty():
+		_free(fx, tree)
+		return
+	var base: Node3D = found[0]
+	h.check(base.visible, "the base is shown while the trapdoor is closed")
+	h.near(float(base.get_meta("width")), MeshyCourtyard.BOARD_WIDTH, 0.001, "the slab is normalised to its board width")
+	h.near(float(base.get_meta("top_y")), MeshyCourtyard.BOARD_TOP, 0.001, "the slab's highest point is the configured top")
+	var tile_bottom := -0.04
+	var tile_top := 0.04
+	h.check(MeshyCourtyard.BOARD_TOP <= tile_bottom + 0.01, "the slab's top is no higher than the bottom of the tiles (+1 cm of overlap)")
+	# every vertex of the slab inside the 8x8 footprint stays below the tile tops, and nothing is above BOARD_TOP anywhere
+	var highest := -1000.0
+	var highest_inside := -1000.0
+	var lowest := 1000.0
+	var checked := 0
+	for mi in base.find_children("*", "MeshInstance3D", true, false):
+		var instance := mi as MeshInstance3D
+		var to_board: Transform3D = base.global_transform.affine_inverse() * instance.global_transform
+		var verts: PackedVector3Array = instance.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		for v in verts:
+			var w := to_board * v
+			highest = maxf(highest, w.y)
+			lowest = minf(lowest, w.y)
+			if absf(w.x) <= 4.0 and absf(w.z) <= 4.0:
+				highest_inside = maxf(highest_inside, w.y)
+			checked += 1
+	h.check(checked > 1000, "the slab mesh was inspected (%d vertices)" % checked)
+	h.check(highest <= MeshyCourtyard.BOARD_TOP + 0.001, "no slab vertex is above the configured top (%.3f)" % highest)
+	h.check(highest_inside < tile_top, "no slab geometry inside the 8x8 footprint reaches the tile tops (%.3f < %.2f)" % [highest_inside, tile_top])
+	h.check(lowest > -1.0, "the slab is a thin base, not a block (lowest %.2f)" % lowest)
+	for at in range(64):
+		var tile: MeshInstance3D = board.tiles[at]
+		h.check(tile.position.y + tile_top > highest, "tile %d stands above the slab" % at) if at % 21 == 0 else null
+	# the carved border is not covered by the old gold frame box
+	var frame_top := WorldConstants.FRAME_CENTER.y + WorldConstants.FRAME_SIZE.y * 0.5 - MeshyCourtyard.FRAME_SINK
+	h.check(frame_top < MeshyCourtyard.BOARD_TOP - 0.03, "the old frame box sits below the slab's carved border (top %.3f)" % frame_top)
+	# the trapdoor hides the base while it is open and restores it
+	var at := 27
+	world.trapdoor.begin(at, Interaction.world_position(at))
+	world.trapdoor.open(0.5)
+	for i in 90:
+		world.trapdoor.advance(1.0 / 30.0)
+	h.check(world.trapdoor.openness > 0.5 and not base.visible, "the base is hidden while the trapdoor is open (openness %.2f)" % world.trapdoor.openness)
+	world.trapdoor.close(0.2)
+	for i in 30:
+		world.trapdoor.advance(1.0 / 30.0)
+	h.check(world.trapdoor.is_closed() and base.visible, "the base is shown again once the trapdoor has closed")
+	_free(fx, tree)
 
 
 # ---- camera ----------------------------------------------------------------------------------------
