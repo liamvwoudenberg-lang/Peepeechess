@@ -305,3 +305,9 @@ snapshots / the online wire format are unchanged (ability ids, action ids and ti
 - **Sudden death** - `pacing.sudden_death`: after 40 s every blow grows by 4% per second more (x3 at the 90 s limit), so Rook mirrors and other long
   duels end. `CombatSimulation.sudden_death_active()` is there for a presentation warning.
 Tests: `piece_identity` suite. The attacker table was recalibrated after this change (see the section above and `edge_calibrate.gd`).
+
+## Table recalibrated for piece identity and pacing (2026-11-17)
+After the Knight lunge, Bishop beam, Rook guard-break, comeback bonus and sudden-death ramp, `edge_calibrate.gd rule=initiative n=24 iterations=6 seed=31000` was rerun
+(8 shard files, merged with `merge_edge.py --write`; the tool drops blocks after `attacker_edge`, so `hit_stun` was re-added by hand). Stamp: `balance-v1:7a1e47e27f4d0966`.
+Bot-mean results (casual + skilled bot): the Queen wins about 60-75% when she attacks and 46-58% when attacked; eight pairings boost the defender (the Queen attacking, plus a few
+weaker-attacker cases). Bots only; a human playtest is still needed. Individual casual/skilled splits are far apart for several pairings (e.g. Pawn attacking Knight 96% / 0%).
