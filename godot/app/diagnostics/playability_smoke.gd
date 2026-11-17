@@ -148,7 +148,8 @@ func run() -> void:
 	await stage("opening")
 	if is_instance_valid(shell.intro):
 		await tap(shell.intro, shell.intro.size * 0.5, "opening")
-		if not await until(func(): return not is_instance_valid(shell.intro), "opening accepts OS input and reaches menu"):
+		# The CI emulator renders in software (about 2 frames per second), so the opening's hand-off needs far more than 12 s of wall time.
+		if not await until(func(): return not is_instance_valid(shell.intro), "opening accepts OS input and reaches menu", 60.0):
 			finish()
 			return
 	check(shell.page == "home", "home menu is visible")
