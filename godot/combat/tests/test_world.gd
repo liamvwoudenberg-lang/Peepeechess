@@ -24,6 +24,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _top_down_view(h, tree)
 	await _single_camera(h, tree)
 	await _end_to_end(h, tree)
+	await _clicks_after_duel(h, tree)
 
 
 # ---- fixtures ------------------------------------------------------------------------------------
@@ -700,4 +701,59 @@ static func _end_to_end(h, tree: SceneTree) -> void:
 	_world_is_chess(h, {"world": world, "board": app.board_3d, "game": app.game}, "after failure")
 	app.queue_free()
 	await tree.process_frame
+	Engine.physics_ticks_per_second = saved_rate
+
+
+# ---- the mouse keeps working after a duel --------------------------------------------------------------
+## Regression: after the first battle the pit chamber's camera-collision slab stayed in the physics world and every picking ray from
+## the chess camera hit it before the board, so the mouse could no longer move a piece. Plays a full duel through the real flow, then
+## clicks a piece and a square with real mouse events.
+static func _click_square(app, at: int, tree: SceneTree) -> void:
+	var board: ChessBoard3D = app.board_3d
+	var vp_pos: Vector2 = board.camera.unproject_position(Interaction.world_position(at) + Vector3(0, 0.04, 0))
+	var win_pos: Vector2 = board.global_position + vp_pos * board.size / Vector2(board.viewport_3d.size)
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		ev.position = win_pos
+		ev.global_position = win_pos
+		ev.device = 0
+		Input.parse_input_event(ev)
+		for i in 3:
+			await tree.process_frame
+
+
+static func _clicks_after_duel(h, tree: SceneTree) -> void:
+	var saved_rate := Engine.physics_ticks_per_second
+	Engine.physics_ticks_per_second = 600
+	for view_3d in [true, false]:
+		var label := "3D view" if view_3d else "2D view (switches to 3D for the duel and back)"
+		h.begin("mouse after a duel (%s): the board still picks squares and moves pieces" % label)
+		var ctx := await _boot_battle(tree)
+		var app = ctx["app"]
+		var world: BattleWorld = ctx["world"]
+		app.set_view(view_3d)
+		await tree.process_frame
+		await _fight(h, tree, ctx, "defender", label)
+		for i in 10:
+			await tree.process_frame
+		h.eq(app.battle_flow.phase, "board", label + ": back on the board")
+		h.check(app.interaction.enabled, label + ": the board accepts input again")
+		h.eq(app.board_3d.visible, view_3d, label + ": the view the player chose is restored")
+		app.set_view(true)   # picking is exercised on the 3D board
+		await tree.process_frame
+		await tree.process_frame
+		for at in [63, 36, 12]:
+			var vp_pos: Vector2 = app.board_3d.camera.unproject_position(Interaction.world_position(at) + Vector3(0, 0.04, 0))
+			var local: Vector2 = vp_pos * app.board_3d.size / Vector2(app.board_3d.viewport_3d.size)
+			h.eq(app.board_3d.square_at(local), at, "after the duel a ray through square %d picks square %d (the chamber's slab no longer blocks it)" % [at, at])
+		var before: String = app.game.engine.fen()
+		var from_sq := 63   # Black's king (h8) moves to g8
+		await _click_square(app, from_sq, tree)
+		h.eq(app.interaction.selected, from_sq, "a real mouse click selects the king after the duel")
+		await _click_square(app, 62, tree)
+		h.check(app.game.engine.fen() != before, "a second click on g8 moves the king: the mouse moves pieces after a duel")
+		app.queue_free()
+		await tree.process_frame
 	Engine.physics_ticks_per_second = saved_rate

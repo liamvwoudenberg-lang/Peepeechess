@@ -331,6 +331,7 @@ func _sync_board() -> void:
 			cursor.queue_free()
 		cursor = BoardPadCursor.create(game, interaction, assignment)
 		cursor.square_rect_provider = Callable(self, "_square_rect")
+		cursor.square_quad_provider = Callable(self, "_square_quad")
 		cursor.quarter_turns_provider = Callable(self, "_quarter_turns")
 		cursor.menu_requested.connect(func(): set_board_mode(not board_mode))
 		cursor.input_used.connect(func(): nav_mode = true)
@@ -353,6 +354,34 @@ func _quarter_turns() -> int:
 	var board_2d: Variant = root.get("board_2d")
 	return 2 if board_2d != null and bool(board_2d.get("flipped")) else 0
 
+
+## The four corners of a square on screen (overlay coordinates), in drawing order, projected through the REAL camera so the cursor
+## is the tile's own perspective trapezoid, not the bounding box of it. `inset` shrinks the quad toward the tile centre (0.5 = the
+## full tile). Empty when the square is not visible. 2D boards give an axis-aligned square.
+func _square_quad(at: int, inset: float = 0.5) -> PackedVector2Array:
+	var board_3d: Variant = root.get("board_3d")
+	if board_3d is Control and (board_3d as Control).visible and board_3d.get("camera") is Camera3D and board_3d.get("viewport_3d") is SubViewport:
+		var camera: Camera3D = board_3d.get("camera")
+		var view: SubViewport = board_3d.get("viewport_3d")
+		var scale := (board_3d as Control).size / Vector2(maxf(1.0, view.size.x), maxf(1.0, view.size.y))
+		var centre := BoardInteraction.world_position(at) + Vector3(0, TILE_TOP, 0)
+		var quad := PackedVector2Array()
+		for corner in [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, 1)]:
+			var world: Vector3 = centre + corner * inset
+			if camera.is_position_behind(world):
+				return PackedVector2Array()
+			quad.append(camera.unproject_position(world) * scale)
+		return quad
+	var rect := _square_rect(at)
+	if rect.size == Vector2.ZERO:
+		return PackedVector2Array()
+	var shrink := (0.5 - inset) * rect.size.x
+	rect = rect.grow(-shrink)
+	return PackedVector2Array([rect.position, rect.position + Vector2(rect.size.x, 0), rect.end, rect.position + Vector2(0, rect.size.y)])
+
+
+## Top surface of a board tile (tiles are 0.08 thick, centred on y = 0), plus a hair so the cursor never z-fights.
+const TILE_TOP := 0.045
 
 func _square_rect(at: int) -> Rect2:
 	var board_3d: Variant = root.get("board_3d")
