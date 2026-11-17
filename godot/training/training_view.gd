@@ -140,6 +140,16 @@ func _build_hud() -> void:
 	_hint.offset_right = 360
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.visible = _hint.text != ""
+	# the live control hints of the player's device (keyboard + mouse glyphs follow the active profile)
+	var controls := _label(root, ControlBindings.shared().hint_text(String(InputAssignment.shared().scheme_for_color("w"))), 14, Color(1, 1, 1, 0.78))
+	controls.name = "ControlsHint"
+	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	controls.offset_top = -30
+	controls.offset_bottom = -6
+	controls.offset_left = 16
+	controls.offset_right = -16
+	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var leave := Button.new()
 	leave.text = "Menu (Esc)"
 	leave.focus_mode = Control.FOCUS_NONE

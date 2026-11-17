@@ -46,6 +46,7 @@ const SUITES: Dictionary = {
 	"music": "res://combat/tests/test_music.gd",
 	"touch": "res://combat/tests/test_touch.gd",
 	"pads": "res://combat/tests/test_pads.gd",
+	"keybinds": "res://combat/tests/test_keybinds.gd",
 	"assets": "res://combat/tests/test_assets.gd",
 	"polish": "res://combat/tests/test_polish.gd",
 	"juice": "res://combat/tests/test_juice.gd",

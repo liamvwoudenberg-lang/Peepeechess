@@ -115,6 +115,7 @@ rating change or choose a competitive winner.
   different button or nothing has the focus (a focused "Start battle" always
   wins over a pointer parked elsewhere). The pointer yields to the board cursor
   and to the combat controller when a duel begins.
+- PC combat controls are Dark Souls style profiles (WASD + mouse, or two hands on the keyboard); see [KEYBOARD_CONTROLS.md](KEYBOARD_CONTROLS.md).
 - Online combat offers keyboard / mouse, a gamepad scheme and virtual touch
   controls. Esc releases a captured combat mouse.
 

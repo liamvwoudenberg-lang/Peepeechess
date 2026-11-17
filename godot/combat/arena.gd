@@ -368,7 +368,7 @@ func _build_presentation(request: Dictionary) -> void:
 			source.submit = Callable(self, "_submit_ignore_result")
 			if net_client != null:
 				source.net_client = net_client
-			source.mouse_look = humans.size() == 1 and source.scheme == "kb1"
+			source.mouse_look = humans.size() == 1 and source.scheme == "kb1" and source.bindings.uses_mouse("kb1")
 			add_child(source)
 			_inputs.append(source)
 			if source.mouse_look:
@@ -451,7 +451,7 @@ func _build_control_overlay(humans: Array[String]) -> void:
 			continue
 		var f := sim.fighter_by_id(pid)
 		var scheme := String(seats[pid].get("scheme", "kb1"))
-		list.append({"id": pid, "color": f.color, "role": f.role, "scheme": scheme, "mouse": humans.size() == 1 and scheme == "kb1"})
+		list.append({"id": pid, "color": f.color, "role": f.role, "scheme": scheme, "mouse": humans.size() == 1 and scheme == "kb1" and ControlBindings.shared().uses_mouse("kb1")})
 	if overlay == null:
 		overlay = ControlOverlay.new()
 		add_child(overlay)
