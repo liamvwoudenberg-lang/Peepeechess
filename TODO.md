@@ -94,7 +94,7 @@ Running: attacker-table recalibration (scratchpad shards; finish with merge_edge
 - [ ] **Piece identity in combat**: more distinct move sets (Knight charge, Bishop ranged strike, Rook guard-break) so pairings differ in feel, not only in numbers. Changes balance: recalibrate afterwards.
 - [ ] **Pacing**: Rook duels still run long; comeback mechanic or sudden-death phase. Changes balance: recalibrate afterwards.
 - [x] (merged, headless-tested only, not seen in motion) **Pieces walking around each other**: castling and sliding moves currently walk straight over other pieces.
-- [ ] **Roguelike / campaign mode**: short campaign of scripted fights with unlockable pieces or arenas (builds on the training lessons).
+- [x] (merged `ccr-campaign`: 12 duels, boons, unlocks, saved run; no chess-only goals yet, skins not applied to models, never played by hand) **Roguelike / campaign mode**: short campaign of scripted fights with unlockable pieces or arenas (builds on the training lessons).
 - [ ] **Variants**: bring the old web game's variants and analytics back as Battle Chess rule sets.
 
 ### Added 2026-11-16
