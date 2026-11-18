@@ -24,6 +24,11 @@ jobs:
         run: bash tools/deploy/install_server_templates.sh
       - name: Build the server package
         run: GODOT=godot bash tools/deploy/build_server.sh x86_64 artifacts/server-release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build the account service package
+        run: bash tools/deploy/build_accounts.sh artifacts/server-release
       - name: Add the VM install scripts
         run: tar czf artifacts/server-release/peepeechess-deploy.tar.gz -C tools deploy
       - uses: actions/upload-artifact@v4

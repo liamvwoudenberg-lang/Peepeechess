@@ -10,7 +10,7 @@ static var volume = 0.8
 static var touch_controls = false
 ## "windowed" or "fullscreen" (ui/screen_mode.gd). Kept per device; Web waits for a direct user gesture.
 static var display_mode = "windowed"
-static var api_url = "http://127.0.0.1:8787"
+static var api_url = String(ProjectSettings.get_setting("peepeechess/network/default_api_url", "http://127.0.0.1:8787"))   # project.godot [peepeechess]; set when accounts go live; a saved player setting still wins
 static var token = ""
 static var account: Dictionary = {}
 static var launch: Dictionary = {}

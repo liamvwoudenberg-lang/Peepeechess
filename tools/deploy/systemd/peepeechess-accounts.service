@@ -1,0 +1,26 @@
+[Unit]
+Description=Peepeechess account service (sign-up, login, friends, ratings, matchmaking tickets)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=peepeechess
+Group=peepeechess
+WorkingDirectory=/opt/peepeechess-accounts/current
+EnvironmentFile=/etc/peepeechess/accounts.env
+ExecStart=/opt/peepeechess-accounts/current/run-accounts.sh
+Restart=on-failure
+RestartSec=3
+# small Node process; leaves room for the game server and Caddy on a 1 GB VM
+MemoryMax=300M
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/peepeechess
+Environment=HOME=/var/lib/peepeechess
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
