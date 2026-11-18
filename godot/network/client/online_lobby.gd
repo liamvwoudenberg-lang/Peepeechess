@@ -9,6 +9,8 @@ var _chess_chrome: Control
 var _fullscreen_combat = false
 var _connection_row: Control
 var _lobby_row: Control
+var _scroll: ScrollContainer
+var _game_running := false
 const Client = preload("res://network/client/network_client.gd")
 const Remote = preload("res://network/client/remote_match.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
@@ -123,8 +125,15 @@ func _build_ui() -> void:
 	add_child(background)
 	var margin = Kit.safe_frame(self, 12)
 	_chess_chrome = margin
+	# Everything above the board can be taller than the window (hosting panel, invite, notices): the page scrolls instead of cutting the board off.
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	margin.add_child(_scroll)
 	var column = VBoxContainer.new()
-	margin.add_child(column)
+	column.size_flags_horizontal = SIZE_EXPAND_FILL
+	column.size_flags_vertical = SIZE_EXPAND_FILL
+	_scroll.add_child(column)
 	_label(column, "PEEPEECHESS · Online native crossplay")
 	var connection_row = HFlowContainer.new()
 	column.add_child(connection_row)
@@ -186,7 +195,7 @@ func _build_ui() -> void:
 	board_host = Control.new()
 	board_host.size_flags_horizontal = SIZE_EXPAND_FILL
 	board_host.size_flags_vertical = SIZE_EXPAND_FILL
-	board_host.custom_minimum_size = Vector2(260, 300)
+	board_host.custom_minimum_size = Vector2(260, 440)   # a usable board even when the controls above need the whole window
 	split.add_child(board_host)
 	board_2d = Board2D.new()
 	board_2d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -249,6 +258,20 @@ func _connect_pressed() -> void:
 			notices.text = "No answer from %s:%d after %d s. Check: the address, that the server is running, that UDP port %d is open (cloud firewall and PC firewall), and the server certificate. Create and Join work only after \"Authenticated\" appears here." % [host_text, int(port.value), int(CONNECT_TIMEOUT_SECONDS), int(port.value)])
 
 
+## Once both players are in and the game is running, the setup panels (connection row, hosting panel and invite) are out of the way and the board is shown.
+func _focus_on_game(running: bool) -> void:
+	if running == _game_running:
+		return
+	_game_running = running
+	if _connection_row != null and not _provisioned:
+		_connection_row.visible = not running
+	if host_panel != null:
+		host_panel.visible = not running
+	if running and _scroll != null:
+		_scroll.scroll_vertical = 0
+		_scroll.ensure_control_visible.call_deferred(board_host)
+
+
 func _connection(connected: bool) -> void:
 	interaction.enabled = connected
 	if combat_view.source != null:
@@ -265,6 +288,7 @@ func _frame(value: Dictionary) -> void:
 	if value.status == "waiting" and str(value.state.matchId).length() == 6:   # a short room code: tell the creator what to do with it
 		notices.text = "ROOM CODE  %s  ·  send it to your friend (Copy code), they type it and press Join room, then both press Ready." % str(value.state.matchId)
 	ready_button.disabled = value.status != "waiting"
+	_focus_on_game(value.status == "active")
 	accept_draw.disabled = value.drawOffer == null or value.drawOffer == client.player_id or value.state.phase != "board"
 	var seat = "White" if value.state.players.w == client.player_id else "Black"
 	var phase: String = value.state.phase
