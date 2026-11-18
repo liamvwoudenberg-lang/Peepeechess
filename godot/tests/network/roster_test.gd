@@ -6,6 +6,8 @@ const Wire = preload("res://network/wire_codec.gd")
 const Rules = preload("res://chess/chess_engine.gd")
 var checks = 0
 var failures: Array = []
+const HEAD_START := 30   # > duel_rules.defender.head_start_ticks (24)
+
 func expect(value: bool, label: String) -> void:
 	checks += 1
 	if not value:
@@ -72,9 +74,9 @@ func run() -> void:
 					delta.y = 0
 					var moving = delta.normalized() if fighter.player_id == winner.playerId and delta.length() > 1.15 else Vector3.ZERO
 					if fighter.player_id == winner.playerId:
-						if tick == 185:
+						if tick == 185 + HEAD_START:   # after the defender's head start (balance_v1.json duel_rules.defender), when the attacker may act
 							builder.press("ability")
-						if tick >= 200 and tick % 50 == 0:
+						if tick >= 200 + HEAD_START and tick % 50 == 0:
 							builder.press("light")
 					inputs_ok = inputs_ok and room.input(builder.build(moving.x, moving.z, atan2(delta.x, delta.z), true, false, false), fighter.player_id).ok
 				room.step((tick + 1) * 1000 / 60)
