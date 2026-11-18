@@ -86,10 +86,10 @@ const RING_WIDTH := 0.035
 
 # ---- camera ----------------------------------------------------------------------------------------------------------------------
 ## Default perspective view: closer and a little steeper than the old 13.5 / 0.88. Orbit and zoom are clamped so the board stays framed.
-const CAM_DISTANCE := 12.6
+const CAM_DISTANCE := 13.9
 const CAM_ELEVATION := 0.88              # radians above the board plane (about 57 degrees)
 const CAM_DISTANCE_MIN := 8.6
-const CAM_DISTANCE_MAX := 16.5
+const CAM_DISTANCE_MAX := 18.0
 const CAM_ELEVATION_MIN := 0.62
 const CAM_ELEVATION_MAX := 1.38
 
