@@ -183,11 +183,14 @@ func _build_frame() -> void:
 	brand_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand_row.add_child(brand_spacer)
 	account_badge = Kit.button(brand_row, "Sign in", func(): navigate("account"), "", "user")
+	account_badge.visible = Settings.accounts_enabled   # no accounts yet: nothing to sign in to
 	_topbar_badge = account_badge
 	var nav = _flow(_topbar)
 	_nav = nav
 	for item in [["play", "Play", "crown"], ["training", "Training", "sword"], ["campaign", "Campaign", "crown"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
 		var target: String = item[0]
+		if not Settings.accounts_enabled and target in ACCOUNT_PAGES:
+			continue   # these pages live on the account service
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
 		_nav_labels[target] = item[1]
 	_portrait_gap = Control.new()   # portrait windows (phones): the world shows through the top part, the page sits below it
@@ -269,6 +272,8 @@ func _pad_back() -> void:
 
 func navigate(target: String) -> void:
 	page = target if target in ["home", "play", "training", "campaign", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
+	if page in ACCOUNT_PAGES and not Settings.accounts_enabled:
+		page = "play"
 	if is_instance_valid(intro):
 		intro.cancel()   # any explicit navigation ends a running opening screen (the player has seen enough)
 	intro = null
@@ -482,6 +487,8 @@ func _heading(title: String, detail: String) -> void:
 	title_label = labels[0]
 	subtitle_label = labels[1]
 
+const ACCOUNT_PAGES := ["friends", "profile", "history", "leaderboard", "account"]
+
 func _update_badge() -> void:
 	if is_instance_valid(account_badge):
 		account_badge.text = str(Settings.account.get("displayName", "Account")) if not Settings.token.is_empty() else "Sign in"
@@ -578,6 +585,9 @@ func _play_page() -> void:
 			_label(setup, "Duel controls · touchscreen; a connected controller takes priority." if touch and vs_computer else "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
 	_friends_on_this_pc_card()   # host/join over the internet: no account needed
+	if not Settings.accounts_enabled:
+		_label(setup, "Ranked matchmaking and friends need accounts, which are not available yet. Play a friend with a room code or host a game above: no sign-in needed.", 14, MUTED)
+		return
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
 		return

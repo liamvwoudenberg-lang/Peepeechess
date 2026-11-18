@@ -7,6 +7,7 @@ const Icons = preload("res://ui/theme/ui_icons.gd")
 const Motion = preload("res://ui/theme/ui_motion.gd")
 const MenuPlaques = preload("res://ui/opening/menu_plaques.gd")
 const Cine = preload("res://ui/cinematic/cine_common.gd")
+const Settings = preload("res://ui/application_settings.gd")
 
 ## Draws the emblem (a control so the title can size it).
 class Emblem:
@@ -101,6 +102,8 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 		["profile", "Profile", "user", "", func(): app.navigate("profile")],
 		["settings", "Settings", "gear", "", func(): app.navigate("settings")],
 	]
+	if not Settings.accounts_enabled:
+		entries = entries.filter(func(e): return e[0] != "profile")   # the profile page lives on the account service
 	if quit_visible:
 		entries.append(["quit", "Quit", "close", "GhostButton", func(): app.get_tree().quit()])
 	for entry in entries:

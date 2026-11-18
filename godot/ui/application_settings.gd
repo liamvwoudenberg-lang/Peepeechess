@@ -10,6 +10,10 @@ static var volume = 0.8
 static var touch_controls = false
 ## "windowed" or "fullscreen" (ui/screen_mode.gd). Kept per device; Web waits for a direct user gesture.
 static var display_mode = "windowed"
+## Accounts (sign-in, friends, profile, ratings, matchmaking) need the account service, which is not deployed yet: OFF by default, so online play works
+## without signing in (room code / host a game). Turn on with project setting peepeechess/accounts/enabled=true or PEEPEECHESS_ACCOUNTS=1
+## (the UI test scripts set that variable so the account screens stay covered). See docs/deployment/ACCOUNTS.md.
+static var accounts_enabled := OS.get_environment("PEEPEECHESS_ACCOUNTS") == "1" or bool(ProjectSettings.get_setting("peepeechess/accounts/enabled", false))
 static var api_url = String(ProjectSettings.get_setting("peepeechess/network/default_api_url", "http://127.0.0.1:8787"))   # project.godot [peepeechess]; set when accounts go live; a saved player setting still wins
 static var token = ""
 static var account: Dictionary = {}
