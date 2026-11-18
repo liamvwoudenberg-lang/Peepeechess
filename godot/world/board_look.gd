@@ -37,7 +37,8 @@ const FLOOR_HALF := 26.0
 # ---- environment: courtyard walls, pillars, braziers, banners ----------------------------------------------------------------------
 const WALL_DISTANCE := 15.0               # half-width of the courtyard; walls and battlements sit here, far outside the play area
 const WALL_HEIGHT := 7.5
-const PILLAR_POS := 8.6                   # corner pillars: x = z = +-PILLAR_POS, outside the dais
+const PILLAR_X := 5.6                     # pillars flank the far and near ends of the board, in view of the default camera
+const PILLAR_Z := 8.2
 const PILLAR_HEIGHT := 4.6
 const BRAZIER_POS := 6.7                  # braziers flank the board corners, outside the dais steps
 const BANNER_NAVY := Color("1d2c52")
@@ -46,7 +47,7 @@ const BANNER_GOLD := Color("c9a24c")
 
 # ---- imported props (Meshy models in assets/world/props/; sizes in metres at scale 1.0: torch 0.5 x 0.95, banner 0.57 x 0.95) ----
 const PROP_TORCH_SCALE := 1.6
-const PROP_BANNER_SCALE := 3.0
+const PROP_BANNER_SCALE := 2.4
 const TORCH_ENERGY := 1.1
 const TORCH_RANGE := 6.0
 

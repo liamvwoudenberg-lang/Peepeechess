@@ -282,10 +282,9 @@ static func build(scene: Node3D) -> Node3D:
 			banner_i += 1
 
 	# ---- corner pillars ----
-	var pp: float = L.PILLAR_POS
 	for sx in [-1, 1]:
 		for sz in [-1, 1]:
-			var at := Vector3(sx * pp, 0, sz * pp)
+			var at := Vector3(sx * L.PILLAR_X, 0, sz * L.PILLAR_Z)
 			_box(root, Vector3(1.5, 0.5, 1.5), at + Vector3(0, floor_y + 0.25, 0), stone)
 			_cyl(root, 0.55, 0.48, L.PILLAR_HEIGHT, at + Vector3(0, floor_y + 0.5 + L.PILLAR_HEIGHT * 0.5, 0), stone, 24)
 			_box(root, Vector3(1.2, 0.35, 1.2), at + Vector3(0, floor_y + 0.5 + L.PILLAR_HEIGHT + 0.17, 0), stone)
@@ -327,17 +326,17 @@ static func prop(name: String) -> Node3D:
 
 ## Torch sconce and heraldic banner (Meshy models) on the inner face of a corner pillar, plus a warm flickering light at the flame.
 static func _pillar_props(parent: Node3D, pillar: Vector3, floor_y: float, index: int) -> void:
-	var inward := Vector3(-signf(pillar.x), 0, -signf(pillar.z)).normalized()
+	var inward := Vector3(-pillar.x, 0, -pillar.z).normalized()
 	var yaw := atan2(inward.x, inward.z)
 	var banner := prop("heraldic_banner")
 	if banner != null:
-		banner.position = pillar + inward * 0.64 + Vector3(0, floor_y + 3.55, 0)
+		banner.position = pillar + inward * 0.64 + Vector3(0, floor_y + 2.9, 0)
 		banner.rotation.y = yaw
 		banner.scale = Vector3.ONE * L.PROP_BANNER_SCALE
 		parent.add_child(banner)
 	var torch := prop("torch_sconce")
 	if torch != null:
-		torch.position = pillar + inward * 0.8 + Vector3(0, floor_y + 1.75, 0)
+		torch.position = pillar + inward * 0.8 + Vector3(0, floor_y + 1.35, 0)
 		torch.rotation.y = yaw
 		torch.scale = Vector3.ONE * L.PROP_TORCH_SCALE
 		parent.add_child(torch)
