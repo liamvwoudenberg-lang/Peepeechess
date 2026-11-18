@@ -38,6 +38,8 @@ func setup(p_tree: SceneTree, p_request: Dictionary, cfg: Dictionary = {}) -> vo
 	tree = p_tree
 	request = p_request
 	_start_options = {} if bool(cfg.get("edge", false)) else {"attacker_edge": false}
+	if cfg.has("options"):   # explicit simulation start options (e.g. seat_start: persistent HP and carried Resolve); the replay uses the same
+		_start_options = (cfg["options"] as Dictionary).duplicate(true)
 	sim = CombatSimulation.new()
 	tree.root.add_child(sim)
 	server = Server.new(sim)
@@ -121,6 +123,13 @@ func events_of(type: String) -> Array:
 ## clients/channels and returns its final snapshot JSON - the network layer must add no divergence.
 ## `prepare` (optional) receives the fresh simulation so a test can re-apply the same pre-fight setup.
 func replay_final_snapshot(prepare: Callable = Callable()) -> String:
+	var state: Dictionary = await replay_final_state(prepare)
+	return String(state["snapshot"])
+
+
+## Like replay_final_snapshot, plus the replay's duel summary (damage, Resolve flow, spends) as JSON: a fresh simulation fed the server's
+## recorded inputs must end in the SAME snapshot and the SAME summary. {"snapshot": String, "summary": String}.
+func replay_final_state(prepare: Callable = Callable()) -> Dictionary:
 	var fresh := CombatSimulation.new()
 	tree.root.add_child(fresh)
 	fresh.start(request, _start_options)
@@ -140,7 +149,7 @@ func replay_final_snapshot(prepare: Callable = Callable()) -> String:
 				fresh.set_hit_grace(entry["p"], int(entry["g"]))
 			index += 1
 		fresh.step_tick()
-	var out := JSON.stringify(fresh.snapshot(), "", true, true)
+	var out := {"snapshot": JSON.stringify(fresh.snapshot(), "", true, true), "summary": JSON.stringify(fresh.duel_summary(), "", true, true)}
 	fresh.stop()
 	tree.root.remove_child(fresh)
 	fresh.queue_free()

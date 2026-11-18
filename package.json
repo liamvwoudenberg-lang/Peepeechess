@@ -20,6 +20,7 @@
     "test:royal": "node scripts/test-royal.mjs",
     "test:multiplayer": "node scripts/test-multiplayer.mjs && node scripts/test-online-combat.mjs",
     "test:online-combat": "node scripts/test-online-combat.mjs",
+    "test:net-report": "node scripts/net-report.mjs",
     "test:online-combat:full": "node scripts/test-online-combat.mjs --profile=full",
     "server:native": "bash scripts/start-native-server.sh",
     "backend:native": "bash scripts/start-application-backend.sh",
