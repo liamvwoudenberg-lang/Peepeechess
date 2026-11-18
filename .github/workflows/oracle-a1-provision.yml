@@ -1,0 +1,77 @@
+name: Oracle A1 provisioning
+
+# Hourly attempt to create ONE Always Free Ampere A1 instance (A1 capacity is often exhausted, so it retries).
+# Disabled until the repository variable ORACLE_PROVISION_ENABLED is set to "true" (see docs/deployment/ORACLE.md).
+# Never deletes or changes anything, never creates a paid shape; the script refuses to exceed the Always Free limits.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: oracle-a1-provision
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    if: ${{ vars.ORACLE_PROVISION_ENABLED == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the OCI CLI and jq
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq jq
+          python3 -m pip install --quiet oci-cli
+      - name: Write the OCI config (from secrets, never printed)
+        env:
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_API_KEY_PEM: ${{ secrets.OCI_API_KEY_PEM }}
+          SSH_PUBLIC_KEY: ${{ secrets.ORACLE_SSH_PUBLIC_KEY }}
+        run: |
+          umask 077
+          mkdir -p "$HOME/.oci"
+          printf '%s\n' "$OCI_API_KEY_PEM" > "$HOME/.oci/api_key.pem"
+          printf '%s\n' "$SSH_PUBLIC_KEY" > "$RUNNER_TEMP/ssh_key.pub"
+          {
+            echo "[DEFAULT]"
+            echo "user=$OCI_USER_OCID"
+            echo "fingerprint=$OCI_FINGERPRINT"
+            echo "tenancy=$OCI_TENANCY_OCID"
+            echo "region=$OCI_REGION"
+            echo "key_file=$HOME/.oci/api_key.pem"
+          } > "$HOME/.oci/config"
+      - name: Create the A1 instance if it does not exist yet
+        id: a1
+        continue-on-error: true
+        env:
+          OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_OCID }}
+          OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_OCID }}
+          OCI_AVAILABILITY_DOMAIN: ${{ secrets.OCI_AVAILABILITY_DOMAIN }}
+          OCI_IMAGE_ID: ${{ secrets.OCI_IMAGE_OCID }}
+          SSH_PUBLIC_KEY_FILE: ${{ runner.temp }}/ssh_key.pub
+        run: bash tools/deploy/oci_provision_a1.sh
+      - name: Remove the credentials from the runner
+        if: always()
+        run: rm -rf "$HOME/.oci" "$RUNNER_TEMP/ssh_key.pub"
+      - name: Notify by GitHub issue (created / refused / error; capacity misses stay silent)
+        if: ${{ steps.a1.outputs.status == 'created' || steps.a1.outputs.status == 'refused' || steps.a1.outputs.status == 'error' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ steps.a1.outputs.status }}
+          PUBLIC_IP: ${{ steps.a1.outputs.public_ip }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$STATUS" in
+            created) title="Oracle A1 instance created"; body="The Always Free A1 instance peepeechess-a1 is running. Public IP: ${PUBLIC_IP}. Next: run the VM bootstrap and deploy (docs/deployment/ORACLE.md). Set ORACLE_PROVISION_ENABLED to false now. Run: ${RUN_URL}";;
+            refused) title="Oracle A1 provisioning refused (would exceed Always Free limits)"; body="Nothing was created. Run: ${RUN_URL}";;
+            *) title="Oracle A1 provisioning failed"; body="See the workflow log (no secrets are printed). Run: ${RUN_URL}";;
+          esac
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body" || true
