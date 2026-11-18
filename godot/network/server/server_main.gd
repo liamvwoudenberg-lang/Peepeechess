@@ -12,7 +12,7 @@ func run() -> void:
 			quit(2)
 			return
 		var parts = arg.trim_prefix("--").split("=", true, 1)
-		if parts[0] not in ["bind", "port", "certificate", "private-key", "insecure-local", "run-seconds", "backend-url", "server-id", "outbox-dir", "backend-insecure-local"]:
+		if parts[0] not in ["bind", "port", "certificate", "private-key", "insecure-local", "run-seconds", "backend-url", "server-id", "outbox-dir", "backend-insecure-local", "build-check"]:
 			printerr("Unknown server option: ", parts[0])
 			quit(2)
 			return
@@ -24,6 +24,12 @@ func run() -> void:
 		return
 	server = Server.new()
 	root.add_child(server)
+	var build_check: String = options.get("build-check", OS.get_environment("PEEPEECHESS_BUILD_CHECK") if not OS.get_environment("PEEPEECHESS_BUILD_CHECK").is_empty() else "match")
+	if build_check not in ["off", "match", "require"]:
+		printerr("--build-check must be off, match or require.")
+		quit(2)
+		return
+	server.build_policy = build_check
 	if options.has("backend-url"):
 		var configured = server.configure_backend(options["backend-url"], options.get("server-id", "local-1"), OS.get_environment("PEEPEECHESS_BACKEND_SECRET"), options.get("outbox-dir", "user://server-outbox"), options.get("backend-insecure-local", "false") == "true")
 		if configured != OK:

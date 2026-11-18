@@ -76,13 +76,23 @@ func _connect() -> Error:
 		protocol_error.emit(_error("INTERNAL", "Unable to create a secure ENet connection: " + error_string(result)))
 	return result
 
+## What this client tells the server about itself: the combat tuning stamp (rules and numbers) and the game version. The server refuses a
+## different tuning, so two clients never play a duel under different rules.
+static func build_info() -> Dictionary:
+	var info := {"tuning": preload("res://combat/data/balance_data.gd").stamp()}
+	var app := String(ProjectSettings.get_setting("application/config/version", ""))
+	if not app.is_empty() and app.length() <= 40:
+		info["app"] = app
+	return info
+
+
 func _connected(id: int) -> void:
 	if id != transport.server_peer:
 		return
 	if not _account_ticket.is_empty() and session_token.is_empty():
 		_send("AccountHello", {"schemaVersion": 1, "protocol": "peepeechess-enet-v1", "ticket": _account_ticket})
 		return
-	_send("Hello", {"schemaVersion": 1, "protocol": "peepeechess-enet-v1", "resumeToken": session_token if not session_token.is_empty() else null})
+	_send("Hello", {"schemaVersion": 1, "protocol": "peepeechess-enet-v1", "resumeToken": session_token if not session_token.is_empty() else null, "build": build_info()})
 
 func _lost() -> void:
 	if transport != null:

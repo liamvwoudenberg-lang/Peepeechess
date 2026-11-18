@@ -67,6 +67,19 @@ func run() -> void:
 	var black = hello(2)
 	expect(white.has("sessionToken") and black.playerId != white.playerId and white.sessionToken.length() == 64, "server-issued independent identities and 256-bit tokens")
 	expect(server.sessions[white.playerId].digest == white.sessionToken.sha256_text() and not server.sessions[white.playerId].has("sessionToken"), "server retains token digest only")
+	var good_build = {"tuning": server.Room.Balance.stamp(), "app": "1.0"}
+	server.attach(21, "127.0.0.21", now)
+	var same = packet(21, "Hello", {"schemaVersion":1, "protocol":"peepeechess-enet-v1", "resumeToken":null, "build":good_build})
+	expect(same.has("sessionToken"), "a client with the server's tuning stamp is admitted")
+	server.attach(22, "127.0.0.22", now)
+	var wrong_build = packet(22, "Hello", {"schemaVersion":1, "protocol":"peepeechess-enet-v1", "resumeToken":null, "build":{"tuning":"balance-v1:0000000000000000"}})
+	expect(wrong_build.get("code", "") == "FORBIDDEN" and "Version mismatch" in String(wrong_build.get("message", "")), "a client with different tuning is refused with a clear message")
+	expect(server.sessions.size() == 3, "a refused client creates no session (%d)" % server.sessions.size())
+	server.build_policy = "require"
+	server.attach(23, "127.0.0.23", now)
+	var unversioned = packet(23, "Hello", {"schemaVersion":1, "protocol":"peepeechess-enet-v1", "resumeToken":null})
+	expect(unversioned.get("code", "") == "FORBIDDEN", "policy require refuses a client that sends no build")
+	server.build_policy = "match"
 	var impostor = hello(3, "ff".repeat(32))
 	expect(impostor.code == "UNAUTHENTICATED", "invalid token rejected")
 	impostor = hello(4, white.sessionToken)

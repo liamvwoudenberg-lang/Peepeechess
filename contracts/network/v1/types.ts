@@ -1,7 +1,8 @@
 /** ENet session protocol v1; existing game payloads retain contracts/v1. */
 import type { CombatInput, MatchState, ProtocolError } from '../../v1/types';
 export const PROTOCOL = 'peepeechess-enet-v1' as const;
-export interface Hello { schemaVersion: 1; protocol: typeof PROTOCOL; resumeToken: string | null }
+export interface BuildInfo { tuning: string; app?: string }
+export interface Hello { schemaVersion: 1; protocol: typeof PROTOCOL; resumeToken: string | null; build?: BuildInfo }
 export interface Welcome { schemaVersion: 1; protocol: typeof PROTOCOL; playerId: string; sessionToken: string; serverId: string; expiresInSeconds: number; combatRoles: string[] }
 export interface CreateMatch { schemaVersion: 1; commandId: string; mode: 'classic' | 'battle'; initialMs: number; incrementMs: number }
 export interface JoinMatch { schemaVersion: 1; commandId: string; matchId: string }

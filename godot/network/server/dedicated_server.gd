@@ -27,6 +27,10 @@ var account_backend: DedicatedAccountBackend
 ## {"enabled": true, "host_color": "w"|"b", "waiting_ms": int}. Server-side only: no change to the wire protocol or the contracts.
 ## The host's own client resumes a session that create_host_session() prepared (so the host seat never depends on network addresses);
 ## every other connection is a guest: at most one may hold a session, only the host can create the match, and nobody can spectate.
+## Build check at the handshake: a Hello may carry `build: {tuning: Balance.stamp(), app}`. "match" (default) refuses a client whose tuning differs from
+## this server's (different damage / Resolve rules would make the two disagree about a duel) and accepts one that sends no build (older clients);
+## "require" also refuses a Hello without a build (use it on a public server); "off" disables the check (tests, tools).
+var build_policy: String = "match"
 var host_policy: Dictionary = {}
 var host_player = ""
 const HOST_WAITING_MS = 1800000
@@ -198,9 +202,25 @@ func receive(id: int, bytes: PackedByteArray, channel: int, flags: int, now: int
 		session.commands[request_id] = {"intent": serialized, "type": "ProtocolError", "payload": failure}
 		_send(id, "ProtocolError", failure)
 
+## "" when the client's build may play on this server, otherwise the reason (shown to the player).
+func build_problem(payload: Dictionary) -> String:
+	if build_policy == "off":
+		return ""
+	var build = payload.get("build", null)
+	if build == null:
+		return "This server requires an up-to-date game build; update the game." if build_policy == "require" else ""
+	if String(build.tuning) != Room.Balance.stamp():
+		return "Version mismatch: this server runs combat tuning %s, your game has %s. Update the game." % [Room.Balance.stamp(), String(build.tuning)]
+	return ""
+
+
 func _hello(id: int, payload: Dictionary, now: int) -> void:
 	if not connections[id].player.is_empty():
 		_error(id, "FORBIDDEN", "This connection is already authenticated.", null, now)
+		return
+	var mismatch := build_problem(payload)
+	if not mismatch.is_empty():
+		_error(id, "FORBIDDEN", mismatch, null, now)
 		return
 	var token: String = payload.resumeToken if payload.resumeToken != null else ""
 	var player = ""
