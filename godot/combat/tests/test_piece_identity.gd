@@ -124,7 +124,10 @@ static func _determinism(h, tree: SceneTree) -> void:
 	h.begin("determinism: the same seeded duel gives the same result twice (pacing and identity rules included)")
 	for key in ["bn", "rr", "nb"]:
 		var one: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), CFG, 4242)
+		await tree.process_frame   # let the first duel's queue_free'd fighters leave the physics world (their overlap changes whiffs under anti-mash)
+		await tree.physics_frame
 		var two: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), CFG, 4242)
+		print("DBG ", key, " ", one["ticks"], " ", two["ticks"], " ", one["attacker_hp"], " ", two["attacker_hp"], " ", one["outcome"], " ", two["outcome"])
 		h.check(one["outcome"] == two["outcome"] and one["ticks"] == two["ticks"] and is_equal_approx(one["attacker_hp"], two["attacker_hp"]), "%s: identical outcome, length and HP twice (%s in %d ticks)" % [key, one["outcome"], one["ticks"]])
 	var rook: Dictionary = await Duel.duel(tree, "r", "r", CFG, 4343)
 	h.check(rook["reason"] != "unfinished" and rook["ticks"] <= CombatConstants.DURATION_TICKS + CombatConstants.COUNTDOWN_TICKS + 30, "a Rook mirror ends inside the duel clock (%d ticks, %s)" % [rook["ticks"], rook["reason"]])

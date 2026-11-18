@@ -1218,5 +1218,17 @@
 			"r": 5,
 			"q": 9
 		}
+	},
+	"anti_mash": {
+		"enabled": true,
+		"chain": {"window_ticks": 36, "step": 0.15, "max_mult": 2.0},
+		"whiff": {"lock_ticks": 16, "vuln_mult": 1.35, "poise_bonus": 10.0},
+		"stale": {"memory": 5, "step": 0.15, "floor": 0.55, "decay_ticks": 150},
+		"parry": {"refund_bonus": 6.0, "poise_cut": 25.0},
+		"perfect_block": {"window_ticks": 5, "cost_mult": 0.25, "refund": 6.0, "attacker_poise_damage": 18.0},
+		"feint": {"min_ticks": 3, "refund_frac": 0.5, "cooldown_ticks": 45},
+		"heavy_hold": {"max_ticks": 12},
+		"dodge": {"chain_window": 40, "iframe_trim": 4, "max_trim": 11, "extra_recovery": 5, "max_extra": 12},
+		"counter": {"light_on_heavy_startup": 1.3, "heavy_on_dodge_recovery": 1.25, "heavy_on_guard_cost": 1.4, "poise_bonus": 10.0}
 	}
 }

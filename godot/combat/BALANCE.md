@@ -317,3 +317,15 @@ Defender's edge, cost of a failed attack, persistent damage, support, Resolve, c
 (it no longer favours the attacker: equal-skill attacker win rate 51.6 %, was 54-64 %). Full changelog, tuning values to try first, the headless harness
 (`duel_report.gd`, `chess_vs_fight.gd`) and the measured results with their limits: [docs/battle-chess/FAIRNESS_PASS.md](../../docs/battle-chess/FAIRNESS_PASS.md).
 Stamp: `balance-v1:3be59d2bb65e88c3`. The win-rate matrices above this section were measured against earlier data.
+
+## Anti-mash (step 1 of docs/ROADMAP.md) - IMPLEMENTED, NOT YET MEASURED
+
+All numbers: `balance_v1.json` `anti_mash` (flag `enabled`; also needs the duel rules; start option `anti_mash:false` = the old duel).
+State is per fighter in `core/anti_mash.gd`, counted in ticks only (deterministic). Rules: a fully whiffed Light/Heavy cannot be cancelled and
+leaves a locked recovery in which the fighter takes `vuln_mult` damage and extra poise damage; consecutive attacks/parries/dodges cost
+`1 + step*chain` stamina until the fighter has been free for `window_ticks`; the same attack id repeated among the last `memory` attacks deals
+`1 - step*repeats` (floor); a parry refunds extra stamina and cuts the attacker's poise; a guard raised within `window_ticks` of going up is a
+perfect block (cheap, refund, poise damage); a Light cancelled into Guard before its active frames refunds part of its stamina (feint, with a
+cooldown); holding Guard at the end of a Heavy wind-up holds it back up to `max_ticks` (delay, no new input needed); chained dodges lose i-frames
+and recover slower; counters: Light into a Heavy wind-up, Heavy into a dodge's recovery, Heavy against Guard (costlier to absorb).
+Harness: `combat/tools/anti_mash.gd` (`mode=skill` timing vs masher, `mode=matrix` equal-skill roles); new AI styles `masher` and `timing`.
