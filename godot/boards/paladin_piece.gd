@@ -5,7 +5,7 @@ extends Node3D
 ## sits under `facer`, which turns it to face its walking direction and back to the resting direction afterwards.
 ## Models face +Z; the board rests white facing -Z (see BoardThemeView.build_piece), so the resting `facer.rotation.y` is PI for both sides.
 
-## Standing height (m) per role: fits a 1 m tile and still reads from the straight-down camera.
+## Standing height (m) per role BEFORE BoardLook.PIECE_SCALE (the one scale knob): fits a 1 m tile and still reads from the straight-down camera.
 const HEIGHTS := {"p": 1.1, "n": 1.3, "b": 1.36, "r": 1.24, "q": 1.44, "k": 1.52}
 const WALK_SPEED := 1.5        # m/s for a one-square step
 const RUN_SPEED := 3.0         # m/s for longer moves
@@ -41,7 +41,7 @@ static func create(role_code: String, color_code: String) -> PaladinPiece:
 		var loop := Engine.get_main_loop() as SceneTree
 		if loop != null:
 			_exit_hooked = true  # PaladinModel hooks its own exit release
-	var m := PaladinModel.create(role_code, color_code, float(HEIGHTS.get(role_code, 1.0)))
+	var m := PaladinModel.create(role_code, color_code, float(HEIGHTS.get(role_code, 1.0)) * BoardLook.PIECE_SCALE)
 	if m == null:
 		return null
 	var piece := PaladinPiece.new()

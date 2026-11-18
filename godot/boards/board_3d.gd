@@ -3,6 +3,8 @@ extends SubViewportContainer
 const Rules = preload("res://chess/chess_engine.gd")
 const Interaction = preload("res://boards/board_interaction.gd")
 const Models = preload("res://boards/piece_meshes.gd")
+const Look = preload("res://world/board_look.gd")
+const Scenery = preload("res://boards/board_scenery.gd")
 var game: ClassicMatch
 var interaction: BoardInteraction
 var viewport_3d: SubViewport
@@ -12,8 +14,9 @@ var pieces: Dictionary = {}
 var _piece_roles: Dictionary = {}
 var marks: Node3D
 var yaw = 0.0
-var elevation = 0.88
-var distance = 13.5
+var elevation = Look.CAM_ELEVATION
+var distance = Look.CAM_DISTANCE
+var _labels: Array[Label3D] = []
 var animation_enabled = true:
 	set(value):
 		animation_enabled = value
@@ -63,14 +66,13 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	camera = world.rig.camera
 	world.rig.snap_to(CameraRig.State.CHESS_PERSPECTIVE)
 	world.set_animate(animation_enabled)
-	var plinth = Models.material(Color("263b42"), 0.3)
+	# Castle look (boards/board_scenery.gd, tunables in world/board_look.gd): carved stone plinth + frame, ivory marble / slate squares.
+	var plinth = Scenery.plinth_material()
 	var plinth_node = Models.box(scene, WorldConstants.PLINTH_SIZE, WorldConstants.PLINTH_CENTER, plinth)
-	var frame_node = Models.box(scene, WorldConstants.FRAME_SIZE, WorldConstants.FRAME_CENTER, Models.material(Color("c39c5d"), 0.7))
-	var light = Models.material(Color("b7b9a5"))
-	var dark = Models.material(Color("496e70"))
+	var frame_node = Models.box(scene, WorldConstants.FRAME_SIZE, WorldConstants.FRAME_CENTER, Scenery.plinth_material())
 	for at in range(64):
 		var center = Interaction.world_position(at)
-		var tile = Models.box(scene, Vector3(0.995, 0.08, 0.995), center, light if (at % 8 + at / 8) % 2 else dark)
+		var tile = Models.box(scene, Vector3(0.995, 0.08, 0.995), center, Scenery.square_material((at % 8 + at / 8) % 2 == 1, at))
 		tiles.append(tile)
 		var body = StaticBody3D.new()
 		body.set_meta("square", at)
@@ -84,22 +86,9 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 		tile.add_child(body)
 	for i in range(8):
 		for edge in [-1, 1]:
-			var label = Label3D.new()
-			label.text = Rules.FILES[i]
-			label.font_size = 32
-			label.pixel_size = 0.009
-			label.position = Vector3(i - 3.5, 0.02, edge * 4.2)
-			label.rotation_degrees.x = -90
-			label.modulate = Color("f1d69e")
-			scene.add_child(label)
-			var rank_label = Label3D.new()
-			rank_label.text = str(8 - i)
-			rank_label.font_size = 32
-			rank_label.pixel_size = 0.009
-			rank_label.position = Vector3(edge * 4.2, 0.02, i - 3.5)
-			rank_label.rotation_degrees.x = -90
-			rank_label.modulate = Color("f1d69e")
-			scene.add_child(rank_label)
+			_add_label(Rules.FILES[i], Vector3(i - 3.5, 0.0, edge * Look.LABEL_OFFSET))
+			_add_label(str(8 - i), Vector3(edge * Look.LABEL_OFFSET, 0.0, i - 3.5))
+	Scenery.build(scene)
 	marks = Node3D.new()
 	scene.add_child(marks)
 	BattleWorld.tag_board(scene)
@@ -110,6 +99,23 @@ func setup(match_game: ClassicMatch, controls: BoardInteraction) -> void:
 	sync_state()
 	_update_camera()
 	BoardThemeView.attach_3d(self)  # board theme / piece set / shadows (boards/board_theme_view.gd)
+
+## Coordinate labels lie on the frame rim, outside the playable squares and far from any HUD panel (the HUD is outside this viewport).
+## Each one is turned about the vertical axis in _update_camera so it reads upright from whichever side the camera is on.
+func _add_label(text: String, at: Vector3) -> void:
+	var label = Label3D.new()
+	label.text = text
+	label.font_size = 64
+	label.pixel_size = 0.0058
+	label.outline_size = 14
+	label.outline_modulate = Look.LABEL_OUTLINE
+	label.modulate = Look.LABEL_COLOR
+	label.position = at + Vector3(0, 0.0, 0)
+	label.rotation_degrees.x = -90
+	label.shaded = false
+	label.double_sided = false
+	scene.add_child(label)
+	_labels.append(label)
 
 func _exit_tree() -> void:
 	for node in _leaving:
@@ -126,8 +132,8 @@ func set_flipped(value: bool) -> void:
 
 func reset_camera() -> void:
 	yaw = 0.0
-	elevation = 0.88
-	distance = 13.5
+	elevation = Look.CAM_ELEVATION
+	distance = Look.CAM_DISTANCE
 	_update_camera()
 
 ## Switches between the straight-down "2D" view and the orbiting perspective view (glides).
@@ -151,6 +157,8 @@ func _update_camera() -> void:
 		return
 	world.rig.set_aspect(size.x / maxf(1, size.y))
 	world.rig.set_orbit(yaw, elevation, distance)
+	for label in _labels:
+		label.rotation.y = yaw   # upright for the viewer on either side
 
 func set_sync_hold(value: bool) -> void:
 	sync_hold = value
@@ -261,16 +269,37 @@ func _swap_piece(p: Dictionary) -> void:
 	_spawn(id, p.role, p.color, at_position)
 	update_marks()
 
-func _mark(at: int, color: Color, radius: float) -> void:
+## A ring (annulus) around a square's centre, from `inner` to `radius`: it frames the piece instead of covering it.
+func _mark(at: int, color: Color, radius: float, inner: float = 0.0) -> void:
 	var mat = Models.material(color)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	var disc = CylinderMesh.new()
-	disc.top_radius = radius
-	disc.bottom_radius = radius
-	disc.height = 0.012
-	disc.radial_segments = 32
-	Models.add(marks, disc, Interaction.world_position(at) + Vector3(0, 0.055, 0), mat).layers = WorldConstants.LAYER_BOARD
+	var mesh: Mesh
+	if inner > 0.0:
+		var torus = TorusMesh.new()
+		torus.inner_radius = inner
+		torus.outer_radius = radius
+		torus.rings = 48
+		torus.ring_segments = 6
+		mesh = torus
+	else:
+		var disc = CylinderMesh.new()
+		disc.top_radius = radius
+		disc.bottom_radius = radius
+		disc.height = 0.012
+		disc.radial_segments = 32
+		mesh = disc
+	var node = Models.add(marks, mesh, Interaction.world_position(at) + Vector3(0, Look.MARK_HEIGHT, 0), mat, Vector3(1, 0.2, 1) if inner > 0.0 else Vector3.ONE)
+	node.layers = WorldConstants.LAYER_BOARD
+
+## Whole-square tint (last move / selection).
+func _tint(at: int, color: Color) -> void:
+	var mat = Models.material(color)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var box = BoxMesh.new()
+	box.size = Vector3(0.97, 0.01, 0.97)
+	Models.add(marks, box, Interaction.world_position(at) + Vector3(0, 0.05, 0), mat).layers = WorldConstants.LAYER_BOARD
 
 func update_marks() -> void:
 	if marks == null:
@@ -280,15 +309,16 @@ func update_marks() -> void:
 		child.queue_free()
 	if not game.engine.history.is_empty():
 		var h: Dictionary = game.engine.history[-1]
-		_mark(Rules.index(h.from), Color(0.95, 0.76, 0.3, 0.55), 0.46)
-		_mark(Rules.index(h.to), Color(0.95, 0.76, 0.3, 0.55), 0.46)
+		_tint(Rules.index(h.from), Look.MARK_LAST)   # last move: blue tile tints on both squares
+		_tint(Rules.index(h.to), Look.MARK_LAST)
 	if interaction.selected >= 0:
-		_mark(interaction.selected, Color(1, 0.83, 0.4, 0.85), 0.47)
+		_tint(interaction.selected, Color(Look.MARK_SELECTED, 0.35))
+		_mark(interaction.selected, Look.MARK_SELECTED, 0.48, 0.4)   # selected piece: gold ring
 	for m in interaction.destinations:
 		BoardThemeView.destination_3d(self, m.to, not game.engine.board[m.to].is_empty() or m.flag == "ep")  # highlight style (board settings)
 	if game.engine.in_check():
 		var at = game.engine.board.find("K" if game.engine.turn == "w" else "k")
-		_mark(at, Color(1, 0.2, 0.2, 0.85), 0.48)
+		_mark(at, Look.MARK_CHECK, 0.48, 0.38)
 
 func square_at(point: Vector2) -> int:
 	if camera == null or viewport_3d.size.x < 1:
@@ -316,7 +346,7 @@ func _gui_input(event: InputEvent) -> void:
 			if top_down:
 				accept_event()
 				return
-			distance = clampf(distance + (-0.7 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 0.7), 9, 23)
+			distance = clampf(distance + (-0.7 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 0.7), Look.CAM_DISTANCE_MIN, Look.CAM_DISTANCE_MAX)
 			_update_camera()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
@@ -345,7 +375,7 @@ func _orbit(delta: Vector2) -> void:
 	if top_down:
 		return
 	yaw -= delta.x * 0.008
-	elevation = clampf(elevation + delta.y * 0.006, 0.4, 1.42)
+	elevation = clampf(elevation + delta.y * 0.006, Look.CAM_ELEVATION_MIN, Look.CAM_ELEVATION_MAX)
 	_update_camera()
 
 func _input(event: InputEvent) -> void:
@@ -373,7 +403,7 @@ func _input(event: InputEvent) -> void:
 			var values = _touches.values()
 			var next = values[0].distance_to(values[1])
 			if _touch_distance > 0:
-				distance = clampf(distance * _touch_distance / maxf(1, next), 9, 23)
+				distance = clampf(distance * _touch_distance / maxf(1, next), Look.CAM_DISTANCE_MIN, Look.CAM_DISTANCE_MAX)
 			_touch_distance = next
 			_update_camera()
 		elif event.position.distance_to(_press) > 10:
