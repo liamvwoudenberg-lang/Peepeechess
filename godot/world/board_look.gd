@@ -39,15 +39,15 @@ const WALL_DISTANCE := 15.0               # half-width of the courtyard; walls a
 const WALL_HEIGHT := 7.5
 const PILLAR_X := 5.6                     # pillars flank the far and near ends of the board, in view of the default camera
 const PILLAR_Z := 8.2
-const PILLAR_HEIGHT := 4.6
+const PILLAR_HEIGHT := 5.2
 const BRAZIER_POS := 6.7                  # braziers flank the board corners, outside the dais steps
 const BANNER_NAVY := Color("1d2c52")
 const BANNER_CRIMSON := Color("8c1f2c")
 const BANNER_GOLD := Color("c9a24c")
 
 # ---- imported props (Meshy models in assets/world/props/; sizes in metres at scale 1.0: torch 0.5 x 0.95, banner 0.57 x 0.95) ----
-const PROP_TORCH_SCALE := 1.6
-const PROP_BANNER_SCALE := 2.4
+const PROP_TORCH_SCALE := 2.3
+const PROP_BANNER_SCALE := 3.4
 const TORCH_ENERGY := 1.1
 const TORCH_RANGE := 6.0
 
@@ -71,10 +71,23 @@ const BRAZIER_ENERGY := 1.3
 const BRAZIER_RANGE := 7.5
 const BRAZIER_FLICKER := 0.18
 
+# ---- light shafts (additive cones along the key light; gated by GraphicsSettings.light_shafts) -----------------------------------
+const SHAFT_TARGETS: Array[Vector2] = [Vector2(-7.6, -2.0), Vector2(-5.0, -8.4), Vector2(7.8, -5.5), Vector2(8.4, 3.0)]   # floor spot x, z; outside the board
+const SHAFT_LENGTH := 11.0
+const SHAFT_RADIUS_TOP := 0.5
+const SHAFT_RADIUS_BOTTOM := 1.9
+const SHAFT_STRENGTH := 0.2
+
+# ---- piece footprint ring (dark pieces read on orange squares; changes no size) ---------------------------------------------------
+const RING_DARK_PIECE := Color(0.72, 0.82, 1.0, 0.85)
+const RING_LIGHT_PIECE := Color(0.18, 0.1, 0.04, 0.8)
+const RING_RADIUS := 0.4
+const RING_WIDTH := 0.035
+
 # ---- camera ----------------------------------------------------------------------------------------------------------------------
 ## Default perspective view: closer and a little steeper than the old 13.5 / 0.88. Orbit and zoom are clamped so the board stays framed.
 const CAM_DISTANCE := 12.6
-const CAM_ELEVATION := 0.98               # radians above the board plane (about 57 degrees)
+const CAM_ELEVATION := 0.88              # radians above the board plane (about 57 degrees)
 const CAM_DISTANCE_MIN := 8.6
 const CAM_DISTANCE_MAX := 16.5
 const CAM_ELEVATION_MIN := 0.62

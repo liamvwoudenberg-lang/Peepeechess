@@ -54,7 +54,31 @@ static func create(role_code: String, color_code: String) -> PaladinPiece:
 	piece.add_child(piece.facer)
 	piece.facer.add_child(m)
 	m.play("idle")
+	piece.add_child(_footprint_ring(color_code))
 	return piece
+
+
+## Thin ring on the square under the piece: pale for black pieces, dark bronze for white ones, so every silhouette separates from the
+## orange / ivory squares. Cosmetic only (board layer, no collision, size of the piece untouched).
+static func _footprint_ring(color_code: String) -> MeshInstance3D:
+	var torus := TorusMesh.new()
+	torus.inner_radius = BoardLook.RING_RADIUS - BoardLook.RING_WIDTH
+	torus.outer_radius = BoardLook.RING_RADIUS
+	torus.rings = 40
+	torus.ring_segments = 4
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = BoardLook.RING_DARK_PIECE if color_code == "b" else BoardLook.RING_LIGHT_PIECE
+	var ring := MeshInstance3D.new()
+	ring.name = "FootprintRing"
+	ring.mesh = torus
+	ring.material_override = mat
+	ring.scale = Vector3(1, 0.12, 1)
+	ring.position = Vector3(0, 0.06, 0)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.layers = WorldConstants.LAYER_BOARD
+	return ring
 
 
 ## The corner of the L for a knight (the long leg first); every other move is one straight leg.

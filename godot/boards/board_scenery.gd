@@ -9,6 +9,7 @@ extends RefCounted
 ## Scenery is parented under ONE Node3D ("Scenery") so BoardThemeView (which walks the board's direct children) never sees it.
 
 const L := preload("res://world/board_look.gd")
+const Fx := preload("res://boards/board_fx.gd")
 
 static var _cache: Dictionary = {}
 
@@ -200,6 +201,8 @@ static func build(scene: Node3D) -> Node3D:
 	var paving := _stone_material(L.STONE_DARK, "paving", 4, 4, 202, 0.2)
 	var gold := gold_material()
 	var floor_y: float = L.FLOOR_Y
+	var fx: Node3D = Fx.gate(root, "particles")                  # flames / embers / smoke: GraphicsSettings.particles
+	Fx.shafts(Fx.gate(root, "light_shafts"), floor_y)            # dusk light cones: GraphicsSettings.light_shafts
 
 	# ---- frame trim: gilded inlay lines on the carved frame, corner studs ----
 	var inner := 4.02
@@ -289,14 +292,14 @@ static func build(scene: Node3D) -> Node3D:
 			_cyl(root, 0.55, 0.48, L.PILLAR_HEIGHT, at + Vector3(0, floor_y + 0.5 + L.PILLAR_HEIGHT * 0.5, 0), stone, 24)
 			_box(root, Vector3(1.2, 0.35, 1.2), at + Vector3(0, floor_y + 0.5 + L.PILLAR_HEIGHT + 0.17, 0), stone)
 			_cyl(root, 0.56, 0.56, 0.08, at + Vector3(0, floor_y + 0.95, 0), gold, 24)
-			_pillar_props(root, at, floor_y, (sx + 1) + (sz + 1) / 2)
+			_pillar_props(root, at, floor_y, (sx + 1) + (sz + 1) / 2, fx)
 
 	# ---- braziers with flickering warm point lights (outside the dais) ----
 	var bp: float = L.BRAZIER_POS
 	var i := 0
 	for sx in [-1, 1]:
 		for sz in [-1, 1]:
-			_brazier(root, Vector3(sx * bp, floor_y, sz * bp), i)
+			_brazier(root, Vector3(sx * bp, floor_y, sz * bp), i, fx)
 			i += 1
 	return root
 
@@ -325,7 +328,7 @@ static func prop(name: String) -> Node3D:
 
 
 ## Torch sconce and heraldic banner (Meshy models) on the inner face of a corner pillar, plus a warm flickering light at the flame.
-static func _pillar_props(parent: Node3D, pillar: Vector3, floor_y: float, index: int) -> void:
+static func _pillar_props(parent: Node3D, pillar: Vector3, floor_y: float, index: int, fx: Node3D) -> void:
 	var inward := Vector3(-pillar.x, 0, -pillar.z).normalized()
 	var yaw := atan2(inward.x, inward.z)
 	var banner := prop("heraldic_banner")
@@ -351,6 +354,7 @@ static func _pillar_props(parent: Node3D, pillar: Vector3, floor_y: float, index
 		light.omni_attenuation = 1.6
 		light.light_cull_mask = 2
 		parent.add_child(light)
+		Fx.fire(fx, light.position + inward * 0.05, 0.85)
 
 
 static func _banner(parent: Node3D, at: Vector3, yaw: float, index: int) -> void:
@@ -371,7 +375,7 @@ static func _banner(parent: Node3D, at: Vector3, yaw: float, index: int) -> void
 	_box(holder, Vector3(0.06, 2.2, 0.05), Vector3(0, -0.2, 0.025), gold, false)
 
 
-static func _brazier(parent: Node3D, at: Vector3, index: int) -> void:
+static func _brazier(parent: Node3D, at: Vector3, index: int, fx: Node3D) -> void:
 	var holder := Node3D.new()
 	holder.position = at
 	parent.add_child(holder)
@@ -407,3 +411,4 @@ static func _brazier(parent: Node3D, at: Vector3, index: int) -> void:
 	light.shadow_enabled = false
 	light.light_cull_mask = 2   # WorldConstants.LAYER_BOARD: lights the board world only, never the arena
 	holder.add_child(light)
+	Fx.fire(fx, at + Vector3(0, 1.75, 0), 1.0)
