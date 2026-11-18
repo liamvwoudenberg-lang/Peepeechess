@@ -141,7 +141,7 @@ func _build_ui() -> void:
 	ca_path.placeholder_text = "Custom CA certificate (optional)"
 	ca_path.custom_minimum_size = Vector2(230, 42)
 	connection_row.add_child(ca_path)
-	_button(connection_row, "Connect / resume", func(): client.connect_server(hostname.text.strip_edges(), int(port.value), ca_path.text.strip_edges()))
+	_button(connection_row, "Connect / resume", _connect_pressed)
 	_button(connection_row, "Local game", _return_local)
 	_button(column, "Main menu", _return_menu)
 	var lobby = HFlowContainer.new()
@@ -231,12 +231,31 @@ func _set_touch(on: bool) -> void:
 	if combat_view.source != null:
 		combat_view.source.enabled = not on and client.authenticated
 
+## Connect with visible progress: without this a server that never answers (closed UDP port, wrong address, untrusted certificate) leaves the lobby silent, and
+## Create / Join then fail with a confusing "before authentication" error. UI timer only; it never touches the simulation.
+const CONNECT_TIMEOUT_SECONDS := 8.0
+var _connect_attempt := 0
+
+func _connect_pressed() -> void:
+	var host_text := hostname.text.strip_edges()
+	client.connect_server(host_text, int(port.value), ca_path.text.strip_edges())
+	_connect_attempt += 1
+	var attempt := _connect_attempt
+	notices.text = "Connecting to %s:%d …" % [host_text, int(port.value)]
+	get_tree().create_timer(CONNECT_TIMEOUT_SECONDS).timeout.connect(func():
+		if attempt == _connect_attempt and not client.authenticated:
+			notices.text = "No answer from %s:%d after %d s. Check: the address, that the server is running, that UDP port %d is open (cloud firewall and PC firewall), and the server certificate. Create and Join work only after \"Authenticated\" appears here." % [host_text, int(port.value), int(CONNECT_TIMEOUT_SECONDS), int(port.value)])
+
+
 func _connection(connected: bool) -> void:
 	interaction.enabled = connected
 	if combat_view.source != null:
 		combat_view.source.enabled = connected and not combat_view.touch_enabled
 	if not connected:
-		notices.text = "Disconnected · input disabled; attempting session recovery. The server keeps running."
+		if client.session_token.is_empty():   # never authenticated: the connection attempt itself failed
+			notices.text = "Could not connect to %s:%d. Check: the address, that the server is running, that UDP port %d is open (cloud firewall and PC firewall), and the server certificate." % [hostname.text.strip_edges(), int(port.value), int(port.value)]
+		else:
+			notices.text = "Disconnected · input disabled; attempting session recovery. The server keeps running."
 
 func _frame(value: Dictionary) -> void:
 	_last_clock_tick = value.state.serverTick

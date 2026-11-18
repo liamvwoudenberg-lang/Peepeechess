@@ -107,6 +107,7 @@ try {
   run('roster', ['--script', 'res://tests/network/roster_test.gd']);
   run('online meta (fairness rules online)', ['--script', 'res://tests/network/online_meta_test.gd']);
   run('move timeout', ['--script', 'res://tests/network/timeout_test.gd']);
+  run('lobby connect feedback', ['--script', 'res://tests/network/lobby_connect_test.gd']);
   run('online-ui', ['--script', 'res://tests/network/online_ui_test.gd']);
   run('host-play', ['--script', 'res://tests/network/host_play_test.gd'], true);
   run('host-pinning', ['--script', 'res://tests/network/host_play_test.gd', '--', '--pinning'], true);
