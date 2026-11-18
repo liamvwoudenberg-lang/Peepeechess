@@ -104,6 +104,24 @@ static func _wav_quality(h) -> void:
 			var last := absi(stream.data.decode_s16(stream.data.size() - 2))
 			h.check(last < 64, "%s ends without a click (last sample %d)" % [file, last])
 	h.check(total < 2 * 1024 * 1024, "total audio %d bytes stays under 2 MiB" % total)
+	# loudness evening: the four armour materials hit at about the same level (RMS within 3 dB of each other), and quiet cues stay audible
+	var hit_rms := {}
+	for mat in ["flesh", "leather", "steel", "plate"]:
+		for weight in ["light", "heavy"]:
+			var entry: Dictionary = manifest["sounds"]["hit_%s_%s" % [mat, weight]]
+			var acc := 0.0
+			for file in entry["files"]:
+				acc += _rms_db(CombatAudio.parse_wav(FileAccess.get_file_as_bytes(DIR + String(file))).data)
+			hit_rms["%s_%s" % [mat, weight]] = acc / float(entry["files"].size())
+	for weight in ["light", "heavy"]:
+		var lo := 0.0
+		var hi := -100.0
+		for mat in ["flesh", "leather", "steel", "plate"]:
+			lo = minf(lo, float(hit_rms["%s_%s" % [mat, weight]])) if lo != 0.0 else float(hit_rms["%s_%s" % [mat, weight]])
+			hi = maxf(hi, float(hit_rms["%s_%s" % [mat, weight]]))
+		h.check(hi - lo <= 3.5, "%s hits: loudest and quietest material are within 3.5 dB RMS (%.1f dB apart)" % [weight, hi - lo])
+	var foot := CombatAudio.parse_wav(FileAccess.get_file_as_bytes(DIR + "footstep_stone_1.wav"))
+	h.check(_rms_db(foot.data) > -27.0, "footsteps are audible (RMS %.1f dB)" % _rms_db(foot.data))
 
 
 static func _parser(h) -> void:

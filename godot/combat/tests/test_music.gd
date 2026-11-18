@@ -9,6 +9,7 @@ static func run(h, tree: SceneTree) -> void:
 	_streams(h)
 	_mix(h)
 	await _node(h, tree)
+	_duck_and_bus(h)
 
 
 static func _peak(stream: AudioStreamWAV) -> float:
@@ -76,4 +77,29 @@ static func _node(h, tree: SceneTree) -> void:
 	node.set_state("board")
 	h.check(float(node.targets["drum_fast"]) == 0.0, "back on the board the war drums fade out")
 	h.check(Music.instance(tree) == null or DisplayServer.get_name() != "headless", "headless: no director node is created")
+	node.free()
+
+
+static func _duck_and_bus(h) -> void:
+	h.begin("music: big impacts duck the score and it recovers; the Music bus always exists so Settings can show its slider")
+	Music.ensure_bus()
+	h.check(AudioServer.get_bus_index("Music") != -1, "the Music bus exists without any track having played")
+	Music.ensure_bus()
+	var count := 0
+	for i in AudioServer.bus_count:
+		if AudioServer.get_bus_name(i) == "Music":
+			count += 1
+	h.eq(count, 1, "ensure_bus is idempotent (one Music bus)")
+	var node: Node = load("res://audio/music_director.gd").new()
+	node.apply_duck(-7.0, 0.28)
+	for i in 3:
+		node.step(0.02)
+	h.check(node.duck_db < -5.0, "the score dips within about 60 ms (%.1f dB)" % node.duck_db)
+	for i in 40:
+		node.step(0.02)
+	h.check(node.duck_db > -0.5, "and recovers within about a second (%.1f dB)" % node.duck_db)
+	node.apply_duck(-4.0, 0.2)
+	node.apply_duck(-9.0, 0.2)
+	node.step(0.01)
+	h.check(node._duck_target <= -9.0 + 0.001, "the deeper of two overlapping ducks wins")
 	node.free()

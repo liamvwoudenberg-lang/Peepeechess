@@ -28,6 +28,9 @@ const STRIDE_WALK_M := 1.45
 const STRIDE_SPRINT_M := 2.1
 const DUCK_MS := 220
 const DUCK_DB := -7.0
+const MUSIC_DUCK_DB := -7.0
+const MUSIC_DUCK_S := 0.28
+const MusicScript := preload("res://audio/music_director.gd")
 
 const ROLE_MATERIAL := {"p": "leather", "n": "steel", "b": "flesh", "r": "plate", "q": "steel", "k": "steel"}
 const ROLE_SWING := {"p": "swing_spear", "n": "swing_sword", "b": "swing_staff", "r": "swing_hammer", "q": "swing_dual", "k": "swing_king"}
@@ -44,7 +47,7 @@ const PROFILE := {
 	"guard_break": [3, 150, 1, 0.0, false],
 	"parry": [3, 90, 2, 1.0, false],
 	"dodge": [1, 120, 2, -3.0, false],
-	"footstep": [0, 150, 3, -8.0, false],
+	"footstep": [0, 150, 3, -6.0, false],
 	"stagger": [1, 120, 2, -4.0, false],
 	"ability": [3, 150, 2, -1.0, false],
 	"defeat": [3, 500, 1, 0.0, true],
@@ -575,6 +578,8 @@ func _play(sound: String, where: Vector3, pitch: float = 1.0, extra_db: float = 
 	_last_played[sound] = now
 	if priority >= 3:
 		_duck_until = now + DUCK_MS
+		if is_inside_tree():
+			MusicScript.duck(get_tree(), MUSIC_DUCK_DB, MUSIC_DUCK_S)   # the score steps back for the big impacts and stingers
 	stats["played"] += 1
 	stats["last_sound"] = sound
 	var by: Dictionary = stats["by_sound"]

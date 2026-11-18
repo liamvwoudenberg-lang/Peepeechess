@@ -265,6 +265,11 @@ func settings_checks() -> void:
 	var effects := shell.find_child("EffectsVolume", true, false) as HSlider
 	effects.value = 0.5
 	expect(is_equal_approx(Prefs.sfx_volume, 0.5), "effects slider updates the mixer level")
+	var music_slider := shell.find_child("MusicVolume", true, false) as HSlider
+	expect(music_slider != null, "settings page always has a Music volume slider (the bus is created on demand)")
+	if music_slider != null:
+		music_slider.value = 0.4
+		expect(is_equal_approx(Prefs.music_volume, 0.4) and is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))), 0.4), "music slider sets the Music bus level")
 	var motion := shell.find_child("ReduceMotion", true, false) as CheckButton
 	motion.button_pressed = true
 	expect(Prefs.reduce_motion, "reduce motion toggle applies")
