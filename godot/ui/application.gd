@@ -406,6 +406,7 @@ func _play_page() -> void:
 			var seats = InputAssignment.shared()
 			_label(setup, "Duel controls · touchscreen; a connected controller takes priority." if touch and vs_computer else "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
+	_room_code_card()   # the dedicated server by room code: no account needed
 	_friends_on_this_pc_card()   # host/join over the internet: no account needed
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
@@ -432,6 +433,17 @@ func _play_page() -> void:
 ## control come from the options above.
 var host_color = "w"
 var host_invite_edit: LineEdit
+
+## The dedicated server (project setting peepeechess/network/default_server, editable in the lobby): create a room, share its 6-character code, or type a friend's.
+func _room_code_card() -> void:
+	var card = _card(content)
+	Kit.section_header(card, "PLAY ON THE PEEPEECHESS SERVER · ROOM CODE · NO ACCOUNT", "cloud")
+	_label(card, "Connect to the game server, create a room and send its 6-character code to your friend, or type the code they sent you. Uses the mode chosen above.", 14, MUTED)
+	var button = _button(card, "Play with a room code  →", func():
+		Settings.launch = {"view3d": Settings.preferred_3d}
+		get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn"), true)
+	button.name = "RoomCodeButton"
+
 
 func _friends_on_this_pc_card() -> void:
 	var card = _card(content)
