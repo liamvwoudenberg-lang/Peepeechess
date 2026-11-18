@@ -7,6 +7,7 @@ extends RefCounted
 ## SuccessLabel, ClockLabel, Wordmark.
 ## Resources are NOT cached in statics here: a cached Resource would still be alive at engine shutdown.
 const T = preload("res://ui/theme/ui_tokens.gd")
+const Frames = preload("res://ui/theme/ui_frames.gd")
 const BUTTON_TYPES := ["Button", "OptionButton", "MenuButton"]
 
 static func flat(bg: Color, border: Color = Color(0, 0, 0, 0), border_width: int = 0, radius: int = T.R_MD, margin_h: int = -1, margin_v: int = -1) -> StyleBoxFlat:
@@ -249,14 +250,14 @@ static func _build_panels(theme: Theme) -> void:
 	theme.set_stylebox("panel", "Panel", flat(T.SURFACE, T.BORDER, 1, T.R_LG))
 	var panel_variations := {
 		"CardPanel": card,
-		"RaisedPanel": with_shadow(flat(T.SURFACE_2, T.BORDER_STRONG, 1, T.R_LG, 20, 18), 12, 5, 0.5),
-		"SelectedPanel": with_shadow(flat(T.SURFACE_GOLD, T.GOLD, 2, T.R_LG, 20, 18), 12, 4, 0.45),
-		"HudPanel": flat(T.SURFACE, T.BORDER, 1, T.R_LG, 16, 14),
+		"RaisedPanel": Frames.stone(T.SURFACE_2, 20, 18),   # ornate procedural 9-slice frames (ui_frames.gd)
+		"SelectedPanel": Frames.gilded(T.SURFACE_GOLD, 20, 18),
+		"HudPanel": Frames.stone(T.SURFACE, 16, 14),
 		"InsetPanel": flat(T.BG_DEEP, T.BORDER, 1, T.R_MD, 12, 10),
 		"PlayerCard": flat(T.SURFACE_2, T.BORDER, 1, T.R_MD, 12, 8),
 		"PlayerCardActive": flat(T.SURFACE_GOLD, T.GOLD, 2, T.R_MD, 11, 7),
 		"CheckPanel": flat(Color("3a1b18"), T.DANGER, 2, T.R_MD, 14, 10),
-		"ResultPanel": flat(T.SURFACE_GOLD, T.GOLD_HI, 2, T.R_MD, 14, 10),
+		"ResultPanel": Frames.gilded(T.SURFACE_GOLD, 14, 10),
 		"BannerPanel": flat(T.SURFACE_GOLD, T.GOLD, 1, T.R_MD, 16, 10),
 		"DangerPanel": flat(Color("2f1816"), T.DANGER_BG_HI, 1, T.R_MD, 16, 10),
 		"ToastPanel": with_shadow(flat(T.SURFACE_3, T.GOLD_LO, 1, T.R_MD, 18, 12), 14, 6, 0.6),
