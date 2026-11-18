@@ -253,7 +253,7 @@ func settings_checks() -> void:
 	await settle(2)
 	shell.navigate("settings")
 	await settle(2)
-	var preset := shell.find_child("QualityPreset", true, false)
+	var preset := shell.find_child("GraphicsPreset", true, false)
 	expect(preset != null, "settings page has a graphics preset control")
 	(preset.get_child(0) as Button).button_pressed = true
 	expect(Settings.quality == "low", "graphics preset Low sets the existing quality setting")
