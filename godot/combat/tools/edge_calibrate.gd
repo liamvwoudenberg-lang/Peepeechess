@@ -16,6 +16,7 @@ const X_MAX := 1.8   # e^1.8 = 6.05: the table allows at most 8x, the search sto
 
 
 var stamina_rule: Dictionary = {"attacker_cost": 1.0, "defender_cost": 1.0, "defender_regen": 1.0}
+var skilled_weight: float = -1.0   # skilled_weight=<0..1> overrides the data's weight of the skilled bot (1.0 = fit the equal-skill duelist mirror only)
 var damage_scale: float = -1.0   # scale=<x> overrides the data's duel-length scale for the whole calibration (-1 = use the data's)
 
 
@@ -30,14 +31,18 @@ func _options(x: float) -> Dictionary:
 func _rate(a: String, d: String, x: float, n: int, seed_value: int) -> Dictionary:
 	var rates: Array = []
 	for cfg in CONFIGS:
+		if skilled_weight >= 1.0 and cfg["style"] != "duelist":
+			rates.append(0.0)   # skilled_weight=1: only the equal-skill duelist mirror is fitted, so the casual bot is not even run
+			continue
 		var s: Dictionary = await Duel.series(self, a, d, cfg, n, seed_value, _options(x))
 		rates.append(float(s["wins"]) / float(n))
-	return {"mean": (rates[0] + rates[1]) / 2.0, "rates": rates}
+	var w := skilled_weight if skilled_weight >= 0.0 else float(Balance.duel_rules().get("targets", {}).get("skilled_weight", 0.5))   # weight of the skilled bot (data: duel_rules.targets)
+	return {"mean": rates[0] * (1.0 - w) + rates[1] * w, "rates": rates}
 
 
 func _initialize() -> void:
 	await process_frame
-	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0", "rule": ""}
+	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0", "rule": "", "skilled_weight": ""}
 	for token in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = String(token).split("=", true, 1)
 		if kv.size() == 2:
@@ -47,6 +52,8 @@ func _initialize() -> void:
 		stamina_rule = {"attacker_cost": float(v[0]), "defender_cost": float(v[1]), "defender_regen": float(v[2])}
 	if String(args["scale"]) != "":
 		damage_scale = float(args["scale"])
+	if String(args["skilled_weight"]) != "":
+		skilled_weight = float(args["skilled_weight"])
 	var target := float(args["target"])
 	var n := int(args["n"])
 	var iterations := int(args["iterations"])
@@ -103,6 +110,12 @@ func _initialize() -> void:
 				# (so the stronger piece defending is a coin flip: the attacker's initiative is worth 20 points).
 				var rank := {"q": 5, "n": 4, "r": 3, "b": 2, "p": 1}
 				pair_target = 0.70 if rank[a] > rank[d] else (0.60 if rank[a] == rank[d] else 0.50)
+			if String(args["rule"]) == "skill":
+				# Skill-over-stats targets from the data (duel_rules.targets): attacker rate = 0.5 + slope * (strength[a] - strength[d]) - defender_edge,
+				# so a Pawn attacking a Queen wins ~17% and a Queen attacking a Pawn ~77% (the Pawn wins 23% defending), every other pairing 35..65%
+				# and the defender holds a small edge in a mirror match.
+				var targets: Dictionary = Balance.duel_rules()["targets"]
+				pair_target = clampf(0.5 + float(targets["slope"]) * (float(targets["strength"][a]) - float(targets["strength"][d])) - float(targets["defender_edge"]), 0.05, 0.95)
 			var at_lo: Dictionary = await _rate(a, d, lo, n, base_seed)
 			var at_hi: Dictionary = await _rate(a, d, hi, n, base_seed)
 			x = await _search_both(at_lo, at_hi, a, d, lo, hi, pair_target, iterations, n, base_seed)

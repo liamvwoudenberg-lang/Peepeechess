@@ -155,6 +155,13 @@ func fighter_state(player_id: String) -> Dictionary:
 		return {}
 	return arena.sim.fighter_state(player_id)
 
+## End-of-duel summary of the trusted local simulation (damage, Resolve flow, spends; see CombatSimulation.duel_summary), {} without an arena.
+## The meta layer (chess/battle_meta.gd) reads it to carry Resolve and wounds to the board; a client never supplies it.
+func duel_summary() -> Dictionary:
+	if not is_instance_valid(arena) or arena.get("sim") == null or not arena.sim.has_method("duel_summary"):
+		return {}
+	return arena.sim.duel_summary()
+
 ## The hosting layer supplies the authenticated seat; inputs contain intent only.
 func submit_input(packet: Dictionary, authenticated_player_id: String) -> Dictionary:
 	if not is_instance_valid(arena) or _request.is_empty() or not arena.has_method("submit_input"):

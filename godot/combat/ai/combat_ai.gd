@@ -103,6 +103,11 @@ var _opp_was_attacking := false
 var _opp_counter_id := false
 var _opp_speed := 1.0
 var _opp_buff_left := 0
+## Resolve (fairness pass): the AI's OWN Resolve is not in the v1 snapshot, so a local host that runs this AI beside the authority hands it over
+## each tick (`own_resolve`) and opts in with `use_resolve`. Off by default, so the calibration tools (which never set it) measure the duel without
+## Resolve spending. The AI spends it on one thing: a second wind when badly hurt and nobody is close enough to punish the cast.
+var use_resolve := false
+var own_resolve := 0.0
 
 
 func _init(input_builder: CombatInputBuilder, my_stats: Dictionary, opponent_stats: Dictionary,
@@ -397,8 +402,20 @@ func _choose_defence(opp: Dictionary, dist: float) -> void:
 	_follow_ups_left = 0
 
 
+func _maybe_second_wind(me: Dictionary, dist: float) -> void:
+	var rule: Dictionary = Balance.duel_rules()["resolve"]["second_wind"]
+	if own_resolve + 1e-6 < float(rule["cost"]) or dist < 3.2:
+		return
+	if float(me["hp"]) > float(_my_stats["maxHp"]) * (float(rule["below_hp"]) - 0.1):
+		return
+	if rng.randf() < 0.08 + 0.12 * skill:
+		builder.press("ability")
+
+
 func _maybe_use_ability(me: Dictionary, opp: Dictionary, dist: float) -> void:
 	if int(me["cooldownTicks"]) > 0:
+		if use_resolve:
+			_maybe_second_wind(me, dist)
 		return
 	var eager := float(_p["ability_eager"])
 	var ability_style := style == "ability"

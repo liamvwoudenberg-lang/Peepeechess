@@ -85,7 +85,26 @@ func _process(_delta: float) -> void:
 		_draw_fighter(f)
 		text += describe(f, _clip_of(f)) + "\n"
 	_mesh.surface_end()
+	text += _duel_flow_text(arena.sim)
 	_label.text = text
+
+
+## Duel rules readout for playtesting (BALANCE.md "Fairness pass"): per seat HP / stamina / Resolve flow and the damage multiplier in force,
+## then the newest log lines (hits, blocks, parries, Resolve spends). The same lines go to the console with --duel-log or
+## PEEPEECHESS_DUEL_LOG=1, so a playtest can be pasted back as text.
+func _duel_flow_text(sim: CombatSimulation) -> String:
+	if not sim.log_to_console and (OS.get_environment("PEEPEECHESS_DUEL_LOG") == "1" or "--duel-log" in OS.get_cmdline_args() or "--duel-log" in OS.get_cmdline_user_args()):
+		sim.log_to_console = true
+	if sim.request.is_empty():
+		return ""
+	var summary := sim.duel_summary()
+	var text := "-- duel rules %s%s --\n" % ["ON" if sim.rules_on else "OFF (raw frame data)", ("  sudden death!" if sim.sudden_death_active() else "")]
+	for seat in ["attacker", "defender"]:
+		var s: Dictionary = summary[seat]
+		text += "%s %s: HP %d/%d  dealt %d taken %d  RESOLVE %d (+%d -%d)  take x%.2f  wind %d over %d dodge %d\n" % [seat, String(s["role"]).to_upper(), s["hp"], s["max_hp"],
+				s["damage_dealt"], s["damage_taken"], s["resolve"], s["resolve_gained"], s["resolve_spent"], s["take_mult"], s["second_winds"], s["overcharges"], s["resolve_dodges"]]
+	text += "\n".join(sim.debug_lines.slice(maxi(0, sim.debug_lines.size() - 8)))
+	return text
 
 
 func _clip_of(f: FighterController) -> String:

@@ -311,3 +311,9 @@ After the Knight lunge, Bishop beam, Rook guard-break, comeback bonus and sudden
 (8 shard files, merged with `merge_edge.py --write`; the tool drops blocks after `attacker_edge`, so `hit_stun` was re-added by hand). Stamp: `balance-v1:7a1e47e27f4d0966`.
 Bot-mean results (casual + skilled bot): the Queen wins about 60-75% when she attacks and 46-58% when attacked; eight pairings boost the defender (the Queen attacking, plus a few
 weaker-attacker cases). Bots only; a human playtest is still needed. Individual casual/skilled splits are far apart for several pairings (e.g. Pawn attacking Knight 96% / 0%).
+
+## Fairness pass (2026-11-18)
+Defender's edge, cost of a failed attack, persistent damage, support, Resolve, comeback and a skill-over-stats recalibration of the `attacker_edge` table
+(it no longer favours the attacker: equal-skill attacker win rate 51.6 %, was 54-64 %). Full changelog, tuning values to try first, the headless harness
+(`duel_report.gd`, `chess_vs_fight.gd`) and the measured results with their limits: [docs/battle-chess/FAIRNESS_PASS.md](../../docs/battle-chess/FAIRNESS_PASS.md).
+Stamp: `balance-v1:3be59d2bb65e88c3`. The win-rate matrices above this section were measured against earlier data.

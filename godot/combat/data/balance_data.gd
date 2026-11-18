@@ -167,6 +167,21 @@ static func pacing() -> Dictionary:
 	return _active.get("pacing", {"comeback": {"hp_gap": 2.0, "damage_mult": 1.0}, "sudden_death": {"start_s": 9999.0, "ramp_per_s": 0.0}})
 
 
+## Fairness-pass duel rules (defender's edge, cost of a failed attack, Resolve spends and gains). Neutral when the data has none.
+static func duel_rules() -> Dictionary:
+	_ensure()
+	return _active.get("duel_rules", {
+		"defender": {"head_start_ticks": 0, "take_mult": 1.0, "regen_mult": 1.0},
+		"failed_attack": {"whiff_stamina": 0.0, "blocked_stamina": 0.0, "dodged_stamina": 0.0, "attacker_seat_mult": 1.0},
+		"resolve": {"max": 0.0, "dodge_cost": 1e9, "second_wind": {"cost": 1e9, "below_hp": 0.0, "heal_frac": 0.0, "cast_ticks": 1}, "overcharge": {"cost": 1e9}, "gain": {"parry": 0.0, "dodge": 0.0, "hit": 0.0, "taken": 0.0}}})
+
+
+## Board-level (chess layer) rules: persistence, healing, support, key squares, Resolve, comeback, decisive-win initiative.
+static func meta() -> Dictionary:
+	_ensure()
+	return _active.get("meta", {})
+
+
 static func stamina_edge() -> Dictionary:
 	_ensure()
 	var rule: Dictionary = _active.get("attacker_edge", {}).get("stamina", {})
@@ -306,6 +321,14 @@ static func validate(data: Dictionary) -> Array:
 				errors.append("pacing.sudden_death: start_s >= 5 and ramp_per_s in 0..1")
 	if data.has("attacker_edge"):
 		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
+	for section in ["duel_rules", "meta"]:
+		if data.has(section) and typeof(data[section]) != TYPE_DICTIONARY:
+			errors.append("%s must be an object" % section)
+	if data.get("duel_rules", {}) is Dictionary:
+		var rules: Dictionary = data.get("duel_rules", {})
+		var defender: Dictionary = rules.get("defender", {})
+		if float(defender.get("take_mult", 1.0)) < 0.5 or float(defender.get("take_mult", 1.0)) > 1.5 or int(defender.get("head_start_ticks", 0)) < 0 or int(defender.get("head_start_ticks", 0)) > 120:
+			errors.append("duel_rules.defender: take_mult in 0.5..1.5 and head_start_ticks in 0..120")
 	for id in data["abilities"]:
 		var def = data["abilities"][id]
 		if typeof(def) == TYPE_DICTIONARY and def.has("role"):
@@ -573,6 +596,9 @@ static func _normalise(raw: Dictionary) -> Dictionary:
 		var sudden_raw: Dictionary = pace_raw.get("sudden_death", {})
 		out["pacing"] = {"comeback": {"hp_gap": float(comeback_raw.get("hp_gap", 2.0)), "damage_mult": float(comeback_raw.get("damage_mult", 1.0))},
 				"sudden_death": {"start_s": float(sudden_raw.get("start_s", 9999.0)), "ramp_per_s": float(sudden_raw.get("ramp_per_s", 0.0))}}
+	for section in ["duel_rules", "meta"]:   # fairness-pass sections: nested numbers/strings copied as they are (validated in validate())
+		if raw.has(section):
+			out[section] = (raw[section] as Dictionary).duplicate(true)
 	if raw.has("attacker_edge"):
 		var edge := {"target": float(raw["attacker_edge"].get("target", 0.0)), "pairs": {}}
 		if raw["attacker_edge"].has("stamina"):

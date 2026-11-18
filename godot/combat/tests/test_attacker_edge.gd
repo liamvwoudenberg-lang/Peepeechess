@@ -16,10 +16,10 @@ const ROLES := ["p", "n", "b", "r", "q"]
 const GATE_PAIRS := ["pp", "nn", "bb", "rr", "qq", "qp", "qb", "nr", "bp", "rb"]   # attackers that are not hopeless underdogs
 const GATE_N := 10
 const GATE_SEED := 31000
-const GATE_MIN_ATTACKER_RATE := 0.55   # over all gate duels (casual bot); the calibration target is 0.62 averaged over a casual and a skilled bot
-const GATE_MIN_PAIR_RATE := 0.30       # no single gate pairing may leave the attacker as a clear underdog (n = 10 is noisy per pairing)
+const GATE_MIN_ATTACKER_RATE := 0.35   # fairness pass: over all gate duels (duelist bot on both seats); the calibration target is ~0.47
+const GATE_MAX_ATTACKER_RATE := 0.60
 const GATE_MIN_MEDIAN_SECONDS := 10.0  # the shortest gate pairing's median fight (casual bot; the calibration target is for both bots' geometric mean)
-const GATE_MAX_TIMEOUTS := 2
+const GATE_MAX_TIMEOUTS := 6   # fairness pass: ~5% of equal-skill duels reach the 90 s limit (sudden death ends them)
 
 
 static func run(h, tree: SceneTree) -> void:
@@ -40,7 +40,7 @@ static func _start(tree: SceneTree, attacker_role: String, defender_role: String
 	var sim := CombatSimulation.new()
 	tree.root.add_child(sim)
 	var request := FighterRoster.build_request(attacker_role, defender_role, "w", "edge-1", 7, 0)
-	var start_options := {"allow_experimental_roles": true}
+	var start_options := {"allow_experimental_roles": true, "duel_rules": false}   # these tests isolate the attacker-edge table; the fairness-pass rules have their own suite (test_fairness.gd)
 	start_options.merge(options, true)
 	var reply: Dictionary = sim.start(request, start_options)
 	assert(reply["ok"], "start failed: %s" % str(reply))
@@ -71,8 +71,9 @@ static func _data(h) -> void:
 				boosted_attackers += 1
 			if pair[1] > 1.0001:
 				boosted_defenders += 1
-	# 2026-11-16 table: a boosted defender appears only where a stronger attacker would win far above its ~70% target (the Queen attacking).
-	h.check(boosted_attackers > 0 and boosted_defenders <= 8, "attackers are boosted (%d pairings); defenders only where the attacker is much stronger (%d, at most 8)" % [boosted_attackers, boosted_defenders])
+	# 2026-11-18 fairness pass: the table is a per-pairing stat-compression table fitted to the skill-over-stats targets (duel_rules.targets), so
+	# either side of a pairing may be the boosted one; the weaker side is. No pairing may leave both sides unboosted everywhere (that would be raw stats).
+	h.check(boosted_attackers > 0 and boosted_defenders > 0 and boosted_attackers + boosted_defenders >= 10, "the table compresses stat gaps in both directions (%d attacker boosts, %d defender boosts)" % [boosted_attackers, boosted_defenders])
 	for key in ["kq", "qk", "kk", "pk", "kp"]:
 		h.eq(Balance.attacker_edge(key.substr(0, 1), key.substr(1, 1)), [1.0, 1.0], "%s: the King is neutral (King's last stand keeps its own balance)" % key)
 	h.eq(Balance.attacker_edge("x", "y"), [1.0, 1.0], "an unknown pairing is neutral")
@@ -373,60 +374,47 @@ static func _length_damage(h, tree: SceneTree) -> void:
 ## attacker wins more often than not, and a duel lasts long enough to be a fight. Deterministic for a given tuning; when it fails,
 ## re-run tools/length_calibrate.gd (length) and tools/edge_calibrate.gd (advantage), BALANCE.md has the commands.
 static func _gate(h, tree: SceneTree) -> void:
-	h.begin("attacker edge gate: with the shipped data the attacker wins more often than not and a duel lasts like a fight (casual bot, fixed seeds)")
-	var cfg := {"style": "balanced", "skill": 0.6}
+	h.begin("fairness gate: with the shipped data the defender holds a small edge (attacker 35-60% over the gate pairings), duels last like a fight and rarely time out (duelist bot on both seats, fixed seeds)")
+	var cfg := {"style": "duelist", "skill": 0.9}
 	var wins := 0
 	var total := 0
-	var worst := 1.0
-	var worst_pair := ""
 	var timeouts := 0
 	var shortest := 1e9
 	var shortest_pair := ""
 	for key in GATE_PAIRS:
-		var pair_wins := 0
 		var lengths: Array = []
 		for i in GATE_N:
 			var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), cfg, GATE_SEED + i)
 			total += 1
 			if r["outcome"] == "attacker":
-				pair_wins += 1
+				wins += 1
 			if String(r["reason"]).begins_with("timeout"):
 				timeouts += 1
 			lengths.append(float(r["active_ticks"]) / 60.0)
-		wins += pair_wins
-		var rate := float(pair_wins) / float(GATE_N)
-		if rate < worst:
-			worst = rate
-			worst_pair = key
 		lengths.sort()
 		var median: float = (float(lengths[GATE_N / 2 - 1]) + float(lengths[GATE_N / 2])) / 2.0
 		if median < shortest:
 			shortest = median
 			shortest_pair = key
 	var overall := float(wins) / float(total)
-	h.check(overall >= GATE_MIN_ATTACKER_RATE, "the attacker wins %.0f%% of %d duels over the gate pairings (needs >= %.0f%%)" % [100.0 * overall, total, 100.0 * GATE_MIN_ATTACKER_RATE])
-	h.check(worst >= GATE_MIN_PAIR_RATE, "the weakest gate pairing (%s attacks %s) still gives the attacker %.0f%% (needs >= %.0f%%)" % [worst_pair.substr(0, 1), worst_pair.substr(1, 1), 100.0 * worst, 100.0 * GATE_MIN_PAIR_RATE])
+	h.check(overall >= GATE_MIN_ATTACKER_RATE and overall <= GATE_MAX_ATTACKER_RATE, "the attacker wins %.0f%% of %d duels over the gate pairings (needs %.0f-%.0f%%: attacking is a gamble, defending is not hopeless)" % [100.0 * overall, total, 100.0 * GATE_MIN_ATTACKER_RATE, 100.0 * GATE_MAX_ATTACKER_RATE])
 	h.check(shortest >= GATE_MIN_MEDIAN_SECONDS, "the shortest gate pairing (%s attacks %s) still lasts a median %.1f s of fighting (needs >= %.0f s)" % [shortest_pair.substr(0, 1), shortest_pair.substr(1, 1), shortest, GATE_MIN_MEDIAN_SECONDS])
-	h.check(timeouts <= GATE_MAX_TIMEOUTS, "almost no gate duel runs into the time limit (%d of %d)" % [timeouts, total])
+	h.check(timeouts <= GATE_MAX_TIMEOUTS, "few gate duels run into the time limit (%d of %d, at most %d)" % [timeouts, total, GATE_MAX_TIMEOUTS])
 
 
-## The Queen is the strongest piece and must feel like it: she beats a Pawn or Bishop that attacks her, and wins when she attacks them,
-## while the weaker attacker still has a real chance (the attacker's initiative bonus). Casual bot, fixed seeds.
+## The Queen is the strongest piece and the Pawn the weakest, but a Pawn is not hopeless: equal-skill duelists, fixed seeds (n is small, so the bands are wide).
 static func _queen_gate(h, tree: SceneTree) -> void:
-	h.begin("queen gate: the Queen wins about 70% when she attacks a Pawn / Bishop and holds about 50/50 when they attack her (mean of a casual and a skilled bot, fixed seeds)")
+	h.begin("queen gate: equal-skill, the Queen beats a Pawn most of the time and a Pawn still wins some duels against her (skill over stats)")
 	var rates := {}
-	for key in ["qp", "qb", "pq", "bq"]:
-		var total := 0.0
-		for cfg in [{"style": "balanced", "skill": 0.6}, {"style": "duelist", "skill": 0.9}]:
-			var wins := 0
-			for i in GATE_N:
-				var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), cfg, GATE_SEED + 500 + i)
-				if r["outcome"] == "attacker":
-					wins += 1
-			total += float(wins) / float(GATE_N)
-		rates[key] = total / 2.0
-	h.check(rates["qp"] >= 0.55 and rates["qp"] <= 0.90 and rates["qb"] >= 0.55 and rates["qb"] <= 0.90, "a Queen attacking a Pawn / Bishop wins 55-90%% (%.0f%% / %.0f%%)" % [100.0 * rates["qp"], 100.0 * rates["qb"]])
-	h.check(rates["pq"] >= 0.30 and rates["pq"] <= 0.70 and rates["bq"] >= 0.30 and rates["bq"] <= 0.70, "a Pawn / Bishop attacking the Queen wins 30-70%% (%.0f%% / %.0f%%): about even" % [100.0 * rates["pq"], 100.0 * rates["bq"]])
+	for key in ["qp", "pq"]:
+		var wins := 0
+		for i in GATE_N * 2:
+			var r: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), {"style": "duelist", "skill": 0.9}, GATE_SEED + 500 + i)
+			if r["outcome"] == "attacker":
+				wins += 1
+		rates[key] = float(wins) / float(GATE_N * 2)
+	h.check(rates["qp"] >= 0.55 and rates["qp"] <= 0.97, "a Queen attacking a Pawn wins %.0f%% (needs 55-97%%)" % (100.0 * rates["qp"]))
+	h.check(rates["pq"] >= 0.03 and rates["pq"] <= 0.40, "a Pawn attacking the Queen wins %.0f%% (needs 3-40%%: an underdog, not a victim)" % (100.0 * rates["pq"]))
 
 
 ## Hit stun: a victim that was just hit cannot act, a heavy (charged) blow stuns much longer than a quick one, and raw frame data has none.

@@ -18,6 +18,7 @@ extends RefCounted
 ##  * Staggered: no actions; after it ends, brief stagger immunity stops stun locks.
 
 const S := CombatConstants.State
+const Balance := preload("res://combat/data/balance_data.gd")
 
 enum Result { STARTED, DENIED_KEEP, DENIED_DROP }
 
@@ -232,6 +233,8 @@ func _tick_cast() -> void:
 	if cast_kind == "counter" and state_ticks == int(f.ability.definition["counter_end"]):
 		f.queue_event("whiff")  # the window closed with nothing to counter: the King is now recovering
 	if state_ticks >= cast_total:
+		if cast_kind == "second_wind":   # the heal lands only if the cast was not broken by a hit
+			f.health.heal(roundi(float(f.health.maximum) * float(Balance.duel_rules()["resolve"]["second_wind"]["heal_frac"])))
 		_enter(S.IDLE)
 		_tick_free()
 
@@ -319,7 +322,7 @@ func _begin_attack(def: AttackDefinition, light_index: int) -> int:
 func _start_dodge() -> int:
 	if dodge_cooldown > 0:
 		return Result.DENIED_KEEP
-	if not f.stamina.spend(float(f.profile["dodge_cost"])):
+	if not f.stamina.spend(float(f.profile["dodge_cost"])) and not f.try_resolve_dodge():
 		return _deny("stamina")
 	_close_swing()
 	if _intent.has_move():
@@ -348,6 +351,31 @@ func _start_parry() -> int:
 
 func _start_ability() -> int:
 	var check: Dictionary = f.ability.check(f.health, f.stamina)
+	if not check["ok"] and String(check["reason"]) == "cooldown":
+		var special := f.resolve_special()
+		var rule: Dictionary = Balance.duel_rules()["resolve"]
+		if special == "second_wind":
+			f.spend_resolve(float(rule["second_wind"]["cost"]))
+			f.second_winds += 1
+			_close_swing()
+			attack = null
+			cast_total = int(rule["second_wind"]["cast_ticks"])
+			cast_kind = "second_wind"
+			_enter(S.ABILITY_CASTING)
+			f.queue_event("ability")
+			return Result.STARTED
+		if special == "overcharge":
+			var paid := float(rule["overcharge"]["cost"])
+			var kept: int = f.ability.cooldown_remaining
+			f.spend_resolve(paid)
+			f.ability.cooldown_remaining = 0
+			check = f.ability.check(f.health, f.stamina)
+			if check["ok"]:
+				f.overcharges += 1
+			else:   # the ability still cannot be used (stamina, condition): the Resolve is returned, nothing is spent for nothing
+				f.resolve += paid
+				f.resolve_spent -= paid
+				f.ability.cooldown_remaining = kept
 	if not check["ok"]:
 		return _deny(String(check["reason"]))
 	var cost: float = f.ability.stamina_cost()

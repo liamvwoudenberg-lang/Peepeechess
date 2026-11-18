@@ -10,7 +10,7 @@ const S := CombatConstants.State
 ## Pin of the shipped tuning. A balance change MUST update this on purpose: the stamp is what a server and its clients
 ## compare, so an accidental edit of balance_v1.json fails here instead of silently desynchronising a match.
 const SHIPPED_ID := "balance-v1"
-const SHIPPED_STAMP := "balance-v1:7a1e47e27f4d0966"   # changed on purpose 2026-11-17: piece identity (Knight lunge, Bishop beam, Rook guard-break), pacing (comeback + sudden death), table recalibrated
+const SHIPPED_STAMP := "balance-v1:3be59d2bb65e88c3"   # changed on purpose 2026-11-18: fairness pass (duel_rules, meta, skill-over-stats attacker_edge table; BALANCE.md)
 
 
 static func run(h, tree: SceneTree) -> void:

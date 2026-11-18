@@ -10,6 +10,7 @@ extends CharacterBody3D
 ## here is headless-safe (no camera, audio, mesh or UI dependency).
 
 const S := CombatConstants.State
+const Balance := preload("res://combat/data/balance_data.gd")
 
 var player_id: String = ""
 var piece_id: String = ""
@@ -45,6 +46,24 @@ var prev_position: Vector3 = Vector3.ZERO
 var prev_yaw: float = 0.0
 
 var _pending_events: Array[String] = []
+
+## Fairness pass (BALANCE.md "Fairness pass"). All numbers come from balance_v1.json `duel_rules`; the chess layer passes the per-seat
+## modifiers through the start option "seat_start". `rules_on` is false for raw frame data (option attacker_edge:false).
+var rules_on: bool = false
+var is_duel_attacker: bool = false
+var resolve: float = 0.0
+var resolve_max: float = 0.0
+var resolve_start: float = 0.0
+var resolve_gained: float = 0.0
+var resolve_spent: float = 0.0
+var take_mult: float = 1.0          # damage taken (defender's edge, support / isolation, comeback)
+var deal_mult: float = 1.0
+var damage_dealt: int = 0
+var damage_taken: int = 0
+var second_winds: int = 0
+var overcharges: int = 0
+var resolve_dodges: int = 0
+var whiffs: int = 0
 
 
 ## Returns "" on success or a reason string. `combatant` is a contract Combatant dictionary.
@@ -159,6 +178,41 @@ func _apply_buff_modifiers() -> void:
 		# Never exhausted while the buff lasts, so the guard cannot collapse for lack of stamina.
 		stamina.exhausted = false
 		stamina.current = maxf(stamina.current, 0.5)
+
+
+func gain_resolve(amount: float) -> void:
+	if not rules_on or amount <= 0.0:
+		return
+	var before := resolve
+	resolve = minf(resolve_max, resolve + amount)
+	resolve_gained += resolve - before
+
+
+func spend_resolve(amount: float) -> bool:
+	if not rules_on or resolve + 1e-6 < amount:
+		return false
+	resolve -= amount
+	resolve_spent += amount
+	return true
+
+
+## An empty-stamina dodge can be paid with Resolve ("extra dodge").
+func try_resolve_dodge() -> bool:
+	if spend_resolve(float(Balance.duel_rules()["resolve"]["dodge_cost"])):
+		resolve_dodges += 1
+		return true
+	return false
+
+
+## What the ability button does while the ability is on cooldown: "second_wind" (wounded: a vulnerable heal cast) or "overcharge" (healthy:
+## the ability is ready again), each paid with Resolve; "" when Resolve is short or the rules are off.
+func resolve_special() -> String:
+	if not rules_on:
+		return ""
+	var rule: Dictionary = Balance.duel_rules()["resolve"]
+	if health.ratio() < float(rule["second_wind"]["below_hp"]) and health.current < health.maximum:
+		return "second_wind" if resolve + 1e-6 >= float(rule["second_wind"]["cost"]) else ""
+	return "overcharge" if resolve + 1e-6 >= float(rule["overcharge"]["cost"]) else ""
 
 
 func queue_event(type: String) -> void:

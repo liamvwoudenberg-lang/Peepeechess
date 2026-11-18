@@ -89,7 +89,7 @@ static func _server_rig(tree: SceneTree, roles: Array = ["p", "p"], start_tick: 
 	tree.root.add_child(sim)
 	var server := Server.new(sim)
 	var request := FighterRoster.build_request(roles[0], roles[1], "w", "net-1", 5, start_tick)
-	var reply: Dictionary = server.start(request)
+	var reply: Dictionary = server.start(request, {"duel_rules": false})
 	assert(reply["ok"])
 	await tree.physics_frame
 	return {"sim": sim, "server": server, "request": request,

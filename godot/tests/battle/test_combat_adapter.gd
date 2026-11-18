@@ -11,12 +11,12 @@ var load_fails = false
 var starts_fail = false
 func available() -> bool:
 	return true
-func begin_load(value: Dictionary, _host: Node) -> Dictionary:
+func begin_load(value: Dictionary, _host: Node, _options: Dictionary = {}) -> Dictionary:
 	request = value.duplicate(true)
 	return {"ok": false, "error": "Fixture load failure."} if load_fails else {"ok": true}
 func complete_load() -> void:
 	arena_ready.emit()
-func start(value: Dictionary) -> Dictionary:
+func start(value: Dictionary, _options: Dictionary = {}) -> Dictionary:
 	start_calls += 1
 	request = value.duplicate(true)
 	return {"ok": false, "error": "Fixture initialization failure."} if starts_fail else {"ok": true}

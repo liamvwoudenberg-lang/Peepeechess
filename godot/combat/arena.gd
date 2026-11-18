@@ -203,6 +203,10 @@ func _physics_process(_delta: float) -> void:
 	if not _ais.is_empty():
 		var snap := sim.snapshot()
 		for ai in _ais:
+			var own := sim.fighter_by_id(ai.builder.player_id)   # the AI's OWN Resolve (not in the v1 snapshot; local authority only)
+			if own != null:
+				ai.use_resolve = true
+				ai.own_resolve = own.resolve
 			sim.submit_input(ai.think(snap))
 	sim.step_tick()
 	if sim.server_tick % CombatConstants.SNAPSHOT_EVERY_TICKS == 0 or not sim.is_running():

@@ -50,6 +50,14 @@ var edge_defender: float = 1.0
 var damage_scale: float = 1.0
 ## Hit stun on (the game's rule); off for raw frame data (option attacker_edge:false) or option hit_stun:false.
 var hit_stun_on: bool = true
+## Fairness pass (BALANCE.md "Fairness pass", data: balance_v1.json `duel_rules`): defender's edge, cost of a failed attack, Resolve.
+## Off for raw frame data (option attacker_edge:false), option duel_rules:false, and any pairing with a King (own balance).
+var rules_on: bool = false
+var head_start_ticks: int = 0
+## Human-readable log of the duel (hits, blocks, parries, Resolve spends) for the debug overlay and for playtest notes. Newest last, capped.
+var debug_lines: Array[String] = []
+var log_to_console: bool = false
+const DEBUG_LINES_CAP := 14
 
 var _inputs: Dictionary = {}
 var _grace: Dictionary = {}
@@ -132,6 +140,7 @@ func start(req: Dictionary, options: Dictionary = {}) -> Dictionary:
 		_reset()
 		return _error("INVALID_PAYLOAD", carried)
 	_apply_attacker_edge(options, str(attacker_data["role"]), str(defender_data["role"]))
+	_apply_duel_rules(options, str(attacker_data["role"]), str(defender_data["role"]))
 
 	server_tick = int(req["startTick"])
 	countdown_remaining = CombatConstants.COUNTDOWN_TICKS
@@ -179,6 +188,53 @@ func _apply_attacker_edge(options: Dictionary, attacker_role: String, defender_r
 	attacker_fighter.stamina.cost_multiplier = maxf(0.0, float(rule["attacker_cost"]))
 	defender_fighter.stamina.cost_multiplier = maxf(0.0, float(rule["defender_cost"]))
 	defender_fighter.stamina.seat_regen = maxf(0.0, float(rule["defender_regen"]))
+
+
+## Fairness-pass rules for this duel: the defender's edge (sturdier, quicker recovery, attacker held back for the first ticks), Resolve
+## pools, and the per-seat modifiers the chess layer passes in the "seat_start" option:
+##   {"attacker": {...}, "defender": {...}}, each with optional "hp" (int, 1..maxHp: persistent damage), "stamina" (0..max), "resolve" (0..max),
+##   "take_mult" / "deal_mult" / "regen_mult" (float, multiplied onto the defaults: support, isolation, comeback, key squares).
+## Everything here comes from the data (`Balance.duel_rules()`); with the rules off (raw frame data, King pairings) it is all neutral, and
+## a seat_start "hp"/"stamina" still applies (a wounded piece is wounded either way).
+func _apply_duel_rules(options: Dictionary, attacker_role: String, defender_role: String) -> void:
+	var raw_option = options.get("attacker_edge", null)
+	var duel_option = options.get("duel_rules", null)
+	rules_on = not (raw_option is bool and not raw_option) and not (duel_option is bool and not duel_option) and attacker_role != "k" and defender_role != "k"
+	debug_lines.clear()
+	head_start_ticks = 0
+	var seats := {"attacker": attacker(), "defender": defender()}
+	for seat in seats:
+		var fighter: FighterController = seats[seat]
+		fighter.rules_on = rules_on
+		fighter.is_duel_attacker = seat == "attacker"
+		fighter.take_mult = 1.0
+		fighter.deal_mult = 1.0
+		fighter.resolve = 0.0
+		fighter.resolve_max = 0.0
+	var rules := Balance.duel_rules()
+	if rules_on:
+		head_start_ticks = int(rules["defender"]["head_start_ticks"])
+		defender().take_mult = float(rules["defender"]["take_mult"])
+		defender().stamina.seat_regen *= float(rules["defender"]["regen_mult"])
+		for seat in seats:
+			seats[seat].resolve_max = float(rules["resolve"]["max"])
+	var start = options.get("seat_start", {})
+	if start is Dictionary:
+		for seat in seats:
+			var fighter: FighterController = seats[seat]
+			var mods: Dictionary = start.get(seat, {})
+			if mods.has("hp"):
+				fighter.health.current = clampi(int(mods["hp"]), 1, fighter.health.maximum)
+			if mods.has("stamina"):
+				fighter.stamina.current = clampf(float(mods["stamina"]), 0.0, fighter.stamina.maximum)
+				fighter.stamina.exhausted = fighter.stamina.current <= 0.0
+			if rules_on:
+				fighter.take_mult *= float(mods.get("take_mult", 1.0))
+				fighter.deal_mult *= float(mods.get("deal_mult", 1.0))
+				fighter.stamina.seat_regen *= float(mods.get("regen_mult", 1.0))
+				fighter.resolve = clampf(float(mods.get("resolve", 0.0)), 0.0, fighter.resolve_max)
+	for seat in seats:
+		seats[seat].resolve_start = seats[seat].resolve
 
 
 ## Applies the optional "initial_*" start options to the King seat. Returns "" or the reason the options are refused.
@@ -247,6 +303,9 @@ func _reset() -> void:
 	edge_defender = 1.0
 	damage_scale = 1.0
 	hit_stun_on = true
+	rules_on = false
+	head_start_ticks = 0
+	debug_lines.clear()
 	server_tick = 0
 	countdown_remaining = 0
 	duration_remaining = 0
@@ -361,6 +420,8 @@ func step_tick() -> void:
 		return
 
 	duration_remaining -= 1
+	if rules_on and head_start_ticks > 0 and CombatConstants.DURATION_TICKS - duration_remaining <= head_start_ticks:
+		_inputs[attacker().player_id].clear_edges()   # the defender strikes first: the attacker may move but cannot start an action yet
 	# Alternate who moves first so the other fighter's body never has a permanent advantage.
 	var order: Array = [0, 1] if _tick_count % 2 == 0 else [1, 0]
 	var intents: Array = [null, null]
@@ -443,7 +504,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	if not d.health.is_alive():
 		return
 	# The attacker's advantage: the weaker side of this pairing hits harder (before armour, so it applies to chip damage too).
-	var edge := edge_attacker if a.player_id == request["attacker"]["playerId"] else edge_defender
+	var edge := (edge_attacker if a.player_id == request["attacker"]["playerId"] else edge_defender) * a.deal_mult
 	if edge != 1.0:
 		raw = maxi(1, roundi(float(raw) * edge))
 	var away_from_attacker := CombatConstants.flat(d.global_position - a.global_position)
@@ -454,6 +515,8 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 
 	# 1. Dodge invulnerability.
 	if d.sm.iframes_active():
+		d.gain_resolve(float(Balance.duel_rules()["resolve"]["gain"]["dodge"]))
+		_failed_attack(a, "dodged_stamina")
 		_emit("dodge", a, d, 0)
 		return
 
@@ -472,6 +535,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		a.add_knockback(-away_from_attacker, 0.6)
 		d.sm.on_parry_success()
 		d.stamina.refund(float(d.profile["parry_refund"]))
+		d.gain_resolve(float(Balance.duel_rules()["resolve"]["gain"]["parry"]))
 		_emit("parry", a, d, 0)
 		return
 
@@ -481,10 +545,12 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		if d.stamina.can_afford(guard_cost) and not (atk.guard_break > 0 and hit_stun_on):
 			d.stamina.lose(guard_cost)
 			d.add_knockback(away_from_attacker, atk.knockback_m * 0.5)
+			_failed_attack(a, "blocked_stamina")
 			_emit("block", a, d, 0)
 		else:
 			d.stamina.lose(d.stamina.current)  # drained to zero -> exhausted
 			var chip := _deal_damage(d, raw, 0.5)
+			_tally(a, d, chip)
 			d.sm.enter_staggered(int(d.profile["guardbreak_stun"]), "guardbreak")
 			_emit("guardbreak", a, d, chip)
 			_defeat_if_dead(d)
@@ -492,6 +558,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 
 	# 5. Clean hit.
 	var dealt := _deal_damage(d, raw)
+	_tally(a, d, dealt)
 	d.add_knockback(away_from_attacker, atk.knockback_m)
 	_emit("hit", a, d, dealt)
 	if _defeat_if_dead(d):
@@ -542,6 +609,27 @@ func felt_damage(damage: int) -> int:
 	return roundi(float(damage) / maxf(damage_scale, 0.05))
 
 
+## Cost of a failed attack (it was dodged, blocked or whiffed): the attacker's stamina, more for the seat that started the duel
+## ("attacking is a gamble"). Data: duel_rules.failed_attack.
+func _failed_attack(a: FighterController, key: String) -> void:
+	if not rules_on:
+		return
+	var rule: Dictionary = Balance.duel_rules()["failed_attack"]
+	var cost := float(rule[key]) * (float(rule["attacker_seat_mult"]) if a.is_duel_attacker else 1.0)
+	if cost > 0.0:
+		a.stamina.drain(cost)
+
+
+func _tally(a: FighterController, d: FighterController, dealt: int) -> void:
+	if dealt <= 0:
+		return
+	a.damage_dealt += dealt
+	d.damage_taken += dealt
+	var gain: Dictionary = Balance.duel_rules()["resolve"]["gain"]
+	a.gain_resolve(float(gain["hit"]))
+	d.gain_resolve(float(gain["taken"]))
+
+
 func _after_armor(d: FighterController, raw: int) -> int:
 	return maxi(1, roundi(float(raw) * (1.0 - float(d.profile["armor"]))))
 
@@ -550,6 +638,11 @@ func _after_armor(d: FighterController, raw: int) -> int:
 ## for the chip damage of a guard break. At scale 1.0 this is exactly the original whole-number rule; below 1.0 the fraction is carried
 ## (HealthComponent.apply_scaled), so a long fight keeps the exact relative strength of every blow instead of rounding it away.
 func _deal_damage(d: FighterController, raw: int, factor: float = 1.0) -> int:
+	if d.take_mult != 1.0:   # defender's edge, support / isolation, comeback (rules on only; 1.0 otherwise)
+		if damage_scale == 1.0:
+			raw = maxi(1, roundi(float(raw) * d.take_mult))
+		else:
+			return d.health.apply_scaled(float(raw) * d.take_mult * (1.0 - float(d.profile["armor"])) * factor * damage_scale)
 	if damage_scale == 1.0:
 		var whole := _after_armor(d, raw)
 		return d.health.apply_damage(whole if factor == 1.0 else maxi(1, roundi(float(whole) * factor)))
@@ -573,14 +666,44 @@ func _emit(type: String, actor: FighterController, target: FighterController, da
 	}
 	_next_event_id += 1
 	recent_events.append(event)
+	_log_event(event, actor, target)
 	while recent_events.size() > CombatConstants.EVENT_HISTORY:
 		recent_events.pop_front()
 	event_emitted.emit(event)
 
 
+func _log_event(event: Dictionary, actor: FighterController, target: FighterController) -> void:
+	var seconds := float(maxi(0, CombatConstants.DURATION_TICKS - duration_remaining)) / 60.0
+	var line := "%5.1fs %-10s %s(%s)>%s(%s) dmg %d | HP %d/%d vs %d/%d | STA %d vs %d | RES %d vs %d" % [seconds, String(event["type"]), actor.role.to_upper(), actor.color,
+			target.role.to_upper(), target.color, int(event["damage"]), actor.health.current, actor.health.maximum, target.health.current, target.health.maximum,
+			int(actor.stamina.current), int(target.stamina.current), int(actor.resolve), int(target.resolve)]
+	debug_lines.append(line)
+	while debug_lines.size() > DEBUG_LINES_CAP:
+		debug_lines.pop_front()
+	if log_to_console:
+		print(line)
+
+
+## Everything the chess layer and the debug overlay need to know about the duel, per seat ("attacker" / "defender"). Resolve is end-of-duel
+## (start - spent + gained); `damage_dealt` / `damage_taken` are HP actually removed.
+func duel_summary() -> Dictionary:
+	var out := {"rules_on": rules_on, "head_start_ticks": head_start_ticks, "ticks": CombatConstants.DURATION_TICKS - duration_remaining}
+	for seat in ["attacker", "defender"]:
+		var f: FighterController = attacker() if seat == "attacker" else defender()
+		out[seat] = {"role": f.role, "hp": f.health.current, "max_hp": f.health.maximum, "stamina": snappedf(f.stamina.current, 0.01),
+				"resolve": snappedf(f.resolve, 0.01), "resolve_start": f.resolve_start, "resolve_gained": snappedf(f.resolve_gained, 0.01),
+				"resolve_spent": snappedf(f.resolve_spent, 0.01), "damage_dealt": f.damage_dealt, "damage_taken": f.damage_taken,
+				"second_winds": f.second_winds, "overcharges": f.overcharges, "resolve_dodges": f.resolve_dodges, "whiffs": f.whiffs,
+				"take_mult": snappedf(f.take_mult, 0.001)}
+	return out
+
+
 func _flush_fighter_events() -> void:
 	for fighter in fighters:
 		for type in fighter.drain_events():
+			if type == "whiff":
+				fighter.whiffs += 1
+				_failed_attack(fighter, "whiff_stamina")
 			_emit(type, fighter, opponent_of(fighter), 0)
 
 

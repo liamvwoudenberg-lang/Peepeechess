@@ -74,7 +74,7 @@ func start(tree: SceneTree) -> bool:
 	request = lesson_request()
 	sim = CombatSimulation.new()
 	tree.root.add_child(sim)
-	var reply: Dictionary = sim.start(request, {"allow_experimental_roles": true})
+	var reply: Dictionary = sim.start(request, {"allow_experimental_roles": true, "duel_rules": false})   # practice teaches the documented mechanics: no defender head start, no Resolve
 	if not reply["ok"]:
 		sim.get_parent().remove_child(sim)
 		sim.queue_free()
