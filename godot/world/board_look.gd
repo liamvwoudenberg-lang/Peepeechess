@@ -11,10 +11,10 @@ const PIECE_SCALE := 1.0
 const BASE_TARGET := 0.82          # documented goal: piece base / square. test_board_look measures the real footprint against it
 
 # ---- squares (ivory marble vs dark slate) ----------------------------------------------------------------------------------------
-const LIGHT_SQUARE := Color("cfc7b3")     # ivory marble
-const DARK_SQUARE := Color("2a3138")      # blue-black slate
-const LIGHT_VEIN := Color("a89f8c")       # marble veining (subtle)
-const DARK_VEIN := Color("4b5660")        # slate grain (subtle)
+const LIGHT_SQUARE := Color("e9e5db")     # ivory marble
+const DARK_SQUARE := Color("c9631c")      # blue-black slate
+const LIGHT_VEIN := Color("b9b3a4")       # marble veining (subtle)
+const DARK_VEIN := Color("9a4a12")        # slate grain (subtle)
 const SQUARE_ROUGHNESS_LIGHT := 0.34      # polished marble
 const SQUARE_ROUGHNESS_DARK := 0.5
 const SQUARE_NORMAL_STRENGTH := 0.35
@@ -43,6 +43,12 @@ const BRAZIER_POS := 6.7                  # braziers flank the board corners, ou
 const BANNER_NAVY := Color("1d2c52")
 const BANNER_CRIMSON := Color("8c1f2c")
 const BANNER_GOLD := Color("c9a24c")
+
+# ---- imported props (Meshy models in assets/world/props/; sizes in metres at scale 1.0: torch 0.5 x 0.95, banner 0.57 x 0.95) ----
+const PROP_TORCH_SCALE := 1.6
+const PROP_BANNER_SCALE := 3.0
+const TORCH_ENERGY := 1.1
+const TORCH_RANGE := 6.0
 
 # ---- lights & fog ----------------------------------------------------------------------------------------------------------------
 const BACKGROUND := Color("0d1016")

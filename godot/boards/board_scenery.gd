@@ -290,6 +290,7 @@ static func build(scene: Node3D) -> Node3D:
 			_cyl(root, 0.55, 0.48, L.PILLAR_HEIGHT, at + Vector3(0, floor_y + 0.5 + L.PILLAR_HEIGHT * 0.5, 0), stone, 24)
 			_box(root, Vector3(1.2, 0.35, 1.2), at + Vector3(0, floor_y + 0.5 + L.PILLAR_HEIGHT + 0.17, 0), stone)
 			_cyl(root, 0.56, 0.56, 0.08, at + Vector3(0, floor_y + 0.95, 0), gold, 24)
+			_pillar_props(root, at, floor_y, (sx + 1) + (sz + 1) / 2)
 
 	# ---- braziers with flickering warm point lights (outside the dais) ----
 	var bp: float = L.BRAZIER_POS
@@ -299,6 +300,58 @@ static func build(scene: Node3D) -> Node3D:
 			_brazier(root, Vector3(sx * bp, floor_y, sz * bp), i)
 			i += 1
 	return root
+
+
+const PROP_DIR := "res://assets/world/props/"
+
+## An imported Meshy prop (assets/world/props/<name>.fbx + <name>_{albedo,normal,roughness,metallic}.png), textured here so the
+## material never depends on file names inside the FBX. Returns null when the files are missing (the procedural stand-in stays).
+static func prop(name: String) -> Node3D:
+	var packed = load(PROP_DIR + name + ".fbx") if ResourceLoader.exists(PROP_DIR + name + ".fbx") else null
+	if not packed is PackedScene:
+		return null
+	var node: Node3D = packed.instantiate()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = load(PROP_DIR + name + "_albedo.png")
+	mat.normal_enabled = true
+	mat.normal_texture = load(PROP_DIR + name + "_normal.png")
+	mat.roughness_texture = load(PROP_DIR + name + "_roughness.png")
+	mat.metallic_texture = load(PROP_DIR + name + "_metallic.png")
+	mat.metallic = 1.0
+	mat.roughness = 1.0
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for m in node.find_children("*", "MeshInstance3D", true, false):
+		m.material_override = mat
+	return node
+
+
+## Torch sconce and heraldic banner (Meshy models) on the inner face of a corner pillar, plus a warm flickering light at the flame.
+static func _pillar_props(parent: Node3D, pillar: Vector3, floor_y: float, index: int) -> void:
+	var inward := Vector3(-signf(pillar.x), 0, -signf(pillar.z)).normalized()
+	var yaw := atan2(inward.x, inward.z)
+	var banner := prop("heraldic_banner")
+	if banner != null:
+		banner.position = pillar + inward * 0.64 + Vector3(0, floor_y + 3.55, 0)
+		banner.rotation.y = yaw
+		banner.scale = Vector3.ONE * L.PROP_BANNER_SCALE
+		parent.add_child(banner)
+	var torch := prop("torch_sconce")
+	if torch != null:
+		torch.position = pillar + inward * 0.8 + Vector3(0, floor_y + 1.75, 0)
+		torch.rotation.y = yaw
+		torch.scale = Vector3.ONE * L.PROP_TORCH_SCALE
+		parent.add_child(torch)
+		var light := Flicker.new()
+		light.position = torch.position + Vector3(0, 0.55 * L.PROP_TORCH_SCALE, 0) + inward * 0.1
+		light.light_color = L.BRAZIER_COLOR
+		light.base = L.TORCH_ENERGY
+		light.light_energy = L.TORCH_ENERGY
+		light.amount = L.BRAZIER_FLICKER
+		light.phase = index * 2.3 + 0.7
+		light.omni_range = L.TORCH_RANGE
+		light.omni_attenuation = 1.6
+		light.light_cull_mask = 2
+		parent.add_child(light)
 
 
 static func _banner(parent: Node3D, at: Vector3, yaw: float, index: int) -> void:
