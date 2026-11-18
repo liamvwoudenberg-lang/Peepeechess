@@ -101,6 +101,7 @@ try {
   run('import', ['--editor', '--import']);
   run('authority', ['--script', 'res://tests/network/network_test.gd']);
   run('roster', ['--script', 'res://tests/network/roster_test.gd']);
+  run('online meta (fairness rules online)', ['--script', 'res://tests/network/online_meta_test.gd']);
   run('online-ui', ['--script', 'res://tests/network/online_ui_test.gd']);
   run('host-play', ['--script', 'res://tests/network/host_play_test.gd'], true);
   run('host-pinning', ['--script', 'res://tests/network/host_play_test.gd', '--', '--pinning'], true);

@@ -5,7 +5,7 @@ signal changed
 signal combat_snapshot(snapshot: Dictionary)
 signal battle_receipt(result: Dictionary)
 const Classic = preload("res://chess/classic_match.gd")
-const Battle = preload("res://chess/battle_match.gd")
+const Battle = preload("res://chess/battle_meta_match.gd")  # fairness pass online: persistent damage, support, Resolve; same chess rules (battle-checkmate-v1)
 const Royal = preload("res://chess/battle_royal_match.gd")
 const Rules = preload("res://chess/chess_engine.gd")
 const Sim = preload("res://combat/core/combat_simulation.gd")
