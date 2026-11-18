@@ -23,3 +23,8 @@ work/
 godot/android/
 *.keystore
 *.jks
+
+# Server secrets (never commit): DTLS private keys and the VPS environment file
+*.key
+*.pem
+server.env
