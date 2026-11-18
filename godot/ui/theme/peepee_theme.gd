@@ -213,6 +213,7 @@ static func _build_buttons(theme: Theme, bold: Font) -> void:
 	_button_colors(theme, "SegButton", T.TEXT, T.GOLD_HI, T.TEXT_ON_GOLD, T.TEXT_DIM)
 	theme.set_stylebox("hover_pressed", "SegButton", _button_style(T.GOLD_HI, Color("fff0c7"), 1, T.R_MD, 16, 10))
 	theme.set_color("font_hover_pressed_color", "SegButton", T.TEXT_ON_GOLD)
+	GothicPlaque.apply(theme)   # dark gothic plaques (ui/theme/gothic_plaque.gd) for Button / Primary / Seg / NavActive / Danger
 	theme.set_type_variation("CardToggle", "Button")
 	_set_button_states(theme, "CardToggle", _button_style(T.SURFACE, T.BORDER, 1, T.R_LG, 20, 16), _button_style(T.SURFACE_2, T.GOLD_LO, 1, T.R_LG, 20, 16), _button_style(T.SURFACE_GOLD, T.GOLD, 2, T.R_LG, 20, 16), _button_style(T.SURFACE, T.BORDER, 1, T.R_LG, 20, 16), T.R_LG)
 	_button_colors(theme, "CardToggle", T.TEXT, T.GOLD_HI, T.GOLD_HI, T.TEXT_DIM)

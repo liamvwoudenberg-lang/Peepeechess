@@ -95,7 +95,9 @@ func theme_coverage() -> void:
 	var primary := Button.new()
 	primary.theme_type_variation = "PrimaryButton"
 	host.add_child(primary)
-	expect(primary.get_theme_color("font_color") == T.TEXT_ON_GOLD, "primary button uses dark text on gold")
+	# gothic plaques (ui/theme/gothic_plaque.gd): the primary button is a gold-rimmed dark plaque with pale-gold text; the label must stay readable on its interior
+	var primary_text: Color = primary.get_theme_color("font_color")
+	expect(T.contrast(primary_text, Color("221447")) >= 4.5 and T.contrast(primary_text, Color("4a2478")) >= 4.5, "primary button uses light text on the dark plaque interior")
 	host.queue_free()
 
 func prefs_checks() -> void:

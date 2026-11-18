@@ -5,6 +5,7 @@ extends Node
 const Motion = preload("res://ui/theme/ui_motion.gd")
 const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const Audio =preload("res://ui/theme/ui_audio.gd")
+const Fx = preload("res://ui/theme/plaque_fx.gd")
 var root: Node
 var hooked := 0
 
@@ -41,6 +42,15 @@ func _hook(button: BaseButton) -> void:
 	button.mouse_exited.connect(func(): _glow(button, false))
 	button.focus_entered.connect(func(): _glow(button, true))
 	button.focus_exited.connect(func(): _glow(button, false))
+	# plaque glow + wisps while selected (hover / focus / chosen / primary); a no-op for flat ghost, icon and nav buttons
+	var sync := func(): Fx.sync(button)
+	button.mouse_entered.connect(sync)
+	button.mouse_exited.connect(sync)
+	button.focus_entered.connect(sync)
+	button.focus_exited.connect(sync)
+	button.toggled.connect(func(_on): sync.call())
+	button.visibility_changed.connect(sync)
+	sync.call_deferred()
 
 func _glow(button: BaseButton, on: bool) -> void:
 	if not is_instance_valid(button) or not button.is_inside_tree():

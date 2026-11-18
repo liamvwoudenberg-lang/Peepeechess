@@ -25,6 +25,7 @@ const godot = process.env.GODOT_BIN || 'godot';
 // that when every run shares one user:// directory (an existing coupling), so it runs before them.
 const suites = [
   'res://tests/ui/ui_theme_test.gd',
+  'res://tests/ui/gothic_style_test.gd',
   'res://tests/ui/ui_layout_test.gd',
   'res://tests/ui/ui_overlap_test.gd',   // overlap / clipping / tiny-target audit of every page, the match screen, dialogs and a whole battle
   'res://tests/ui/opening_screen_test.gd',
