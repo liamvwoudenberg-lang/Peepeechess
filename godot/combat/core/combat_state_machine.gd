@@ -54,6 +54,12 @@ var cast_total: int = 0
 var cast_kind: String = ""
 var blink_dir: Vector3 = Vector3.ZERO
 
+## Anti-mash (core/anti_mash.gd): ticks the fighter cannot act after a fully whiffed swing, i-frames trimmed from the dodge in progress,
+## and the one-tick "heavy held" flag (the state clock does not advance while the wind-up is held).
+var whiff_lock: int = 0
+var dodge_trim_now: int = 0
+var _hold_now: bool = false
+
 var last_denied: String = ""
 var last_denied_tick: int = -1000
 
@@ -74,8 +80,22 @@ func is_free() -> bool:
 func iframes_active() -> bool:
 	if state == S.ABILITY_CASTING and cast_kind == "blink" and attack == null:
 		return state_ticks < int(f.ability.definition["iframe_ticks"])  # Bishop: vanished
-	return state == S.DODGING and state_ticks >= int(f.profile["dodge_iframe_start"]) \
-			and state_ticks < int(f.profile["dodge_iframe_end"])
+	var start := int(f.profile["dodge_iframe_start"])
+	return state == S.DODGING and state_ticks >= start \
+			and state_ticks < maxi(start + 1, int(f.profile["dodge_iframe_end"]) - dodge_trim_now)
+
+
+## Anti-mash: the fighter is in the open after a swing that hit nothing (locked recovery, or the recovery phase of that swing).
+func whiff_vulnerable() -> bool:
+	if whiff_lock > 0:
+		return true
+	return f.am.on and state == S.ATTACKING and attack != null and attack.kind != AttackDefinition.Kind.ABILITY \
+			and not f.hitbox.hit_anything and attack_phase() == AttackDefinition.Phase.RECOVERY
+
+
+## Anti-mash: a dodge past its i-frames (the roll's recovery).
+func dodge_recovering() -> bool:
+	return state == S.DODGING and not iframes_active() and state_ticks >= int(f.profile["dodge_iframe_start"])
 
 
 func parry_window_open() -> bool:
@@ -128,7 +148,9 @@ func attack_progress() -> float:
 # --------------------------------------------------------------------------------------------
 func tick(intent: FighterIntent) -> void:
 	_intent = intent
+	_hold_now = false
 	_tick_timers()
+	f.am.tick(state == S.IDLE or state == S.MOVING or state == S.BLOCKING, state == S.DODGING)
 	_buffer_edges(intent)
 	match state:
 		S.DEFEATED:
@@ -151,6 +173,9 @@ func tick(intent: FighterIntent) -> void:
 
 
 func end_tick() -> void:
+	if _hold_now:
+		_hold_now = false   # heavy held: the wind-up clock waits
+		return
 	state_ticks += 1
 
 
@@ -188,6 +213,12 @@ func _buffer_edges(intent: FighterIntent) -> void:
 # State handlers
 # --------------------------------------------------------------------------------------------
 func _tick_free() -> void:
+	if whiff_lock > 0:   # anti-mash: nothing can be started while recovering from a whiffed swing (the buffer keeps the next press)
+		whiff_lock -= 1
+		var locked_target: int = S.MOVING if _intent.has_move() else S.IDLE
+		if state != locked_target:
+			_enter(locked_target)
+		return
 	if _consume_buffer(["ability", "dodge", "parry", "heavy", "light"]):
 		return
 	if _intent.block_held and not f.stamina.exhausted:
@@ -210,6 +241,26 @@ func _tick_attack() -> void:
 	if state_ticks >= attack_total:
 		_finish_attack()
 		return
+	var am_swing: bool = f.am.on and attack.kind != AttackDefinition.Kind.ABILITY
+	if am_swing:
+		var window := attack.active_window(attack_total)
+		if attack.kind == AttackDefinition.Kind.HEAVY and _intent.block_held and state_ticks == window.x - 1 \
+				and f.am.hold_used < int(f.am.cfg["heavy_hold"]["max_ticks"]):
+			f.am.hold_used += 1   # delay: Guard held at the end of the wind-up keeps the heavy back (a few ticks)
+			_hold_now = true
+			return
+		if attack.kind == AttackDefinition.Kind.LIGHT and _intent.block_held and not f.stamina.exhausted and f.am.feint_cd == 0 \
+				and state_ticks >= int(f.am.cfg["feint"]["min_ticks"]) and state_ticks < window.x:
+			# feint: a light cancelled into Guard before it is active returns part of its stamina
+			var feint: Dictionary = f.am.cfg["feint"]
+			f.stamina.refund(attack.stamina_cost * float(feint["refund_frac"]))
+			f.am.feint_cd = int(feint["cooldown_ticks"])
+			_close_swing()
+			combo_index = -1
+			_enter(S.BLOCKING)
+			return
+		if not f.hitbox.hit_anything and state_ticks >= window.y:
+			return   # a whiffed swing cannot be cancelled: it is played out
 	if state_ticks >= attack.cancel_tick(attack_total):
 		if _consume_buffer(["ability", "dodge", "parry", "heavy", "light"]):
 			return
@@ -220,7 +271,10 @@ func _tick_attack() -> void:
 
 func _finish_attack() -> void:
 	var was_light := attack.kind == AttackDefinition.Kind.LIGHT
+	var whiffed: bool = f.am.on and attack.kind != AttackDefinition.Kind.ABILITY and not f.hitbox.hit_anything
 	_close_swing()
+	if whiffed:
+		whiff_lock = int(f.am.cfg["whiff"]["lock_ticks"])
 	if was_light and combo_index < f.combo_limit() - 1:
 		combo_timer = CombatConstants.COMBO_GRACE_TICKS
 	else:
@@ -307,8 +361,10 @@ func _start_light() -> int:
 
 
 func _begin_attack(def: AttackDefinition, light_index: int) -> int:
-	if not f.stamina.spend(def.stamina_cost):
+	if not f.stamina.spend(def.stamina_cost * f.am.cost_mult()):
 		return _deny("stamina")
+	f.am.note_action()
+	f.am.hold_used = 0
 	_close_swing()
 	attack = def
 	attack_total = def.total_ticks(f.stats, f.ability.attack_speed_mult())
@@ -322,14 +378,18 @@ func _begin_attack(def: AttackDefinition, light_index: int) -> int:
 func _start_dodge() -> int:
 	if dodge_cooldown > 0:
 		return Result.DENIED_KEEP
-	if not f.stamina.spend(float(f.profile["dodge_cost"])) and not f.try_resolve_dodge():
+	if not f.stamina.spend(float(f.profile["dodge_cost"]) * f.am.cost_mult()) and not f.try_resolve_dodge():
 		return _deny("stamina")
+	f.am.note_action()
+	dodge_trim_now = f.am.dodge_trim()   # chained dodges: fewer i-frames, slower recovery
+	var extra_recovery: int = f.am.dodge_extra_recovery()
+	f.am.note_dodge()
 	_close_swing()
 	if _intent.has_move():
 		dodge_dir = _intent.move_vector().normalized()
 	else:
 		dodge_dir = -CombatConstants.heading(f.yaw)
-	dodge_total = int(f.profile["dodge_ticks"])
+	dodge_total = int(f.profile["dodge_ticks"]) + extra_recovery
 	dodge_cooldown = dodge_total + int(f.profile["dodge_cooldown_ticks"])
 	_enter(S.DODGING)
 	return Result.STARTED
@@ -338,8 +398,9 @@ func _start_dodge() -> int:
 func _start_parry() -> int:
 	if parry_cooldown > 0:
 		return Result.DENIED_KEEP
-	if not f.stamina.spend(float(f.profile["parry_cost"])):
+	if not f.stamina.spend(float(f.profile["parry_cost"]) * f.am.cost_mult()):
 		return _deny("stamina")
+	f.am.note_action()
 	_close_swing()
 	parry_window = int(f.stats["parryTicks"]) + int(f.profile.get("parry_window_bonus", 0))   # data: a wider, more readable window (BALANCE.md "Pacing")
 	parry_total = parry_window + int(f.profile["parry_recovery_ticks"])
@@ -415,6 +476,7 @@ func enter_staggered(ticks: int, kind: String) -> void:
 	if state == S.DEFEATED:
 		return
 	_close_swing()
+	whiff_lock = 0
 	combo_index = -1
 	combo_timer = 0
 	buffered = ""

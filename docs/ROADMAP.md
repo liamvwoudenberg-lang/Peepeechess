@@ -15,7 +15,7 @@ Rules for every step
 
 ## Steps
 
-- [ ] **1. Duel anti-mash (sim, fighter, harness).** Button-mashing must lose to timing and tactics. Adapt to the
+- [ ] **1. Duel anti-mash (IMPLEMENTED, UNVERIFIED: no Godot binary in this container, nothing was run; see notes below) (sim, fighter, harness).** Button-mashing must lose to timing and tactics. Adapt to the
   existing actions (Light, Heavy, Guard, Special, dodge): whiff punishment with a vulnerable recovery window; stamina
   cost escalating for consecutive actions; move staleness (same attack repeated deals less); parry/perfect-block window
   that restores stamina and breaks poise; feints and delays (Heavy can be held a few ticks, Light can cancel into Guard
@@ -46,3 +46,11 @@ Rules for every step
 - [ ] **6. Online parity.** Port all mechanics to online rooms: server-validated chess layer, input-synced duels,
   state-hash desync checks, plus a network-simulator test with latency and packet loss (target zero desyncs at
   150 ms / 2% loss). Secrets only via environment variables.
+
+## Step 1 status (unverified)
+
+- Changed: `anti_mash` config block + `core/anti_mash.gd`, hooks in state machine / sim / fighter, `masher` + `timing` AI styles, `combat/tools/anti_mash.gd` harness, BALANCE.md section.
+- Harness numbers: NONE. `godot` is not installed here and the rules forbid downloading, so no import check, tests or acceptance run happened.
+- Skipped: chess AI capture table (`chess/ai/battle_model.gd` reads `combat/data/balance_matrix_v1.json`, needs the long calibration), pinned `SHIPPED_STAMP` in `combat/tests/test_balance.gd` (new hash needs Godot), tuning of every number.
+- Needs a machine with Godot: import check, `test_balance`/`test_matchups`/`test_attacker_edge`/`test_fairness`, then `anti_mash.gd mode=skill|matrix`, tune, regenerate the matrix.
+- Needs human playtest: feel of whiff lock, heavy hold (Guard at end of wind-up), feint, perfect block.

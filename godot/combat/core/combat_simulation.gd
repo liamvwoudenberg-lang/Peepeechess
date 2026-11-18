@@ -54,6 +54,8 @@ var hit_stun_on: bool = true
 ## Off for raw frame data (option attacker_edge:false), option duel_rules:false, and any pairing with a King (own balance).
 var rules_on: bool = false
 var head_start_ticks: int = 0
+## Anti-mash rules (balance_v1.json `anti_mash`, core/anti_mash.gd). Needs the duel rules; start option anti_mash:false switches it off.
+var anti_mash_on: bool = false
 ## Human-readable log of the duel (hits, blocks, parries, Resolve spends) for the debug overlay and for playtest notes. Newest last, capped.
 var debug_lines: Array[String] = []
 var log_to_console: bool = false
@@ -233,7 +235,10 @@ func _apply_duel_rules(options: Dictionary, attacker_role: String, defender_role
 				fighter.deal_mult *= float(mods.get("deal_mult", 1.0))
 				fighter.stamina.seat_regen *= float(mods.get("regen_mult", 1.0))
 				fighter.resolve = clampf(float(mods.get("resolve", 0.0)), 0.0, fighter.resolve_max)
+	var am_option = options.get("anti_mash", null)
+	anti_mash_on = rules_on and Balance.anti_mash_enabled() and not (am_option is bool and not am_option)
 	for seat in seats:
+		seats[seat].am.setup(anti_mash_on)
 		seats[seat].resolve_start = seats[seat].resolve
 
 
@@ -304,6 +309,7 @@ func _reset() -> void:
 	damage_scale = 1.0
 	hit_stun_on = true
 	rules_on = false
+	anti_mash_on = false
 	head_start_ticks = 0
 	debug_lines.clear()
 	server_tick = 0
@@ -508,6 +514,11 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	if edge != 1.0:
 		raw = maxi(1, roundi(float(raw) * edge))
 	var away_from_attacker := CombatConstants.flat(d.global_position - a.global_position)
+	var am_poise := 0.0
+	if anti_mash_on:
+		var am := _anti_mash_blow(a, d, atk)
+		raw = maxi(1, roundi(float(raw) * float(am["mult"])))
+		am_poise = float(am["poise"])
 	if hit_stun_on:   # the game's rules (raw frame data, option attacker_edge:false, has none of these)
 		var identity := atk.range_mult(away_from_attacker.length()) * pacing_mult(a, d)
 		if identity != 1.0:
@@ -535,6 +546,11 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		a.add_knockback(-away_from_attacker, 0.6)
 		d.sm.on_parry_success()
 		d.stamina.refund(float(d.profile["parry_refund"]))
+		if anti_mash_on:   # a parry restores more stamina and breaks the attacker's poise
+			var pcfg: Dictionary = Balance.anti_mash()["parry"]
+			d.stamina.refund(float(pcfg["refund_bonus"]))
+			a.poise = maxf(0.01, a.poise - float(pcfg["poise_cut"]))
+			a.poise_delay = int(a.profile["poise_regen_delay"])
 		d.gain_resolve(float(Balance.duel_rules()["resolve"]["gain"]["parry"]))
 		_emit("parry", a, d, 0)
 		return
@@ -542,6 +558,17 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	# 4. Block: absorbs a frontal hit for stamina; not enough stamina breaks the guard.
 	if d.sm.guard_up() and d.faces_toward(a.global_position, float(d.profile["block_arc_deg"])):
 		var guard_cost := float(raw) * atk.guard_cost_mult * float(d.profile["block_cost_mult"])
+		if anti_mash_on:
+			var amc: Dictionary = Balance.anti_mash()
+			if atk.kind == AttackDefinition.Kind.HEAVY:
+				guard_cost *= float(amc["counter"]["heavy_on_guard_cost"])   # heavy beats guard
+			var pb: Dictionary = amc["perfect_block"]
+			if d.sm.state_ticks < CombatConstants.BLOCK_RAISE_TICKS + int(pb["window_ticks"]) and atk.guard_break == 0:
+				# perfect block: the guard went up just in time. Cheap, restores stamina, shakes the attacker's poise.
+				guard_cost *= float(pb["cost_mult"])
+				d.stamina.refund(float(pb["refund"]))
+				a.poise = maxf(0.01, a.poise - float(pb["attacker_poise_damage"]))
+				a.poise_delay = int(a.profile["poise_regen_delay"])
 		if d.stamina.can_afford(guard_cost) and not (atk.guard_break > 0 and hit_stun_on):
 			d.stamina.lose(guard_cost)
 			d.add_knockback(away_from_attacker, atk.knockback_m * 0.5)
@@ -566,7 +593,7 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 	d.hit_react_ticks = int(d.profile["hit_react_ticks"])
 	if d.sm.has_armor() or d.sm.state == S.STAGGERED or d.sm.stagger_immunity > 0:
 		return  # armoured, already staggered, or briefly immune: damage only
-	d.poise -= atk.poise_damage
+	d.poise -= atk.poise_damage + am_poise
 	d.poise_delay = int(d.profile["poise_regen_delay"])
 	if d.poise <= 0.0:
 		d.poise = float(d.profile["poise"])
@@ -579,6 +606,27 @@ func _apply_hit(a: FighterController, d: FighterController, atk: AttackDefinitio
 		var ticks := roundi(float(atk.hitstun_ticks) * mult)
 		if ticks > 0:
 			d.sm.enter_staggered(ticks, "hit")
+
+
+## Anti-mash multiplier for one blow (data: anti_mash): the staleness of the attack (the same blow repeated deals less) times the
+## counter relationships: a blow into a whiffed recovery, a light into a heavy's wind-up, a heavy into a dodge's recovery. Returns
+## {"mult", "poise"} (bonus poise damage). Deterministic: the attacker's recent-attack history and the defender's state only.
+func _anti_mash_blow(a: FighterController, d: FighterController, atk: AttackDefinition) -> Dictionary:
+	var cfg: Dictionary = Balance.anti_mash()
+	var mult := a.am.stale_mult(atk.id)
+	var poise := 0.0
+	var counter: Dictionary = cfg["counter"]
+	if d.sm.whiff_vulnerable():
+		mult *= float(cfg["whiff"]["vuln_mult"])
+		poise += float(cfg["whiff"]["poise_bonus"])
+	elif d.sm.state == S.ATTACKING and d.sm.attack != null and d.sm.attack.kind == AttackDefinition.Kind.HEAVY \
+			and d.sm.attack_phase() == AttackDefinition.Phase.STARTUP and atk.kind == AttackDefinition.Kind.LIGHT:
+		mult *= float(counter["light_on_heavy_startup"])
+		poise += float(counter["poise_bonus"])
+	elif atk.kind == AttackDefinition.Kind.HEAVY and d.sm.dodge_recovering():
+		mult *= float(counter["heavy_on_dodge_recovery"])
+		poise += float(counter["poise_bonus"])
+	return {"mult": mult, "poise": poise}
 
 
 ## Pacing: a fighter far behind on health hits a little harder (comeback), and once the duel has run past `start_s` every blow

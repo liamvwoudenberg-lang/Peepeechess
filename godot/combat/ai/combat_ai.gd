@@ -22,7 +22,7 @@ extends RefCounted
 ## `skill` (0..1) scales reaction time and how often a defence is attempted. Everything is seeded.
 
 const Balance := preload("res://combat/data/balance_data.gd")
-const STYLE_NAMES := ["balanced", "aggressive", "defensive", "evasive", "ability", "duelist", "patient"]
+const STYLE_NAMES := ["balanced", "aggressive", "defensive", "evasive", "ability", "duelist", "patient", "masher", "timing"]
 
 ## Neutral values reproduce the original behaviour exactly (no extra RNG draws), so existing seeded fights stay stable.
 const NEUTRAL := {
@@ -45,6 +45,7 @@ const NEUTRAL := {
 	"error_rate": 0.0,          # chance a planned defence / attack decision is dropped (hesitation, misread)
 	"follow_chance": 1.0,       # chance each planned follow-up link of a combo is really thrown
 	"timing_jitter": 0,         # +- ticks of error on the precise (frame-data) parry / dodge timing
+	"mash": false,              # button masher: presses attacks constantly, never defends, ignores stamina (harness style)
 	"no_attack": false,         # never starts an attack (a lesson dummy that only defends)
 }
 const STYLE_OVERRIDES := {
@@ -58,6 +59,12 @@ const STYLE_OVERRIDES := {
 			"counter_eager": 0.5},
 	"duelist": {"heavy_chance": 0.2, "cooldown_scale": 0.9, "follow_max": 2, "defence_scale": 1.0, "hold_extra": 0.35,
 			"punish": true, "poke": 0.6, "precise": true, "counter_eager": 0.9},
+	# Harness styles for the anti-mash acceptance (BALANCE.md "Anti-mash"). masher = the baseline mash; timing = reads frame data,
+	# parries / dodges on the telegraph and punishes every recovery (a duelist that pokes less).
+	"masher": {"heavy_chance": 0.3, "cooldown_scale": 0.0, "follow_max": 3, "defence_scale": 0.0, "hold_extra": -0.3,
+			"sprint_in": true, "poke": 1.0, "counter_eager": 0.0, "mash": true},
+	"timing": {"heavy_chance": 0.15, "cooldown_scale": 1.0, "follow_max": 2, "defence_scale": 1.0, "hold_extra": 0.35,
+			"punish": true, "poke": 0.5, "precise": true, "counter_eager": 0.9},
 	"patient": {"heavy_chance": 0.25, "cooldown_scale": 1.0, "follow_max": 2, "defence_scale": 1.0, "hold_extra": 0.5,
 			"punish": true, "poke": 0.15, "precise": true, "counter_eager": 0.9},
 	"ability": {"heavy_chance": 0.18, "cooldown_scale": 0.9, "follow_max": 2, "defence_scale": 1.0,
@@ -90,6 +97,7 @@ var _my_cooldown := 0
 var _blink_evade := false
 var _under_pressure := 0
 var _counter_planned := false
+var _mash_t := 0
 # duelist bookkeeping
 var _opp_prev_ticks := 0
 var _opp_link := 0
@@ -219,7 +227,7 @@ func think(snapshot: Dictionary) -> Dictionary:
 
 	# ---- positioning -------------------------------------------------------------------------
 	var reach: float = float(_my_stats["reachM"]) + 0.3
-	var low_stamina: bool = float(me["stamina"]) < 22.0
+	var low_stamina: bool = float(me["stamina"]) < 22.0 and not bool(_p["mash"])
 	_strafe_ticks -= 1
 	if _strafe_ticks <= 0:
 		_strafe_ticks = rng.randi_range(25, 70)
@@ -249,7 +257,7 @@ func think(snapshot: Dictionary) -> Dictionary:
 	var opp_in_stance: bool = _opp_counter_id and opp["state"] == "AbilityCasting" and not opp_vulnerable
 	var threatened: bool = (bool(_p["precise"]) and (opp_attacking and not opp_vulnerable or _plan_action != "")) \
 			or (bool(_p["punish"]) and opp_in_stance)
-	if free and _block_ticks == 0 and _scheduled_in == 0 and not low_stamina and not threatened:
+	if free and _block_ticks == 0 and _scheduled_in == 0 and (not low_stamina or bool(_p["mash"])) and not threatened:
 		if _follow_up_in > 0:
 			_follow_up_in -= 1
 		elif _follow_up_in == 0 and _follow_ups_left > 0 and dist <= reach + 0.5 and aimed:
@@ -281,6 +289,10 @@ func think(snapshot: Dictionary) -> Dictionary:
 					_attack_cooldown = int((int(_my_stats["lightTicks"]) + rng.randi_range(14, 45)) * float(_p["cooldown_scale"]))
 		_maybe_use_ability(me, opp, dist)
 
+	if bool(_p["mash"]):   # a masher hammers the button every few ticks, buffering the next swing into any recovery
+		_mash_t += 1
+		if dist <= reach + 0.3 and aimed and _mash_t % 4 == 0:
+			builder.press("heavy" if rng.randf() < float(_p["heavy_chance"]) * 0.5 else "light")
 	if force_sidestep:
 		move = side * _strafe_dir
 	return builder.build(move.x, move.z, yaw_to, true, sprint, block)

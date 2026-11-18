@@ -167,6 +167,16 @@ static func pacing() -> Dictionary:
 	return _active.get("pacing", {"comeback": {"hp_gap": 2.0, "damage_mult": 1.0}, "sudden_death": {"start_s": 9999.0, "ramp_per_s": 0.0}})
 
 
+## Anti-mash rules (BALANCE.md "Anti-mash"). `enabled` false (or section absent) = the pre-anti-mash duel, bit for bit.
+static func anti_mash() -> Dictionary:
+	_ensure()
+	return _active.get("anti_mash", {"enabled": false})
+
+
+static func anti_mash_enabled() -> bool:
+	return bool(anti_mash().get("enabled", false))
+
+
 ## Fairness-pass duel rules (defender's edge, cost of a failed attack, Resolve spends and gains). Neutral when the data has none.
 static func duel_rules() -> Dictionary:
 	_ensure()
@@ -321,7 +331,7 @@ static func validate(data: Dictionary) -> Array:
 				errors.append("pacing.sudden_death: start_s >= 5 and ramp_per_s in 0..1")
 	if data.has("attacker_edge"):
 		_validate_attacker_edge(data["attacker_edge"], data["profiles"], errors)
-	for section in ["duel_rules", "meta"]:
+	for section in ["duel_rules", "meta", "anti_mash"]:
 		if data.has(section) and typeof(data[section]) != TYPE_DICTIONARY:
 			errors.append("%s must be an object" % section)
 	if data.get("duel_rules", {}) is Dictionary:
@@ -596,7 +606,7 @@ static func _normalise(raw: Dictionary) -> Dictionary:
 		var sudden_raw: Dictionary = pace_raw.get("sudden_death", {})
 		out["pacing"] = {"comeback": {"hp_gap": float(comeback_raw.get("hp_gap", 2.0)), "damage_mult": float(comeback_raw.get("damage_mult", 1.0))},
 				"sudden_death": {"start_s": float(sudden_raw.get("start_s", 9999.0)), "ramp_per_s": float(sudden_raw.get("ramp_per_s", 0.0))}}
-	for section in ["duel_rules", "meta"]:   # fairness-pass sections: nested numbers/strings copied as they are (validated in validate())
+	for section in ["duel_rules", "meta", "anti_mash"]:   # fairness-pass sections: nested numbers/strings copied as they are (validated in validate())
 		if raw.has(section):
 			out[section] = (raw[section] as Dictionary).duplicate(true)
 	if raw.has("attacker_edge"):

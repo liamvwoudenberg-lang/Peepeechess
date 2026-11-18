@@ -11,6 +11,7 @@ extends CharacterBody3D
 
 const S := CombatConstants.State
 const Balance := preload("res://combat/data/balance_data.gd")
+const AntiMash := preload("res://combat/core/anti_mash.gd")
 
 var player_id: String = ""
 var piece_id: String = ""
@@ -64,6 +65,8 @@ var second_winds: int = 0
 var overcharges: int = 0
 var resolve_dodges: int = 0
 var whiffs: int = 0
+## Anti-mash bookkeeping (core/anti_mash.gd); `am.on` is set by the simulation from the duel rules + balance flag.
+var am := AntiMash.new()
 
 
 ## Returns "" on success or a reason string. `combatant` is a contract Combatant dictionary.
