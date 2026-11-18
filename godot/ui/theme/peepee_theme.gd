@@ -261,6 +261,12 @@ static func _build_panels(theme: Theme) -> void:
 		"BannerPanel": flat(T.SURFACE_GOLD, T.GOLD, 1, T.R_MD, 16, 10),
 		"DangerPanel": flat(Color("2f1816"), T.DANGER_BG_HI, 1, T.R_MD, 16, 10),
 		"ToastPanel": with_shadow(flat(T.SURFACE_3, T.GOLD_LO, 1, T.R_MD, 18, 12), 14, 6, 0.6),
+		# Minimal UI: small translucent glass with a thin gold keyline and a soft shadow (AA-contrast text stays on the dark glass)
+		"GlassPlate": with_shadow(flat(Color(0.04, 0.05, 0.08, 0.6), Color(T.GOLD_LO.r, T.GOLD_LO.g, T.GOLD_LO.b, 0.7), 1, T.R_MD, 10, 5), 12, 3, 0.4),
+		"GlassPlateActive": with_shadow(flat(Color(0.12, 0.09, 0.04, 0.68), T.GOLD, 2, T.R_MD, 9, 4), 16, 3, 0.5),
+		"GlassMenu": with_shadow(flat(Color(0.04, 0.05, 0.08, 0.82), T.GOLD_LO, 1, T.R_LG, 18, 16), 26, 8, 0.6),
+		"GlassDrawer": with_shadow(flat(Color(0.04, 0.05, 0.08, 0.74), Color(T.GOLD_LO.r, T.GOLD_LO.g, T.GOLD_LO.b, 0.8), 1, T.R_MD, 14, 12), 18, 4, 0.5),
+		"GlassToast": with_shadow(flat(Color(0.04, 0.05, 0.08, 0.72), T.GOLD, 1, T.R_MD, 18, 8), 18, 4, 0.5),
 		"TopBarPanel": flat(Color(T.BG_DEEP.r, T.BG_DEEP.g, T.BG_DEEP.b, 0.92), T.BORDER, 0, 0, 20, 8),
 	}
 	for key in panel_variations:

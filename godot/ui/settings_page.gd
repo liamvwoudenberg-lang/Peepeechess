@@ -44,6 +44,9 @@ static func _graphics(_app: Control, parent: Container) -> void:
 	GraphicsPage.build(parent)  # presets + cinematic toggles (ui/graphics_page.gd); the legacy 3-step quality control is replaced by it
 	var card := Kit.card(parent)
 	Kit.section_header(card, "Display and board", "gear")
+	Kit.label(card, "UI style")
+	Kit.muted(card, "Minimal keeps the 3D scene full screen with small translucent plates and one overlay menu. Full brings back the toolbar and side panel. Applies from the next game screen.")
+	Kit.segmented(card, UiStyle.OPTIONS, "minimal" if UiStyle.is_minimal() else "full", func(v): UiStyle.set_style(v)).name = "UiStyleChoice"
 	_display(card)
 	Kit.label(card, "Default board")
 	var board := Kit.segmented(card, [[false, "2D (top-down)"], [true, "3D (orbit)"]], Settings.preferred_3d, func(value):

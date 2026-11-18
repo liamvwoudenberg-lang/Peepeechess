@@ -100,6 +100,8 @@ static func build(m: Control) -> Control:
 	_build_side(m)
 	m.message_label = Kit.label(column, "Ready · Choose New game for time controls. Undo is available in local play.", "Muted")
 	m.message_label.add_theme_font_size_override("font_size", T.FS_SMALL)
+	if UiStyle.is_minimal():
+		HudMinimal.apply(m, frame, column)  # 3D fills the screen; plates, toast, overlay menu, history drawer (ui/hud_minimal.gd)
 	return host
 
 static func _player_card(m: Control, parent: Container, side: String) -> void:
@@ -195,6 +197,9 @@ static func _build_side(m: Control) -> void:
 
 ## Puts the card of the side shown at the bottom (the one the board faces) last.
 static func arrange(m: Control, flipped: bool) -> void:
+	if m.hud.get("minimal", false):
+		HudMinimal.place_plates(m, flipped)
+		return
 	var players: VBoxContainer = m.hud.get("players")
 	if players == null:
 		return
@@ -257,6 +262,8 @@ static func refresh(m: Control) -> void:
 		_set_captured(m, "w", captured.b, maxi(0, balance))   # white's row: black pieces white has captured
 		_set_captured(m, "b", captured.w, maxi(0, -balance))
 	render_history(m)
+	if m.hud.get("minimal", false):
+		HudMinimal.after_refresh(m)
 
 static func render_history(m: Control) -> void:
 	var engine = m.game.engine

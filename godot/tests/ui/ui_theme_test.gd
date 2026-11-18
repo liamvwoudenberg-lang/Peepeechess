@@ -42,6 +42,7 @@ func run() -> void:
 	touch_checks()
 	await settings_checks()
 	await hud_scene_checks()
+	await minimal_checks()
 	await results_checks()
 	if FileAccess.file_exists("user://ui_theme_test.cfg"):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://ui_theme_test.cfg"))
@@ -289,11 +290,37 @@ func settings_checks() -> void:
 	expect(ui_config.load("user://ui_theme_test.cfg") == OK and ui_config.get_value("ui", "reduce_motion") == true and ui_config.get_value("ui", "colorblind") == true, "interface settings persist to the UI preferences file")
 	# reset to defaults (immediate and persisted)
 	SettingsPage.reset_defaults()
-	expect(Settings.quality == "balanced" and Settings.animations and Settings.volume == 0.8 and not Prefs.reduce_motion and root.content_scale_factor == 1.0, "reset restores graphics, audio and interface defaults")
+	expect(GraphicsSettings.preset == GraphicsSettings.defaults() and Settings.animations and Settings.volume == 0.8 and not Prefs.reduce_motion and root.content_scale_factor == 1.0, "reset restores graphics, audio and interface defaults")
 	shell.queue_free()
 	await settle(3)
 
+## The Minimal game screen (the default UI style): overlay menu closed, glass plates, glowing active plate, Esc opens the menu, toast present.
+func minimal_checks() -> void:
+	UiStyle.loaded = true
+	UiStyle.style = "minimal"
+	Prefs.reduce_motion = true
+	Settings.launch = {"mode": "classic", "initialMs": 600000, "incrementMs": 0, "view3d": false}
+	var game: Control = MainScene.instantiate()
+	root.add_child(game)
+	await settle(3)
+	var menu := game.find_child("MinimalMenu", true, false) as Control
+	expect(menu != null and not menu.visible, "minimal: the overlay menu exists and starts closed")
+	expect(game.find_child("MenuButton", true, false) != null, "minimal: a small menu button is on screen")
+	expect(game.hud["card_w"].theme_type_variation == "GlassPlateActive" and game.hud["card_b"].theme_type_variation == "GlassPlate", "minimal: the side to move glows")
+	expect(not game.info_panel.visible, "minimal: the big side panel is gone")
+	var press := InputEventKey.new()
+	press.keycode = KEY_ESCAPE
+	press.pressed = true
+	game.find_child("MinimalController", true, false)._unhandled_key_input(press)
+	await settle(1)
+	expect(menu.visible, "minimal: Esc opens the overlay menu")
+	expect(menu.find_child("Toolbar", true, false) != null and game.start_button.get_parent().is_ancestor_of(game.start_button) and menu.is_ancestor_of(game.start_button), "minimal: the old toolbar and actions live in the overlay menu")
+	game.queue_free()
+	await settle(3)
+
 func hud_scene_checks() -> void:
+	UiStyle.loaded = true
+	UiStyle.style = "full"   # the old layout's checks below
 	Prefs.reduce_motion = true
 	Settings.launch = {"mode": "classic", "initialMs": 600000, "incrementMs": 0, "view3d": false}
 	var game: Control = MainScene.instantiate()

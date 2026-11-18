@@ -45,7 +45,7 @@ func _hook(button: BaseButton) -> void:
 func _glow(button: BaseButton, on: bool) -> void:
 	if not is_instance_valid(button) or not button.is_inside_tree():
 		return
-	var previous = button.get_meta(&"_ui_glow", null)
+	var previous = button.get_meta(&"_ui_glow") if button.has_meta(&"_ui_glow") else null
 	if previous is Tween and (previous as Tween).is_valid():
 		(previous as Tween).kill()
 	var target := Color(1.14, 1.1, 1.0, button.modulate.a) if on and not button.disabled else Color(1, 1, 1, button.modulate.a)
