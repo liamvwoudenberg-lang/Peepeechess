@@ -13,6 +13,9 @@ extends Node
 ## Assets are loaded through ResourceLoader when imported, else the WAV bytes are parsed here (no editor import needed).
 
 const MANIFEST_PATH := "res://assets/combat/audio/manifest.json"
+## Real recordings (tools/audio/build_sonniss.py): sounds listed here replace the synthesized ones of the same name (`"replace": true`) and add new ones
+## (chess moves, captures, ui_deny, ambience loops). Missing file = the synthesized set is used unchanged.
+const REAL_MANIFEST_PATH := "res://assets/audio/sonniss_manifest.json"
 const AUDIO_DIR := "res://assets/combat/audio/"
 const SFX_BUS := "SFX"
 const UI_BUS := "UI"
@@ -55,6 +58,8 @@ const PROFILE := {
 	"countdown": [2, 200, 1, -3.0, true],
 	"fight": [3, 500, 1, 0.0, true],
 	"ui": [2, 30, 4, -6.0, true],
+	"chess": [2, 40, 2, -3.0, true],        # board moves, captures, check (BoardSounds)
+	"capture": [3, 200, 1, -1.0, true],     # capture shatter / intro stingers
 }
 
 static var _library: Dictionary = {}  # sound name -> Array[AudioStream]
@@ -117,7 +122,29 @@ static func load_library(force: bool = false) -> Dictionary:
 				streams.append(stream)
 		if not streams.is_empty():
 			_library[sound_name] = streams
+	_overlay_real_recordings()
 	return _library
+
+
+## Adds / replaces sounds from the real-recordings manifest (full res:// paths, several pitch variants per sound).
+static func _overlay_real_recordings() -> void:
+	if not FileAccess.file_exists(REAL_MANIFEST_PATH):
+		return
+	var real = JSON.parse_string(FileAccess.get_file_as_string(REAL_MANIFEST_PATH))
+	if typeof(real) != TYPE_DICTIONARY:
+		return
+	for sound_name in real.get("sounds", {}):
+		var entry: Dictionary = real["sounds"][sound_name]
+		var streams: Array = []
+		for file in entry.get("files", []):
+			var stream := load_stream(String(file))
+			if stream != null:
+				streams.append(stream)
+		if streams.is_empty():
+			continue   # not imported / missing: keep whatever the synthesized set has
+		if _library.has(sound_name) and not bool(entry.get("replace", false)):
+			continue
+		_library[sound_name] = streams   # (the synthesized manifest in _manifest stays as it is: it describes the WAV set and its tests)
 
 
 static func manifest() -> Dictionary:
@@ -435,6 +462,11 @@ func play_defeat() -> void:
 	_play("defeat", Vector3.ZERO)
 
 
+## Plays any library sound once, non-positional (board and menu use; the category profile decides rate limit and volume).
+func play_sound(sound: String) -> bool:
+	return _play(sound, Vector3.ZERO)
+
+
 func play_ui(ui_name: String) -> void:
 	var sound := ui_name if ui_name.begins_with("ui_") else "ui_" + ui_name
 	_play(sound, Vector3.ZERO)
@@ -534,6 +566,10 @@ func _category(sound: String) -> String:
 		return "ability"
 	if sound.begins_with("ui_"):
 		return "ui"
+	if sound.begins_with("chess_"):
+		return "chess"
+	if sound.begins_with("capture_"):
+		return "capture"
 	if sound == "countdown_tick":
 		return "countdown"
 	if sound == "fight_cue":

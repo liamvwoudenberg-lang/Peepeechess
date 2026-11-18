@@ -139,7 +139,11 @@ static func _parser(h) -> void:
 	var partial := CombatAudio.parse_wav(truncated)
 	h.check(partial != null and partial.data.size() > 0, "a truncated file still yields the bytes it has")
 	var library := CombatAudio.load_library(true)
-	h.eq(library.size(), (CombatAudio.manifest()["sounds"] as Dictionary).size(), "every manifest sound loaded into the library")
+	var missing: Array = []
+	for sound_name in (CombatAudio.manifest()["sounds"] as Dictionary):
+		if not library.has(sound_name):
+			missing.append(sound_name)
+	h.check(missing.is_empty(), "every manifest sound loaded into the library (missing: %s); the real-recordings overlay may add more" % str(missing))
 	for sound_name in library:
 		for stream in library[sound_name]:
 			h.check(stream is AudioStream and stream.get_length() > 0.0, "%s stream usable" % sound_name)

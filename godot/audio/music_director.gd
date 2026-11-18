@@ -34,6 +34,10 @@ const MIX := {
 	"defeat": {"pad": 0.25, "rumble": 0.35, "wind": 0.3},
 }
 const STINGERS := ["victory", "defeat", "error"]
+## Real recordings (assets/audio, built by tools/audio/build_sonniss.py) replace the synthesized wind and torch layers when present, and a slow
+## mystic drone joins the menu / opening / victory. They play on the Ambience bus (its own slider in Settings).
+const AMBIENCE_BUS := "Ambience"
+const MYSTIC_MIX := {"opening": 0.55, "menu": 0.4, "victory": 0.3}
 
 static var force := false   # tests: build the audio nodes even without an audio device
 static var _cache: Dictionary = {}
@@ -50,6 +54,8 @@ var targets: Dictionary = {}   # layer -> target linear gain
 var active: bool = false       # true once players exist
 var _players: Dictionary = {}
 var _stinger_player: AudioStreamPlayer
+var _mystic_player: AudioStreamPlayer
+var _mystic_gain := 0.0
 var _ready_streams: bool = false
 
 
@@ -161,6 +167,9 @@ func step(delta: float) -> void:
 func _process(delta: float) -> void:
 	_poll_generation()
 	step(delta)
+	if _mystic_player != null:
+		_mystic_gain = move_toward(_mystic_gain, float(MYSTIC_MIX.get(state, 0.0)), FADE_PER_SECOND * delta)
+		_mystic_player.volume_db = linear_to_db(maxf(_mystic_gain * music_volume * db_to_linear(duck_db), 0.00001))
 
 
 func play_stinger(stinger_name: String) -> void:
@@ -244,9 +253,40 @@ func _attach_streams() -> void:
 	_ready_streams = true
 	for layer in LAYERS:
 		_players[layer].stream = _cache["layer_" + layer]
+	_use_real_ambience()
 	for layer in LAYERS:
 		_players[layer].play()   # started together: the loops are the same length, so they stay in phase
 	active = true
+
+
+## Swaps the synthesized wind / torch loops for the real recordings and adds the mystic drone, if the real-recordings library is there.
+func _use_real_ambience() -> void:
+	var library: Dictionary = load("res://combat/audio/combat_audio.gd").load_library()
+	var on_ambience := AudioServer.get_bus_index(AMBIENCE_BUS) >= 0
+	for layer in ["wind", "torch"]:
+		var real = _looping(library, "amb_" + layer)
+		if real != null:
+			_players[layer].stream = real
+			if on_ambience:
+				_players[layer].bus = AMBIENCE_BUS
+	var mystic = _looping(library, "amb_mystic")
+	if mystic != null:
+		_mystic_player = AudioStreamPlayer.new()
+		_mystic_player.stream = mystic
+		_mystic_player.bus = AMBIENCE_BUS if on_ambience else BUS
+		_mystic_player.volume_db = -80.0
+		add_child(_mystic_player)
+		_mystic_player.play()
+
+
+static func _looping(library: Dictionary, sound: String) -> AudioStream:
+	var list: Array = library.get(sound, [])
+	if list.is_empty():
+		return null
+	var stream: AudioStream = (list[0] as AudioStream).duplicate()
+	if "loop" in stream:
+		stream.loop = true
+	return stream
 
 
 func _exit_tree() -> void:

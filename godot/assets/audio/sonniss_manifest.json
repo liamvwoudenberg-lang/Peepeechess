@@ -1,0 +1,566 @@
+{
+ "generator": "tools/audio/build_sonniss.py",
+ "licence": "Sonniss #GameAudioGDC bundle: royalty-free, no attribution; no resale of raw files, no AI training",
+ "sounds": {
+  "ability_blink": {
+   "bus": "sfx",
+   "category": "ability",
+   "duration_s": 1.3,
+   "files": [
+    "res://assets/audio/ability_blink_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "ability_counter": {
+   "bus": "sfx",
+   "category": "ability",
+   "duration_s": 2.09,
+   "files": [
+    "res://assets/audio/ability_counter_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "ability_fortress": {
+   "bus": "sfx",
+   "category": "ability",
+   "duration_s": 7.11,
+   "files": [
+    "res://assets/audio/ability_fortress_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "ability_fury": {
+   "bus": "sfx",
+   "category": "ability",
+   "duration_s": 1.8,
+   "files": [
+    "res://assets/audio/ability_fury_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "ability_last_stand": {
+   "bus": "sfx",
+   "category": "ability",
+   "duration_s": 1.5,
+   "files": [
+    "res://assets/audio/ability_last_stand_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "ability_lunge": {
+   "bus": "sfx",
+   "category": "ability",
+   "duration_s": 2.68,
+   "files": [
+    "res://assets/audio/ability_lunge_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "amb_mystic": {
+   "bus": "amb",
+   "category": "ambience",
+   "duration_s": 37.0,
+   "files": [
+    "res://assets/audio/amb_mystic_1.ogg"
+   ],
+   "loop": true,
+   "replace": true,
+   "variants": 1
+  },
+  "amb_torch": {
+   "bus": "amb",
+   "category": "ambience",
+   "duration_s": 11.55,
+   "files": [
+    "res://assets/audio/amb_torch_1.ogg"
+   ],
+   "loop": true,
+   "replace": true,
+   "variants": 1
+  },
+  "amb_wind": {
+   "bus": "amb",
+   "category": "ambience",
+   "duration_s": 6.32,
+   "files": [
+    "res://assets/audio/amb_wind_1.ogg"
+   ],
+   "loop": true,
+   "replace": true,
+   "variants": 1
+  },
+  "block": {
+   "bus": "sfx",
+   "category": "block",
+   "duration_s": 2.93,
+   "files": [
+    "res://assets/audio/block_1.ogg",
+    "res://assets/audio/block_2.ogg",
+    "res://assets/audio/block_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "capture_intro": {
+   "bus": "music",
+   "category": "chess",
+   "duration_s": 4.89,
+   "files": [
+    "res://assets/audio/capture_intro_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "capture_shatter": {
+   "bus": "sfx",
+   "category": "chess",
+   "duration_s": 1.6,
+   "files": [
+    "res://assets/audio/capture_shatter_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "chess_capture": {
+   "bus": "sfx",
+   "category": "chess",
+   "duration_s": 1.56,
+   "files": [
+    "res://assets/audio/chess_capture_1.ogg",
+    "res://assets/audio/chess_capture_2.ogg",
+    "res://assets/audio/chess_capture_3.ogg",
+    "res://assets/audio/chess_capture_4.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 4
+  },
+  "chess_castle": {
+   "bus": "sfx",
+   "category": "chess",
+   "duration_s": 1.1,
+   "files": [
+    "res://assets/audio/chess_castle_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "chess_check": {
+   "bus": "sfx",
+   "category": "chess",
+   "duration_s": 1.8,
+   "files": [
+    "res://assets/audio/chess_check_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "chess_checkmate": {
+   "bus": "music",
+   "category": "chess",
+   "duration_s": 6.0,
+   "files": [
+    "res://assets/audio/chess_checkmate_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "chess_lose": {
+   "bus": "music",
+   "category": "chess",
+   "duration_s": 4.5,
+   "files": [
+    "res://assets/audio/chess_lose_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "chess_move": {
+   "bus": "sfx",
+   "category": "chess",
+   "duration_s": 0.4,
+   "files": [
+    "res://assets/audio/chess_move_1.ogg",
+    "res://assets/audio/chess_move_2.ogg",
+    "res://assets/audio/chess_move_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "chess_promote": {
+   "bus": "sfx",
+   "category": "chess",
+   "duration_s": 1.6,
+   "files": [
+    "res://assets/audio/chess_promote_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "chess_win": {
+   "bus": "music",
+   "category": "chess",
+   "duration_s": 5.0,
+   "files": [
+    "res://assets/audio/chess_win_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "countdown_tick": {
+   "bus": "ui",
+   "category": "countdown",
+   "duration_s": 0.3,
+   "files": [
+    "res://assets/audio/countdown_tick_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "defeat": {
+   "bus": "music",
+   "category": "defeat",
+   "duration_s": 4.5,
+   "files": [
+    "res://assets/audio/defeat_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "dodge": {
+   "bus": "sfx",
+   "category": "dodge",
+   "duration_s": 1.91,
+   "files": [
+    "res://assets/audio/dodge_1.ogg",
+    "res://assets/audio/dodge_2.ogg",
+    "res://assets/audio/dodge_3.ogg",
+    "res://assets/audio/dodge_4.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 4
+  },
+  "fight_cue": {
+   "bus": "music",
+   "category": "fight",
+   "duration_s": 1.8,
+   "files": [
+    "res://assets/audio/fight_cue_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "guard_break": {
+   "bus": "sfx",
+   "category": "guard_break",
+   "duration_s": 1.0,
+   "files": [
+    "res://assets/audio/guard_break_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "hit_flesh_heavy": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 0.65,
+   "files": [
+    "res://assets/audio/hit_flesh_heavy_1.ogg",
+    "res://assets/audio/hit_flesh_heavy_2.ogg",
+    "res://assets/audio/hit_flesh_heavy_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "hit_flesh_light": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 1.11,
+   "files": [
+    "res://assets/audio/hit_flesh_light_1.ogg",
+    "res://assets/audio/hit_flesh_light_2.ogg",
+    "res://assets/audio/hit_flesh_light_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "hit_leather_heavy": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 3.18,
+   "files": [
+    "res://assets/audio/hit_leather_heavy_1.ogg",
+    "res://assets/audio/hit_leather_heavy_2.ogg",
+    "res://assets/audio/hit_leather_heavy_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "hit_leather_light": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 0.4,
+   "files": [
+    "res://assets/audio/hit_leather_light_1.ogg",
+    "res://assets/audio/hit_leather_light_2.ogg",
+    "res://assets/audio/hit_leather_light_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "hit_plate_heavy": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 0.9,
+   "files": [
+    "res://assets/audio/hit_plate_heavy_1.ogg",
+    "res://assets/audio/hit_plate_heavy_2.ogg",
+    "res://assets/audio/hit_plate_heavy_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "hit_plate_light": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 0.6,
+   "files": [
+    "res://assets/audio/hit_plate_light_1.ogg",
+    "res://assets/audio/hit_plate_light_2.ogg",
+    "res://assets/audio/hit_plate_light_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "hit_steel_heavy": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 4.26,
+   "files": [
+    "res://assets/audio/hit_steel_heavy_1.ogg",
+    "res://assets/audio/hit_steel_heavy_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "hit_steel_light": {
+   "bus": "sfx",
+   "category": "hit",
+   "duration_s": 0.87,
+   "files": [
+    "res://assets/audio/hit_steel_light_1.ogg",
+    "res://assets/audio/hit_steel_light_2.ogg",
+    "res://assets/audio/hit_steel_light_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "parry": {
+   "bus": "sfx",
+   "category": "parry",
+   "duration_s": 5.09,
+   "files": [
+    "res://assets/audio/parry_1.ogg",
+    "res://assets/audio/parry_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "swing_dual": {
+   "bus": "sfx",
+   "category": "swing",
+   "duration_s": 2.22,
+   "files": [
+    "res://assets/audio/swing_dual_1.ogg",
+    "res://assets/audio/swing_dual_2.ogg",
+    "res://assets/audio/swing_dual_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "swing_hammer": {
+   "bus": "sfx",
+   "category": "swing",
+   "duration_s": 2.5,
+   "files": [
+    "res://assets/audio/swing_hammer_1.ogg",
+    "res://assets/audio/swing_hammer_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "swing_king": {
+   "bus": "sfx",
+   "category": "swing",
+   "duration_s": 3.17,
+   "files": [
+    "res://assets/audio/swing_king_1.ogg",
+    "res://assets/audio/swing_king_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "swing_spear": {
+   "bus": "sfx",
+   "category": "swing",
+   "duration_s": 1.85,
+   "files": [
+    "res://assets/audio/swing_spear_1.ogg",
+    "res://assets/audio/swing_spear_2.ogg",
+    "res://assets/audio/swing_spear_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "swing_staff": {
+   "bus": "sfx",
+   "category": "swing",
+   "duration_s": 1.67,
+   "files": [
+    "res://assets/audio/swing_staff_1.ogg",
+    "res://assets/audio/swing_staff_2.ogg",
+    "res://assets/audio/swing_staff_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "swing_sword": {
+   "bus": "sfx",
+   "category": "swing",
+   "duration_s": 2.04,
+   "files": [
+    "res://assets/audio/swing_sword_1.ogg",
+    "res://assets/audio/swing_sword_2.ogg",
+    "res://assets/audio/swing_sword_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "ui_back": {
+   "bus": "ui",
+   "category": "ui",
+   "duration_s": 0.5,
+   "files": [
+    "res://assets/audio/ui_back_1.ogg",
+    "res://assets/audio/ui_back_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "ui_click": {
+   "bus": "ui",
+   "category": "ui",
+   "duration_s": 0.31,
+   "files": [
+    "res://assets/audio/ui_click_1.ogg",
+    "res://assets/audio/ui_click_2.ogg",
+    "res://assets/audio/ui_click_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "ui_confirm": {
+   "bus": "ui",
+   "category": "ui",
+   "duration_s": 0.93,
+   "files": [
+    "res://assets/audio/ui_confirm_1.ogg",
+    "res://assets/audio/ui_confirm_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "ui_deny": {
+   "bus": "ui",
+   "category": "ui",
+   "duration_s": 0.7,
+   "files": [
+    "res://assets/audio/ui_deny_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  },
+  "ui_hover": {
+   "bus": "ui",
+   "category": "ui",
+   "duration_s": 0.26,
+   "files": [
+    "res://assets/audio/ui_hover_1.ogg",
+    "res://assets/audio/ui_hover_2.ogg",
+    "res://assets/audio/ui_hover_3.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 3
+  },
+  "ui_transition": {
+   "bus": "ui",
+   "category": "ui",
+   "duration_s": 1.06,
+   "files": [
+    "res://assets/audio/ui_transition_1.ogg",
+    "res://assets/audio/ui_transition_2.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 2
+  },
+  "victory": {
+   "bus": "music",
+   "category": "victory",
+   "duration_s": 5.0,
+   "files": [
+    "res://assets/audio/victory_1.ogg"
+   ],
+   "loop": false,
+   "replace": true,
+   "variants": 1
+  }
+ }
+}

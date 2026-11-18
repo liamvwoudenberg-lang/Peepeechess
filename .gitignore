@@ -28,3 +28,4 @@ godot/android/
 *.key
 *.pem
 server.env
+assets/audio_incoming/

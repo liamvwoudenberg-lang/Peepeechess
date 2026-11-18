@@ -57,6 +57,7 @@ func _ready() -> void:
 	add_child(client)
 	game = Remote.new()
 	game.bind(client)
+	BoardSounds.attach(self, game, func(): return "w" if str(game.players.get("w", "")) == client.player_id else "b")   # chess sounds, win/lose for this seat
 	interaction = Interaction.new(game)
 	interaction.move_requested.connect(_move_intent)
 	_build_ui()
