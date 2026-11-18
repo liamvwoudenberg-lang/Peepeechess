@@ -3,7 +3,8 @@ extends Node
 ## One node per screen, added by UiKit.install(). Buttons are hooked once (meta flag), signals are plain connects
 ## (no per-frame work).
 const Motion = preload("res://ui/theme/ui_motion.gd")
-const Audio = preload("res://ui/theme/ui_audio.gd")
+const Prefs = preload("res://ui/theme/ui_prefs.gd")
+const Audio =preload("res://ui/theme/ui_audio.gd")
 var root: Node
 var hooked := 0
 
@@ -35,3 +36,22 @@ func _hook(button: BaseButton) -> void:
 	button.set_meta(&"_ui_hooked", true)
 	hooked += 1
 	button.button_down.connect(func(): Motion.press(button))
+	# hover/focus: a short brighten (modulate only, never fights the press scale or layout); instant with reduce motion
+	button.mouse_entered.connect(func(): _glow(button, true))
+	button.mouse_exited.connect(func(): _glow(button, false))
+	button.focus_entered.connect(func(): _glow(button, true))
+	button.focus_exited.connect(func(): _glow(button, false))
+
+func _glow(button: BaseButton, on: bool) -> void:
+	if not is_instance_valid(button) or not button.is_inside_tree():
+		return
+	var previous = button.get_meta(&"_ui_glow", null)
+	if previous is Tween and (previous as Tween).is_valid():
+		(previous as Tween).kill()
+	var target := Color(1.14, 1.1, 1.0, button.modulate.a) if on and not button.disabled else Color(1, 1, 1, button.modulate.a)
+	if Prefs.reduce_motion:
+		button.modulate = target
+		return
+	var tween := button.create_tween()
+	button.set_meta(&"_ui_glow", tween)
+	tween.tween_property(button, "modulate", target, 0.12).set_ease(Tween.EASE_OUT)
