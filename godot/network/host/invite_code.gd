@@ -8,7 +8,7 @@ const PREFIX = "PCHESS1-"
 const MAX_LENGTH = 6000
 const PROTOCOL = "peepeechess-enet-v1"
 const CERT_HOSTNAME = "peepeechess-host"
-const MATCH_PATTERN = "^match-[0-9a-f]{32}$"
+const MATCH_PATTERN = "^(match-[0-9a-f]{32}|[A-HJ-KM-NP-Z2-9]{6})$"   # legacy long id or a 6-character room code (dedicated_server.gd ROOM_CODE_ALPHABET)
 const HOST_PATTERN = "^[A-Za-z0-9]([A-Za-z0-9.:\\-]{0,252}[A-Za-z0-9])?$"
 
 ## `fields`: hosts (Array of String, best first), port, matchId, certificate (PEM text), tuning, mode, version.
