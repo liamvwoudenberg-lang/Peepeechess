@@ -31,6 +31,8 @@ var account_backend: DedicatedAccountBackend
 ## this server's (different damage / Resolve rules would make the two disagree about a duel) and accepts one that sends no build (older clients);
 ## "require" also refuses a Hello without a build (use it on a public server); "off" disables the check (tests, tools).
 var build_policy: String = "match"
+## Battle move timeout handed to every new Battle room (ms, 0 = off); --move-timeout-seconds / PEEPEECHESS_MOVE_TIMEOUT_SECONDS.
+var move_timeout_ms: int = 0
 var host_policy: Dictionary = {}
 var host_player = ""
 const HOST_WAITING_MS = 1800000
@@ -397,6 +399,7 @@ func _create(session: Dictionary, player: String, payload: Dictionary, now: int)
 	var room = Room.new()
 	add_child(room)
 	room.configure(id, payload.mode, player, int(payload.initialMs), int(payload.incrementMs), now)
+	room.move_timeout_ms = move_timeout_ms if payload.mode == "battle" else 0
 	room.changed.connect(func(): dirty[id] = true)
 	room.combat_snapshot.connect(func(snapshot): _broadcast(id, "CombatSnapshot", snapshot, false))
 	room.battle_receipt.connect(func(result): _broadcast(id, "BattleResult", result))

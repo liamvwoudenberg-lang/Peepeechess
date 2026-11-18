@@ -29,6 +29,12 @@ var _world: SubViewport
 var _aftermath_end = 0
 var _retired_battle_id = ""
 var _now = 0
+## Move timeout for the untimed Battle ruleset: the side to move on the board forfeits when it does not move within this many ms (0 = off). The
+## server sets it per room from its --move-timeout-seconds option; Classic has its own chess clocks. The clock restarts on every committed move
+## and while a duel runs it does not count (duels have their own 90 s limit and input-abandonment rule).
+var move_timeout_ms = 0
+var _turn_key = ""
+var _turn_since = 0
 
 static func supported_roles() -> Array:
 	var roles = []
@@ -242,8 +248,22 @@ func step(now: int) -> void:
 			_ensure_combat()
 	else:
 		game.poll_clock(now)
+		_check_move_timeout(now)
 	game.server_tick = tick
 	game.last_poll = now
+
+func _check_move_timeout(now: int) -> void:
+	if move_timeout_ms <= 0 or status != "active" or not (game is BattleChessMatch) or game.phase != "board" or not game.engine.result.is_empty():
+		return
+	var key := "%d:%s" % [game.revision, game.engine.turn]
+	if key != _turn_key:
+		_turn_key = key
+		_turn_since = now
+		return
+	if now - _turn_since >= move_timeout_ms:
+		var mover: String = game.engine.turn
+		finish("0-1" if mover == "w" else "1-0", "Move timeout", now)
+
 
 func check_disconnections(now: int) -> void:
 	if status != "active":
