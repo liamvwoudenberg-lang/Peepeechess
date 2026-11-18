@@ -24,6 +24,7 @@ static func load_preferences() -> void:
 	if loaded:
 		return
 	loaded = true
+	GraphicsSettings.load_preferences()  # quality presets + cinematic toggles (ui/graphics_settings.gd, own file user://graphics.cfg)
 	touch_controls = DisplayServer.is_touchscreen_available()
 	var config = ConfigFile.new()
 	if config.load("user://preferences.cfg") == OK:
@@ -59,6 +60,7 @@ static func apply() -> void:
 	if AudioServer.get_bus_count() > 0:
 		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	Platform.set_quality(quality)
+	GraphicsSettings.apply()  # the preset system has the last word on fps cap, antialiasing, shadows and resolution scale
 
 ## The player's display choice (Settings page, F11, Alt+Enter): applies it and, unless `persist` is false, saves it. Where the window
 ## cannot change mode (headless, mobile, web) nothing happens and the stored value is left alone.
@@ -79,6 +81,8 @@ static func ensure_platform(tree: SceneTree) -> void:
 			_platform.name = "PlatformInput"
 			tree.root.call_deferred("add_child", _platform)
 	Platform.ensure_actions()
+	GraphicsSettings.load_preferences()
+	FpsOverlay.ensure(tree)
 	Platform.set_quality(quality)
 	set_combat_input(false)
 

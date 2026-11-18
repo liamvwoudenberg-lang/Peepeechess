@@ -90,8 +90,19 @@ static func build(font_scale: float = 1.0) -> Theme:
 	display.base_font = ThemeDB.fallback_font
 	display.variation_embolden = 0.9
 	display.spacing_glyph = 3
+	# Cinzel (SIL OFL, assets/fonts/Cinzel-OFL.txt): the serif display face for titles. UI text stays on the clean default sans.
+	var heading: Font = bold
+	if ResourceLoader.exists("res://assets/fonts/Cinzel.ttf"):
+		var cinzel: Font = load("res://assets/fonts/Cinzel.ttf")
+		display.base_font = cinzel
+		display.variation_embolden = 0.25
+		display.spacing_glyph = 4
+		var serif := FontVariation.new()
+		serif.base_font = cinzel
+		serif.variation_embolden = 0.2
+		heading = serif
 	theme.set_font("bold", "Label", bold)
-	_build_text(theme, bold, display)
+	_build_text(theme, bold, display, heading)
 	_build_buttons(theme, bold)
 	_build_toggles(theme)
 	_build_panels(theme)
@@ -100,7 +111,7 @@ static func build(font_scale: float = 1.0) -> Theme:
 	_build_windows(theme, bold)
 	return theme
 
-static func _build_text(theme: Theme, bold: Font, display: Font) -> void:
+static func _build_text(theme: Theme, bold: Font, display: Font, heading: Font) -> void:
 	for type_name in ["Label", "RichTextLabel", "TextEdit", "LineEdit", "SpinBox", "CheckBox", "CheckButton", "Button", "OptionButton", "MenuButton", "PopupMenu"]:
 		theme.set_color("font_color", type_name, T.TEXT)
 	theme.set_color("default_color", "RichTextLabel", T.TEXT)
@@ -108,7 +119,7 @@ static func _build_text(theme: Theme, bold: Font, display: Font) -> void:
 	theme.set_color("font_shadow_color", "Label", Color(0, 0, 0, 0))
 	# label variations
 	var variations := {
-		"H1": [T.FS_H1, T.TEXT, bold], "H2": [T.FS_H2, T.GOLD_HI, bold], "H3": [T.FS_H3, T.TEXT, bold],
+		"H1": [T.FS_H1, T.TEXT, heading], "H2": [T.FS_H2, T.GOLD_HI, heading], "H3": [T.FS_H3, T.TEXT, bold],
 		"Muted": [T.FS_BODY, T.TEXT_MUTED, null], "Caption": [T.FS_CAPTION, T.TEXT_MUTED, bold], "Accent": [T.FS_BODY, T.GOLD, bold],
 		"DangerLabel": [T.FS_BODY, T.DANGER, null], "SuccessLabel": [T.FS_BODY, T.SUCCESS, null],
 		"ClockLabel": [T.FS_H1, T.TEXT, bold], "Wordmark": [T.FS_DISPLAY, T.GOLD_HI, display],

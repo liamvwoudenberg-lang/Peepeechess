@@ -85,12 +85,22 @@ func _init() -> void:
 	add_child(pit)
 	trapdoor.changed.connect(func(openness: float): chamber.set_light_shaft(openness))
 	battle_shift_changed.connect(func(active: bool): apply_look(not active))
+	GraphicsSettings.events().changed.connect(_graphics_changed)
 	apply_look(true)
 	set_quality("low" if OS.has_feature("mobile") else "high")
 
 
 ## The courtyard look (BoardLook: warm key, cool rim, fog, exposure) is for the idle chess view only. While a battle runs the arena keeps
 ## the original lighting it was tuned with, so the duel is untouched; the look returns when the board settles back.
+func _graphics_changed() -> void:
+	apply_look(not shifted)
+
+
+func _exit_tree() -> void:
+	if GraphicsSettings.events().changed.is_connected(_graphics_changed):
+		GraphicsSettings.events().changed.disconnect(_graphics_changed)
+
+
 func apply_look(idle: bool) -> void:
 	var L := preload("res://world/board_look.gd")
 	if idle:
@@ -110,6 +120,7 @@ func apply_look(idle: bool) -> void:
 		fill_light.rotation_degrees = L.RIM_ROTATION
 		fill_light.light_color = L.RIM_COLOR
 		fill_light.light_energy = L.RIM_ENERGY
+		GraphicsSettings.apply_environment(environment, L.FOG_DENSITY)  # fog / bloom toggles from Settings
 	else:
 		environment.background_color = Color("14272e")
 		environment.ambient_light_color = Color("b5d0d1")
@@ -117,6 +128,7 @@ func apply_look(idle: bool) -> void:
 		environment.tonemap_exposure = 1.0
 		environment.tonemap_white = 1.0
 		environment.fog_enabled = false
+		environment.glow_enabled = false  # the arena keeps its original, unbloomed look
 		key_light.rotation_degrees = Vector3(-55, -25, 0)
 		key_light.light_color = Color("fff0d5")
 		key_light.light_energy = 0.42
