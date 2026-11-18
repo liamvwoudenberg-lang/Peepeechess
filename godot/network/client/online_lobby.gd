@@ -96,6 +96,8 @@ func _ready() -> void:
 	elif launch.has("invite"):
 		_provisioned = true
 		_join_invite(launch.invite, str(launch.get("passphrase", "")))
+	elif launch.has("auto_connect"):   # "Create or join a room code" on the Play page: connect to the default server right away
+		_connect_pressed.call_deferred()
 
 func _button(parent: Node, text: String, action: Callable) -> Button:
 	var button = Button.new()
@@ -147,13 +149,13 @@ func _build_ui() -> void:
 	var lobby = HFlowContainer.new()
 	column.add_child(lobby)
 	_lobby_row = lobby
-	_button(lobby, "Create Classic · 10 min", func(): client.create_match("classic", 600000))
-	_button(lobby, "Create Battle C0", func(): client.create_match("battle", 0))
+	_button(lobby, "Create Classic room · 10 min", func(): client.create_match("classic", 600000))
+	_button(lobby, "Create Battle room", func(): client.create_match("battle", 0))
 	match_id = LineEdit.new()
 	match_id.placeholder_text = "Room code (6 characters)"
 	match_id.custom_minimum_size = Vector2(250, 42)
 	lobby.add_child(match_id)
-	_button(lobby, "Join", func(): client.join_match(preload("res://network/server/dedicated_server.gd").normalize_room_code(match_id.text)))
+	_button(lobby, "Join room", func(): client.join_match(preload("res://network/server/dedicated_server.gd").normalize_room_code(match_id.text)))
 	_button(lobby, "Copy code", func(): DisplayServer.clipboard_set(match_id.text))
 	ready_button = _button(lobby, "Ready", func(): client.command("ready"))
 	var actions = HFlowContainer.new()
@@ -260,6 +262,8 @@ func _connection(connected: bool) -> void:
 func _frame(value: Dictionary) -> void:
 	_last_clock_tick = value.state.serverTick
 	match_id.text = value.state.matchId
+	if value.status == "waiting" and str(value.state.matchId).length() == 6:   # a short room code: tell the creator what to do with it
+		notices.text = "ROOM CODE  %s  ·  send it to your friend (Copy code), they type it and press Join room, then both press Ready." % str(value.state.matchId)
 	ready_button.disabled = value.status != "waiting"
 	accept_draw.disabled = value.drawOffer == null or value.drawOffer == client.player_id or value.state.phase != "board"
 	var seat = "White" if value.state.players.w == client.player_id else "Black"

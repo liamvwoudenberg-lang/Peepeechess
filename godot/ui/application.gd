@@ -527,6 +527,7 @@ func _play_page() -> void:
 	for label in [title_label, subtitle_label]:
 		label.add_theme_color_override("font_outline_color", Color(0.02, 0.025, 0.05, 0.95))
 		label.add_theme_constant_override("outline_size", 5)
+	_room_code_card()   # first thing on the page: play a friend on the server by room code (no account)
 	var modes = _flow(content)
 	for data in [["classic", "♜", "Classic Chess", "The complete game. Checkmate, clocks and every special move."], ["battle", "⚔", "Battle Chess", "Legal captures open a duel. The winner decides who stays."]]:
 		var selected: String = data[0]
@@ -576,7 +577,6 @@ func _play_page() -> void:
 			var seats = InputAssignment.shared()
 			_label(setup, "Duel controls · touchscreen; a connected controller takes priority." if touch and vs_computer else "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
-	_room_code_card()   # the dedicated server by room code: no account needed
 	_friends_on_this_pc_card()   # host/join over the internet: no account needed
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
@@ -611,10 +611,10 @@ var host_pass_edit: LineEdit
 ## The dedicated server (project setting peepeechess/network/default_server, editable in the lobby): create a room, share its 6-character code, or type a friend's.
 func _room_code_card() -> void:
 	var card = _card(content)
-	Kit.section_header(card, "PLAY ON THE PEEPEECHESS SERVER · ROOM CODE · NO ACCOUNT", "cloud")
-	_label(card, "Connect to the game server, create a room and send its 6-character code to your friend, or type the code they sent you. Uses the mode chosen above.", 14, MUTED)
-	var button = _button(card, "Play with a room code  →", func():
-		Settings.launch = {"view3d": Settings.preferred_3d}
+	Kit.section_header(card, "PLAY A FRIEND ONLINE · ROOM CODE · NO ACCOUNT", "cloud")
+	_label(card, "One of you creates a room and sends its 6-character code; the other types it in. Connects to the game server automatically.", 14, MUTED)
+	var button = _button(card, "Create or join a room code  →", func():
+		Settings.launch = {"view3d": Settings.preferred_3d, "auto_connect": true}
 		get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn"), true)
 	button.name = "RoomCodeButton"
 
