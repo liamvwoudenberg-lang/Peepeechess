@@ -15,6 +15,7 @@ static var ui_sounds := true
 static var sfx_volume := 1.0
 static var ui_volume := 1.0
 static var music_volume := 1.0
+static var ambience_volume := 1.0
 ## Emitted-by-poll style hook: pages register a callable that is invoked when scale/motion/colour-blind change.
 static var _listeners: Array[Callable] = []
 
@@ -27,6 +28,7 @@ static func reset_defaults() -> void:
 	sfx_volume = 1.0
 	ui_volume = 1.0
 	music_volume = 1.0
+	ambience_volume = 1.0
 
 static func load_preferences(force: bool = false) -> void:
 	if loaded and not force:
@@ -44,6 +46,7 @@ static func load_preferences(force: bool = false) -> void:
 	sfx_volume = clampf(float(config.get_value("audio", "sfx", 1.0)), 0.0, 1.0)
 	ui_volume = clampf(float(config.get_value("audio", "ui", 1.0)), 0.0, 1.0)
 	music_volume = clampf(float(config.get_value("audio", "music", 1.0)), 0.0, 1.0)
+	ambience_volume = clampf(float(config.get_value("audio", "ambience", 1.0)), 0.0, 1.0)
 
 static func save_preferences() -> Error:
 	var config := ConfigFile.new()
@@ -55,6 +58,7 @@ static func save_preferences() -> Error:
 	config.set_value("audio", "sfx", sfx_volume)
 	config.set_value("audio", "ui", ui_volume)
 	config.set_value("audio", "music", music_volume)
+	config.set_value("audio", "ambience", ambience_volume)
 	return config.save(path)
 
 static func set_ui_scale(value: float) -> void:
@@ -113,8 +117,9 @@ static func apply() -> void:
 ## Extra mix levels go to the buses the combat audio layer creates (SFX, UI) and to Music if a bus of that name exists.
 static func _apply_buses() -> void:
 	preload("res://audio/music_director.gd").ensure_bus()
+	preload("res://audio/audio_buses.gd").ensure_all()
 	Engine.set_meta("ui_mix", {"sfx": sfx_volume, "ui": ui_volume})   # read by CombatAudio when it (re)applies its levels
-	for pair in [["SFX", sfx_volume], ["UI", ui_volume], ["Music", music_volume]]:
+	for pair in [["SFX", sfx_volume], ["UI", ui_volume], ["Music", music_volume], ["Ambience", ambience_volume]]:
 		var index := AudioServer.get_bus_index(pair[0])
 		if index != -1:
 			AudioServer.set_bus_volume_db(index, linear_to_db(maxf(float(pair[1]), 0.0001)))

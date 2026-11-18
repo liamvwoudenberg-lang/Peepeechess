@@ -41,16 +41,9 @@ static func build(app: Control) -> void:
 	_footer(app, content)
 
 static func _graphics(_app: Control, parent: Container) -> void:
+	GraphicsPage.build(parent)  # presets + cinematic toggles (ui/graphics_page.gd); the legacy 3-step quality control is replaced by it
 	var card := Kit.card(parent)
-	Kit.section_header(card, "Graphics", "gear")
-	Kit.label(card, "Quality preset")
-	var hint := Kit.muted(card, QUALITY_TEXT.get(Settings.quality, QUALITY_TEXT.balanced))
-	var presets := Kit.segmented(card, [["low", "Low"], ["balanced", "Medium"], ["high", "High"]], Settings.quality, func(value):
-		Settings.quality = value
-		_save()
-		hint.text = QUALITY_TEXT[value])
-	presets.name = "QualityPreset"
-	card.move_child(hint, presets.get_index() + 1)
+	Kit.section_header(card, "Display and board", "gear")
 	_display(card)
 	Kit.label(card, "Default board")
 	var board := Kit.segmented(card, [[false, "2D (top-down)"], [true, "3D (orbit)"]], Settings.preferred_3d, func(value):
@@ -143,6 +136,11 @@ static func _audio(app: Control, parent: Container) -> void:
 		Prefs.apply()
 		Prefs.save_preferences())
 	music.name = "MusicVolume"
+	var ambience := Kit.slider_row(card, "Ambience", Prefs.ambience_volume, 0.0, 1.0, 0.05, func(v):
+		Prefs.ambience_volume = v
+		Prefs.apply()
+		Prefs.save_preferences())
+	ambience.name = "AmbienceVolume"
 	var sounds := Kit.toggle_row(card, "Menu hover and click sounds", Prefs.ui_sounds, func(on):
 		Audio.set_enabled(app, on)
 		Prefs.save_preferences())
@@ -184,6 +182,8 @@ static func reset_defaults() -> void:
 	Settings.preferred_3d = false
 	Settings.animations = true
 	Settings.quality = "balanced"
+	GraphicsSettings.set_preset(GraphicsSettings.defaults())
+	GraphicsSettings.set_value("show_fps", false)
 	Settings.volume = 0.8
 	Settings.touch_controls = DisplayServer.is_touchscreen_available()
 	Settings.display_mode = ScreenMode.WINDOWED

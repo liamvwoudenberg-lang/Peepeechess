@@ -45,6 +45,11 @@ var skeleton: Skeleton3D
 var player: AnimationPlayer
 var meshes: Array[MeshInstance3D] = []
 var current: String = ""
+## Visual-only idle life for pieces whose idle clip is paused (board): a barely visible breath on the body's scale.
+## Opt-in (default off) so existing scenes and tests keep their exact transforms.
+var breathing: bool = false
+var _breath_phase: float = 0.0
+var _body_scale: Vector3 = Vector3.ONE
 
 
 func _ready() -> void:
@@ -211,3 +216,14 @@ func play(clip: String, speed: float = 1.0, blend: float = 0.15) -> void:
 func locomotion_speed(clip: String, metres_per_second: float) -> float:
 	var nominal: float = (stance_speed(role, clip) if clip in ["walk", "run"] else 1.0) * height / SOURCE_HEIGHT
 	return metres_per_second / maxf(nominal, 0.01)
+
+
+func _process(delta: float) -> void:
+	if not breathing or current != "idle":
+		return
+	var body := get_node_or_null("Body") as Node3D
+	if body == null:
+		return
+	_breath_phase += delta
+	var breath := sin(_breath_phase * TAU / 3.4)
+	body.scale = Vector3(1.0 - 0.004 * breath, 1.0 + 0.008 * breath, 1.0 - 0.004 * breath) * (height / SOURCE_HEIGHT)

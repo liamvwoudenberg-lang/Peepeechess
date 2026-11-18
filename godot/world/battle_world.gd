@@ -60,6 +60,7 @@ func _init() -> void:
 	fill_light.light_color = Color("a2c5df")
 	fill_light.light_energy = 0.18
 	fill_light.light_cull_mask = W.LAYER_BOARD
+	fill_light.set_meta("rim", true)  # the cool rim light never casts shadows (BoardThemeView only shadows the key light)
 	add_child(fill_light)
 	board_root = Node3D.new()
 	board_root.name = "BoardRoot"
@@ -83,7 +84,63 @@ func _init() -> void:
 	pit.setup(self)
 	add_child(pit)
 	trapdoor.changed.connect(func(openness: float): chamber.set_light_shaft(openness))
+	battle_shift_changed.connect(func(active: bool): apply_look(not active))
+	GraphicsSettings.events().changed.connect(_graphics_changed)
+	apply_look(true)
 	set_quality("low" if OS.has_feature("mobile") else "high")
+
+
+## The courtyard look (BoardLook: warm key, cool rim, fog, exposure) is for the idle chess view only. While a battle runs the arena keeps
+## the original lighting it was tuned with, so the duel is untouched; the look returns when the board settles back.
+func _graphics_changed() -> void:
+	apply_look(not shifted)
+
+
+func _exit_tree() -> void:
+	if GraphicsSettings.events().changed.is_connected(_graphics_changed):
+		GraphicsSettings.events().changed.disconnect(_graphics_changed)
+
+
+func apply_look(idle: bool) -> void:
+	var L := preload("res://world/board_look.gd")
+	if idle:
+		environment.background_color = L.BACKGROUND
+		environment.ambient_light_color = L.AMBIENT_COLOR
+		environment.ambient_light_energy = L.AMBIENT_ENERGY
+		environment.tonemap_exposure = L.EXPOSURE
+		environment.tonemap_white = L.TONEMAP_WHITE
+		environment.fog_enabled = true
+		environment.fog_light_color = L.FOG_COLOR
+		environment.fog_density = L.FOG_DENSITY
+		key_light.rotation_degrees = L.KEY_ROTATION
+		key_light.light_color = L.KEY_COLOR
+		key_light.light_energy = L.KEY_ENERGY
+		key_light.shadow_blur = L.KEY_SHADOW_BLUR
+		key_light.directional_shadow_max_distance = 30.0
+		fill_light.rotation_degrees = L.RIM_ROTATION
+		fill_light.light_color = L.RIM_COLOR
+		fill_light.light_energy = L.RIM_ENERGY
+		GraphicsSettings.apply_environment(environment, L.FOG_DENSITY)  # fog / bloom toggles from Settings
+	else:
+		environment.background_color = Color("14272e")
+		environment.ambient_light_color = Color("b5d0d1")
+		environment.ambient_light_energy = 0.22
+		environment.tonemap_exposure = 1.0
+		environment.tonemap_white = 1.0
+		environment.fog_enabled = false
+		environment.glow_enabled = false  # the arena keeps its original, unbloomed look
+		key_light.rotation_degrees = Vector3(-55, -25, 0)
+		key_light.light_color = Color("fff0d5")
+		key_light.light_energy = 0.42
+		key_light.shadow_blur = 1.0
+		key_light.directional_shadow_max_distance = 100.0
+		fill_light.rotation_degrees = Vector3(-30, 145, 0)
+		fill_light.light_color = Color("a2c5df")
+		fill_light.light_energy = 0.18
+	if board_root != null:
+		var scenery := board_root.get_node_or_null("Scenery")
+		if scenery != null:
+			scenery.visible = idle
 
 
 ## Called by ChessBoard3D after it has built its tiles/slabs.

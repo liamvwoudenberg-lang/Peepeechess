@@ -6,6 +6,7 @@ const Kit = preload("res://ui/theme/ui_kit.gd")
 const Icons = preload("res://ui/theme/ui_icons.gd")
 const Motion = preload("res://ui/theme/ui_motion.gd")
 const MenuPlaques = preload("res://ui/opening/menu_plaques.gd")
+const Cine = preload("res://ui/cinematic/cine_common.gd")
 
 ## Draws the emblem (a control so the title can size it).
 class Emblem:
@@ -163,4 +164,26 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 		tagline.add_theme_constant_override("outline_size", 7)
 		tagline.add_theme_color_override("font_color", T.TEXT)
 		version.add_theme_constant_override("outline_size", 5)
+	if over_scene:
+		_cinematic_polish(app, root, [emblem, wordmark, tagline])
 	return {"root": root, "menu": menu, "buttons": buttons, "wordmark": wordmark}
+
+## Cosmetic menu polish (Wave 1): an edge vignette (cheap fake focus falloff; Compatibility has no real depth of field) and a
+## staggered logo reveal. Skipped with reduce motion / Cinematics off; the vignette is purely static and always cheap.
+static func _cinematic_polish(app: Control, root: Control, parts: Array) -> void:
+	var vignette := Cine.make_vignette(0.42)
+	vignette.name = "MenuVignette"
+	app.add_child(vignette)
+	app.move_child(vignette, mini(2, app.get_child_count() - 1))
+	root.tree_exiting.connect(func(): if is_instance_valid(vignette): vignette.queue_free())
+	if not Cine.cinematics_on() or Cine.reduce_motion():
+		return
+	var tween := root.create_tween().set_parallel(true)
+	var delay := 0.0
+	for part: Control in parts:
+		part.modulate.a = 0.0
+		part.pivot_offset = part.size * 0.5
+		part.scale = Vector2(1.06, 1.06)
+		tween.tween_property(part, "modulate:a", 1.0, 0.5).set_delay(delay).set_ease(Tween.EASE_OUT)
+		tween.tween_property(part, "scale", Vector2.ONE, 0.6).set_delay(delay).set_ease(Tween.EASE_OUT)
+		delay += 0.18

@@ -85,7 +85,7 @@ static func apply_3d(board) -> void:
 		world_low = "quality" in board.world and board.world.quality == "low"
 	for holder in lit:
 		for child in holder.get_children():
-			if child is DirectionalLight3D and child.light_energy >= 0.3:
+			if child is DirectionalLight3D and child.light_energy >= 0.3 and not child.has_meta("rim"):
 				child.shadow_enabled = key_shadow and not world_low
 	var signature = BoardTheme.piece_set
 	if board.get_meta("bt_piece_set", signature) != signature and "pieces" in board and "_piece_roles" in board:
@@ -156,8 +156,8 @@ static func destination_3d(board, at: int, capture: bool) -> void:
 			board.marks.get_child(index).layers = 2
 
 static func _make_destination(board, at_position: Vector3, capture: bool) -> void:
-	var move_color = UiPrefs.move_highlight(Color(0.3, 0.9, 0.75))
-	var capture_color = UiPrefs.capture_highlight(Color(1, 0.83, 0.4))
+	var move_color = UiPrefs.move_highlight(BoardLook.MARK_LEGAL)
+	var capture_color = UiPrefs.capture_highlight(BoardLook.MARK_CAPTURE)
 	match BoardTheme.highlight:
 		"rings":
 			var ring = TorusMesh.new()
@@ -170,13 +170,20 @@ static func _make_destination(board, at_position: Vector3, capture: bool) -> voi
 		"tint":
 			var tint = BoxMesh.new()
 			tint.size = Vector3(0.97, 0.012, 0.97)
-			var tint_color = UiPrefs.capture_highlight(Color(0.95, 0.35, 0.3)) if capture else UiPrefs.move_highlight(Color(0.25, 0.85, 0.65))
-			Models.add(board.marks, tint, at_position, _mark_material(Color(tint_color, 0.42 if capture else 0.38)))
+			Models.add(board.marks, tint, at_position, _mark_material(Color(capture_color, 0.45) if capture else Color(move_color, 0.4)))
 		_:
-			var disc = CylinderMesh.new()
-			var disc_radius = 0.44 if capture else 0.17
-			disc.top_radius = disc_radius
-			disc.bottom_radius = disc_radius
-			disc.height = 0.012
-			disc.radial_segments = 32
-			Models.add(board.marks, disc, at_position, _mark_material(Color(capture_color if capture else move_color, 0.85)))
+			if capture:
+				# captures: a bold red ring around the victim's base (a filled disc would hide the piece it marks)
+				var capture_ring = TorusMesh.new()
+				capture_ring.inner_radius = 0.38
+				capture_ring.outer_radius = 0.47
+				capture_ring.rings = 40
+				capture_ring.ring_segments = 6
+				Models.add(board.marks, capture_ring, at_position, _mark_material(Color(capture_color, 0.9)), Vector3(1, 0.2, 1))
+			else:
+				var disc = CylinderMesh.new()
+				disc.top_radius = 0.17
+				disc.bottom_radius = 0.17
+				disc.height = 0.012
+				disc.radial_segments = 32
+				Models.add(board.marks, disc, at_position, _mark_material(Color(move_color, 0.85)))

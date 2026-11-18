@@ -75,10 +75,29 @@ func build(quality_name: String = "balanced", motion: bool = true, start_blend: 
 	_build_birds(q)
 	_build_mist(builder)
 	set_motion(motion)
+	apply_graphics()
+	var graphics_events := GraphicsSettings.events()
+	if not graphics_events.changed.is_connected(apply_graphics):
+		graphics_events.changed.connect(apply_graphics)
 	set_blend(start_blend)
 	if is_inside_tree():
 		get_viewport().size_changed.connect(_on_viewport_resized)   # the fov axis follows the window's aspect even when nothing animates
 	build_msec = float(Time.get_ticks_usec() - started) / 1000.0
+
+## Follows Settings > Graphics (read-only): fog, bloom and ember particles. Cosmetic; safe to call at any time.
+func apply_graphics() -> void:
+	if environment != null:
+		environment.fog_enabled = GraphicsSettings.fog
+		if quality == "high":
+			environment.glow_enabled = GraphicsSettings.bloom
+	var embers := get_node_or_null("Embers") as Node3D
+	if embers != null:
+		embers.visible = animated and GraphicsSettings.particles
+
+func _exit_tree() -> void:
+	var graphics_events := GraphicsSettings.events()
+	if graphics_events.changed.is_connected(apply_graphics):
+		graphics_events.changed.disconnect(apply_graphics)
 
 func set_motion(enabled: bool) -> void:
 	animated = enabled
@@ -99,7 +118,7 @@ func set_motion(enabled: bool) -> void:
 		_ember_material.set_shader_parameter("speed", wind)
 		var embers := get_node_or_null("Embers") as Node3D
 		if embers != null:
-			embers.visible = enabled   # embers are pure motion: hidden (not frozen mid-air) when motion is reduced
+			embers.visible = enabled and GraphicsSettings.particles   # pure motion: hidden (not frozen mid-air) when motion is reduced / particles off
 	for material in _mist_materials:
 		material.set_shader_parameter("speed", wind)
 	_update_lights()
@@ -500,7 +519,7 @@ func set_blend(value: float) -> void:
 	_update_lights()
 
 func _drift_offset() -> Vector3:
-	if not animated:
+	if not animated or not GraphicsSettings.cinematics:
 		return Vector3.ZERO
 	var amp := lerpf(1.0, 0.32, blend)
 	return Vector3(sin(_clock * 0.13) * 2.4 + sin(_clock * 0.047) * 1.6, sin(_clock * 0.09) * 0.45, sin(_clock * 0.071 + 1.0) * 3.0) * amp

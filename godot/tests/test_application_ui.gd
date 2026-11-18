@@ -290,7 +290,7 @@ func run() -> void:
 	Settings.animations = false
 	Settings.quality = "low"
 	expect(Settings.save_preferences() == OK, "presentation preferences saved")
-	expect(Engine.max_fps == 30, "low graphics preference only limits presentation frame rate")
+	expect(Engine.max_fps == GraphicsSettings.fps_cap, "graphics preset owns the frame-rate cap (it has the last word over the legacy quality value)")
 	Settings.set_combat_input(true)
 	expect(not root.get_node("PlatformInput").cursor_enabled, "gamepad pointer yields to combat")
 	Settings.set_combat_input(false)

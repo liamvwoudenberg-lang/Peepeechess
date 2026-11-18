@@ -253,7 +253,7 @@ func settings_checks() -> void:
 	await settle(2)
 	shell.navigate("settings")
 	await settle(2)
-	var preset := shell.find_child("QualityPreset", true, false)
+	var preset := shell.find_child("GraphicsPreset", true, false)
 	expect(preset != null, "settings page has a graphics preset control")
 	(preset.get_child(0) as Button).button_pressed = true
 	expect(Settings.quality == "low", "graphics preset Low sets the existing quality setting")
@@ -289,7 +289,7 @@ func settings_checks() -> void:
 	expect(ui_config.load("user://ui_theme_test.cfg") == OK and ui_config.get_value("ui", "reduce_motion") == true and ui_config.get_value("ui", "colorblind") == true, "interface settings persist to the UI preferences file")
 	# reset to defaults (immediate and persisted)
 	SettingsPage.reset_defaults()
-	expect(Settings.quality == "balanced" and Settings.animations and Settings.volume == 0.8 and not Prefs.reduce_motion and root.content_scale_factor == 1.0, "reset restores graphics, audio and interface defaults")
+	expect(GraphicsSettings.preset == GraphicsSettings.defaults() and Settings.animations and Settings.volume == 0.8 and not Prefs.reduce_motion and root.content_scale_factor == 1.0, "reset restores graphics, audio and interface defaults")
 	shell.queue_free()
 	await settle(3)
 

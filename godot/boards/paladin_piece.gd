@@ -5,7 +5,7 @@ extends Node3D
 ## sits under `facer`, which turns it to face its walking direction and back to the resting direction afterwards.
 ## Models face +Z; the board rests white facing -Z (see BoardThemeView.build_piece), so the resting `facer.rotation.y` is PI for both sides.
 
-## 30% taller than the original board characters. Only the model grows: the root, square centres
+## 30% taller than the original board characters. (Multiplied by BoardLook.PIECE_SCALE, the one scale knob.) Only the model grows: the root, square centres
 ## and picking geometry stay unchanged. Its horizontal footprint is fitted separately below.
 const HEIGHTS := {"p": 1.50, "n": 1.77, "b": 1.85, "r": 1.69, "q": 1.96, "k": 2.07}
 const FOOTPRINT_RADIUS := 0.435
@@ -43,7 +43,7 @@ static func create(role_code: String, color_code: String) -> PaladinPiece:
 		var loop := Engine.get_main_loop() as SceneTree
 		if loop != null:
 			_exit_hooked = true  # PaladinModel hooks its own exit release
-	var m := PaladinModel.create(role_code, color_code, float(HEIGHTS.get(role_code, 1.0)))
+	var m := PaladinModel.create(role_code, color_code, float(HEIGHTS.get(role_code, 1.0)) * BoardLook.PIECE_SCALE)
 	if m == null:
 		return null
 	var piece := PaladinPiece.new()
@@ -60,6 +60,7 @@ static func create(role_code: String, color_code: String) -> PaladinPiece:
 	PieceCrest.attach(piece, role_code, color_code)
 	PieceCrest.crown(m, role_code, color_code)
 	m.play("idle")
+	piece.add_child(_footprint_ring(color_code))
 	return piece
 
 
@@ -82,6 +83,28 @@ static func _fit_footprint(m: PaladinModel) -> void:
 		var fit := FOOTPRINT_RADIUS / radius
 		m.scale = Vector3(fit, 1.0, fit)
 	m.set_meta("board_footprint_radius", minf(radius, FOOTPRINT_RADIUS))
+
+## Thin ring on the square under the piece: pale for black pieces, dark bronze for white ones, so every silhouette separates from the
+## orange / ivory squares. Cosmetic only (board layer, no collision, size of the piece untouched).
+static func _footprint_ring(color_code: String) -> MeshInstance3D:
+	var torus := TorusMesh.new()
+	torus.inner_radius = BoardLook.RING_RADIUS - BoardLook.RING_WIDTH
+	torus.outer_radius = BoardLook.RING_RADIUS
+	torus.rings = 40
+	torus.ring_segments = 4
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = BoardLook.RING_DARK_PIECE if color_code == "b" else BoardLook.RING_LIGHT_PIECE
+	var ring := MeshInstance3D.new()
+	ring.name = "FootprintRing"
+	ring.mesh = torus
+	ring.material_override = mat
+	ring.scale = Vector3(1, 0.12, 1)
+	ring.position = Vector3(0, 0.06, 0)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.layers = WorldConstants.LAYER_BOARD
+	return ring
 
 
 ## The corner of the L for a knight (the long leg first); every other move is one straight leg.
