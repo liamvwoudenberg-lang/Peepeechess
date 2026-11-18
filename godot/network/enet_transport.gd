@@ -32,6 +32,11 @@ func listen(address: String, port: int, certificate: String, private_key: String
 	listening = true
 	return OK
 
+## Looked at when no CA file is given: a self-signed server certificate the operator bundled or the player saved. Without any of these the system
+## trust store is used (a server with a normal certificate, e.g. Let's Encrypt, needs nothing).
+const TRUSTED_CERTIFICATES := ["user://trusted_server.crt", "res://network/trusted_server.crt"]
+
+
 func connect_to(address: String, port: int, ca_path: String = "", insecure_local: bool = false, certificate_hostname: String = "") -> Error:
 	close()
 	if insecure_local and address not in ["127.0.0.1", "::1", "localhost"]:
@@ -43,9 +48,15 @@ func connect_to(address: String, port: int, ca_path: String = "", insecure_local
 		return result
 	if not insecure_local:
 		var ca: X509Certificate = null
-		if not ca_path.is_empty():
+		var ca_file := ca_path
+		if ca_file.is_empty():   # a pinned self-signed server: the operator ships its certificate with the game (res://) or the player stores it (user://)
+			for candidate in TRUSTED_CERTIFICATES:
+				if FileAccess.file_exists(candidate):
+					ca_file = candidate
+					break
+		if not ca_file.is_empty():
 			ca = X509Certificate.new()
-			if ca.load(ca_path) != OK:
+			if ca.load(ca_file) != OK:
 				close()
 				return ERR_INVALID_DATA
 		result = host.dtls_client_setup(certificate_hostname if not certificate_hostname.is_empty() else address, TLSOptions.client(ca))

@@ -10,11 +10,12 @@ Group=peepeechess
 # /opt/peepeechess/current is a symlink to the active release (see remote/install_release.sh); rollback = repoint it.
 WorkingDirectory=/opt/peepeechess/current
 EnvironmentFile=/etc/peepeechess/server.env
-ExecStart=/opt/peepeechess/current/run-server.sh --bind=${BIND} --port=${PORT} --certificate=${CERTIFICATE} --private-key=${PRIVATE_KEY} --backend-url=${BACKEND_URL} --server-id=${SERVER_ID}
+ExecStart=/opt/peepeechess/current/run-server.sh --bind=${BIND} --port=${PORT} --certificate=${CERTIFICATE} --private-key=${PRIVATE_KEY} $EXTRA_ARGS
 Restart=on-failure
 RestartSec=3
-# small single-process game server: sandboxed and inside a memory budget that fits the free A1 shape
-MemoryMax=1G
+# small single-process game server: sandboxed and inside a memory budget. 640M leaves room for the OS on a 1 GB VM (VM.Standard.E2.1.Micro);
+# raise it on a bigger machine with: systemctl edit peepeechess-server  ->  [Service] MemoryMax=2G
+MemoryMax=640M
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
