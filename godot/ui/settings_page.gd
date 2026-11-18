@@ -131,12 +131,16 @@ static func _audio(app: Control, parent: Container) -> void:
 		Prefs.apply()
 		Prefs.save_preferences())
 	interface.name = "InterfaceVolume"
-	if AudioServer.get_bus_index("Music") != -1:
-		var music := Kit.slider_row(card, "Music", Prefs.music_volume, 0.0, 1.0, 0.05, func(v):
-			Prefs.music_volume = v
-			Prefs.apply()
-			Prefs.save_preferences())
-		music.name = "MusicVolume"
+	var music := Kit.slider_row(card, "Music", Prefs.music_volume, 0.0, 1.0, 0.05, func(v):
+		Prefs.music_volume = v
+		Prefs.apply()
+		Prefs.save_preferences())
+	music.name = "MusicVolume"
+	var ambience := Kit.slider_row(card, "Ambience", Prefs.ambience_volume, 0.0, 1.0, 0.05, func(v):
+		Prefs.ambience_volume = v
+		Prefs.apply()
+		Prefs.save_preferences())
+	ambience.name = "AmbienceVolume"
 	var sounds := Kit.toggle_row(card, "Menu hover and click sounds", Prefs.ui_sounds, func(on):
 		Audio.set_enabled(app, on)
 		Prefs.save_preferences())
