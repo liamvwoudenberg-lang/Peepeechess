@@ -110,21 +110,18 @@ static func apply(m: Control, frame: Control, column: Control) -> void:
 	var banner: PanelContainer = m.hud["banner"]
 	banner.get_parent().remove_child(banner)
 	overlay.add_child(banner)
-	banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	banner.custom_minimum_size = Vector2(300, 0)
-	banner.offset_left = -150
-	banner.offset_right = 150
-	banner.offset_top = 18
+	m.status_label.autowrap_mode = TextServer.AUTOWRAP_OFF   # a wrapping label in a narrow toast grew tall (413 px) and read as a big dark block
+	m.status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.custom_minimum_size = Vector2(280, 0)
+	banner.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pin(banner, Control.PRESET_CENTER_TOP, 78.0)   # just under the far player's plate
 	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	banner.modulate.a = 0.0
 	banner.visible = false
 	# --- menu button
 	var menu_button := Kit.button(overlay, "Menu", func(): controller.toggle_menu(), "GhostButton", "list", "Menu (Esc)")
 	menu_button.name = "MenuButton"
-	menu_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	menu_button.offset_left = 16
-	menu_button.offset_top = 16
+	pin(menu_button, Control.PRESET_TOP_LEFT, 12.0)
 	controller.chrome.append(menu_button)
 	# --- overlay menu: everything else
 	var menu := Control.new()
@@ -173,11 +170,11 @@ static func apply(m: Control, frame: Control, column: Control) -> void:
 	var drawer := PanelContainer.new()
 	drawer.name = "HistoryDrawer"
 	drawer.theme_type_variation = "GlassDrawer"
-	drawer.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	drawer.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE, Control.PRESET_MODE_MINSIZE, 0)
+	drawer.custom_minimum_size = Vector2(250, 0)
 	drawer.offset_top = 72
 	drawer.offset_bottom = -72
-	drawer.custom_minimum_size = Vector2(250, 0)
-	drawer.offset_left = 40
+	drawer.offset_left = 40      # hidden: just past the right edge; open: -262 .. -12
 	drawer.offset_right = 290
 	drawer.visible = false
 	overlay.add_child(drawer)
@@ -191,23 +188,41 @@ static func apply(m: Control, frame: Control, column: Control) -> void:
 	controller.drawer = drawer
 	place_plates(m, false)
 
-## Far side top-right, near side bottom-left (the side the board faces is "near").
+## Far side plate top-center, near side plate bottom-center (the side the board faces is "near"), pinned with pin() below.
+## Anchors a HUD element to an edge with ZERO-size offsets: the container then sizes itself from its own content on every layout pass
+## (growing away from the edge), so a stale cached minimum size can never freeze a wrong height or width into the offsets.
+static func pin(c: Control, preset: int, margin: float) -> void:
+	c.set_anchors_preset(preset, true)
+	c.offset_left = 0.0
+	c.offset_right = 0.0
+	c.offset_top = 0.0
+	c.offset_bottom = 0.0
+	match preset:
+		Control.PRESET_CENTER_TOP:
+			c.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			c.grow_vertical = Control.GROW_DIRECTION_END
+			c.offset_top = margin
+			c.offset_bottom = margin
+		Control.PRESET_CENTER_BOTTOM:
+			c.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			c.grow_vertical = Control.GROW_DIRECTION_BEGIN
+			c.offset_top = -margin
+			c.offset_bottom = -margin
+		Control.PRESET_TOP_LEFT:
+			c.grow_horizontal = Control.GROW_DIRECTION_END
+			c.grow_vertical = Control.GROW_DIRECTION_END
+			c.offset_left = margin
+			c.offset_right = margin
+			c.offset_top = margin
+			c.offset_bottom = margin
+
 static func place_plates(m: Control, flipped: bool) -> void:
 	if not m.hud.get("minimal", false):
 		return
 	var near := "b" if flipped else "w"
 	var far := "w" if flipped else "b"
-	var near_card: Control = m.hud["card_" + near]
-	var far_card: Control = m.hud["card_" + far]
-	near_card.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	near_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	near_card.grow_horizontal = Control.GROW_DIRECTION_END
-	near_card.offset_left = 16
-	near_card.offset_bottom = -16
-	far_card.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	far_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	far_card.offset_right = -16
-	far_card.offset_top = 16
+	pin(m.hud["card_" + near], Control.PRESET_CENTER_BOTTOM, 8.0)
+	pin(m.hud["card_" + far], Control.PRESET_CENTER_TOP, 8.0)
 
 ## After Hud.refresh: glass plates (the active one glows) and the self-fading toast.
 static func after_refresh(m: Control) -> void:
