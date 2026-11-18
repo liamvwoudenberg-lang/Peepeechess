@@ -7,7 +7,7 @@ extends RefCounted
 # ---- pieces ---------------------------------------------------------------------------------------------------------------------
 ## Multiplies every paladin's standing height. The model width scales with it, so this is also the base-footprint scale: the paladin
 ## base used to fill more than a whole square and crowd the row behind it; ~0.82 of a square is the target (see BASE_TARGET).
-const PIECE_SCALE := 0.74
+const PIECE_SCALE := 1.0
 const BASE_TARGET := 0.82          # documented goal: piece base / square. test_board_look measures the real footprint against it
 
 # ---- squares (ivory marble vs dark slate) ----------------------------------------------------------------------------------------
