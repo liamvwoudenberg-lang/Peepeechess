@@ -1,3 +1,5 @@
+Superseded by docs/development/TODO.md (2026-11-18); kept for history.
+
 # Peepeechess — game design and release polish TODO
 
 Audit baseline: `f37a7bdf4cc05b11c338d6579ba73d3f757a18ed` (Godot 4.6.3, native client; includes the draft UI and courtyard work). This is a prioritized working backlog, not a claim that every possible issue has been found. The legacy React/Capacitor game is a separate product path and should be reviewed independently if it remains supported.

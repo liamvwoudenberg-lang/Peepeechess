@@ -1,3 +1,5 @@
+Superseded by docs/development/TODO.md (2026-11-18); kept for history.
+
 # Implementation audit and TODO
 
 Reviewed 2026-11-15 against integrated `main` commit

@@ -1,3 +1,5 @@
+Superseded by docs/development/TODO.md (2026-11-18); kept for history.
+
 # Peepeechess TODO (2026-11-14, written when the weekly usage limit was nearly reached)
 
 Branch `ccr-a734e4c7-xxj6nw` is the working branch; `GAME_DESIGN_TODO.md` (Codex, branch `codex/game-design-audit`) is the broader design/release backlog.
