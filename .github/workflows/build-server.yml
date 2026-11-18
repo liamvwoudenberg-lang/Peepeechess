@@ -1,0 +1,33 @@
+name: Build server package
+
+# Manual. Builds the x86_64 dedicated server and the VM install scripts and uploads them as ONE artifact, so a person can download it
+# (Actions > this run > Artifacts) and copy it to a VM with scp. No secrets, no deployment. See docs/deployment/VPS.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot editor
+        run: |
+          curl -fL --retry 2 https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip -o /tmp/godot.zip
+          echo 'a035258da32b77f966a5376f9fa29c30a6adde826a85ba918e1605bd1fc9823eba7d85f1dd5e748956bd2ba72827c0025ffa11bb82aec91128c407a2e723c99c  /tmp/godot.zip' | sha512sum -c -
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 /usr/local/bin/godot
+      - name: Install the server export templates
+        run: bash tools/deploy/install_server_templates.sh
+      - name: Build the server package
+        run: GODOT=godot bash tools/deploy/build_server.sh x86_64 artifacts/server-release
+      - name: Add the VM install scripts
+        run: tar czf artifacts/server-release/peepeechess-deploy.tar.gz -C tools deploy
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Peepeechess-server-x86_64
+          path: artifacts/server-release/*
+          if-no-files-found: error
