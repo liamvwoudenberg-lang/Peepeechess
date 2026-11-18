@@ -150,11 +150,11 @@ func _build_ui() -> void:
 	_button(lobby, "Create Classic · 10 min", func(): client.create_match("classic", 600000))
 	_button(lobby, "Create Battle C0", func(): client.create_match("battle", 0))
 	match_id = LineEdit.new()
-	match_id.placeholder_text = "Private match invite ID"
+	match_id.placeholder_text = "Room code (6 characters)"
 	match_id.custom_minimum_size = Vector2(250, 42)
 	lobby.add_child(match_id)
-	_button(lobby, "Join", func(): client.join_match(match_id.text.strip_edges()))
-	_button(lobby, "Copy invite", func(): DisplayServer.clipboard_set(match_id.text))
+	_button(lobby, "Join", func(): client.join_match(preload("res://network/server/dedicated_server.gd").normalize_room_code(match_id.text)))
+	_button(lobby, "Copy code", func(): DisplayServer.clipboard_set(match_id.text))
 	ready_button = _button(lobby, "Ready", func(): client.command("ready"))
 	var actions = HFlowContainer.new()
 	column.add_child(actions)

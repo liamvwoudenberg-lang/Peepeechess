@@ -75,6 +75,13 @@ func run() -> void:
 	var wrong_build = packet(22, "Hello", {"schemaVersion":1, "protocol":"peepeechess-enet-v1", "resumeToken":null, "build":{"tuning":"balance-v1:0000000000000000"}})
 	expect(wrong_build.get("code", "") == "FORBIDDEN" and "Version mismatch" in String(wrong_build.get("message", "")), "a client with different tuning is refused with a clear message")
 	expect(server.sessions.size() == 3, "a refused client creates no session (%d)" % server.sessions.size())
+	var made = create(21, "classic", 600000)
+	var code_ok := made.has("matchId") and String(made.matchId).length() == 6
+	for character in String(made.get("matchId", "")):
+		code_ok = code_ok and server.ROOM_CODE_ALPHABET.contains(character)
+	expect(code_ok, "a new room gets a short readable code (%s)" % str(made.get("matchId", "")))
+	expect(Server.normalize_room_code(" " + String(made.get("matchId", "")).to_lower().insert(3, "-") + " ") == made.get("matchId", ""), "typed codes forgive case, spaces and a dash")
+	expect(Server.normalize_room_code("match-" + "ab".repeat(16)) == "match-" + "ab".repeat(16), "a long legacy invite id passes through unchanged")
 	server.build_policy = "require"
 	server.attach(23, "127.0.0.23", now)
 	var unversioned = packet(23, "Hello", {"schemaVersion":1, "protocol":"peepeechess-enet-v1", "resumeToken":null})

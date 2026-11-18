@@ -203,6 +203,37 @@ func receive(id: int, bytes: PackedByteArray, channel: int, flags: int, now: int
 		_send(id, "ProtocolError", failure)
 
 ## "" when the client's build may play on this server, otherwise the reason (shown to the player).
+## Room codes are short enough to read out over a call: ROOM_CODE_LENGTH characters from an alphabet without look-alikes (no 0/O, 1/I/L). A guess is
+## only worth anything while a room still waits for its second player, and the per-connection control rate and per-address handshake budget keep
+## guessing far below the ~1e9 code space (see docs/network/ONLINE_PLAY.md).
+const ROOM_CODE_ALPHABET := "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+const ROOM_CODE_LENGTH := 6
+
+
+func _new_room_code() -> String:
+	while true:
+		var bytes: PackedByteArray = _crypto.generate_random_bytes(ROOM_CODE_LENGTH)
+		var code := ""
+		for byte in bytes:
+			code += ROOM_CODE_ALPHABET[int(byte) % ROOM_CODE_ALPHABET.length()]
+		if not rooms.has(code):
+			return code
+	return ""
+
+
+## What a player typed or pasted -> the room code (case, spaces and dashes are forgiven). Anything else (a long legacy id) is passed through.
+static func normalize_room_code(text: String) -> String:
+	var compact := text.strip_edges().replace(" ", "").replace("-", "")
+	var upper := compact.to_upper()
+	if upper.length() == ROOM_CODE_LENGTH:
+		var all_valid := true
+		for character in upper:
+			all_valid = all_valid and ROOM_CODE_ALPHABET.contains(character)
+		if all_valid:
+			return upper
+	return text.strip_edges()
+
+
 func build_problem(payload: Dictionary) -> String:
 	if build_policy == "off":
 		return ""
@@ -362,7 +393,7 @@ func _create(session: Dictionary, player: String, payload: Dictionary, now: int)
 		return {"ok": false, "code": "INVALID_PAYLOAD", "message": "Battle C0 chess is untimed."}
 	if payload.mode == "classic" and payload.initialMs > 0 and payload.initialMs < 1000:
 		return {"ok": false, "code": "INVALID_PAYLOAD", "message": "Timed games need at least one second."}
-	var id = "match-" + _crypto.generate_random_bytes(16).hex_encode()
+	var id = _new_room_code()
 	var room = Room.new()
 	add_child(room)
 	room.configure(id, payload.mode, player, int(payload.initialMs), int(payload.incrementMs), now)
