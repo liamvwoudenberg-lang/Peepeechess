@@ -34,6 +34,14 @@ PostgreSQL is supported (`DATABASE_URL`, and `NODE_ENV=production`) and recommen
    Windows build (players can also type it under Settings). Redeploy the game server with a package built from the same commit (the tuning check refuses mismatched clients).
 5. Roll back at any time: `sudo bash ~/deploy/remote/enable_accounts.sh --off` (anonymous room-code play returns; account data stays in the SQLite file).
 
+
+## Fast path: sign-in and profiles first, anonymous play untouched (recommended)
+
+Use `enable_accounts.sh --api-only` instead of the plain `enable_accounts.sh` in step 3: it starts HTTPS and the account API only. Players can then sign in, have a profile,
+friends, history and leaderboards, **and room-code play keeps working for everyone**. Routing the game server through accounts (ranked matchmaking, which closes anonymous play) is
+a later, separate step. Then, in the game, flip the two project settings in `godot/project.godot` (section `[peepeechess]`) and publish a new build:
+`accounts/enabled=true` and `network/default_api_url="https://84-235-163-83.sslip.io"` (the game only talks to HTTPS accounts services off loopback).
+
 ## Things you must know first
 
 * **Turning accounts on closes anonymous play on that server.** With a backend configured the game server answers every anonymous `Hello` with "An account matchmaking ticket is required".
