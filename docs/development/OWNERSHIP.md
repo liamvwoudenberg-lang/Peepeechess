@@ -1,3 +1,5 @@
+> **Retired (2026-11-18).** File ownership by agent no longer applies (Codex is no longer working here). Any AI may edit any file, but never at the same time as another AI: see `/AGENTS.md` section 2 and `docs/development/WORK_IN_PROGRESS.md`. Kept as history.
+
 # File ownership
 
 This assignment applies to existing and new files. Each path has one active
