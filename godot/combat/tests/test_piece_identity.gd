@@ -127,7 +127,13 @@ static func _determinism(h, tree: SceneTree) -> void:
 		await tree.process_frame   # let the first duel's queue_free'd fighters leave the physics world (their overlap changes whiffs under anti-mash)
 		await tree.physics_frame
 		var two: Dictionary = await Duel.duel(tree, key.substr(0, 1), key.substr(1, 1), CFG, 4242)
-		print("DBG ", key, " ", one["ticks"], " ", two["ticks"], " ", one["attacker_hp"], " ", two["attacker_hp"], " ", one["outcome"], " ", two["outcome"])
 		h.check(one["outcome"] == two["outcome"] and one["ticks"] == two["ticks"] and is_equal_approx(one["attacker_hp"], two["attacker_hp"]), "%s: identical outcome, length and HP twice (%s in %d ticks)" % [key, one["outcome"], one["ticks"]])
+	# the anti-mash rules are OFF by default (not calibrated, docs/ROADMAP.md step 1): switch them on explicitly and the duel is still deterministic
+	var am_on := {"anti_mash": true}
+	var am_one: Dictionary = await Duel.duel(tree, "b", "n", CFG, 4242, am_on)
+	await tree.process_frame
+	await tree.physics_frame
+	var am_two: Dictionary = await Duel.duel(tree, "b", "n", CFG, 4242, am_on)
+	h.check(am_one["outcome"] == am_two["outcome"] and am_one["ticks"] == am_two["ticks"] and is_equal_approx(am_one["attacker_hp"], am_two["attacker_hp"]), "bn with anti_mash forced on: identical twice (%s in %d ticks)" % [am_one["outcome"], am_one["ticks"]])
 	var rook: Dictionary = await Duel.duel(tree, "r", "r", CFG, 4343)
 	h.check(rook["reason"] != "unfinished" and rook["ticks"] <= CombatConstants.DURATION_TICKS + CombatConstants.COUNTDOWN_TICKS + 30, "a Rook mirror ends inside the duel clock (%d ticks, %s)" % [rook["ticks"], rook["reason"]])

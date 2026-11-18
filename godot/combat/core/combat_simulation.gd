@@ -54,7 +54,7 @@ var hit_stun_on: bool = true
 ## Off for raw frame data (option attacker_edge:false), option duel_rules:false, and any pairing with a King (own balance).
 var rules_on: bool = false
 var head_start_ticks: int = 0
-## Anti-mash rules (balance_v1.json `anti_mash`, core/anti_mash.gd). Needs the duel rules; start option anti_mash:false switches it off.
+## Anti-mash rules (balance_v1.json `anti_mash`, core/anti_mash.gd). Needs the duel rules; start option anti_mash:true / false forces it on / off, otherwise `anti_mash.enabled` decides (default OFF: not calibrated yet, docs/ROADMAP.md step 1).
 var anti_mash_on: bool = false
 ## Human-readable log of the duel (hits, blocks, parries, Resolve spends) for the debug overlay and for playtest notes. Newest last, capped.
 var debug_lines: Array[String] = []
@@ -236,7 +236,8 @@ func _apply_duel_rules(options: Dictionary, attacker_role: String, defender_role
 				fighter.stamina.seat_regen *= float(mods.get("regen_mult", 1.0))
 				fighter.resolve = clampf(float(mods.get("resolve", 0.0)), 0.0, fighter.resolve_max)
 	var am_option = options.get("anti_mash", null)
-	anti_mash_on = rules_on and Balance.anti_mash_enabled() and not (am_option is bool and not am_option)
+	# start option anti_mash: true / false forces the rules on / off (needs the duel rules); absent = the balance flag (OFF by default until calibrated)
+	anti_mash_on = rules_on and (bool(am_option) if am_option is bool else Balance.anti_mash_enabled())
 	for seat in seats:
 		seats[seat].am.setup(anti_mash_on)
 		seats[seat].resolve_start = seats[seat].resolve

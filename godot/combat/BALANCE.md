@@ -318,7 +318,7 @@ Defender's edge, cost of a failed attack, persistent damage, support, Resolve, c
 (`duel_report.gd`, `chess_vs_fight.gd`) and the measured results with their limits: [docs/battle-chess/FAIRNESS_PASS.md](../../docs/battle-chess/FAIRNESS_PASS.md).
 Stamp: `balance-v1:3be59d2bb65e88c3`. The win-rate matrices above this section were measured against earlier data.
 
-## Anti-mash (step 1 of docs/ROADMAP.md) - IMPLEMENTED, NOT YET MEASURED
+## Anti-mash (step 1 of docs/ROADMAP.md) - merged OFF by default (`anti_mash.enabled=false`), NOT calibrated
 
 All numbers: `balance_v1.json` `anti_mash` (flag `enabled`; also needs the duel rules; start option `anti_mash:false` = the old duel).
 State is per fighter in `core/anti_mash.gd`, counted in ticks only (deterministic). Rules: a fully whiffed Light/Heavy cannot be cancelled and

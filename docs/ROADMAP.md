@@ -15,7 +15,7 @@ Rules for every step
 
 ## Steps
 
-- [ ] **1. Duel anti-mash (IMPLEMENTED, UNVERIFIED: no Godot binary in this container, nothing was run; see notes below) (sim, fighter, harness).** Button-mashing must lose to timing and tactics. Adapt to the
+- [ ] **1. Duel anti-mash (merged OFF by default, needs calibration; see notes below) (sim, fighter, harness).** Button-mashing must lose to timing and tactics. Adapt to the
   existing actions (Light, Heavy, Guard, Special, dodge): whiff punishment with a vulnerable recovery window; stamina
   cost escalating for consecutive actions; move staleness (same attack repeated deals less); parry/perfect-block window
   that restores stamina and breaks poise; feints and delays (Heavy can be held a few ticks, Light can cancel into Guard
@@ -47,7 +47,11 @@ Rules for every step
   state-hash desync checks, plus a network-simulator test with latency and packet loss (target zero desyncs at
   150 ms / 2% loss). Secrets only via environment variables.
 
-## Step 1 status (unverified)
+## Step 1 status (merged into `main` 2026-11-18 with `anti_mash.enabled=false`; needs calibration)
+
+- Merged OFF: `balance_v1.json` `anti_mash.enabled` is `false`, so the game plays exactly as the fairness pass left it (docs/battle-chess/FAIRNESS_PASS.md numbers hold). The sim start option `anti_mash: true` (harness `anti_mash.gd`, `edge_calibrate.gd am=on`) forces the rules on. The pinned stamp in `test_balance.gd` now covers the added (disabled) block.
+- Known: with the rules on a Pawn attacking the Queen wins 0% and the queen gate in `test_attacker_edge` fails; nothing is tuned yet. Calibrate, then switch on, regenerate the chess AI table, update the pinned tests.
+
 
 - Changed: `anti_mash` config block + `core/anti_mash.gd`, hooks in state machine / sim / fighter, `masher` + `timing` AI styles, `combat/tools/anti_mash.gd` harness, BALANCE.md section.
 - Harness numbers: NONE. `godot` is not installed here and the rules forbid downloading, so no import check, tests or acceptance run happened.

@@ -10,7 +10,7 @@ const S := CombatConstants.State
 ## Pin of the shipped tuning. A balance change MUST update this on purpose: the stamp is what a server and its clients
 ## compare, so an accidental edit of balance_v1.json fails here instead of silently desynchronising a match.
 const SHIPPED_ID := "balance-v1"
-const SHIPPED_STAMP := "balance-v1:3cd01851d53e1e7c"   # changed on purpose 2026-11-18: fairness pass (duel_rules, meta, skill-over-stats attacker_edge table; BALANCE.md), then anti-mash duel rules
+const SHIPPED_STAMP := "balance-v1:ba331df8c45d92ff"   # changed on purpose 2026-11-18: fairness pass (duel_rules, meta, skill-over-stats attacker_edge table; BALANCE.md), then the anti-mash block merged with enabled=false (uncalibrated)
 
 
 static func run(h, tree: SceneTree) -> void:
@@ -30,6 +30,7 @@ static func _identity(h) -> void:
 	h.eq(hash.length(), 64, "the hash is a SHA-256 hex digest")
 	h.eq(Balance.tuning_hash(), hash, "stable between calls")
 	h.eq(Balance.stamp(), "%s:%s" % [SHIPPED_ID, hash.substr(0, 16)], "stamp = id:first 16 hex")
+	h.check(not Balance.anti_mash_enabled(), "the anti-mash rules ship OFF (uncalibrated; docs/ROADMAP.md step 1): the balance is the fairness-pass balance")
 	h.eq(Balance.stamp(), SHIPPED_STAMP, "the shipped tuning is the pinned one (update SHIPPED_STAMP when balance_v1.json changes ON PURPOSE)")
 	h.eq(Balance.roles().size(), 6, "six roles")
 	for role in ["p", "n", "b", "r", "q", "k"]:

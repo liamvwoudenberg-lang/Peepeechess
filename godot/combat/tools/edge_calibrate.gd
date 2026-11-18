@@ -17,6 +17,7 @@ const X_MAX := 1.8   # e^1.8 = 6.05: the table allows at most 8x, the search sto
 
 var stamina_rule: Dictionary = {"attacker_cost": 1.0, "defender_cost": 1.0, "defender_regen": 1.0}
 var skilled_weight: float = -1.0   # skilled_weight=<0..1> overrides the data's weight of the skilled bot (1.0 = fit the equal-skill duelist mirror only)
+var anti_mash_opt: String = ""   # am=on / am=off forces the anti-mash rules for the whole calibration ("" = the balance flag, OFF by default)
 var damage_scale: float = -1.0   # scale=<x> overrides the data's duel-length scale for the whole calibration (-1 = use the data's)
 
 
@@ -24,6 +25,8 @@ func _options(x: float) -> Dictionary:
 	var options := {"attacker_edge": {"attacker": exp(x) if x > 0.0 else 1.0, "defender": exp(-x) if x < 0.0 else 1.0}, "stamina_edge": stamina_rule}
 	if damage_scale > 0.0:
 		options["damage_scale"] = damage_scale
+	if anti_mash_opt != "":
+		options["anti_mash"] = anti_mash_opt == "on"
 	return options
 
 
@@ -42,11 +45,12 @@ func _rate(a: String, d: String, x: float, n: int, seed_value: int) -> Dictionar
 
 func _initialize() -> void:
 	await process_frame
-	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0", "rule": "", "skilled_weight": ""}
+	var args := {"target": "0.62", "n": "32", "iterations": "8", "seed": "20000", "out": "", "roles": "pnbrq", "shard": "0/1", "pairs": "", "stamina": "", "scale": "", "mode": "both", "floor": "0.30", "lift": "0.10", "min_mult": "1.12", "max_mult": "3.0", "rule": "", "skilled_weight": "", "am": ""}
 	for token in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = String(token).split("=", true, 1)
 		if kv.size() == 2:
 			args[kv[0]] = kv[1]
+	anti_mash_opt = String(args["am"])
 	if String(args["stamina"]) != "":
 		var v: PackedStringArray = String(args["stamina"]).split(",")
 		stamina_rule = {"attacker_cost": float(v[0]), "defender_cost": float(v[1]), "defender_regen": float(v[2])}

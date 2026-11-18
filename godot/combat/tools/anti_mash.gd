@@ -22,7 +22,7 @@ func _initialize() -> void:
 			args[kv[0]] = kv[1]
 	var n := int(args["n"])
 	var base := int(args["seed"])
-	var options := {"anti_mash": false} if String(args["am"]) == "off" else {}
+	var options := {"anti_mash": String(args["am"]) != "off"}   # explicit: the balance flag is OFF by default
 	var out := {"tuning": Balance.stamp(), "mode": args["mode"], "n": n, "rows": {}}
 	if String(args["mode"]) == "skill":
 		var timing := {"style": "timing", "skill": 0.9}
