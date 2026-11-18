@@ -128,7 +128,7 @@ func _build_ui() -> void:
 	column.add_child(connection_row)
 	_connection_row = connection_row
 	hostname = LineEdit.new()
-	hostname.text = "localhost"
+	hostname.text = String(ProjectSettings.get_setting("peepeechess/network/default_server", "localhost"))   # project.godot [peepeechess]; players can still type any address
 	hostname.placeholder_text = "Server hostname"
 	hostname.custom_minimum_size = Vector2(180, 42)
 	connection_row.add_child(hostname)
