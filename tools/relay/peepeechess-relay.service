@@ -1,0 +1,32 @@
+# systemd unit for a VM (for example the Oracle Always Free VM). Install:
+#   sudo useradd --system --home /opt/peepeechess-relay --shell /usr/sbin/nologin peepeechess-relay
+#   sudo install -d -o peepeechess-relay /opt/peepeechess-relay && sudo cp relay.mjs /opt/peepeechess-relay/
+#   sudo cp peepeechess-relay.service /etc/systemd/system/ && sudo systemctl enable --now peepeechess-relay
+# The relay listens on 127.0.0.1:8080 only; Caddy or nginx in front provides wss:// (see docs/deployment/RELAY.md).
+[Unit]
+Description=Peepeechess relay (WebSocket datagram relay, no payload or address logging)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=peepeechess-relay
+WorkingDirectory=/opt/peepeechess-relay
+Environment=HOST=127.0.0.1
+Environment=PORT=8080
+Environment=TRUST_PROXY=1
+ExecStart=/usr/bin/node /opt/peepeechess-relay/relay.mjs
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+MemoryMax=256M
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

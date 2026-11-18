@@ -164,6 +164,18 @@ static func _service(app: Control, parent: Container) -> void:
 	app.api_edit.text = Settings.api_url
 	app.api_edit.text_submitted.connect(func(_t): app._save_api_url())
 	Kit.secondary(card, "Save service address", app._save_api_url)
+	Kit.label(card, "Online relay (play friends through any router)")
+	var relay_edit = app._field(card, "wss://relay.example.com  (leave empty for direct mode only)")
+	relay_edit.name = "RelayAddress"
+	relay_edit.max_length = 200
+	relay_edit.text = RelaySettings.url()
+	var relay_note = Kit.muted(card, "Hosting through a relay needs no port forwarding and keeps your address out of the invite. Paste the address of a relay you or a friend runs (see docs/deployment/RELAY.md).")
+	relay_note.name = "RelayNote"
+	var save_relay = func():
+		var saved = RelaySettings.save(relay_edit.text)
+		Kit.toast(app, str(saved.message), "success" if saved.ok else "error")
+	relay_edit.text_submitted.connect(func(_t): save_relay.call())
+	Kit.secondary(card, "Save relay address", save_relay).name = "SaveRelay"
 	Kit.ghost(card, "Advanced direct-server lobby", func():
 		Settings.launch = {}
 		app.get_tree().change_scene_to_file("res://network/client/online_lobby.tscn"))

@@ -115,6 +115,7 @@ rating change or choose a competitive winner.
   different button or nothing has the focus (a focused "Start battle" always
   wins over a pointer parked elsewhere). The pointer yields to the board cursor
   and to the combat controller when a duel begins.
+- PC combat controls are Dark Souls style profiles (WASD + mouse, or two hands on the keyboard); see [KEYBOARD_CONTROLS.md](KEYBOARD_CONTROLS.md).
 - Online combat offers keyboard / mouse, a gamepad scheme and virtual touch
   controls. Esc releases a captured combat mouse.
 
@@ -138,3 +139,9 @@ The shell was also rendered and visually inspected at 1280×800 using Godot 4.6.
 and Linux Mesa llvmpipe. That is a software-rendered Linux check, not physical
 Windows, Android, touchscreen or controller verification. Native build artifacts
 and device installation are documented separately by the export workflow.
+
+## Campaign
+
+The **Campaign** page (title menu or top navigation) is an offline single-player run of twelve duels, from the castle gate to the Pit Sovereign. You get three
+lives, pick one of three boons after every win, and a lost boss ends the run. Arena colours and skins you unlock are kept between runs. See
+`docs/application/CAMPAIGN.md`. Tested headless and in software rendering only; the difficulty curve has not been playtested by a person.

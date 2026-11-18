@@ -19,6 +19,7 @@ static func run(h, tree: SceneTree) -> void:
 	await _controls_screen(h, tree)
 	await _main_scene(h, tree)
 	await _capture_with_stick_pointer(h, tree)
+	await _cursor_quad(h, tree)
 
 
 # ---- helpers ---------------------------------------------------------------------------------------------------
@@ -801,3 +802,58 @@ static func _capture_with_stick_pointer(h, tree: SceneTree) -> void:
 	ControlBindings.set_shared(old_b)
 	InputAssignment.set_shared(old_a)
 	Pads.release_all()
+
+
+## The keyboard/pad cursor is the tile's own perspective quad: its projected corners equal the projected tile corners (within a pixel)
+## in every camera state, not the axis-aligned bounding box of them.
+static func _cursor_quad(h, tree: SceneTree) -> void:
+	h.begin("cursor geometry: the cursor quad equals the projected tile corners in default, orbited, top-down and flipped 3D views")
+	tree.root.size = Vector2i(1200, 800)
+	Settings.loaded = true
+	Settings.launch.clear()
+	Settings.preferred_3d = true
+	var bindings := ControlBindings.new()
+	var assignment := Pads.fake_assignment(bindings, [0, 1])
+	var old_b := ControlBindings.shared()
+	var old_a := InputAssignment.shared()
+	ControlBindings.set_shared(bindings)
+	InputAssignment.set_shared(assignment)
+	var app: Control = MainScene.instantiate()
+	tree.root.add_child(app)
+	await frames(tree, 4)
+	var ui: PadUi = app.get_node_or_null("PadUi")
+	app.set_view(true)
+	await frames(tree, 3)
+	if h.check(ui != null and app.board_3d.visible and app.board_3d.camera != null, "a visible 3D board with a PadUi"):
+		var b3: Control = app.board_3d
+		for key in ["default", "orbited", "top-down", "flipped"]:
+			match key:
+				"orbited":
+					b3.yaw += 0.6
+					b3.elevation = 0.7
+					b3._update_camera()
+				"top-down":
+					b3.set_top_down(true)
+				"flipped":
+					b3.set_top_down(false)
+					app.set_flipped(true)
+			await frames(tree, 3)
+			var scale: Vector2 = b3.size / Vector2(b3.viewport_3d.size)
+			for at in [0, 12, 27, 36, 63]:
+				var centre: Vector3 = BoardInteraction.world_position(at)
+				var expected := PackedVector2Array()
+				for corner in [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, 1)]:
+					expected.append(b3.camera.unproject_position(centre + Vector3(0, PadUi.TILE_TOP, 0) + corner * 0.4975) * scale)
+				var quad: PackedVector2Array = ui._square_quad(at, 0.4975)
+				var worst := 0.0
+				if quad.size() == 4:
+					for i in 4:
+						worst = maxf(worst, quad[i].distance_to(expected[i]))
+				h.check(quad.size() == 4 and worst < 1.0, "%s view, square %d: cursor corners match the tile corners (worst %.2f px)" % [key, at, worst])
+			if key == "default":
+				var q: PackedVector2Array = ui._square_quad(27, 0.5)
+				h.check(q.size() == 4 and absf(q[0].x - q[3].x) + absf(q[1].x - q[2].x) > 1.0, "the default view's cursor is a trapezoid (its left and right edges lean), not a rectangle")
+	app.queue_free()
+	ControlBindings.set_shared(old_b)
+	InputAssignment.set_shared(old_a)
+	await frames(tree, 2)

@@ -658,6 +658,9 @@ func _world_presenting_changed(presenting: bool) -> void:
 	if is_instance_valid(battle_flow):
 		interaction.enabled = battle_flow.phase == "board" and not presenting
 		board_2d.set_process_input(not presenting and battle_flow.phase == "board")
+		# The phase can reach "board" while the pit is still presenting, which switched the 3D board's (touch) input off; nothing
+		# switched it back on once the presentation ended.
+		board_3d.set_process_input(not presenting and battle_flow.phase == "board" and _view_3d)
 
 func _battle_phase_world(value: String) -> void:
 	var presenting = is_instance_valid(bridge) and bridge.is_presenting()

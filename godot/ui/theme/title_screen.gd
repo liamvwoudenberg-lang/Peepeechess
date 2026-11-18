@@ -95,6 +95,7 @@ static func build(app: Control, parent: Container, quit_visible: bool, over_scen
 		["classic", "Classic Chess", "rook", "PrimaryButton", func(): app.selected_mode = "classic"; app.online = false; app.navigate("play")],
 		["battle", "Battle Chess", "sword", "PrimaryButton", func(): app.selected_mode = "battle"; app.online = false; app.navigate("play")],
 		["training", "Training", "sword", "", func(): app.navigate("training")],
+		["campaign", "Campaign", "crown", "", func(): app.navigate("campaign")],
 		["online", "Online", "cloud", "", func(): app.online = true; app.navigate("play")],
 		["profile", "Profile", "user", "", func(): app.navigate("profile")],
 		["settings", "Settings", "gear", "", func(): app.navigate("settings")],

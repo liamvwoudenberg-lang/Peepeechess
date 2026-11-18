@@ -10,7 +10,14 @@ var timeout_seconds = 4.0
 var _queue: Array = []
 var _request: HTTPRequest
 
+## PRIVACY: asking a website for your address tells that website (and anyone watching it) that this PC plays Peepeechess. Therefore the lookup
+## runs ONLY after the host pressed the explicit consent button (consented = true) or set PEEPEECHESS_IP_LOOKUP=on (headless/testing).
+var consented = false
+
 func lookup() -> void:
+	if not consented and OS.get_environment("PEEPEECHESS_IP_LOOKUP") != "on":
+		finished.emit.call_deferred("")
+		return
 	urls = _configured_urls()
 	_queue = urls.duplicate()
 	if _queue.is_empty():

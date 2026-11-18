@@ -95,7 +95,7 @@ func _ready() -> void:
 		_start_hosting(launch.host)
 	elif launch.has("invite"):
 		_provisioned = true
-		_join_invite(launch.invite)
+		_join_invite(launch.invite, str(launch.get("passphrase", "")))
 
 func _button(parent: Node, text: String, action: Callable) -> Button:
 	var button = Button.new()
@@ -427,6 +427,7 @@ var host_panel: HostPanel
 var _host_options: Dictionary = {}
 var _host_match_sent = false
 var _host_invite_set = false
+var _host_closing = false
 
 func _start_hosting(options: Dictionary) -> void:
 	_host_options = options
@@ -443,8 +444,11 @@ func _start_hosting(options: Dictionary) -> void:
 	column.add_child(host_panel)
 	column.move_child(host_panel, 2)
 	host_panel.stop_requested.connect(_return_menu_now)
+	host_panel.detect_requested.connect(func(): hosted.detect_public_ip())
+	host_panel.manual_address_submitted.connect(func(text): if not hosted.set_manual_address(text): notices.text = "That is not a valid address or name.")
 	hosted.changed.connect(host_panel.update_state)
-	var started = hosted.begin({"mode": str(options.get("mode", "classic")), "color": color, "mapper": options.get("mapper", null), "lookup_ip": options.get("lookup_ip", true)})
+	var started = hosted.begin({"mode": str(options.get("mode", "classic")), "color": color, "mapper": options.get("mapper", null), "lookup_ip": options.get("lookup_ip", false),
+		"connection": str(options.get("connection", "direct")), "relay_url": str(options.get("relay_url", ""))})
 	if started != OK:
 		notices.text = str(hosted.state.get("error", "Hosting failed."))
 		return
@@ -466,11 +470,14 @@ func _host_frame(value: Dictionary) -> void:
 	if hosted != null and not _host_invite_set:
 		_host_invite_set = true
 		hosted.set_match(str(value.state.matchId))
+	if hosted != null and str(value.get("status", "")) == "complete" and not _host_closing:
+		_host_closing = true   # the game is over: close the router port and the listener after a short grace period for the result screens
+		get_tree().create_timer(60.0).timeout.connect(func(): if hosted != null: hosted.stop())
 
 ## Join a friend's hosted game (launch.invite = invite text).
 var invite_join: InviteJoin
 
-func _join_invite(invite_text: String) -> void:
+func _join_invite(invite_text: String, passphrase: String = "") -> void:
 	_connection_row.hide()
 	_lobby_row.hide()
 	invite_join = InviteJoin.new()
@@ -478,7 +485,7 @@ func _join_invite(invite_text: String) -> void:
 	invite_join.status.connect(func(text): notices.text = text)
 	invite_join.failed.connect(_join_failed)
 	invite_join.joined.connect(func(invite): notices.text = "Joined. Security check %s · both players press Ready." % HostInvite.short_fingerprint(invite.fingerprint))
-	var begun = invite_join.begin(client, invite_text, BalanceData.stamp())
+	var begun = invite_join.begin(client, invite_text, BalanceData.stamp(), passphrase)
 	if not begun.ok:
 		_join_failed(str(begun.code), str(begun.message))
 		return

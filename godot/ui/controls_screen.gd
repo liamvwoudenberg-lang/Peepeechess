@@ -83,8 +83,8 @@ func _ready() -> void:
 	_body.add_theme_constant_override("separation", 6)
 	scroll.add_child(_body)
 	_build_players()
-	_build_keyboard("kb1", "Player 1 keyboard (+ mouse: left = light, right = heavy, middle = lock-on, wheel = zoom)")
-	_build_keyboard("kb2", "Player 2 keyboard")
+	_build_keyboard("kb1", "Player 1 keyboard + mouse (pick a profile, then rebind anything: keys, mouse buttons, the wheel)")
+	_build_keyboard("kb2", "Player 2 keyboard (the mouse belongs to Player 1)")
 	_build_pad()
 	_build_pad_tuning()
 	_build_overlay_option()  # control-overlay hook
@@ -174,18 +174,101 @@ func _build_players() -> void:
 	_players_box.add_child(join)
 
 
+var _profile_options: Dictionary = {}   # scheme -> OptionButton
+
+
 func _build_keyboard(scheme: String, heading: String) -> void:
 	_section(heading)
+	var profile_row := HBoxContainer.new()
+	var profile_label := Label.new()
+	profile_label.text = "Control profile"
+	profile_label.custom_minimum_size.x = 320
+	profile_row.add_child(profile_label)
+	var profile_pick := OptionButton.new()
+	profile_pick.custom_minimum_size = Vector2(260, 40)
+	profile_pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for id in ControlBindings.profiles_for(scheme):
+		profile_pick.add_item(String(ControlBindings.PROFILE_LABELS[id]))
+		profile_pick.set_item_metadata(profile_pick.item_count - 1, id)
+	profile_pick.item_selected.connect(func(index: int): _on_profile_selected(scheme, String(profile_pick.get_item_metadata(index))))
+	profile_row.add_child(profile_pick)
+	_body.add_child(profile_row)
+	_profile_options[scheme] = profile_pick
 	for action in ControlBindings.KEY_ACTIONS:
-		_add_row("%s/%s" % [scheme, action], String(ControlBindings.ACTION_LABELS[action]), func(): _begin_capture("key", scheme, action))
+		_add_row("%s/%s" % [scheme, action], String(ControlBindings.ACTION_LABELS[action]), func(): _begin_capture("key", scheme, action, "primary"))
+		if action in ControlBindings.ALT_ACTIONS:
+			_add_row("%s/%s#alt" % [scheme, action], "    " + String(ControlBindings.ACTION_LABELS[action]) + " (alternate)", func(): _begin_capture("key", scheme, action, "alt"))
+	_build_options(scheme)
 	var reset := Button.new()
-	reset.text = "Reset this keyboard set"
+	reset.text = "Reset this keyboard set to its profile defaults"
 	reset.custom_minimum_size.y = 40
 	reset.pressed.connect(func():
-		bindings.reset_defaults(scheme)
-		_say("Keyboard set restored to defaults.")
+		bindings.reset_scheme(scheme)
+		_say("%s restored to the defaults of %s." % ["Keyboard set", ControlBindings.PROFILE_LABELS[bindings.profile_of(scheme)]])
 		_save())
 	_body.add_child(reset)
+
+
+func _on_profile_selected(scheme: String, id: String) -> void:
+	var result := bindings.apply_profile(scheme, id)
+	if not result["ok"]:
+		_say("That profile cannot be used for this keyboard set.", true)
+		return
+	var cleared: Array = result["cleared"]
+	if cleared.is_empty():
+		_say("%s selected." % ControlBindings.PROFILE_LABELS[id])
+	else:
+		_say("%s selected. %d key(s) of the other keyboard set were unbound because they clash; rebind them below." % [ControlBindings.PROFILE_LABELS[id], cleared.size()], true)
+	_save()
+
+
+const OPTION_ROWS := [
+	["mouse_sensitivity", "Mouse look speed", 0.2, 4.0, 0.05, true], ["camera_sensitivity", "Camera speed (mouse and camera keys)", 0.2, 4.0, 0.05, false],
+	["heavy_hold_ms", "Hold to heavy attack after (ms)", 100.0, 600.0, 10.0, false], ["parry_tap_ms", "Tap the block button to parry within (ms)", 60.0, 400.0, 10.0, false],
+	["sprint_tap_ms", "Tap sprint to dodge within (ms)", 80.0, 400.0, 10.0, false],
+]
+const OPTION_CHECKS := [
+	["invert_x", "Invert camera left/right"], ["invert_y", "Invert camera up/down"], ["hold_block", "Block while held (off = press to toggle)"],
+	["heavy_on_hold", "Hold the light attack button for a heavy attack (light then fires on release)"], ["alt_heavy", "Alt + light attack = heavy attack"],
+	["parry_on_tap", "A quick tap of the block button also parries"], ["sprint_tap_dodge", "A quick tap of sprint dodges"], ["lock_hold", "Hold the lock-on button to free the camera"],
+]
+
+
+func _build_options(scheme: String) -> void:
+	for item in OPTION_ROWS:
+		if item[5] and scheme != "kb1":
+			continue
+		var key: String = item[0]
+		var row := HBoxContainer.new()
+		var label := Label.new()
+		label.text = item[1]
+		label.custom_minimum_size.x = 320
+		row.add_child(label)
+		var slider := HSlider.new()
+		slider.min_value = item[2]
+		slider.max_value = item[3]
+		slider.step = item[4]
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.custom_minimum_size = Vector2(240, 40)
+		slider.value_changed.connect(func(v: float):
+			if bindings.set_option(scheme, key, v):
+				_save())
+		row.add_child(slider)
+		var value := Label.new()
+		value.custom_minimum_size.x = 60
+		row.add_child(value)
+		_sliders["opt/%s/%s" % [scheme, key]] = {"slider": slider, "label": value, "scheme": scheme, "name": key}
+		_body.add_child(row)
+	for item in OPTION_CHECKS:
+		var key: String = item[0]
+		var check := CheckButton.new()
+		check.text = item[1]
+		check.custom_minimum_size.y = 40
+		check.toggled.connect(func(on: bool):
+			if bindings.set_option(scheme, key, on):
+				_save())
+		_sliders["opt/%s/%s" % [scheme, key]] = {"check": check, "scheme": scheme, "name": key}
+		_body.add_child(check)
 
 
 func _build_pad() -> void:
@@ -274,6 +357,22 @@ func _add_row(id: String, label_text: String, on_press: Callable) -> void:
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(on_press)
 	row.add_child(button)
+	if id.begins_with("kb"):
+		var key_clear := Button.new()
+		key_clear.text = "Clear"
+		key_clear.custom_minimum_size = Vector2(80, 40)
+		var key_parts := id.split("/")
+		var key_scheme := key_parts[0]
+		var key_action := key_parts[1].replace("#alt", "")
+		var key_slot := "alt" if id.ends_with("#alt") else "primary"
+		key_clear.pressed.connect(func():
+			if key_slot == "alt":
+				bindings.set_alt(key_scheme, key_action, 0)
+			else:
+				bindings.set_key(key_scheme, key_action, 0)
+			_say("%s is unbound." % ControlBindings.ACTION_LABELS[key_action])
+			_save())
+		row.add_child(key_clear)
 	if id.begins_with("pad/"):
 		var clear := Button.new()
 		clear.text = "Clear"
@@ -308,6 +407,8 @@ func row_text(id: String) -> String:
 	var parts := id.split("/")
 	if parts[0] == "pad":
 		return pad_text(bindings.pad_input(parts[1]))
+	if parts[1].ends_with("#alt"):
+		return ControlBindings.key_name(bindings.alt_for(parts[0], parts[1].replace("#alt", "")))
 	return ControlBindings.key_name(bindings.key_for(parts[0], parts[1]))
 
 
@@ -319,12 +420,18 @@ func _refresh() -> void:
 		button.text = row_text(id)
 	for key in _sliders:
 		var entry: Dictionary = _sliders[key]
+		var current: Variant = bindings.option(entry["scheme"], entry["name"]) if entry.has("scheme") else bindings.pad_setting(key)
 		if entry.has("slider"):
 			var slider: HSlider = entry["slider"]
-			slider.set_value_no_signal(float(bindings.pad_setting(key)))
-			entry["label"].text = "%.2f" % float(bindings.pad_setting(key))
+			slider.set_value_no_signal(float(current))
+			entry["label"].text = ("%.0f" % float(current)) if float(slider.max_value) > 50.0 else ("%.2f" % float(current))
 		else:
-			(entry["check"] as CheckButton).set_pressed_no_signal(bool(bindings.pad_setting(key)))
+			(entry["check"] as CheckButton).set_pressed_no_signal(bool(current))
+	for scheme in _profile_options:
+		var pick: OptionButton = _profile_options[scheme]
+		for i in pick.item_count:
+			if pick.get_item_metadata(i) == bindings.profile_of(scheme):
+				pick.select(i)
 	for slot in _seat_options.size():
 		var pref := bindings.seat_pref(slot)
 		for i in _seat_options[slot].item_count:
@@ -378,11 +485,12 @@ func _on_reset_all() -> void:
 
 
 # ---- rebinding -----------------------------------------------------------------------------------------------------
-func _begin_capture(kind: String, scheme: String, action: String) -> void:
+func _begin_capture(kind: String, scheme: String, action: String, slot: String = "primary") -> void:
 	_cancel_capture()
-	var button: Button = _rows["%s/%s" % [("pad" if kind == "pad" else scheme), action]]
-	capture = {"kind": kind, "scheme": scheme, "action": action, "button": button, "left": TIMEOUT}
-	button.text = "Press a key...  (Esc cancels)" if kind == "key" else "Press a button...  (Esc cancels)"
+	var button: Button = _rows["%s/%s%s" % [("pad" if kind == "pad" else scheme), action, "#alt" if slot == "alt" else ""]]
+	capture = {"kind": kind, "scheme": scheme, "action": action, "slot": slot, "button": button, "left": TIMEOUT}
+	var mouse_ok := kind == "key" and scheme == "kb1" and action in ControlBindings.ALT_ACTIONS
+	button.text = ("Press a key or mouse button...  (Esc cancels)" if mouse_ok else "Press a key...  (Esc cancels)") if kind == "key" else "Press a button...  (Esc cancels)"
 	_say("Rebinding %s: %s" % [ControlBindings.ACTION_LABELS[action], "press the new key." if kind == "key" else "press the new controller button or trigger."])
 
 
@@ -418,12 +526,12 @@ func _input(event: InputEvent) -> void:
 		return
 	var action: String = capture["action"]
 	if capture["kind"] == "key":
-		var code := ControlBindings.event_to_key(event)
+		var scheme: String = capture["scheme"]
+		var code := ControlBindings.event_to_binding(event) if (scheme == "kb1" and action in ControlBindings.ALT_ACTIONS) else ControlBindings.event_to_key(event)
 		if code == KEY_NONE:
 			return
 		get_viewport().set_input_as_handled()
-		var scheme: String = capture["scheme"]
-		var result := bindings.set_key(scheme, action, code)
+		var result := bindings.set_alt(scheme, action, code) if String(capture.get("slot", "primary")) == "alt" else bindings.set_key(scheme, action, code)
 		capture = {}
 		if not result["ok"]:
 			_say("%s cannot be used: %s." % [ControlBindings.key_name(code), result["reason"]], true)

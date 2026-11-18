@@ -21,7 +21,8 @@ const SHORT := {
 ## Arms lowered from the A-pose and a little bent: the base of every pose.
 const BASE := {"LArm": Vector3(0, 0, -26), "RArm": Vector3(0, 0, 26), "LFore": Vector3(-14, 0, 0), "RFore": Vector3(-14, 0, 0)}
 const CLIPS := ["idle", "walk", "run", "strafe_left", "strafe_right", "light_1", "light_2", "light_3", "heavy", "block", "parry",
-		"dodge", "stagger", "ability", "defeat", "victory", "hit_react_light", "hit_react_heavy", "climb", "ladder_idle", "drop_fall"]
+		"dodge", "stagger", "ability", "defeat", "victory", "hit_react_light", "hit_react_heavy", "climb", "ladder_idle", "drop_fall",
+		"greet", "bow", "salute", "look_around"]   # the last four: cinematic menu (docs/ui/CINEMATIC_MENU.md)
 const LOOPING := ["idle", "walk", "run", "strafe_left", "strafe_right", "block", "climb", "ladder_idle", "drop_fall"]
 
 
@@ -319,4 +320,21 @@ static func _specs() -> Dictionary:
 	specs["ladder_idle"] = {"len": 2.0, "keys": [_k(0.0, Vector3(0, 0, 0.1), up_a), _k(1.0, Vector3(0, 0.01, 0.1), _mix(up_a, {"Spine": Vector3(6, 0, 0)})), _k(2.0, Vector3(0, 0, 0.1), up_a)]}
 	var fall_a := {"RArm": Vector3(-120, 0, -60), "LArm": Vector3(-120, 0, 60), "RFore": Vector3(-20, 0, 0), "LFore": Vector3(-20, 0, 0), "Spine": Vector3(-6, 0, 0), "LUp": Vector3(-20, 0, 12), "RUp": Vector3(-10, 0, -12), "LLeg": Vector3(30, 0, 0), "RLeg": Vector3(20, 0, 0)}
 	specs["drop_fall"] = {"len": 0.8, "keys": [_k(0.0, z, fall_a), _k(0.4, Vector3(0, 0.02, 0), _mix(fall_a, {"RArm": Vector3(-130, 0, -50), "LArm": Vector3(-110, 0, 70)})), _k(0.8, z, fall_a)]}
+	# --- cinematic menu clips (short, calm; no sword in the hand: the menu paladins carry none) ------------------------------------------------
+	# greet: a nod, a small turn of the head and the free hand raised to chest height, then back to rest
+	var greet_a := {"Head": Vector3(8, -14, 0), "Neck": Vector3(4, -6, 0), "Spine": Vector3(3, -4, 0), "LArm": Vector3(-50, 0, -30), "LFore": Vector3(-80, 0, 0)}
+	var greet_b := _mix(greet_a, {"Head": Vector3(10, -6, 0), "LFore": Vector3(-70, 0, 0), "LArm": Vector3(-56, 0, -26)})
+	specs["greet"] = {"len": 1.5, "keys": [_k(0.0, z, {}), _k(0.35, Vector3(0, -0.01, 0), greet_a), _k(0.7, Vector3(0, -0.01, 0), greet_b), _k(1.1, Vector3(0, -0.005, 0), greet_a), _k(1.5, z, {})]}
+	# bow: a slow bend from the hips with the head following, held a moment, then up (the arms stay at the sides)
+	var bow_down := {"Spine": Vector3(26, 0, 0), "Spine1": Vector3(14, 0, 0), "Spine2": Vector3(8, 0, 0), "Neck": Vector3(8, 0, 0), "Head": Vector3(12, 0, 0), "LUp": Vector3(-6, 0, 0), "RUp": Vector3(-6, 0, 0),
+			"LArm": Vector3(8, 0, -22), "RArm": Vector3(8, 0, 22)}
+	specs["bow"] = {"len": 1.6, "keys": [_k(0.0, z, {}), _k(0.55, Vector3(0, -0.03, 0.05), bow_down), _k(0.95, Vector3(0, -0.03, 0.05), bow_down), _k(1.6, z, {})]}
+	# salute: the sword arm brought to the brow and snapped out to the side, a short hold, back down
+	var sal_up := {"RArm": Vector3(-96, 0, -62), "RFore": Vector3(-118, 0, 0), "Head": Vector3(-4, 8, 0), "Spine": Vector3(-3, 6, 0), "Spine2": Vector3(0, 4, 0)}
+	var sal_out := _mix(sal_up, {"RArm": Vector3(-88, 0, -88), "RFore": Vector3(-24, 0, 0)})
+	specs["salute"] = {"len": 1.5, "keys": [_k(0.0, z, {}), _k(0.3, Vector3(0, 0.01, 0), sal_up), _k(0.5, Vector3(0, 0.015, 0), sal_out), _k(1.0, Vector3(0, 0.015, 0), sal_out), _k(1.5, z, {})]}
+	# look around: head and shoulders turn slowly to one side, hold, the other side, back (the idle breathing continues under it)
+	var look_l := {"Head": Vector3(2, 34, 0), "Neck": Vector3(0, 14, 0), "Spine2": Vector3(0, 10, 0), "Spine": Vector3(1, 6, 0)}
+	var look_r := {"Head": Vector3(2, -34, 0), "Neck": Vector3(0, -14, 0), "Spine2": Vector3(0, -10, 0), "Spine": Vector3(1, -6, 0)}
+	specs["look_around"] = {"len": 4.0, "keys": [_k(0.0, z, {}), _k(0.9, z, look_l), _k(1.5, z, look_l), _k(2.3, z, look_r), _k(2.9, z, look_r), _k(4.0, z, {})]}
 	return specs

@@ -55,6 +55,7 @@ func build() -> void:
 func activate() -> void:
 	build()
 	visible = true
+	_restore_physics()
 	configure_ladder(0.25, 0.0, 0.0)
 	set_light_shaft(0.0)
 	set_ladder(0.0)
@@ -64,6 +65,33 @@ func deactivate() -> void:
 	set_light_shaft(0.0)
 	set_ladder(0.0)
 	visible = false
+	_suspend_physics()
+
+
+## `visible = false` does not take colliders out of the physics world: the camera-collision ceiling slab (layer 4) stayed there after
+## the first battle and every ray from the chess camera hit it before the board. While inactive, the chamber's bodies sit on no layer
+## and see no layer; activate() puts them back exactly as they were.
+const SAVED_LAYER := &"chamber_saved_layer"
+const SAVED_MASK := &"chamber_saved_mask"
+
+func _suspend_physics() -> void:
+	for node in find_children("*", "CollisionObject3D", true, false):
+		var body := node as CollisionObject3D
+		if not body.has_meta(SAVED_LAYER):
+			body.set_meta(SAVED_LAYER, body.collision_layer)
+			body.set_meta(SAVED_MASK, body.collision_mask)
+		body.collision_layer = 0
+		body.collision_mask = 0
+
+
+func _restore_physics() -> void:
+	for node in find_children("*", "CollisionObject3D", true, false):
+		var body := node as CollisionObject3D
+		if body.has_meta(SAVED_LAYER):
+			body.collision_layer = int(body.get_meta(SAVED_LAYER))
+			body.collision_mask = int(body.get_meta(SAVED_MASK))
+			body.remove_meta(SAVED_LAYER)
+			body.remove_meta(SAVED_MASK)
 
 
 static var _stone_cache: StandardMaterial3D = null
