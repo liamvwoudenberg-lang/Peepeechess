@@ -16,7 +16,10 @@ const SettingsPage = preload("res://ui/settings_page.gd")
 const FriendsPage = preload("res://ui/friends_page.gd")
 const CombatAdapter = preload("res://app/battle_combat_adapter.gd")
 const MenuPlaquesScript = preload("res://ui/opening/menu_plaques.gd")
+const MenuWorldScript = preload("res://ui/opening/menu_world.gd")
+const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const TrainingPageScript = preload("res://ui/training_page.gd")
+const CampaignPageScript = preload("res://ui/campaign_page.gd")
 const MaxWidth = preload("res://ui/theme/max_width_box.gd")
 const INK = Tokens.BG
 const PAPER = Tokens.TEXT
@@ -58,6 +61,11 @@ var _backdrop: Control
 ## The 3D castle behind home and match setup (freed on other pages) and the
 ## opening-screen overlay that drives its camera while the first-launch intro plays (null otherwise).
 var scene3d: Node3D
+## The cinematic menu layer over scene3d (stations, camera flights, paladins, props); null on the low quality tier (flat pages).
+var world: Node3D
+var _stage_fade := 1.0
+var _nav: HFlowContainer
+var _nav_labels: Dictionary = {}
 var _brand_button: Button
 var intro: Control
 var _last_toast = ""
@@ -79,6 +87,10 @@ func _ready() -> void:
 		Settings.take_launch()
 		start_page = "training"
 		Settings.intro_seen = true
+	if Settings.launch.get("menu", "") == "campaign":   # back from a campaign encounter (campaign/campaign_scene.gd)
+		Settings.take_launch()
+		start_page = "campaign"
+		Settings.intro_seen = true
 	if Settings.launch.get("menu", "") == "online":
 		var context = Settings.take_launch()
 		online = true
@@ -88,7 +100,7 @@ func _ready() -> void:
 	add_child(api)
 	_build_theme()
 	_build_frame()
-	navigate("training" if start_page == "training" else ("play" if online else "home"))
+	navigate(start_page if start_page != "" else ("play" if online else "home"))
 	PadUi.install(self, {"prefer": "content", "back": Callable(self, "_pad_back")})  # controller / keyboard focus (claude/pads-input)
 	if is_instance_valid(intro):
 		move_child(intro, -1)   # the opening screen sees input before the pad focus helper does
@@ -152,6 +164,7 @@ func _build_frame() -> void:
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
 	var top_width = MaxWidth.new()  # keeps the navigation aligned with the centred page column on wide screens
+	top_width.max_width = 1400.0    # one row of tabs at 1280 px (the page column below is narrower)
 	top_width.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(top_width)
 	_topbar = VBoxContainer.new()
@@ -172,9 +185,14 @@ func _build_frame() -> void:
 	account_badge = Kit.button(brand_row, "Sign in", func(): navigate("account"), "", "user")
 	_topbar_badge = account_badge
 	var nav = _flow(_topbar)
-	for item in [["play", "Play", "crown"], ["training", "Training", "sword"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
+	_nav = nav
+	for item in [["play", "Play", "crown"], ["training", "Training", "sword"], ["campaign", "Campaign", "crown"], ["friends", "Friends", "pawn"], ["profile", "Profile", "user"], ["history", "Match history", "clock"], ["leaderboard", "Leaderboard", "trophy"], ["settings", "Settings", "gear"]]:
 		var target: String = item[0]
 		_menu_buttons[target] = Kit.button(nav, item[1], func(): navigate(target), "NavButton", item[2])
+		_nav_labels[target] = item[1]
+	_portrait_gap = Control.new()   # portrait windows (phones): the world shows through the top part, the page sits below it
+	_portrait_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_portrait_gap)
 	page_scroll = ScrollContainer.new()
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -193,7 +211,54 @@ func _build_frame() -> void:
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(footer)
 	notice = _label(footer, "Your board. Your perspective. One shared game.", 14, MUTED)
+	notice.custom_minimum_size.y = 14.0
 	_update_badge()
+	resized.connect(_apply_layout)
+
+## Any key, click or pad button during a camera flight skips to the end of it.
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(world) or not world.is_flying():
+		return
+	if (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton) and event.is_pressed():
+		world.skip()
+		get_viewport().set_input_as_handled()
+
+## A click on a 3D prop of the stage does what the matching page control does (the controls still own focus, tooltips and the pad).
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_instance_valid(world) or is_instance_valid(intro) or world.is_flying():
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and is_instance_valid(scene3d):
+		var camera: Camera3D = scene3d.get("camera")
+		var id: String = world.pick(camera, event.position)
+		if id != "":
+			world.select_prop(id)
+			_prop_clicked(id)
+			get_viewport().set_input_as_handled()
+
+func _prop_clicked(id: String) -> void:
+	if id == "banner_classic" or id == "banner_battle":
+		selected_mode = "classic" if id == "banner_classic" else "battle"
+		online = false
+		navigate("play")
+	elif id == "preview":
+		navigate("play")
+	elif id.begins_with("friend_") or id == "sign_friends":
+		navigate("friends")
+	elif id == "sign_online":
+		online = true
+		navigate("play")
+	elif id.begins_with("campaign_node_") or id == "map_table" or id.begins_with("boon_"):
+		navigate("campaign")
+	elif id in ["weapon_rack", "medal_wall", "dummy"]:
+		navigate("training")
+	elif id.begins_with("gallery_"):
+		navigate("profile")
+	elif id.begins_with("archive_"):
+		navigate("history")
+	elif id.begins_with("rank_"):
+		navigate("leaderboard")
+	elif id.begins_with("settings_") or id.begins_with("armoury_"):
+		navigate("settings")
 
 ## Circle on a controller: leave a sub-page for Play (PadUi calls this only when no dialog is open).
 func _pad_back() -> void:
@@ -203,7 +268,7 @@ func _pad_back() -> void:
 		navigate("home")
 
 func navigate(target: String) -> void:
-	page = target if target in ["home", "play", "training", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
+	page = target if target in ["home", "play", "training", "campaign", "friends", "profile", "history", "leaderboard", "settings", "account"] else "play"
 	if is_instance_valid(intro):
 		intro.cancel()   # any explicit navigation ends a running opening screen (the player has seen enough)
 	intro = null
@@ -225,8 +290,9 @@ func navigate(target: String) -> void:
 	elif page != "home":
 		_release_scene3d()
 	_backdrop.mode = "scene" if (page in ["home", "play"] or castle_pages) else "page"
-	_page_width.max_width = 4000.0 if page == "home" else 1120.0
-	_page_width.call("_fit")
+	if page != "home":
+		notice.text = ""   # the tagline belongs to the title screen; inner pages keep this line for messages only
+	_apply_layout()
 	page_scroll.scroll_vertical = 0
 	queue_label = null
 	friend_lists = null
@@ -237,6 +303,7 @@ func navigate(target: String) -> void:
 		"play": _play_page()
 		"friends": FriendsPage.build(self)
 		"training": TrainingPageScript.build(self)
+		"campaign": CampaignPageScript.build(self)
 		"account": _account_page()
 		"settings": _settings_page()
 		"profile": _profile_page()
@@ -245,6 +312,99 @@ func navigate(target: String) -> void:
 	_update_badge()
 	_sync_chrome()
 	Motion.fade_in(content, Motion.DURATION, 1.0)
+	_fly_world_to_page()
+	_sync_world_state()
+
+## Page column width and side, and the nav row's text/icon mode. On a roomy window the page sits on the right and the left stays open for the
+## 3D world (the station's paladin and props); narrow windows use the whole width.
+var _portrait_gap: Control
+
+func _apply_layout() -> void:
+	if _page_width == null:
+		return
+	if is_instance_valid(_portrait_gap):
+		var portrait := is_instance_valid(world) and page != "home" and size.y > size.x * 1.15
+		_portrait_gap.custom_minimum_size.y = size.y * 0.30 if portrait else 0.0
+	var stage := is_instance_valid(world) and page != "home" and size.x >= 1000.0
+	_page_width.align_right = stage
+	if page == "home":
+		_page_width.max_width = 4000.0
+	elif stage:
+		_page_width.max_width = clampf(size.x * 0.52, 620.0, 880.0)
+	else:
+		_page_width.max_width = 1120.0
+	_page_width.call("_fit")
+	_fit_nav()
+
+## One row of tabs: full labels when they fit, icon-only (labels as tooltips) when they do not. Never wraps on windows >= 480 px.
+func _fit_nav() -> void:
+	if _nav == null or _menu_buttons.is_empty():
+		return
+	for key in _menu_buttons:
+		var button: Button = _menu_buttons[key]
+		button.text = _nav_labels[key]
+		button.tooltip_text = ""
+	var gap := float(_nav.get_theme_constant("h_separation"))
+	var need := gap * float(_menu_buttons.size() - 1)
+	for key in _menu_buttons:
+		need += (_menu_buttons[key] as Button).get_combined_minimum_size().x
+	var avail := minf(size.x - 48.0, 1400.0)
+	nav_icon_only = need > avail
+	if nav_icon_only:
+		for key in _menu_buttons:
+			var button: Button = _menu_buttons[key]
+			button.tooltip_text = _nav_labels[key]
+			button.text = ""
+			button.accessibility_name = _nav_labels[key]
+	_update_friends_badge()
+
+var nav_icon_only := false
+
+## Flies the camera to the page's station (long the first time, one second after that; instant in headless test runs).
+func _fly_world_to_page() -> void:
+	if not is_instance_valid(world):
+		return
+	if is_instance_valid(intro):
+		return   # the opening screen still drives the camera
+	if not world.rig.active:
+		world.start("home")
+	var duration: float = world.fly_to_page(page, online)
+	if duration > 0.0:
+		_stage_fade = 0.0
+		page_scroll.modulate.a = 0.0
+		notice.modulate.a = 0.0
+
+## Keeps the 3D props in step with the page state (selected game, opponent kind, 2D/3D board, Friends vs Online).
+func _sync_world_state() -> void:
+	if not is_instance_valid(world):
+		return
+	world.set_play_selection(selected_mode, "online" if online else str(opponent.get("kind", "local")), Settings.preferred_3d)
+	world.set_exterior_selection("online" if (page == "play" and online) else "friends")
+	var run: CampaignRun = CampaignProgress.shared().run
+	world.set_campaign_display(String(run.status) if run != null else "none", int(run.index) if run != null else 0, int(run.nodes_cleared()) if run != null else 0,
+			Array(run.offer) if run != null else [])
+	if page == "training":
+		var progress := ProgressStore.new()
+		var catalog := LessonCatalog.load_all()
+		var medals: Array = []
+		for lesson in catalog.playable():
+			if medals.size() >= 8:
+				break
+			var entry: Dictionary = progress.lessons.get(String(lesson.get("id", "")), {})
+			medals.append(ProgressStore.RATINGS.find(String(entry.get("best_rating", ""))) if bool(entry.get("completed", false)) else 0)
+		world.set_training_medals(medals)
+
+## A page control makes the station paladin look at a prop on hover/focus and bow on press.
+func _wire_prop(button: Control, prop_id: String) -> void:
+	if not is_instance_valid(world) or button == null:
+		return
+	var w: Node3D = world
+	button.mouse_entered.connect(func(): w.hover_prop(prop_id))
+	button.mouse_exited.connect(func(): w.clear_hover())
+	button.focus_entered.connect(func(): w.hover_prop(prop_id))
+	button.focus_exited.connect(func(): w.clear_hover())
+	if button is BaseButton:
+		(button as BaseButton).pressed.connect(func(): w.select_prop(prop_id))
 
 ## Navigation, brand, account chip and the page frame as 3D plaques in the castle camera (one set per castle, reused across pages).
 func _sync_chrome() -> void:
@@ -263,7 +423,9 @@ func _sync_chrome() -> void:
 func _page_frame_rect() -> Rect2:
 	var scroll := page_scroll.get_global_rect()
 	var column := _page_width.get_global_rect()
-	return Rect2(column.position.x, scroll.position.y, column.size.x, scroll.size.y)
+	var left := float(_page_width.get_theme_constant("margin_left"))
+	var right := float(_page_width.get_theme_constant("margin_right"))
+	return Rect2(column.position.x + left, scroll.position.y, maxf(1.0, column.size.x - left - right), scroll.size.y)
 
 ## The title page. The very first time in a run it is the opening screen (title + "press any button", then the camera glides
 ## through the gate and the menu fades in); afterwards the menu simply shows over the 3D castle.
@@ -288,6 +450,8 @@ func _home_page() -> void:
 func _on_intro_finished(screen: Control) -> void:
 	if intro == screen:
 		intro = null
+	if is_instance_valid(world) and not world.rig.active:
+		world.start("home")   # the home station is exactly the pose the opening glide ends on
 	Music.go(get_tree(), "menu")
 	Motion.settle(content)
 
@@ -299,9 +463,14 @@ func _ensure_scene3d(blend: float) -> void:
 	add_child(scene3d)
 	move_child(scene3d, 0)
 	scene3d.call("build", Settings.quality, Motion.enabled(), blend)
+	if Settings.quality != "low":   # the flat low tier keeps the old menu exactly as it was
+		world = MenuWorldScript.new()
+		world.call("setup", scene3d, Settings.quality)
+		world.set_audio(get_node_or_null("UiAudio"))
 
 ## Frees the castle while a page without the scene is open; the next visit rebuilds it.
 func _release_scene3d() -> void:
+	world = null
 	if is_instance_valid(scene3d):
 		if scene3d.get_parent() != null:
 			scene3d.get_parent().remove_child(scene3d)
@@ -367,7 +536,8 @@ func _play_page() -> void:
 		_style_scene_card(card.get_parent() as PanelContainer, selected_mode == selected)
 		Kit.icon_label_row(card, "rook" if selected == "classic" else "sword", data[2], "H2" if selected_mode == selected else "H3")
 		_label(card, data[3], 15, MUTED).custom_minimum_size = Vector2(260, 48)
-		_button(card, "Selected" if selected_mode == selected else "Choose " + data[2], func(): selected_mode = selected; navigate("play"), selected_mode == selected)
+		var choose = _button(card, "Selected" if selected_mode == selected else "Choose " + data[2], func(): selected_mode = selected; navigate("play"), selected_mode == selected)
+		_wire_prop(choose, "banner_" + selected)
 	var setup = _card(content)
 	_style_scene_card(setup.get_parent() as PanelContainer, false)
 	_label(setup, "YOUR MATCH", 13, GOLD)
@@ -406,6 +576,7 @@ func _play_page() -> void:
 			var seats = InputAssignment.shared()
 			_label(setup, "Duel controls · touchscreen; a connected controller takes priority." if touch and vs_computer else "Duel controls · " + seats.describe(0) + " · " + seats.describe(1) + "   (Settings → Controls & controllers)", 14, MUTED)
 		return
+	_room_code_card()   # the dedicated server by room code: no account needed
 	_friends_on_this_pc_card()   # host/join over the internet: no account needed
 	if Settings.token.is_empty():
 		_button(setup, "Sign in to play online  →", func(): navigate("account"), true)
@@ -431,37 +602,70 @@ func _play_page() -> void:
 ## Host a game on this PC / join a friend's invite (docs/application/HOSTING_GUIDE.md). Unranked, no account; the mode and time
 ## control come from the options above.
 var host_color = "w"
+## "relay" works through any home router (no port forwarding); "direct" needs a forwarded UDP port. Relay is the default once a relay address is set.
+var host_connection = ""
+var _host_connection_chosen = false
 var host_invite_edit: LineEdit
+var host_pass_edit: LineEdit
+
+## The dedicated server (project setting peepeechess/network/default_server, editable in the lobby): create a room, share its 6-character code, or type a friend's.
+func _room_code_card() -> void:
+	var card = _card(content)
+	Kit.section_header(card, "PLAY ON THE PEEPEECHESS SERVER · ROOM CODE · NO ACCOUNT", "cloud")
+	_label(card, "Connect to the game server, create a room and send its 6-character code to your friend, or type the code they sent you. Uses the mode chosen above.", 14, MUTED)
+	var button = _button(card, "Play with a room code  →", func():
+		Settings.launch = {"view3d": Settings.preferred_3d}
+		get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn"), true)
+	button.name = "RoomCodeButton"
+
 
 func _friends_on_this_pc_card() -> void:
 	var card = _card(content)
 	Kit.section_header(card, "PLAY A FRIEND OVER THE INTERNET · NO ACCOUNT", "cloud")
 	_label(card, "Host the game on your PC, then send the invite to your friend. It uses the mode and time control chosen above and is never ranked.", 14, MUTED)
 	Kit.segmented(card, [["w", "I play White"], ["b", "I play Black"], ["r", "Random"]], host_color, func(value): host_color = value)
+	if not RelaySettings.configured():
+		host_connection = "direct"
+	elif not _host_connection_chosen:
+		host_connection = "relay"   # relay is the default as soon as one is configured; the player's own choice sticks
+	if RelaySettings.configured():
+		Kit.segmented(card, [["relay", "Relay (works everywhere)"], ["direct", "Direct (needs port forwarding)"]], host_connection, func(value): host_connection = value; _host_connection_chosen = true).name = "ConnectionChoice"
+		_label(card, "Relay: your friend connects through a relay server. No router settings, and your address is not in the invite. The relay only sees encrypted traffic.", 14, MUTED)
+	else:
+		var no_relay = _label(card, "No relay configured: direct mode only (needs a forwarded UDP port). Paste a relay address in Settings to play through any router.", 14, MUTED)
+		no_relay.name = "NoRelayNotice"
+		_button(card, "Open Settings", func(): navigate("settings")).name = "RelaySettingsButton"
 	var host_button = _button(card, "Host a game on this PC  →", start_hosting, true)
 	host_button.name = "HostGameButton"
 	_label(card, "Joining a friend's game", 14, GOLD)
 	host_invite_edit = _field(card, "Paste the invite your friend sent (starts with PCHESS1-)")
 	host_invite_edit.name = "InviteField"
-	host_invite_edit.max_length = 6000
+	host_invite_edit.max_length = 12000
+	host_pass_edit = _field(card, "Word code from the host (for example K7QM-X2PD-9WTR)")
+	host_pass_edit.name = "PassphraseField"
+	host_pass_edit.max_length = 32
 	var join_row = _flow(card)
 	_button(join_row, "Paste", func(): host_invite_edit.text = DisplayServer.clipboard_get().strip_edges()).name = "PasteInvite"
 	_button(join_row, "Join with invite  →", join_with_invite, true).name = "JoinInviteButton"
 
 func hosting_launch() -> Dictionary:
 	var options = match_options()
-	return {"host": {"mode": options.mode, "color": host_color, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d}}
+	var relay = RelaySettings.url()
+	var connection = host_connection if not relay.is_empty() and host_connection in ["relay", "direct"] else "direct"
+	return {"host": {"mode": options.mode, "color": host_color, "initialMs": options.initialMs, "incrementMs": options.incrementMs, "view3d": Settings.preferred_3d,
+		"connection": connection, "relay_url": relay}}
 
 func start_hosting() -> void:
 	Settings.launch = hosting_launch()
 	get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn")
 
 func join_with_invite() -> void:
-	var parsed = HostInvite.decode(host_invite_edit.text if host_invite_edit != null else "")
+	var pass_text = host_pass_edit.text.strip_edges() if host_pass_edit != null else ""
+	var parsed = HostInvite.decode(host_invite_edit.text if host_invite_edit != null else "", pass_text)
 	if not parsed.ok:
 		_message(str(parsed.message), true)
 		return
-	Settings.launch = {"invite": host_invite_edit.text.strip_edges(), "view3d": Settings.preferred_3d}
+	Settings.launch = {"invite": host_invite_edit.text.strip_edges(), "passphrase": pass_text, "view3d": Settings.preferred_3d}
 	get_tree().change_scene_to_file.call_deferred("res://network/client/online_lobby.tscn")
 
 func _choose_view(use_3d: bool) -> void:
@@ -655,6 +859,12 @@ func _load_history(generation: int, offset: int = 0) -> void:
 		previous_button.queue_free()
 	_history_more_button = null
 	var matches: Array = response.data.get("matches", [])
+	if is_instance_valid(world) and offset == 0:
+		var outcomes: Array = []
+		for record in matches:
+			var white: bool = record.whitePlayerId == Settings.account.get("playerId")
+			outcomes.append("draw" if record.result == "draw" else ("win" if record.result == ("white" if white else "black") else "loss"))
+		world.set_gallery(outcomes)
 	if matches.is_empty() and offset == 0:
 		Kit.empty_state(content, "list", "No online matches yet", "Your first online match is waiting. Find an opponent from Play.", "Find a match", func(): online = true; navigate("play"))
 	for record in matches:
@@ -696,6 +906,11 @@ func _load_leaderboard(generation: int, mode: String) -> void:
 		Kit.error_state(content, "The leaderboard could not be loaded. " + str(response.message), "Try again", func(): navigate("leaderboard"))
 		return
 	var players: Array = response.data.get("players", [])
+	if is_instance_valid(world):
+		var top: Array = []
+		for entry in players:
+			top.append(str(entry.get("displayName", "")))
+		world.set_leaderboard(top)
 	for i in players.size():
 		var profile: Dictionary = players[i]
 		var stats: Dictionary = profile[mode]
@@ -822,6 +1037,12 @@ func _open_allocation(allocation: Dictionary) -> void:
 	get_tree().change_scene_to_file("res://network/client/online_lobby.tscn")
 
 func _process(delta: float) -> void:
+	if is_instance_valid(world):
+		var flying: bool = world.is_flying()
+		var rate := (6.5 if Prefs.reduce_motion else 5.0) if not flying else 8.0
+		_stage_fade = move_toward(_stage_fade, 0.0 if flying else 1.0, delta * rate)
+		page_scroll.modulate.a = _stage_fade
+		notice.modulate.a = _stage_fade
 	_poll_timer += delta
 	if _poll_timer >= 2.0:
 		_poll_timer = 0.0

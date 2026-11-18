@@ -22,8 +22,10 @@ static func run(h, tree: SceneTree) -> void:
 	await _interruptions(h, tree)
 	await _repeat_leaks(h, tree)
 	await _top_down_view(h, tree)
+	await _meshy_base(h, tree)
 	await _single_camera(h, tree)
 	await _end_to_end(h, tree)
+	await _clicks_after_duel(h, tree)
 
 
 # ---- fixtures ------------------------------------------------------------------------------------
@@ -129,6 +131,64 @@ static func _world_is_chess(h, fx: Dictionary, label: String) -> void:
 		h.check(node.visible and node.scale == Vector3.ONE and node.position.is_equal_approx(Interaction.world_position(Rules.index(p.square))), label + ": piece %s on its tile, visible, unscaled" % p.pieceId)
 		h.check(node.rotation.x == 0.0 and node.rotation.z == 0.0, label + ": piece %s upright" % p.pieceId)
 	h.eq(board.pieces.size(), ids.size(), label + ": mesh registry equals chess state")
+
+
+# ---- the Meshy chessboard base ------------------------------------------------------------------------
+static func _meshy_base(h, tree: SceneTree) -> void:
+	h.begin("meshy board base: a weathered stone slab under the tiles, nothing above the tile tops, hidden while the trapdoor is open")
+	var fx := await _fixture(tree)
+	var board: ChessBoard3D = fx["board"]
+	var world: BattleWorld = fx["world"]
+	var found := board.scene.find_children("MeshyBoardBase", "Node3D", false, false)
+	h.eq(found.size(), 1, "exactly one MeshyBoardBase on the board (balanced quality)")
+	if found.is_empty():
+		_free(fx, tree)
+		return
+	var base: Node3D = found[0]
+	h.check(base.visible, "the base is shown while the trapdoor is closed")
+	h.near(float(base.get_meta("width")), MeshyCourtyard.BOARD_WIDTH, 0.001, "the slab is normalised to its board width")
+	h.near(float(base.get_meta("top_y")), MeshyCourtyard.BOARD_TOP, 0.001, "the slab's highest point is the configured top")
+	var tile_bottom := -0.04
+	var tile_top := 0.04
+	h.check(MeshyCourtyard.BOARD_TOP <= tile_bottom + 0.01, "the slab's top is no higher than the bottom of the tiles (+1 cm of overlap)")
+	# every vertex of the slab inside the 8x8 footprint stays below the tile tops, and nothing is above BOARD_TOP anywhere
+	var highest := -1000.0
+	var highest_inside := -1000.0
+	var lowest := 1000.0
+	var checked := 0
+	for mi in base.find_children("*", "MeshInstance3D", true, false):
+		var instance := mi as MeshInstance3D
+		var to_board: Transform3D = base.global_transform.affine_inverse() * instance.global_transform
+		var verts: PackedVector3Array = instance.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		for v in verts:
+			var w := to_board * v
+			highest = maxf(highest, w.y)
+			lowest = minf(lowest, w.y)
+			if absf(w.x) <= 4.0 and absf(w.z) <= 4.0:
+				highest_inside = maxf(highest_inside, w.y)
+			checked += 1
+	h.check(checked > 1000, "the slab mesh was inspected (%d vertices)" % checked)
+	h.check(highest <= MeshyCourtyard.BOARD_TOP + 0.001, "no slab vertex is above the configured top (%.3f)" % highest)
+	h.check(highest_inside < tile_top, "no slab geometry inside the 8x8 footprint reaches the tile tops (%.3f < %.2f)" % [highest_inside, tile_top])
+	h.check(lowest > -1.0, "the slab is a thin base, not a block (lowest %.2f)" % lowest)
+	for at in range(64):
+		var tile: MeshInstance3D = board.tiles[at]
+		h.check(tile.position.y + tile_top > highest, "tile %d stands above the slab" % at) if at % 21 == 0 else null
+	# the carved border is not covered by the old gold frame box
+	var frame_top := WorldConstants.FRAME_CENTER.y + WorldConstants.FRAME_SIZE.y * 0.5 - MeshyCourtyard.FRAME_SINK
+	h.check(frame_top < MeshyCourtyard.BOARD_TOP - 0.03, "the old frame box sits below the slab's carved border (top %.3f)" % frame_top)
+	# the trapdoor hides the base while it is open and restores it
+	var at := 27
+	world.trapdoor.begin(at, Interaction.world_position(at))
+	world.trapdoor.open(0.5)
+	for i in 90:
+		world.trapdoor.advance(1.0 / 30.0)
+	h.check(world.trapdoor.openness > 0.5 and not base.visible, "the base is hidden while the trapdoor is open (openness %.2f)" % world.trapdoor.openness)
+	world.trapdoor.close(0.2)
+	for i in 30:
+		world.trapdoor.advance(1.0 / 30.0)
+	h.check(world.trapdoor.is_closed() and base.visible, "the base is shown again once the trapdoor has closed")
+	_free(fx, tree)
 
 
 # ---- camera ----------------------------------------------------------------------------------------
@@ -700,4 +760,59 @@ static func _end_to_end(h, tree: SceneTree) -> void:
 	_world_is_chess(h, {"world": world, "board": app.board_3d, "game": app.game}, "after failure")
 	app.queue_free()
 	await tree.process_frame
+	Engine.physics_ticks_per_second = saved_rate
+
+
+# ---- the mouse keeps working after a duel --------------------------------------------------------------
+## Regression: after the first battle the pit chamber's camera-collision slab stayed in the physics world and every picking ray from
+## the chess camera hit it before the board, so the mouse could no longer move a piece. Plays a full duel through the real flow, then
+## clicks a piece and a square with real mouse events.
+static func _click_square(app, at: int, tree: SceneTree) -> void:
+	var board: ChessBoard3D = app.board_3d
+	var vp_pos: Vector2 = board.camera.unproject_position(Interaction.world_position(at) + Vector3(0, 0.04, 0))
+	var win_pos: Vector2 = board.global_position + vp_pos * board.size / Vector2(board.viewport_3d.size)
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		ev.position = win_pos
+		ev.global_position = win_pos
+		ev.device = 0
+		Input.parse_input_event(ev)
+		for i in 3:
+			await tree.process_frame
+
+
+static func _clicks_after_duel(h, tree: SceneTree) -> void:
+	var saved_rate := Engine.physics_ticks_per_second
+	Engine.physics_ticks_per_second = 600
+	for view_3d in [true, false]:
+		var label := "3D view" if view_3d else "2D view (switches to 3D for the duel and back)"
+		h.begin("mouse after a duel (%s): the board still picks squares and moves pieces" % label)
+		var ctx := await _boot_battle(tree)
+		var app = ctx["app"]
+		var world: BattleWorld = ctx["world"]
+		app.set_view(view_3d)
+		await tree.process_frame
+		await _fight(h, tree, ctx, "defender", label)
+		for i in 10:
+			await tree.process_frame
+		h.eq(app.battle_flow.phase, "board", label + ": back on the board")
+		h.check(app.interaction.enabled, label + ": the board accepts input again")
+		h.eq(app.board_3d.visible, view_3d, label + ": the view the player chose is restored")
+		app.set_view(true)   # picking is exercised on the 3D board
+		await tree.process_frame
+		await tree.process_frame
+		for at in [63, 36, 12]:
+			var vp_pos: Vector2 = app.board_3d.camera.unproject_position(Interaction.world_position(at) + Vector3(0, 0.04, 0))
+			var local: Vector2 = vp_pos * app.board_3d.size / Vector2(app.board_3d.viewport_3d.size)
+			h.eq(app.board_3d.square_at(local), at, "after the duel a ray through square %d picks square %d (the chamber's slab no longer blocks it)" % [at, at])
+		var before: String = app.game.engine.fen()
+		var from_sq := 63   # Black's king (h8) moves to g8
+		await _click_square(app, from_sq, tree)
+		h.eq(app.interaction.selected, from_sq, "a real mouse click selects the king after the duel")
+		await _click_square(app, 62, tree)
+		h.check(app.game.engine.fen() != before, "a second click on g8 moves the king: the mouse moves pieces after a duel")
+		app.queue_free()
+		await tree.process_frame
 	Engine.physics_ticks_per_second = saved_rate

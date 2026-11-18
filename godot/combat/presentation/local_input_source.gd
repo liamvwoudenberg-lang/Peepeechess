@@ -6,7 +6,7 @@ extends Node
 ## counters. Project input maps are not touched (project.godot is Codex-owned): bindings are read
 ## from raw keys/buttons here, through `bindings` (ControlBindings; defaults = the old constants).
 ##
-## Schemes: "kb1" WASD + mouse, "kb2" arrow keys, "pad<device id>" gamepads (each pad is its own device: events
+## Schemes: "kb1" WASD + mouse (or any other control profile, see ControlBindings.PROFILE_IDS), "kb2" arrow keys, "pad<device id>" gamepads (each pad is its own device: events
 ## and polling carry the device id, so two pads never cross-talk), "touch" virtual controls
 ## (presentation/touch_controls.gd, landscape multi-touch). Left stick / keys move
 ## relative to the camera; the camera converts to the world-space vector the contract expects.
@@ -38,6 +38,8 @@ var camera: ThirdPersonCamera
 var fighter: FighterController
 var submit: Callable
 var mouse_look: bool = false
+## Tests only: a headless display server cannot capture the mouse, so a test can declare it captured.
+var assume_captured: bool = false
 ## Key/button map and pad tuning. Tests may give a private instance; the default is the process-wide one.
 var bindings: ControlBindings = ControlBindings.shared()
 ## Source of "is this pad connected" (hot-plug). Default: the shared InputAssignment.
@@ -55,6 +57,11 @@ var enabled: bool = true:
 var touch = null
 var _touch_layer: CanvasLayer = null
 
+## Millisecond clock for tap / hold decisions; tests inject their own (default: Time.get_ticks_msec).
+var clock: Callable = Callable()
+var _press_t: Dictionary = {}       # binding code -> msec of the press that is still down (tap / hold decisions)
+var _pending_heavy: Dictionary = {} # binding code -> true while a light-attack press waits to become heavy (hold) or light (release)
+var _block_toggled: bool = false    # hold_block == false: a press toggles block
 var _attack_pressed_this_tick: bool = false
 var _last_facing: float = 0.0
 var _held_state: Dictionary = {}   # held action -> PadMath.Schmitt (axis-bound sprint/block)
@@ -128,34 +135,23 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not enabled or (builder == null and net_client == null):
 		return
 	var keys: Dictionary = bindings.keys_for(scheme)
-	if event is InputEventKey and event.pressed and not event.echo and not keys.is_empty():
-		var code: int = event.physical_keycode
-		if code == keys["light"]:
-			_press("light")
-		elif code == keys["heavy"]:
-			_press("heavy")
-		elif code == keys["dodge"]:
-			_do_press("dodge")
-		elif code == keys["parry"]:
-			_do_press("parry")
-		elif code == keys["ability"]:
-			_do_press("ability")
-		elif code == keys["lock"]:
-			camera.toggle_lock()
-	elif event is InputEventMouseButton and event.pressed and mouse_look and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		match event.button_index:
-			MOUSE_BUTTON_LEFT:
-				_press("light")
-			MOUSE_BUTTON_RIGHT:
-				_press("heavy")
-			MOUSE_BUTTON_MIDDLE:
-				camera.toggle_lock()
-			MOUSE_BUTTON_WHEEL_UP:
-				camera.zoom(-0.4)
-			MOUSE_BUTTON_WHEEL_DOWN:
-				camera.zoom(0.4)
-	elif event is InputEventMouseMotion and mouse_look and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		camera.add_look(event.relative.x * MOUSE_SENSITIVITY, event.relative.y * MOUSE_SENSITIVITY)
+	var mouse_live := _mouse_live()
+	if not keys.is_empty() and ((event is InputEventKey and not event.echo) or (event is InputEventMouseButton and mouse_live)):
+		var code := _binding_code(event)
+		if code != 0:
+			if event.pressed:
+				if not _code_pressed(code) and code < 0:
+					match -code:   # unbound wheel = camera zoom (as before)
+						MOUSE_BUTTON_WHEEL_UP:
+							camera.zoom(-0.4)
+						MOUSE_BUTTON_WHEEL_DOWN:
+							camera.zoom(0.4)
+			else:
+				_code_released(code)
+	elif event is InputEventMouseMotion and mouse_live:
+		var k: float = MOUSE_SENSITIVITY * float(bindings.option(scheme, "mouse_sensitivity")) * float(bindings.option(scheme, "camera_sensitivity"))
+		camera.add_look(event.relative.x * k * (-1.0 if bindings.option(scheme, "invert_x") else 1.0),
+				event.relative.y * k * (-1.0 if bindings.option(scheme, "invert_y") else 1.0))
 	elif event is InputEventJoypadButton and scheme.begins_with("pad") and event.device == _pad_device():
 		if pad_lost:
 			return
@@ -164,6 +160,90 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventJoypadMotion and scheme.begins_with("pad") and event.device == _pad_device():
 		if not pad_lost:
 			_pad_axis_moved(int(event.axis), float(event.axis_value))
+
+
+## Mouse buttons / motion count only while the mouse is captured for mouse-look (the cursor never fights the UI).
+func _mouse_live() -> bool:
+	return mouse_look and (assume_captured or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED)
+
+
+func _now() -> int:
+	return int(clock.call()) if clock.is_valid() else Time.get_ticks_msec()
+
+
+## Signed binding code of a key (physical, > 0) or mouse button event (-button, < 0).
+func _binding_code(event: InputEvent) -> int:
+	if event is InputEventKey:
+		return int(event.physical_keycode)
+	if event is InputEventMouseButton:
+		return -int(event.button_index)
+	return 0
+
+
+## A bound input went down. Returns false if nothing is bound to it. Tap / hold options decide when the press becomes an intent.
+func _code_pressed(code: int) -> bool:
+	var actions := bindings.actions_for(scheme, code)
+	if actions.is_empty():
+		return false
+	_press_t[code] = _now()
+	for action in actions:
+		match action:
+			"light":
+				if bool(bindings.option(scheme, "alt_heavy")) and Input.is_physical_key_pressed(KEY_ALT):
+					_press("heavy")
+				elif bool(bindings.option(scheme, "heavy_on_hold")):
+					_pending_heavy[code] = true   # becomes light on a quick release, heavy once held long enough
+				else:
+					_press("light")
+			"heavy":
+				_press("heavy")
+			"dodge", "parry", "ability":
+				_do_press(action)
+			"lock":
+				if bool(bindings.option(scheme, "lock_hold")):
+					if camera.locked:
+						camera.toggle_lock()   # holding frees the camera
+				else:
+					camera.toggle_lock()
+			"block":
+				if not bool(bindings.option(scheme, "hold_block")):
+					_block_toggled = not _block_toggled
+				if bool(bindings.option(scheme, "parry_on_tap")) and Input.is_physical_key_pressed(KEY_SHIFT) and code < 0:
+					_do_press("parry")   # Shift + block button = parry straight away
+	return true
+
+
+func _code_released(code: int) -> void:
+	var held_ms := _now() - int(_press_t.get(code, _now()))
+	_press_t.erase(code)
+	if _pending_heavy.has(code):
+		_pending_heavy.erase(code)
+		_press("light")   # released before the hold threshold: it was a tap
+	for action in bindings.actions_for(scheme, code):
+		match action:
+			"block":
+				if bool(bindings.option(scheme, "parry_on_tap")) and held_ms < int(bindings.option(scheme, "parry_tap_ms")):
+					_do_press("parry")
+			"sprint":
+				if bool(bindings.option(scheme, "sprint_tap_dodge")) and held_ms < int(bindings.option(scheme, "sprint_tap_ms")):
+					_do_press("dodge")
+			"lock":
+				if bool(bindings.option(scheme, "lock_hold")) and not camera.locked:
+					camera.toggle_lock()
+
+
+## Turns holds into heavy attacks and releases lost to focus changes into releases; once per physics tick.
+func _update_holds() -> void:
+	var mouse_live := _mouse_live()
+	for code in _press_t.keys():
+		var down := Input.is_physical_key_pressed(code as Key) if code > 0 else (mouse_live and Input.is_mouse_button_pressed((-code) as MouseButton))
+		if not down and not (code < 0 and (-code in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN])):
+			_code_released(code)
+	var hold_ms := int(bindings.option(scheme, "heavy_hold_ms"))
+	for code in _pending_heavy.keys():
+		if _now() - int(_press_t.get(code, _now())) >= hold_ms:
+			_pending_heavy.erase(code)
+			_press("heavy")
 
 
 ## One press edge from a pad button, routed through the binding map (several actions may share a button).
@@ -234,6 +314,10 @@ func _do_press(action: String) -> void:
 		builder.press(action)
 
 
+func _key_down(code: int) -> bool:
+	return code > 0 and Input.is_physical_key_pressed(code as Key)
+
+
 func _pad_device() -> int:
 	return int(scheme.substr(3))
 
@@ -258,13 +342,18 @@ func _physics_process(_delta: float) -> void:
 	var block := false
 	var keys: Dictionary = bindings.keys_for(scheme)
 	if not keys.is_empty():
-		move.x = float(Input.is_physical_key_pressed(keys["right"])) - float(Input.is_physical_key_pressed(keys["left"]))
-		move.y = float(Input.is_physical_key_pressed(keys["up"])) - float(Input.is_physical_key_pressed(keys["down"]))
-		sprint = Input.is_physical_key_pressed(keys["sprint"])
-		block = Input.is_physical_key_pressed(keys["block"])
-		var orbit := float(Input.is_physical_key_pressed(keys["orbit_r"])) - float(Input.is_physical_key_pressed(keys["orbit_l"]))
-		if orbit != 0.0:
-			camera.add_look(orbit * 0.035, 0.0)
+		var mouse_live := _mouse_live()
+		_update_holds()
+		move.x = float(_key_down(keys.get("right", 0))) - float(_key_down(keys.get("left", 0)))
+		move.y = float(_key_down(keys.get("up", 0))) - float(_key_down(keys.get("down", 0)))
+		sprint = bindings.is_held(scheme, "sprint", mouse_live)
+		block = bindings.is_held(scheme, "block", mouse_live) if bool(bindings.option(scheme, "hold_block")) else _block_toggled
+		var cam_sens := float(bindings.option(scheme, "camera_sensitivity"))
+		var orbit := float(_key_down(keys.get("orbit_r", 0))) - float(_key_down(keys.get("orbit_l", 0)))
+		var tilt := float(_key_down(keys.get("look_down", 0))) - float(_key_down(keys.get("look_up", 0)))
+		if orbit != 0.0 or tilt != 0.0:
+			camera.add_look(orbit * 0.035 * cam_sens * (-1.0 if bindings.option(scheme, "invert_x") else 1.0),
+					tilt * 0.02 * cam_sens * (-1.0 if bindings.option(scheme, "invert_y") else 1.0))
 	elif scheme == "touch":
 		if touch != null:
 			move = touch.move_vector

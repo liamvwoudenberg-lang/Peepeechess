@@ -4,6 +4,14 @@ extends VBoxContainer
 ## plain manual port-forwarding steps. Light text on dark card panels, touch-sized buttons, no hover-only information.
 const Kit = preload("res://ui/theme/ui_kit.gd")
 signal stop_requested
+signal detect_requested
+signal manual_address_submitted(text: String)
+var _reveal: Button
+var _passphrase: Label
+var _manual_edit: LineEdit
+var _detect: Button
+var _privacy: Label
+var _revealed = false
 var _card: VBoxContainer
 var _status: Label
 var _invite: LineEdit
@@ -32,8 +40,25 @@ func _ready() -> void:
 	_copy.name = "CopyInvite"
 	_copy.disabled = true
 	Kit.secondary(row, "Stop hosting", func(): stop_requested.emit())
+	_reveal = Kit.secondary(row, "Show invite", _toggle_reveal)
+	_reveal.name = "RevealInvite"
 	_copied = Kit.muted(_card, "")
 	_copied.name = "Copied"
+	_passphrase = Kit.label(_card, "")
+	_passphrase.name = "Passphrase"
+	var address_row = Kit.flow(_card)
+	_manual_edit = LineEdit.new()
+	_manual_edit.name = "ManualAddress"
+	_manual_edit.placeholder_text = "Your public address (optional, typed by you)"
+	_manual_edit.custom_minimum_size = Vector2(260, Kit.target_height())
+	_manual_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_manual_edit.text_submitted.connect(func(text): manual_address_submitted.emit(text))
+	address_row.add_child(_manual_edit)
+	Kit.secondary(address_row, "Use this address", func(): manual_address_submitted.emit(_manual_edit.text)).name = "UseAddress"
+	_detect = Kit.secondary(address_row, "Detect my address (asks a website)", func(): detect_requested.emit())
+	_detect.name = "DetectAddress"
+	_privacy = Kit.muted(_card, "Privacy: your address is hidden here and sealed inside the invite. Only someone with the invite AND the word code can read it. A direct game necessarily shows your address to the friend you invite.")
+	_privacy.name = "Privacy"
 	_fingerprint = Kit.muted(_card, "")
 	_fingerprint.name = "Fingerprint"
 	_address = Kit.muted(_card, "")
@@ -43,9 +68,12 @@ func _ready() -> void:
 	_manual = Kit.muted(_card, "")
 	_manual.name = "Manual"
 
+var _last_state: Dictionary = {}
+
 func update_state(state: Dictionary) -> void:
 	if _status == null:
 		return
+	_last_state = state
 	var phase: String = str(state.get("phase", ""))
 	var invite: String = str(state.get("invite", ""))
 	match phase:
@@ -60,22 +88,34 @@ func update_state(state: Dictionary) -> void:
 		"stopped":
 			_status.text = "Hosting stopped."
 	_invite.text = invite
+	_invite.secret = not _revealed   # the invite is hidden on screen (streams, screenshots) until the host shows it
 	_copy.disabled = invite.is_empty()
+	var word_code: String = str(state.get("passphrase", ""))
+	_passphrase.text = "Word code (tell your friend by voice or another chat, not together with the invite): %s" % word_code if not word_code.is_empty() and _revealed else ("Word code hidden: press Show invite." if not word_code.is_empty() else "")
 	var fingerprint: String = str(state.get("fingerprint", ""))
 	_fingerprint.text = "Security check: %s (your friend sees the same code when they join)." % HostInvite.short_fingerprint(fingerprint) if not fingerprint.is_empty() else ""
-	var addresses: Array = []
-	var public = str(state.get("public_ip", ""))
-	var router: Dictionary = state.get("router", {})
-	if router.get("ok", false) and not str(router.get("external_ip", "")).is_empty() and not router.get("private_external", false):
-		public = str(router.external_ip)
-	if not public.is_empty():
-		addresses.append("Internet: %s:%d" % [public, int(state.get("port", 0))])
-	for lan in state.get("lan", []):
-		addresses.append("Same network: %s:%d" % [lan, int(state.get("port", 0))])
-	_address.text = "\n".join(addresses) + ("\nUDP port %d" % int(state.get("port", 0)) if int(state.get("port", 0)) > 0 else "")
+	# Addresses are never printed: only whether the invite has an internet address and the UDP port that must be open.
+	var lines: Array = []
+	var relay_only = str(state.get("connection", "direct")) == "relay"
+	if relay_only:
+		lines.append("Connection: relay. No port forwarding is needed and no address is in the invite.")
+	else:
+		if str(state.get("connection", "direct")) == "both":
+			lines.append("Connection: relay first, direct addresses as a fallback.")
+		lines.append("Internet address in the invite: %s" % ("yes (hidden)" if bool(state.get("has_internet_address", false)) else "not yet"))
+		lines.append("Same-network addresses: %d (hidden)" % state.get("lan", []).size())
+		if int(state.get("port", 0)) > 0:
+			lines.append("UDP port %d" % int(state.get("port", 0)))
+	_address.text = "\n".join(lines)
+	_manual_edit.get_parent().visible = not relay_only   # nothing to type or detect when no address is shared
 	var reach: Dictionary = state.get("reach", {})
 	_reach.text = str(reach.get("text", ""))
 	_manual.text = manual_steps(int(state.get("port", 0))) if str(reach.get("level", "")) == "manual" else ""
+
+func _toggle_reveal() -> void:
+	_revealed = not _revealed
+	_reveal.text = "Hide invite" if _revealed else "Show invite"
+	update_state(_last_state)
 
 func _copy_invite() -> void:
 	DisplayServer.clipboard_set(_invite.text)

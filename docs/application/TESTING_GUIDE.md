@@ -86,7 +86,7 @@ Option B, sideload without a computer:
 
 Expected permissions (check with `adb shell dumpsys package com.peepeechess.game | grep permission`, or Settings, Apps,
 Peepeechess, Permissions): only **Internet** (`android.permission.INTERNET`) and **network state**
-(`android.permission.ACCESS_NETWORK_STATE`). Nothing is asked at run time: no storage, camera, microphone or location.
+(`android.permission.ACCESS_NETWORK_STATE`), plus **Vibrate** (`android.permission.VIBRATE`) for touch haptics. Nothing is asked at run time: no storage, camera, microphone or location.
 If the app asks for anything else, report it as a bug. App backup is disabled.
 
 Uninstall: `adb uninstall com.peepeechess.game` or long-press the icon. This also deletes local preferences.

@@ -123,6 +123,8 @@ static func rows(b: ControlBindings, scheme: String, role: String, mouse: bool =
 
 
 static func _keyboard_rows(b: ControlBindings, scheme: String, ability: String, mouse: bool) -> Array:
+	if b.profile_of(scheme) in ["souls_mouse", "souls_keys"]:
+		return _souls_rows(b, scheme, ability, mouse)
 	var k: Dictionary = b.keys_for(scheme)
 	var n := func(a: String) -> String: return ControlBindings.key_name(int(k.get(a, KEY_NONE)))
 	var move := ""
@@ -137,6 +139,20 @@ static func _keyboard_rows(b: ControlBindings, scheme: String, ability: String, 
 	return [["Move", move], ["Light", light], ["Heavy", heavy], ["Block", "%s (hold)" % n.call("block")], ["Parry", n.call("parry")],
 		["Dodge", n.call("dodge")], ["Ability", "%s (%s)" % [n.call("ability"), ability]], ["Sprint", "%s (hold)" % n.call("sprint")],
 		["Lock-on", lock], ["Camera", cam], ["Pause", "Esc"]]
+
+
+## Rows for the Souls profiles: every action lists ALL its inputs (mouse buttons with their names) and the tap / hold modifiers in force.
+static func _souls_rows(b: ControlBindings, scheme: String, ability: String, mouse: bool) -> Array:
+	var row := func(label: String, action: String, extra: String = "") -> Array:
+		var note := b.modifier_note(scheme, action)
+		var text := b.binding_names(scheme, action, " / ", mouse) + extra
+		if not note.is_empty():
+			text += " (%s)" % note
+		return [label, text]
+	var cam := b.camera_label(scheme) if mouse else b.camera_label(scheme).replace("mouse or ", "")
+	return [["Move", b.move_label(scheme)], row.call("Light", "light"), row.call("Heavy", "heavy"), row.call("Block", "block", " (hold)" if bool(b.option(scheme, "hold_block")) else ""),
+		row.call("Parry", "parry"), row.call("Dodge", "dodge"), row.call("Ability", "ability", " (%s)" % ability),
+		row.call("Sprint", "sprint", " (hold)"), row.call("Lock-on", "lock"), ["Camera", cam], ["Pause", "Esc"]]
 
 
 ## "P1 White · Keyboard + mouse" / "P2 Black · PlayStation pad" / "P1 White · Touch".

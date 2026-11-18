@@ -1,3 +1,5 @@
+> **Superseded (2026-11-18).** The branch and integration rules in this file (`develop`, per-agent branches/worktrees, PRs into `develop`) are retired. The one active version is `main`; every other branch is temporary. The current rules are in `/AGENTS.md`. The rest of this file is kept as history.
+
 # Branches, worktrees and integration
 
 `develop` is the stable integration line; `main` remains the release line.

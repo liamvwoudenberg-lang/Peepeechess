@@ -171,6 +171,9 @@ func presentation(use_3d: bool) -> void:
 		expect(arena.cameras.size() == 2 and arena._inputs.size() == 2 and arena._ais.is_empty(), "two real human cameras/controllers; no unintended AI seats")
 		expect(arena._visuals.uses_generated_arena or arena._visuals.uses_meshy_arena, "application mounts an imported arena")
 		expect(arena._fighter_visuals.size() == 2 and arena._fighter_visuals.all(func(visual): return visual is CharacterModel and visual.has_clip("light_1") and visual.has_clip("defeat")), "application uses imported animated fighter models")
+		# The default profile for seat 0 is now "Souls: keyboard + mouse" (light = left mouse, F = parry). This check is about keyboard events crossing the nested
+		# viewport, so it uses the Classic profile where F is the light attack (the profile switch is applied live to the shared bindings).
+		arena._inputs[0].bindings.apply_profile(arena._inputs[0].scheme, "classic")
 		var counts = []
 		for source in arena._inputs:
 			counts.append(source.builder.counters.light)
