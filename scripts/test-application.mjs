@@ -1,3 +1,4 @@
+process.env.PEEPEECHESS_ACCOUNTS = '1'; // the account screens stay covered by these suites (accounts are OFF by default in the game)
 /** Real HTTP account service + dedicated authority + two independent Godot clients.
  * Run from repository root. No client directly writes records, ratings or outcomes.
  */

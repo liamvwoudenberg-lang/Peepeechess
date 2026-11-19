@@ -50,7 +50,10 @@ func run() -> void:
 			expect(rgb(capture_mark.material_override.albedo_color).is_equal_approx(Tokens.CB_CAPTURE), "live safe capture palette: %s / top-down %s" % [style, top_down])
 			expect(move_mark.layers == WorldConstants.LAYER_BOARD and capture_mark.layers == WorldConstants.LAYER_BOARD, "markers remain on the board render layer")
 			if style == "dots":
-				expect(capture_mark.mesh.top_radius > move_mark.mesh.top_radius, "capture has a distinct shape size, independent of colour")
+				# captures are a bold ring (TorusMesh, outer_radius) around the victim, moves a small disc (CylinderMesh, top_radius)
+				var capture_size: float = capture_mark.mesh.outer_radius if capture_mark.mesh is TorusMesh else capture_mark.mesh.top_radius
+				var move_size: float = move_mark.mesh.outer_radius if move_mark.mesh is TorusMesh else move_mark.mesh.top_radius
+				expect(capture_size > move_size, "capture has a distinct shape size, independent of colour")
 			Prefs.set_colorblind(false)
 			expect(rgb(at(board, "e5").material_override.albedo_color).is_equal_approx(original), "disabling the preference restores the normal palette")
 	expect(game.match_state() == state, "camera, style and accessibility changes never mutate the match")

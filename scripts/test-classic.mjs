@@ -1,3 +1,4 @@
+process.env.PEEPEECHESS_ACCOUNTS = '1'; // the account screens stay covered by these suites (accounts are OFF by default in the game)
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

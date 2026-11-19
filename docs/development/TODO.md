@@ -64,12 +64,12 @@ Everything below is "not done"; nothing here is advertised in the game (no ranke
 
 ## Presentation / audio
 
-- [ ] Board look decision (owner): `BoardLook.SCENERY_ENABLED=false`: ui-polish's procedural dais/walls/braziers (godot/boards/board_scenery.gd, board_fx.gd) are built but switched off because main's courtyard + Meshy fortress already fill the scene; pick one or make them cooperate, then look at it in a real build
+- [x] Board look decision: the owner asked for the new scenery, so `BoardLook.SCENERY_ENABLED=true` since 2026-11-18 (still to check in a real build: does it overlap the Meshy courtyard?). Old note: ui-polish's procedural dais/walls/braziers (godot/boards/board_scenery.gd, board_fx.gd) are built but switched off because main's courtyard + Meshy fortress already fill the scene; pick one or make them cooperate, then look at it in a real build
 - [ ] Look at the merged board in a real GPU build: marble/slate squares + Meshy slab, taller pieces + footprint rings, camera 1.13/12.7, ring marks; nothing of this was seen in motion (owner)
 - [ ] Wave-1 cinematic overlays (capture intro, finishing blow, result, loading) and graphics presets only tested headless; watch them (owner)
 - [ ] Trapdoor / pit-fall animation vs the new Meshy arena (needs a precise report) (source: TODO.md)
 - [ ] Verify the fortress walls, the pit camera and the arena camera in motion; Meshy chessboard tray is OFF (source: TODO.md)
-- [ ] Audio: Sonniss build script (`tools/audio/build_sonniss.py`, from `audio-sounds`, never run end to end; the 187 MB of raw WAVs stay on that branch, not in main); run it, map sounds, listen on headphones and speakers; generated music/impacts never listened to (owner for listening)
+- [x] (done 2026-11-18: 47 real sounds built and wired, BoardSounds, real ambience) Audio: Sonniss build script (`tools/audio/build_sonniss.py`, from `audio-sounds`, never run end to end; the 187 MB of raw WAVs stay on that branch, not in main); run it, map sounds, listen on headphones and speakers; generated music/impacts never listened to (owner for listening)
 - [ ] Audio buses (Music/SFX/UI/Ambience) and the Ambience slider are merged; check ducking and settings persistence on a device (source: claude/wave1-anim-audio)
 - [ ] Replace procedural combat animation (strafe = walk, simplified block/attack) and the box sword with finished assets; Kinemiq/free-game-animations not integrated (owner downloads the dataset)
 - [ ] ROADMAP step 3: duel presentation (camera push-in ring, presentation clock slow-mo/hit-stop, piece personality, board memory, dynamic audio layers, versus card, replay camera) (docs/ROADMAP.md)

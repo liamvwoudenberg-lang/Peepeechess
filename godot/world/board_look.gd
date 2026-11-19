@@ -84,8 +84,9 @@ const RING_LIGHT_PIECE := Color(0.18, 0.1, 0.04, 0.8)
 const RING_RADIUS := 0.4
 const RING_WIDTH := 0.035
 
-## ui-polish's procedural dais / walls / braziers (BoardScenery.build). Off: main's courtyard and Meshy fortress are the setting and the two would overlap. Owner decision, see docs/development/TODO.md.
-const SCENERY_ENABLED := false
+## The new board setting: ui-polish's procedural dais / walls / braziers / flagstone ring (BoardScenery.build), ON by the owner's request (2026-11-18).
+## Set to false to fall back to main's courtyard and Meshy fortress alone (the two can overlap); see docs/development/TODO.md "Board look decision".
+const SCENERY_ENABLED := true
 
 # ---- camera ----------------------------------------------------------------------------------------------------------------------
 ## Default perspective view: closer and a little steeper than the old 13.5 / 0.88. Orbit and zoom are clamped so the board stays framed.

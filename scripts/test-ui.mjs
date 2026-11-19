@@ -1,3 +1,4 @@
+process.env.PEEPEECHESS_ACCOUNTS = '1'; // the account screens stay covered by these suites (accounts are OFF by default in the game)
 // Native UI design-system checks (headless, deterministic): theme / contrast / preferences / kit, then page layout at
 // six resolutions + 150 % UI scale, safe-area insets, focus traversal and interrupted transitions; then an overlap audit
 // (nothing visible may sit on top of anything else visible) over pages, the chess screen, dialogs and a battle; then the existing
@@ -26,6 +27,7 @@ const godot = process.env.GODOT_BIN || 'godot';
 const suites = [
   'res://tests/ui/ui_theme_test.gd',
   'res://tests/ui/gothic_style_test.gd',
+  'res://tests/ui/accounts_optional_test.gd',
   'res://tests/ui/ui_layout_test.gd',
   'res://tests/ui/ui_overlap_test.gd',   // overlap / clipping / tiny-target audit of every page, the match screen, dialogs and a whole battle
   'res://tests/ui/opening_screen_test.gd',

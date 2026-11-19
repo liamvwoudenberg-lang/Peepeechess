@@ -1,3 +1,4 @@
+process.env.PEEPEECHESS_ACCOUNTS = '1'; // the account screens stay covered by these suites (accounts are OFF by default in the game)
 // Computer opponent + board settings suites (headless Godot). Run from the repository root: npm run test:ai
 // Gate is the same as the other native suites: a non-zero exit, SCRIPT ERROR, Parse Error or any line starting with
 // `ERROR:` (leaked resources at exit included) fails the run. Self-play games run as parallel shards.
