@@ -8,6 +8,7 @@ extends Node
 const CombatAudio = preload("res://combat/audio/combat_audio.gd")
 const Prefs = preload("res://ui/theme/ui_prefs.gd")
 const NODE_NAME := "BoardSounds"
+static var force := false   # tests / product check: build the listener even without an audio device (headless)
 
 var game
 var viewer: Callable
@@ -17,7 +18,7 @@ var _ended := false
 
 
 static func attach(host: Node, match_game, viewer_color: Callable = Callable()) -> BoardSounds:
-	if host == null or match_game == null or DisplayServer.get_name() == "headless":
+	if host == null or match_game == null or (DisplayServer.get_name() == "headless" and not force):
 		return null
 	var existing := host.get_node_or_null(NODE_NAME) as BoardSounds
 	if existing != null:
